@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/WrathOfZombies/samples.svg?branch=master)](https://travis-ci.org/WrathOfZombies/samples)
+
 # Add-in Playground Samples
 A collection of samples for the Add-in Playground
 

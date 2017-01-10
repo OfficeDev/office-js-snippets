@@ -16,15 +16,15 @@ const walk = (dir, files = []) => {
 
 const stripNames = (file) => {
     let url = file;
-    let strippedPath = file.replace(path.resolve('samples'), '').replace('\\', '');
-    let [source, group, filename] = strippedPath.split('\\');
+    let strippedPath = file.replace(path.resolve('samples'), '').replace('/', '');
+    let [source, group, filename] = strippedPath.split('/');
     console.log(chalk.bold.blue(source, group, url, filename));
     return { source, group, url, filename };
 }
 
 const process = (file) => {
     let {source, group, url, filename} = stripNames(file);
-    console.log(chalk.bold.green(`${source}\\${group}\\${filename}`));
+    console.log(chalk.bold.green(`${source}/${group}/${filename}`));
 
     let contents = fs.readFileSync(url);
     let {name, description} = jsYaml.load(contents);

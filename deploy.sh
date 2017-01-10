@@ -31,7 +31,7 @@ git config user.email "$COMMIT_AUTHOR_EMAIL"
 
 # Commit the "changes", i.e. the new version.
 # The delta will show diffs between new and old versions.
-git add .
+git add playlists
 git commit -m "Travis: auto-generating playlists [${SHA}]"
 
 # Get the deploy key by using Travis's stored variables to decrypt deploy_key.enc
@@ -46,3 +46,4 @@ ssh-add deploy_key
 
 # Now that we're all set up, we can push.
 git push -u origin deployment
+exit 0

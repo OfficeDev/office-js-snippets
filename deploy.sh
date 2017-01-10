@@ -17,8 +17,10 @@ SHA=`git rev-parse --verify HEAD`
 # Clone the existing repo into `out`and cd into it
 git clone "https://${GH_TOKEN}@github.com/WrathOfZombies/samples.git" out
 cd out
-git merge master
 git checkout -b deployment
+git pull
+git merge master
+
 
 # Run `npm install` and our `build` script
 npm install

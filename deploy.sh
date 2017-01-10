@@ -18,7 +18,7 @@ SHA=`git rev-parse --verify HEAD`
 git clone "https://${GH_TOKEN}@github.com/WrathOfZombies/samples.git" out
 cd out
 git checkout -b deployment
-git pull
+git pull origin deployment
 git merge master
 
 

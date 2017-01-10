@@ -149,9 +149,9 @@ libraries: |-
 
   // References to other NPM libraries
   jquery
-  office-ui-fabric/dist/js/jquery.fabric.min.js
-  office-ui-fabric/dist/css/fabric.min.css
-  office-ui-fabric/dist/css/fabric.components.min.css
+  office-ui-fabric-js/dist/js/fabric.min.js
+  office-ui-fabric-js/dist/css/fabric.min.css
+  office-ui-fabric-js/dist/css/fabric.components.min.css
   @microsoft/office-js-helpers/dist/office.helpers.min.js
   core-js/client/core.min.js
 

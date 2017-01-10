@@ -14,7 +14,14 @@ REPO=`git config remote.origin.url`
 SSH_REPO=${REPO/https:\/\/github.com\//git@github.com:}
 SHA=`git rev-parse --verify HEAD`
 
+# Clone the existing repo into `out`and cd into it
+git clone $REPO out
+cd out
+
+echo $REPO
+
 # Run `npm install` and our `build` script
+npm install
 npm run build
 git status
 
@@ -25,7 +32,7 @@ git config user.email "$COMMIT_AUTHOR_EMAIL"
 # Commit the "changes", i.e. the new version.
 # The delta will show diffs between new and old versions.
 git add .
-git commit -m "Generating playlists: ${SHA}"
+git commit -m "Minor fixes: ${SHA}"
 
 # Get the deploy key by using Travis's stored variables to decrypt deploy_key.enc
 ENCRYPTED_KEY_VAR="encrypted_${ENCRYPTION_LABEL}_key"
@@ -38,4 +45,4 @@ eval `ssh-agent -s`
 ssh-add deploy_key
 
 # Now that we're all set up, we can push.
-git push $SSH_REPO $TARGET_BRANCH
+git push $SSH_REPO $BRANCH

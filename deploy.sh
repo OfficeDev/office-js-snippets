@@ -15,8 +15,8 @@ fi
 SHA=`git rev-parse --verify HEAD`
 
 # Now let's go have some fun with the cloned repo
-git config user.name "Travis CI"
-git config user.email "$COMMIT_AUTHOR_EMAIL"
+git config --global user.name "Travis CI"
+git config --global user.email "$COMMIT_AUTHOR_EMAIL"
 
 # Clone the existing repo into `out`and cd into it
 git clone "https://${GH_TOKEN}@github.com/WrathOfZombies/samples.git" out

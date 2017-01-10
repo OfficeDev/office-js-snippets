@@ -14,26 +14,25 @@ fi
 # Save some useful information
 SHA=`git rev-parse --verify HEAD`
 
+# Now let's go have some fun with the cloned repo
+git config user.name "Travis CI"
+git config user.email "$COMMIT_AUTHOR_EMAIL"
+
 # Clone the existing repo into `out`and cd into it
 git clone "https://${GH_TOKEN}@github.com/WrathOfZombies/samples.git" out
 cd out
 git checkout -b deployment
-git pull origin deployment
-git merge master
-
+git branch -u origin/deployment
+git pull
 
 # Run `npm install` and our `build` script
 npm install
 npm run build
 git status
 
-# Now let's go have some fun with the cloned repo
-git config user.name "Travis CI"
-git config user.email "$COMMIT_AUTHOR_EMAIL"
-
 # Commit the "changes", i.e. the new version.
 # The delta will show diffs between new and old versions.
-git add playlists
+git add .
 git commit -m "Travis: auto-generating playlists [${SHA}]"
 
 # Now that we're all set up, we can push.

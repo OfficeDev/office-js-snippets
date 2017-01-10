@@ -22,8 +22,6 @@ git config --global user.email "$COMMIT_AUTHOR_EMAIL"
 git clone "https://${GH_TOKEN}@github.com/WrathOfZombies/samples.git" out
 cd out
 git checkout -b deployment
-git branch -u origin/deployment
-git pull
 
 # Run `npm install` and our `build` script
 npm install
@@ -36,5 +34,5 @@ git add .
 git commit -m "Travis: auto-generating playlists [${SHA}]"
 
 # Now that we're all set up, we can push.
-git push -u origin deployment
+git push -u origin deployment --force
 exit 0

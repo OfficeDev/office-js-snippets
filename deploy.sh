@@ -12,11 +12,10 @@ if [ "$TRAVIS_BRANCH" != "$BRANCH" ]; then
 fi
 
 # Save some useful information
-REPO=`git config remote.origin.url`
 SHA=`git rev-parse --verify HEAD`
 
 # Clone the existing repo into `out`and cd into it
-git clone $REPO out
+git clone "https://${GH_TOKEN}@github.com/WrathOfZombies/samples.git" out
 cd out
 git checkout -b deployment
 
@@ -33,16 +32,6 @@ git config user.email "$COMMIT_AUTHOR_EMAIL"
 # The delta will show diffs between new and old versions.
 git add playlists
 git commit -m "Travis: auto-generating playlists [${SHA}]"
-
-# Get the deploy key by using Travis's stored variables to decrypt deploy_key.enc
-ENCRYPTED_KEY_VAR="encrypted_${ENCRYPTION_LABEL}_key"
-ENCRYPTED_IV_VAR="encrypted_${ENCRYPTION_LABEL}_iv"
-ENCRYPTED_KEY=${!ENCRYPTED_KEY_VAR}
-ENCRYPTED_IV=${!ENCRYPTED_IV_VAR}
-openssl aes-256-cbc -K $ENCRYPTED_KEY -iv $ENCRYPTED_IV -in deploy_key.enc -out deploy_key -d
-chmod 600 deploy_key
-eval `ssh-agent -s`
-ssh-add deploy_key
 
 # Now that we're all set up, we can push.
 git push -u origin deployment

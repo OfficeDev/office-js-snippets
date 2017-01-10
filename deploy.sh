@@ -1,22 +1,24 @@
 #!/bin/bash
 set -e # Exit with nonzero exit code if anything fails
 
+# Inspired by https://gist.github.com/domenic/ec8b0fc8ab45f39403dd
+
 BRANCH="master"
 
 # Only commits to master branch will trigger a build.
-if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" != "$BRANCH" ]; then
+if [ "$TRAVIS_BRANCH" != "$BRANCH" ]; then
     echo "Skipping deploy."
     exit 0
 fi
 
 # Save some useful information
 REPO=`git config remote.origin.url`
-SSH_REPO=${REPO/https:\/\/github.com\//git@github.com:}
 SHA=`git rev-parse --verify HEAD`
 
 # Clone the existing repo into `out`and cd into it
 git clone $REPO out
 cd out
+git checkout -b deployment
 
 # Run `npm install` and our `build` script
 npm install
@@ -36,7 +38,7 @@ fi
 # Commit the "changes", i.e. the new version.
 # The delta will show diffs between new and old versions.
 git add .
-git commit -m "Minor fixes: ${SHA}"
+git commit -m "Travis: auto-generating playlists [${SHA}]"
 
 # Get the deploy key by using Travis's stored variables to decrypt deploy_key.enc
 ENCRYPTED_KEY_VAR="encrypted_${ENCRYPTION_LABEL}_key"
@@ -49,4 +51,4 @@ eval `ssh-agent -s`
 ssh-add deploy_key
 
 # Now that we're all set up, we can push.
-git push $SSH_REPO $TARGET_BRANCH
+git push -u origin/deployment

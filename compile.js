@@ -16,6 +16,7 @@ const walk = (dir, files = []) => {
 
 const stripNames = (file) => {
     let url = file;
+    console.log(chalk.bold.blue(file));
     let strippedPath = file.replace(path.resolve('samples'), '').replace('\\', '');
     let [source, group, filename] = strippedPath.split('\\');
     return { source, group, url, filename };

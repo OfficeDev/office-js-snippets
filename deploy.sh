@@ -20,6 +20,7 @@ git clone $REPO out
 
 # Run our compile script
 npm run build
+git status
 
 # Now let's go have some fun with the cloned repo
 git config user.name "Travis CI"

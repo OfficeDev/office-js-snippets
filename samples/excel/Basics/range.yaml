@@ -1,0 +1,166 @@
+id: cixwf8q1800004q6vi10g4jo5
+gist: ''
+source: excel
+author: Microsoft
+name: Range basics
+description: Explores the most common Range APIs
+script:
+  content: |
+    $('#setup').click(setup);
+
+    $('#set-formulas').click(setFormulas);
+    $('#get-texts').click(getTexts);
+
+    async function setup() {
+        try {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+                var entireRange = sheet.getRange();
+                entireRange.clear();
+                await context.sync();
+            });
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+
+    async function setFormulas() {
+        try {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+                let data = [
+                    ["Product", "Price", "Tax"],
+                    ["Apple", 1.99, "=R[0]C[-1] * .09"],
+                    ["Oranges", 2.49, "=R[0]C[-1] * .09"]
+                ]
+                sheet.getCell(0, 0)
+                    .getResizedRange(data.length - 1, data[0].length - 1)
+                    .formulasR1C1 = data;
+
+                await context.sync();
+            });
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+
+    async function getTexts() {
+        try {
+            await Excel.run(async (context) => {
+                let selection = context.workbook.getSelectedRange();
+                selection.load("text")
+                await context.sync();
+
+                console.log(JSON.stringify(selection.text, null, 4));
+            });
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+  language: typescript
+style:
+  content: |
+    body {
+        margin: 0;
+        padding: 10px;
+    }
+
+
+    /* Button customization, including overwriting some Fabric defaults */
+
+    .ms-Button, .ms-Button:focus {
+        background: #217346;
+        border: #217346;
+    }
+
+        .ms-Button > .ms-Button-label,
+        .ms-Button:focus > .ms-Button-label,
+        .ms-Button:hover > .ms-Button-label {
+            color: white;
+        }
+
+        .ms-Button:hover, .ms-Button:active {
+            background: #164b2e;
+        }
+
+        .ms-Button.is-disabled, .ms-Button:disabled {
+            background-color: #f4f4f4;
+            border-color: #f4f4f4;
+        }
+
+        .ms-Button.is-disabled .ms-Button-label,
+        .ms-Button:disabled .ms-Button-label {
+            color: #a6a6a6;
+        }
+
+    #setup.ms-Button, #setup.ms-Button:focus {
+        background: darkred;
+        border: darkred;
+    }
+
+        #setup.ms-Button:hover, #setup.ms-Button:active {
+            background: red;
+        }
+
+    #samples-container {
+        margin-top: 20px;
+    }
+
+    #samples-container .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    #samples-container .ms-Button, #setup-container .ms-Button {
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+template:
+  content: >+
+    <h2 class="ms-font-m">This sample demonstrates a variety of things you can
+    do with Ranges</h2>
+
+
+    <div id="setup-container">
+        <p class="ms-font-m">Click "setup" to clear your active worksheet between runs</p>
+
+        <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Setup</span>
+        </button>
+    </div>
+
+
+    <div id="samples-container">
+        <p class="ms-font-m">Sample snippets to try out:</p>
+
+        <button id="set-formulas" class="ms-Button">
+            <span class="ms-Button-label">Set formulas</span>
+        </button>
+
+        <button id="get-texts" class="ms-Button">
+            <span class="ms-Button-label">Get texts</span>
+        </button>
+    </div>
+
+  language: html
+libraries: |-
+  // Office.js
+  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+
+  // NPM libraries
+  jquery
+  office-ui-fabric-js/dist/js/fabric.min.js
+  office-ui-fabric-js/dist/css/fabric.min.css
+  office-ui-fabric-js/dist/css/fabric.components.min.css
+  @microsoft/office-js-helpers/dist/office.helpers.min.js
+  core-js/client/core.min.js
+
+  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+  dt~office-js
+  dt~jquery
+  dt~core-js
+  @microsoft/office-js-helpers/dist/office.helpers.d.ts

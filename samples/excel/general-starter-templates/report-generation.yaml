@@ -1,88 +1,137 @@
-id: cixmek9l30003456vwg1q5snx
-gist: ''
-source: excel
+id: cixuwzxmy00014q71374v0gtc
+gist: d1cb7df01dabb66b046cd2c7881248e4
+source: ''
 author: Microsoft
-name: Report Generation
-description: Writes data to the workbook, applies basic formatting, and adds a chart bound to that data.
+name: Report generation
+description: >-
+  Writes data to the workbook, reads and applies basic formatting, and adds a
+  chart bound to that data.
 script:
   content: |-
-    $('#load-data-and-create-chart').click(loadDataAndCreateChart);
+    $('#create-report').click(createReport);
 
-    // Load some sample data into the worksheet and then create a chart
-    function loadDataAndCreateChart() {
-        // Run a batch operation against the Excel object model
-        Excel.run(function (ctx) {
+    /** Load sample data into a new worksheet and create a chart */
+    async function createReport() {
+        try {
+            await Excel.run(async (context) => {
+                try {
+                    // Create a proxy object for a new worksheet
+                    let sheet = context.workbook.worksheets.add();
+                    await queueWriteSheetData(sheet);
+                    sheet.activate();
+                    await context.sync();
+                }
+                catch (error) {
+                    // Try to activate the new sheet regardless, to show
+                    // how far the processing got before failing
+                    sheet.activate();
+                    await context.sync();
 
-            // Create a proxy object for the active worksheet
-            var sheet = ctx.workbook.worksheets.getActiveWorksheet();
+                    // Then re-throw the original error, for appropriate error-handling
+                    // (in this snippet, simply showing a notification)
+                    throw error;
+                }
+            });
 
-            //Queue commands to set the report title in the worksheet
-            sheet.getRange("A1").values = [["Quarterly Sales Report"]];
-            sheet.getRange("A1").format.font.name = "Century";
-            sheet.getRange("A1").format.font.size = 26;
+            showNotification("Success", "Report-generation complete!");
+        } catch (error) {
+            handleError(error);
+        }
 
-            //Create an array containing sample data
-            var values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"],
-                            ["Frames", 5000, 7000, 6544, 4377],
-                            ["Saddles", 400, 323, 276, 651],
-                            ["Brake levers", 12000, 8766, 8456, 9812],
-                            ["Chains", 1550, 1088, 692, 853],
-                            ["Mirrors", 225, 600, 923, 544],
-                            ["Spokes", 6005, 7634, 4589, 8765]];
+        // Helper functions:
 
-            //Queue a command to write the sample data to the specified range
-            //in the worksheet and bold the header row
-            var range = sheet.getRange("A2:E8");
-            range.values = values;
-            sheet.getRange("A2:E2").format.font.bold = true;
+        async function queueWriteSheetData(sheet: Excel.Worksheet) {
+            // Queue commands to set the report title in the worksheet
+            let titleCell = sheet.getCell(0, 0);
+            titleCell.values = [["Quarterly Sales Report"]];
+            titleCell.format.font.name = "Century";
+            titleCell.format.font.size = 26;
 
-            //Queue a command to add a new chart
-            var chart = sheet.charts.add("ColumnClustered", range, "auto");
+            // Create an array containing sample data
+            let headerNames = ["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"];
+            let data = [
+                ["Frames", 5000, 7000, 6544, 4377],
+                ["Saddles", 400, 323, 276, 651],
+                ["Brake levers", 12000, 8766, 8456, 9812],
+                ["Chains", 1550, 1088, 692, 853],
+                ["Mirrors", 225, 600, 923, 544],
+                ["Spokes", 6005, 7634, 4589, 8765]
+            ];
 
-            //Queue commands to set the properties and format the chart
-            chart.setPosition("G1", "L10");
+            // Queue a command to write the sample data to the
+            // specified range in the worksheet and bold the header row
+            let headerRow = titleCell.getOffsetRange(1, 0)
+                .getResizedRange(0, headerNames.length - 1);
+            headerRow.values = [headerNames];
+            headerRow.getRow(0).format.font.bold = true;
+
+            let dataRange = headerRow.getOffsetRange(1, 0)
+                .getResizedRange(data.length - 1, 0);
+            dataRange.values = data;
+
+            if (Office.context.requirements.isSetSupported('ExcelApi', 1.2)) {
+                titleCell.getResizedRange(0, headerNames.length - 1).merge();
+                dataRange.format.autofitColumns();
+
+                let columnRanges: Excel.Range[] = [];
+                for (let i = 0; i < headerNames.length; i++) {
+                    columnRanges.push(dataRange.getColumn(i).load("format/columnWidth"));
+                };
+                await sheet.context.sync();
+
+                // For the header (product name) column, make it a minimum of 100px;
+                let firstColumn = columnRanges.shift();
+                if (firstColumn.format.columnWidth < 100) {
+                    console.log("Expanding the first column to 100px");
+                    firstColumn.format.columnWidth = 100;
+                }
+
+                // For the remainder, make them identical or a minimum of 60px
+                let minColumnWidth = 60;
+                columnRanges.forEach(function (column, index) {
+                    console.log(`Column #${index + 1}: auto-fitted width = ${column.format.columnWidth}`);
+                    minColumnWidth = Math.max(minColumnWidth, column.format.columnWidth);                
+                })
+                console.log(`Setting data columns to a width of ${minColumnWidth} pixels`);
+                dataRange.getOffsetRange(0, 1).getResizedRange(0, -1)
+                    .format.columnWidth = minColumnWidth;
+            } else {
+                console.log('Cannot auto-fit column widths; consider updating to a newer version of Excel');
+            }
+
+            // Queue a command to add a new chart
+            let chart = sheet.charts.add(
+                Excel.ChartType.columnClustered,
+                dataRange, Excel.ChartSeriesBy.columns);
+
+            // Queue commands to set the properties and format the chart
+            let chartTopRow = dataRange.getLastRow().getOffsetRange(2, 0);
+            chart.setPosition(chartTopRow, chartTopRow.getOffsetRange(14, 0));
             chart.title.text = "Quarterly sales chart";
             chart.legend.position = "right"
             chart.legend.format.fill.setSolidColor("white");
             chart.dataLabels.format.font.size = 15;
             chart.dataLabels.format.font.color = "black";
-            var points = chart.series.getItemAt(0).points;
+            let points = chart.series.getItemAt(0).points;
             points.getItemAt(0).format.fill.setSolidColor("pink");
             points.getItemAt(1).format.fill.setSolidColor('indigo');
-
-            //Run the queued commands, and return a promise to indicate task completion
-            return ctx.sync();
-        })
-        .then(function () {
-            showNotification("Success", "Report-generation complete!");
-        })
-        .catch(function (error) {
-            // Always be sure to catch any accumulated errors that bubble up from the Excel.run execution
-            showNotification("Error", error);
-            console.log("Error: " + error);
-            if (error instanceof OfficeExtension.Error) {
-                console.log("Debug info: " + JSON.stringify(error.debugInfo));
-            }
-        });
+        }
     }
 
     function handleError(error) {
         showNotification("Error", error);
-        // Log additional information to the console, if applicable:
-        if (error instanceof OfficeExtension.Error) {
-            console.log("Debug info: " + JSON.stringify(error.debugInfo));
-        }
+        OfficeHelpers.Utilities.log(error);
     }
 
     function showNotification(header, text) {
-        var container = document.getElementById('notification-popup');
-        var headerPlaceholder = container.querySelector('.notification-popup-title');
-        var textPlaceholder = container.querySelector('.ms-MessageBanner-clipper');
+        let container = document.getElementById('notification-popup');
+        let headerPlaceholder = container.querySelector('.notification-popup-title');
+        let textPlaceholder = container.querySelector('.ms-MessageBanner-clipper');
 
         headerPlaceholder.textContent = header;
         textPlaceholder.textContent = text;
-
-        var closeButton = container.querySelector('.ms-MessageBanner-close');
+            
+        let closeButton = container.querySelector('.ms-MessageBanner-close');
         closeButton.addEventListener("click", function () {
             if (container.className.indexOf("hide") === -1) {
                 container.className = "ms-MessageBanner is-hidden";
@@ -95,6 +144,12 @@ script:
   language: typescript
 style:
   content: >-
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+
     #content-header {
         background: #333;
         color: #fff;
@@ -122,7 +177,37 @@ style:
     }
 
 
-    /* Notification pane customizations, including overwriting some Fabric UI
+
+    /* Button customization, including overwriting some Fabric defaults */
+
+
+    .ms-Button, .ms-Button:focus {
+        background: #217346;
+        border: #217346;
+    }
+
+        .ms-Button > .ms-Button-label,
+        .ms-Button:focus > .ms-Button-label,
+        .ms-Button:hover > .ms-Button-label {
+            color: white;
+        }
+
+        .ms-Button:hover, .ms-Button:active {
+            background: #164b2e;
+        }
+
+        .ms-Button.is-disabled, .ms-Button:disabled {
+            background-color: #f4f4f4;
+            border-color: #f4f4f4;
+        }
+
+        .ms-Button.is-disabled .ms-Button-label,
+        .ms-Button:disabled .ms-Button-label {
+            color: #a6a6a6;
+        }
+
+
+    /* Notification pane customizations, including overwriting some Fabric
     defaults */
 
 
@@ -138,11 +223,6 @@ style:
         bottom: 0px;
         text-align: left;
         height: inherit;
-    }
-
-
-    #notification-popup.ms-MessageBanner, #notification-popup
-    .ms-MessageBanner-text {
         min-width: inherit;
     }
 
@@ -150,19 +230,21 @@ style:
     #notification-popup .ms-MessageBanner-text {
         margin: 0;
         padding: 18px 15px;
+        min-width: inherit;
     }
   language: css
 template:
-  content: |-
+  content: |
     <div id="content-header" class="ms-font-m">
         <h1>Welcome</h1>
     </div>
 
     <div id="content-main" class="ms-font-m">
         <p>This sample shows how to load some sample data into the worksheet, and then create a chart using the Excel JavaScript API.</p>
-        <br />
         <h3>Try it out</h3>
-        <button class="ms-Button" id="load-data-and-create-chart">Click me!</button>
+        <button id="create-report" class="ms-Button">
+            <span class="ms-Button-label">Create report</span>
+        </button>
     </div>
 
     <div id="notification-popup" class="ms-MessageBanner is-hidden">

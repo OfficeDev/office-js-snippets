@@ -11,32 +11,28 @@ script:
     $('#create-report').click(createReport);
 
     /** Load sample data into a new worksheet and create a chart */
-    async function createReport() {
-        try {
-            await Excel.run(async (context) => {
-                try {
-                    // Create a proxy object for a new worksheet
-                    let sheet = context.workbook.worksheets.add();
-                    await queueWriteSheetData(sheet);
-                    sheet.activate();
-                    await context.sync();
-                }
-                catch (error) {
-                    // Try to activate the new sheet regardless, to show
-                    // how far the processing got before failing
-                    sheet.activate();
-                    await context.sync();
+    function createReport() {
+        Excel.run(async (context) => {
+            try {
+                // Create a proxy object for a new worksheet
+                let sheet = context.workbook.worksheets.add();
+                await queueWriteSheetData(sheet);
+                sheet.activate();
+                await context.sync();
+            }
+            catch (error) {
+                // Try to activate the new sheet regardless, to show
+                // how far the processing got before failing
+                sheet.activate();
+                await context.sync();
 
-                    // Then re-throw the original error, for appropriate error-handling
-                    // (in this snippet, simply showing a notification)
-                    throw error;
-                }
-            });
-
-            showNotification("Success", "Report-generation complete!");
-        } catch (error) {
-            handleError(error);
-        }
+                // Then re-throw the original error, for appropriate error-handling
+                // (in this snippet, simply showing a notification)
+                throw error;
+            }
+        })
+        .then(() => showNotification("Success", "Report-generation complete!"))
+        .catch(handleError);
 
         // Helper functions:
 

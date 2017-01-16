@@ -11,54 +11,45 @@ script:
     $('#set-formulas').click(setFormulas);
     $('#get-texts').click(getTexts);
 
-    async function setup() {
-        try {
-            await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getActiveWorksheet();
-                let entireRange = sheet.getRange();
-                entireRange.clear();
-                await context.sync();
-            });
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
+    function setup() {
+        Excel.run(async (context) => {
+            let sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            let entireRange = sheet.getRange();
+            entireRange.clear();
+            await context.sync();
+
+        }).catch(OfficeHelpers.Utilities.log);
     }
 
-    async function setFormulas() {
-        try {
-            await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getActiveWorksheet();
-                let data = [
-                    ["Product", "Price", "Tax"],
-                    ["Apple", 1.99, "=R[0]C[-1] * .09"],
-                    ["Oranges", 2.49, "=R[0]C[-1] * .09"]
-                ]
-                sheet.getCell(0, 0)
-                    .getResizedRange(data.length - 1, data[0].length - 1)
-                    .formulasR1C1 = data;
+    function setFormulas() {
+        Excel.run(async (context) => {
+            let sheet = context.workbook.worksheets.getActiveWorksheet();
 
-                await context.sync();
-            });
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
+            let data = [
+                ["Product", "Price", "Tax"],
+                ["Apple", 1.99, "=R[0]C[-1] * .09"],
+                ["Oranges", 2.49, "=R[0]C[-1] * .09"]
+            ]
+            sheet.getCell(0, 0)
+                .getResizedRange(data.length - 1, data[0].length - 1)
+                .formulasR1C1 = data;
+
+            await context.sync();
+
+        }).catch(OfficeHelpers.Utilities.log);
     }
 
-    async function getTexts() {
-        try {
-            await Excel.run(async (context) => {
-                let selection = context.workbook.getSelectedRange();
-                selection.load("text")
-                await context.sync();
+    function getTexts() {
+        Excel.run(async (context) => {
+            let selection = context.workbook.getSelectedRange();
 
-                console.log(JSON.stringify(selection.text, null, 4));
-            });
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
+            selection.load("text")
+            await context.sync();
+
+            console.log(JSON.stringify(selection.text, null, 4));
+
+        }).catch(OfficeHelpers.Utilities.log);
     }
   language: typescript
 style:

@@ -34,7 +34,7 @@ const process = (file) => {
 
 console.log(chalk.bold.yellow('Loading samples...'));
 let files = walk(path.resolve('samples')).sort();
-
+files = files.filter(file => !/default.yaml?$/i.test(file));
 let processedFiles = files.map(process);
 let groupedFiles = _.groupBy(processedFiles, 'source');
 

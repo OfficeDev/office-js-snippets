@@ -8,6 +8,9 @@ script:
   content: |
     $("#setup").click(() => invoke(setup));
 
+    $("#set-value").click(() => invoke(setValue));
+    $("#set-values").click(() => invoke(setValues));
+    $("#set-formula").click(() => invoke(setFormula));
     $("#set-formulas").click(() => invoke(setFormulas));
     $("#set-formulas-R1C1").click(() => invoke(setFormulasR1C1));
     $("#get-values").click(() => invoke(getValues));
@@ -56,6 +59,46 @@ script:
         });
     }
 
+    async function setValue() {
+        await Excel.run(async context => {
+            let sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            let range = sheet.getRange("C3");
+            range.values = [[ 5 ]];
+            range.format.autofitColumns();
+
+            await context.sync();
+        });
+    }
+
+    async function setValues() {
+        await Excel.run(async context => {
+            let sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            let data = [
+                ["Potato Chips", 10, 1.80, null],
+            ];
+            
+            let range = sheet.getRange("B5:E5");
+            range.values = data;
+            range.format.autofitColumns();
+
+            await context.sync();
+        });
+    }
+
+    async function setFormula() {
+        await Excel.run(async context => {
+            let sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            let range = sheet.getRange("E3");
+            range.formulas = [[ "=C3 * D3" ]];
+            range.format.autofitColumns();
+
+            await context.sync();
+        });
+    }
+
     async function setFormulas() {
         await Excel.run(async context => {
             let sheet = context.workbook.worksheets.getActiveWorksheet();
@@ -65,7 +108,6 @@ script:
                 ["=C3 * D3"],
                 ["=C4 * D4"],
                 ["=C5 * D5"],
-                ["=SUM(E3:E5)"]
             ];
             
             let range = sheet.getRange("E2:E6");
@@ -206,14 +248,25 @@ template:
 
 
     <div id="samples-container">
-        <p class="ms-font-m">Sample snippets to try out:</p>
+        <p class="ms-font-m">Sample snippets to try setting values and formulas:</p>
 
+        <button id="set-value" class="ms-Button">
+            <span class="ms-Button-label">Set value</span>
+        </button>
+        <button id="set-values" class="ms-Button">
+            <span class="ms-Button-label">Set values</span>
+        </button>
+        <button id="set-formula" class="ms-Button">
+            <span class="ms-Button-label">Set formula using A1-style</span>
+        </button>
         <button id="set-formulas" class="ms-Button">
             <span class="ms-Button-label">Set formulas using A1-style</span>
         </button>
         <button id="set-formulas-R1C1" class="ms-Button">
             <span class="ms-Button-label">Set formulas using R1C1-style</span>
         </button>
+
+        <p class="ms-font-m">Sample snippets to try getting values and formulas:</p>
 
         <button id="get-values" class="ms-Button">
             <span class="ms-Button-label">Get values</span>

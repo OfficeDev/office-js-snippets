@@ -1,4 +1,4 @@
-id: 
+id: ''
 gist: ''
 source: EXCEL
 author: Microsoft
@@ -6,18 +6,26 @@ name: Range basics
 description: Explores the most common Range APIs
 script:
   content: |
-    $('#setup').click(setup);
+    $("#setup").click(() => invoke(setup));
 
-    $('#set-formulas').click(setFormulas);
-    $('#set-formulas-R1C1').click(setFormulasR1C1);
-    $('#get-values').click(getValues);
-    $('#get-texts').click(getTexts);
-    $('#get-formulas').click(getFormulas);
+    $("#set-formulas").click(() => invoke(setFormulas));
+    $("#set-formulas-R1C1").click(() => invoke(setFormulasR1C1));
+    $("#get-values").click(() => invoke(getValues));
+    $("#get-texts").click(() => invoke(getTexts));
+    $("#get-formulas").click(() => invoke(getFormulas));
 
-    function setup() {
-        Excel.run(async (context) => {
+    async function invoke(action: () => Promise<any>) {
+        try {
+            await action();
+        } catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+
+    async function setup() {
+        await Excel.run(async context => {
             let oldSheet = context.workbook.worksheets.getActiveWorksheet();
-            oldSheet.load(["name", "position"]);
+            oldSheet.load("name, position");
 
             await context.sync();
 
@@ -26,7 +34,7 @@ script:
             oldSheet.delete();
             newSheet.name = oldSheet.name;
             newSheet.activate();
-            
+
             await context.sync();
 
             let data = [
@@ -34,22 +42,21 @@ script:
                 ["Almonds", 2, 7.50],
                 ["Coffee", 1, 34.50],
                 ["Chocolate", 5, 9.56]
-            ]
+            ];
             let range = newSheet.getRange("B2:D5");
             range.values = data;
             range.format.autofitColumns();
-            
+
             let header = newSheet.getRange("B2:D2");
             header.format.fill.color = "#4472C4";;
             header.format.font.color = "white";
-            
-            await context.sync();
 
-        }).catch(OfficeHelpers.Utilities.log);
+            await context.sync();
+        });
     }
 
-    function setFormulas() {
-        Excel.run(async (context) => {
+    async function setFormulas() {
+        await Excel.run(async context => {
             let sheet = context.workbook.worksheets.getActiveWorksheet();
 
             let data = [
@@ -58,18 +65,17 @@ script:
                 ["=C4 * D4"],
                 ["=C5 * D5"],
                 ["=SUM(E3:E5)"]
-            ]
+            ];
             let range = sheet.getRange("E2:E6");
             range.formulas = data;
-            range.format.autofitColumns();    
+            range.format.autofitColumns();
 
             await context.sync();
-
-        }).catch(OfficeHelpers.Utilities.log);
+        });
     }
 
-    function setFormulasR1C1() {
-        Excel.run(async (context) => {
+    async function setFormulasR1C1() {
+        await Excel.run(async context => {
             let sheet = context.workbook.worksheets.getActiveWorksheet();
 
             let data = [
@@ -78,18 +84,17 @@ script:
                 ["=R[0]C[-2] * R[0]C[-1]"],
                 ["=R[0]C[-2] * R[0]C[-1]"],
                 ["=SUM(R[-3]C[0]:R[-1]C[0])"]
-            ]
+            ];
             let range = sheet.getRange("E2:E6");
             range.formulasR1C1 = data;
-            range.format.autofitColumns();    
+            range.format.autofitColumns();
 
             await context.sync();
-
-        }).catch(OfficeHelpers.Utilities.log);
+        });
     }
 
-    function getValues() {
-        Excel.run(async (context) => {
+    async function getValues() {
+        await Excel.run(async context => {
             let sheet = context.workbook.worksheets.getActiveWorksheet();
             let range = sheet.getRange("B2:E6");
             range.load("values");
@@ -97,12 +102,11 @@ script:
             await context.sync();
 
             console.log(JSON.stringify(range.values, null, 4));
-
-        }).catch(OfficeHelpers.Utilities.log);
+        });
     }
 
-    function getTexts() {
-        Excel.run(async (context) => {
+    async function getTexts() {
+        await Excel.run(async context => {
             let sheet = context.workbook.worksheets.getActiveWorksheet();
             let range = sheet.getRange("B2:E6");
             range.load("text");
@@ -110,12 +114,11 @@ script:
             await context.sync();
 
             console.log(JSON.stringify(range.text, null, 4));
-
-        }).catch(OfficeHelpers.Utilities.log);
+        });
     }
 
-    function getFormulas() {
-        Excel.run(async (context) => {
+    async function getFormulas() {
+        await Excel.run(async context => {
             let sheet = context.workbook.worksheets.getActiveWorksheet();
             let range = sheet.getRange("B2:E6");
             range.load("formulas");
@@ -123,8 +126,7 @@ script:
             await context.sync();
 
             console.log(JSON.stringify(range.formulas, null, 4));
-
-        }).catch(OfficeHelpers.Utilities.log);
+        });
     }
   language: typescript
 style:

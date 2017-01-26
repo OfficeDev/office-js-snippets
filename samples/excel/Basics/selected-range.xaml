@@ -1,0 +1,169 @@
+id: ''
+gist: ''
+source: EXCEL
+author: Microsoft
+name: Selected range basics
+description: Explores the API for the current selected range
+script:
+  content: |+
+    $("#setup").click(() => invoke(setup));
+
+    $("#get-selection").click(() => invoke(getSelection));
+    $("#set-selection").click(() => invoke(setSelection));
+
+    async function invoke(action: () => Promise<any>) {
+        try {
+            await action();
+        } catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+
+    async function setup() {
+        await Excel.run(async (context) => {
+            let oldSheet = context.workbook.worksheets.getActiveWorksheet();
+            oldSheet.load("name, position");
+
+            await context.sync();
+
+            let newSheet = context.workbook.worksheets.add();
+            newSheet.position = oldSheet.position;
+            oldSheet.delete();
+            newSheet.name = oldSheet.name;
+            newSheet.activate();
+
+            await context.sync();
+        });
+
+        console.log("Done!");
+    }
+
+    async function getSelection() {
+        await Excel.run(async (context) => {
+            let range = context.workbook.getSelectedRange();
+            range.load("address");
+
+            await context.sync();
+
+            console.log(`Selected range: ${JSON.stringify(range)}`)
+        });
+
+        console.log("Done!");
+    }
+
+    async function setSelection() {
+        await Excel.run(async (context) => {
+            let sheet = context.workbook.worksheets.getActiveWorksheet();
+            let range = sheet.getRange("B2:E6");
+            range.select();
+
+            await context.sync();
+        });
+
+        console.log("Done!");
+    }
+
+  language: typescript
+style:
+  content: |
+    body {
+        margin: 0;
+        padding: 10px;
+    }
+
+
+    /* Button customization, including overwriting some Fabric defaults */
+
+    .ms-Button, .ms-Button:focus {
+        background: #217346;
+        border: #217346;
+    }
+
+        .ms-Button > .ms-Button-label,
+        .ms-Button:focus > .ms-Button-label,
+        .ms-Button:hover > .ms-Button-label {
+            color: white;
+        }
+
+        .ms-Button:hover, .ms-Button:active {
+            background: #164b2e;
+        }
+
+        .ms-Button.is-disabled, .ms-Button:disabled {
+            background-color: #f4f4f4;
+            border-color: #f4f4f4;
+        }
+
+        .ms-Button.is-disabled .ms-Button-label,
+        .ms-Button:disabled .ms-Button-label {
+            color: #a6a6a6;
+        }
+
+    #setup.ms-Button, #setup.ms-Button:focus {
+        background: darkred;
+        border: darkred;
+    }
+
+        #setup.ms-Button:hover, #setup.ms-Button:active {
+            background: red;
+        }
+
+    #samples-container {
+        margin-top: 20px;
+    }
+
+    #samples-container .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    #samples-container .ms-Button, #setup-container .ms-Button {
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+template:
+  content: >+
+    <h2 class="ms-font-m">This sample demonstrates a variety of things you can
+    do with the current selected range.</h2>
+
+
+    <div id="setup-container">
+        <p class="ms-font-m">Click "setup" between runs to delete the contents of your active worksheet:</p>
+
+        <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Setup</span>
+        </button>
+    </div>
+
+
+    <div id="samples-container">
+        <p class="ms-font-m">Sample snippets to try:</p>
+
+        <button id="get-selection" class="ms-Button">
+            <span class="ms-Button-label">Get selection</span>
+        </button>   
+        <button id="set-selection" class="ms-Button">
+            <span class="ms-Button-label">Set selection</span>
+        </button>
+    </div>
+
+  language: html
+libraries: |-
+  // Office.js
+  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+
+  // NPM libraries
+  jquery
+  office-ui-fabric-js/dist/js/fabric.min.js
+  office-ui-fabric-js/dist/css/fabric.min.css
+  office-ui-fabric-js/dist/css/fabric.components.min.css
+  @microsoft/office-js-helpers/dist/office.helpers.min.js
+  core-js/client/core.min.js
+
+  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+  dt~office-js
+  dt~jquery
+  dt~core-js
+  @microsoft/office-js-helpers/dist/office.helpers.d.ts
+

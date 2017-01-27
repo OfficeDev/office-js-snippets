@@ -3,6 +3,11 @@
 # Add-in Playground Samples
 A collection of samples for the Add-in Playground
 
+## To contribute:
+- Fork this repo
+- Add samples using the instructions below
+- Submit a pull request that Bhargav or Michael Z. will review.
+
 ## Folder Structure
 - All snippets must be inside the samples folder.
 - The `base folders` such as Excel, Word etc. are all the various broad level categories.

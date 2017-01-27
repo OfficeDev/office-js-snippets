@@ -2,30 +2,34 @@ id: ''
 gist: ''
 source: EXCEL
 author: Microsoft
-name: API call with Fabric notification toast
+name: 'API call with Fabric notification toast'
 description: >-
   Highlights the currently-selected range and reports its address via a
   Fabric-based notification toast.
 script:
   content: |-
-    $('#run').click(run);
+    $("#run").click(run);
 
-    function run() {
-        // This sample will color the selected range in yellow,
-        // and also display the selection address.
-        Excel.run(async (context) => {
-            let range = context.workbook.getSelectedRange();
+    async function run() {
+        try {
+            // This sample will color the selected range in yellow,
+            // and also display the selection address.
+            await Excel.run(async (context) => {
+                let range = context.workbook.getSelectedRange();
 
-            range.format.fill.color = 'yellow';
-            range.load('address');
-            await context.sync();
+                range.format.fill.color = "yellow";
+                range.load("address");
+                await context.sync();
 
-            // Having issued a command to load the address,
-            // and having synced the changes, display it:
-            showNotification('Range address',
-                `The selection address is "${range.address}".`);
-
-        }).catch(OfficeHelpers.Utilities.log);
+                // Having issued a command to load the address,
+                // and having synced the changes, display it:
+                showNotification("Range address",
+                    `The selection address is "${range.address}".`);
+            });
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
     }
 
     function handleError(error: Error): void {
@@ -34,14 +38,14 @@ script:
     }
 
     function showNotification(header: string, text: string): void {
-        let container = document.getElementById('notification-popup');
-        let headerPlaceholder = container.querySelector('.notification-popup-title');
-        let textPlaceholder = container.querySelector('.ms-MessageBanner-clipper');
+        let container = document.getElementById("notification-popup");
+        let headerPlaceholder = container.querySelector(".notification-popup-title");
+        let textPlaceholder = container.querySelector(".ms-MessageBanner-clipper");
 
         headerPlaceholder.textContent = header;
         textPlaceholder.textContent = text;
 
-        let closeButton = container.querySelector('.ms-MessageBanner-close');
+        let closeButton = container.querySelector(".ms-MessageBanner-close");
         closeButton.addEventListener("click", function () {
             if (container.className.indexOf("hide") === -1) {
                 container.className = "ms-MessageBanner is-hidden";

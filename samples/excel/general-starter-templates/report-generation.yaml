@@ -2,38 +2,43 @@ id: ''
 gist: ''
 source: EXCEL
 author: Microsoft
-name: Report generation
+name: 'Report generation'
 description: >-
   Writes data to the workbook, reads and applies basic formatting, and adds a
   chart bound to that data.
 script:
   content: |-
-    $('#create-report').click(createReport);
+    $("#create-report").click(createReport);
 
     /** Load sample data into a new worksheet and create a chart */
-    function createReport() {
-        Excel.run(async (context) => {
-            let sheet: Excel.Worksheet;
-            try {
-                // Create a proxy object for a new worksheet
-                sheet = context.workbook.worksheets.add();
-                await queueWriteSheetData(sheet);
-                sheet.activate();
-                await context.sync();
-            }
-            catch (error) {
-                // Try to activate the new sheet regardless, to show
-                // how far the processing got before failing
-                sheet.activate();
-                await context.sync();
+    async function createReport() {
+        try {
+            await Excel.run(async (context) => {
+                let sheet: Excel.Worksheet;
+                try {
+                    // Create a proxy object for a new worksheet
+                    sheet = context.workbook.worksheets.add();
+                    await queueWriteSheetData(sheet);
+                    sheet.activate();
+                    await context.sync();
+                }
+                catch (error) {
+                    // Try to activate the new sheet regardless, to show
+                    // how far the processing got before failing
+                    sheet.activate();
+                    await context.sync();
 
-                // Then re-throw the original error, for appropriate error-handling
-                // (in this snippet, simply showing a notification)
-                throw error;
-            }
-        })
-        .then(() => showNotification("Success", "Report-generation complete!"))
-        .catch(handleError);
+                    // Then re-throw the original error, for appropriate error-handling
+                    // (in this snippet, simply showing a notification)
+                    throw error;
+                }
+            });
+
+            showNotification("Success", "Report-generation complete!");
+        }
+        catch (error) {
+            handleError(error);
+        }
 
         // Helper functions:
 
@@ -66,7 +71,7 @@ script:
                 .getResizedRange(data.length - 1, 0);
             dataRange.values = data;
 
-            if (Office.context.requirements.isSetSupported('ExcelApi', 1.2)) {
+            if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
                 titleCell.getResizedRange(0, headerNames.length - 1).merge();
                 dataRange.format.autofitColumns();
 
@@ -93,7 +98,7 @@ script:
                 dataRange.getOffsetRange(0, 1).getResizedRange(0, -1)
                     .format.columnWidth = minColumnWidth;
             } else {
-                console.log('Cannot auto-fit column widths; consider updating to a newer version of Excel');
+                console.log("Cannot auto-fit column widths; consider updating to a newer version of Excel");
             }
 
             // Queue a command to add a new chart
@@ -111,7 +116,7 @@ script:
             chart.dataLabels.format.font.color = "black";
             let points = chart.series.getItemAt(0).points;
             points.getItemAt(0).format.fill.setSolidColor("pink");
-            points.getItemAt(1).format.fill.setSolidColor('indigo');
+            points.getItemAt(1).format.fill.setSolidColor("indigo");
         }
     }
 
@@ -121,14 +126,14 @@ script:
     }
 
     function showNotification(header, text) {
-        let container = document.getElementById('notification-popup');
-        let headerPlaceholder = container.querySelector('.notification-popup-title');
-        let textPlaceholder = container.querySelector('.ms-MessageBanner-clipper');
+        let container = document.getElementById("notification-popup");
+        let headerPlaceholder = container.querySelector(".notification-popup-title");
+        let textPlaceholder = container.querySelector(".ms-MessageBanner-clipper");
 
         headerPlaceholder.textContent = header;
         textPlaceholder.textContent = text;
 
-        let closeButton = container.querySelector('.ms-MessageBanner-close');
+        let closeButton = container.querySelector(".ms-MessageBanner-close");
         closeButton.addEventListener("click", function () {
             if (container.className.indexOf("hide") === -1) {
                 container.className = "ms-MessageBanner is-hidden";

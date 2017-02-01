@@ -3,66 +3,72 @@ gist: ''
 source: EXCEL
 author: Microsoft
 name: Selected range basics
-description: Explores the API for the current selected range
+description: Explores the APIs for the currently selected range
 script:
-  content: |+
-    $("#setup").click(() => invoke(setup));
+  content: |
+    $("#setup").click(setup);
 
-    $("#get-selection").click(() => invoke(getSelection));
-    $("#set-selection").click(() => invoke(setSelection));
+    $("#get-selection").click(getSelection);
+    $("#set-selection").click(setSelection);
 
-    async function invoke(action: () => Promise<any>) {
+    async function setup() {
         try {
-            await action();
-        } catch (error) {
+            await Excel.run(async (context) => {
+                let oldSheet = context.workbook.worksheets.getActiveWorksheet();
+                oldSheet.load("name, position");
+
+                await context.sync();
+
+                let newSheet = context.workbook.worksheets.add();
+                newSheet.position = oldSheet.position;
+                oldSheet.delete();
+                newSheet.name = oldSheet.name;
+                newSheet.activate();
+
+                await context.sync();
+            });
+
+            console.log("Done!");
+        }
+        catch (error) {
             OfficeHelpers.Utilities.log(error);
         }
     }
 
-    async function setup() {
-        await Excel.run(async (context) => {
-            let oldSheet = context.workbook.worksheets.getActiveWorksheet();
-            oldSheet.load("name, position");
-
-            await context.sync();
-
-            let newSheet = context.workbook.worksheets.add();
-            newSheet.position = oldSheet.position;
-            oldSheet.delete();
-            newSheet.name = oldSheet.name;
-            newSheet.activate();
-
-            await context.sync();
-        });
-
-        console.log("Done!");
-    }
-
     async function getSelection() {
-        await Excel.run(async (context) => {
-            let range = context.workbook.getSelectedRange();
-            range.load("address");
+        try {
+            await Excel.run(async (context) => {
+                let range = context.workbook.getSelectedRange();
+                range.load("address");
 
-            await context.sync();
+                await context.sync();
 
-            console.log(`Selected range: ${JSON.stringify(range)}`)
-        });
+                console.log(`Selected range: ${JSON.stringify(range)}`)
+            });
 
-        console.log("Done!");
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
     }
 
     async function setSelection() {
-        await Excel.run(async (context) => {
-            let sheet = context.workbook.worksheets.getActiveWorksheet();
-            let range = sheet.getRange("B2:E6");
-            range.select();
+        try {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+                let range = sheet.getRange("B2:E6");
+                range.select();
 
-            await context.sync();
-        });
+                await context.sync();
+            });
 
-        console.log("Done!");
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
     }
-
   language: typescript
 style:
   content: |
@@ -166,4 +172,3 @@ libraries: |-
   dt~jquery
   dt~core-js
   @microsoft/office-js-helpers/dist/office.helpers.d.ts
-

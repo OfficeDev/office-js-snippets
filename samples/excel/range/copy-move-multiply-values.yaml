@@ -16,18 +16,10 @@ script:
     async function setup() {
         try {
             await Excel.run(async (context) => {
-                let oldSheet = context.workbook.worksheets.getActiveWorksheet();
-                oldSheet.load("name, position");
 
-                await context.sync();
-
-                let newSheet = context.workbook.worksheets.add();
-                newSheet.position = oldSheet.position;
-                oldSheet.delete();
-                newSheet.name = oldSheet.name;
-                newSheet.activate();
-
-                await context.sync();
+                await resetWorksheet(context.workbook.worksheets.getActiveWorksheet());
+                
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
 
                 let data = [
                     ["Product", "Qty", "Unit Price", "Total Price"],
@@ -36,11 +28,11 @@ script:
                     ["Chocolate", 5, 9.56, "=C5 * D5"]
                 ];
 
-                let range = newSheet.getRange("B2:E5");
+                let range = sheet.getRange("B2:E5");
                 range.values = data;
                 range.format.autofitColumns();
 
-                let header = newSheet.getRange("B2:E2");
+                let header = sheet.getRange("B2:E2");
                 header.format.fill.color = "#4472C4";;
                 header.format.font.color = "white";
 
@@ -52,6 +44,22 @@ script:
         catch (error) {
             OfficeHelpers.Utilities.log(error);
         }
+    }
+
+    async function resetWorksheet(sheet: Excel.Worksheet) {
+        let context = <Excel.RequestContext>sheet.context;
+
+        sheet.load("name, position");
+
+        await context.sync();
+
+        let newSheet = context.workbook.worksheets.add();
+        newSheet.position = sheet.position;
+        sheet.delete();
+        newSheet.name = sheet.name;
+        newSheet.activate();
+
+        await context.sync();
     }
 
     async function copyValues() {

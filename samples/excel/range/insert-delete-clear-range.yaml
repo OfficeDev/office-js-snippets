@@ -2,44 +2,26 @@ id: ''
 gist: ''
 source: EXCEL
 author: Microsoft
-name: 'Insert, delete, clear range'
-description: 'Explore the APIs to inset, delete and clear a range'
+name: Formatting
+description: Explore the APIs to format a range
 script:
   content: >-
     $("#setup").click(setup);
 
 
-    $("#insert-range").click(insertRange);
+    $("#set-font-and-fill-color").click(setFontAndFillColor);
 
-    $("#delete-range").click(deleteRange);
-
-    $("#clear-range").click(clearRange);
+    $("#set-number-format").click(setNumberFormat);
 
 
-    async function insertRange() {
+    async function setFontAndFillColor() {
         try {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets.getActiveWorksheet();
-                let range = sheet.getRange("B4:E4");
-                range.insert(Excel.InsertShiftDirection.down);
-                
-                await context.sync();
-            });
 
-            console.log("Done!");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
-
-
-    async function deleteRange() {
-        try {
-            await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getActiveWorksheet();
-                let range = sheet.getRange("B4:E4");
-                range.delete(Excel.DeleteShiftDirection.up);
+                let range = sheet.getRange("B2:E2");
+                range.format.fill.color = "#4472C4";
+                range.format.font.color = "white";
 
                 await context.sync();
             });
@@ -52,13 +34,19 @@ script:
     }
 
 
-    async function clearRange() {
+    async function setNumberFormat() {
         try {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets.getActiveWorksheet();
-                let range = sheet.getRange("E2:E5");
-                range.clear();
 
+                let formats = [
+                    ["0.00", "0.00"],
+                    ["0.00", "0.00"],
+                    ["0.00", "0.00"]
+                ];
+
+                let range = sheet.getRange("D3:E5");
+                range.numberFormat = formats;
                 await context.sync();
             });
 
@@ -74,7 +62,7 @@ script:
     async function setup() {
         try {
             await Excel.run(async (context) => {
-                
+
                 let sheet = await resetWorksheet(context.workbook.worksheets.getActiveWorksheet());
                 
                 let data = [
@@ -87,11 +75,7 @@ script:
                 let range = sheet.getRange("B2:E5");
                 range.values = data;
                 range.format.autofitColumns();
-
-                let header = range.getRow(0);
-                header.format.fill.color = "#4472C4";
-                header.format.font.color = "white";
-
+                
                 await context.sync();
             });
 
@@ -181,10 +165,8 @@ style:
     }
   language: css
 template:
-  content: >+
-    <h2 class="ms-font-m">This sample demonstrates how to insert, delete and
-    clear the contents of a range.</h2>
-
+  content: |+
+    <h2 class="ms-font-m">This sample demonstrates how to format a range.</h2>
 
     <div id="setup-container">
         <p class="ms-font-m">Click "setup" between runs to delete the contents of your active worksheet and add sample data:</p>
@@ -194,19 +176,15 @@ template:
         </button>
     </div>
 
-
     <div id="samples-container">
         <p class="ms-font-m">Sample snippets to try:</p>
 
-        <button id="insert-range" class="ms-Button">
-            <span class="ms-Button-label">Insert range</span>
+        <button id="set-font-and-fill-color" class="ms-Button">
+            <span class="ms-Button-label">Set font and fill color</span>
         </button>   
-        <button id="delete-range" class="ms-Button">
-            <span class="ms-Button-label">Delete range</span>
-        </button>
-        <button id="clear-range" class="ms-Button">
-            <span class="ms-Button-label">Clear range</span>
-        </button>  
+        <button id="set-number-format" class="ms-Button">
+            <span class="ms-Button-label">Set number format</span>
+        </button>        
     </div>
 
   language: html

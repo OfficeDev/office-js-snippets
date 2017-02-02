@@ -3,66 +3,46 @@ gist: ''
 source: EXCEL
 author: Microsoft
 name: Selected range basics
-description: Explores the API for the current selected range
+description: Explores the APIs for the currently selected range
 script:
-  content: |+
-    $("#setup").click(() => invoke(setup));
+  content: |
+    $("#get-selection").click(getSelection);
+    $("#set-selection").click(setSelection);
 
-    $("#get-selection").click(() => invoke(getSelection));
-    $("#set-selection").click(() => invoke(setSelection));
-
-    async function invoke(action: () => Promise<any>) {
+    async function getSelection() {
         try {
-            await action();
-        } catch (error) {
+            await Excel.run(async (context) => {
+                let range = context.workbook.getSelectedRange();
+                range.load("address");
+
+                await context.sync();
+
+                console.log(`Selected range: ${JSON.stringify(range)}`)
+            });
+
+            console.log("Done!");
+        }
+        catch (error) {
             OfficeHelpers.Utilities.log(error);
         }
     }
 
-    async function setup() {
-        await Excel.run(async (context) => {
-            let oldSheet = context.workbook.worksheets.getActiveWorksheet();
-            oldSheet.load("name, position");
-
-            await context.sync();
-
-            let newSheet = context.workbook.worksheets.add();
-            newSheet.position = oldSheet.position;
-            oldSheet.delete();
-            newSheet.name = oldSheet.name;
-            newSheet.activate();
-
-            await context.sync();
-        });
-
-        console.log("Done!");
-    }
-
-    async function getSelection() {
-        await Excel.run(async (context) => {
-            let range = context.workbook.getSelectedRange();
-            range.load("address");
-
-            await context.sync();
-
-            console.log(`Selected range: ${JSON.stringify(range)}`)
-        });
-
-        console.log("Done!");
-    }
-
     async function setSelection() {
-        await Excel.run(async (context) => {
-            let sheet = context.workbook.worksheets.getActiveWorksheet();
-            let range = sheet.getRange("B2:E6");
-            range.select();
+        try {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+                let range = sheet.getRange("B2:E6");
+                range.select();
 
-            await context.sync();
-        });
+                await context.sync();
+            });
 
-        console.log("Done!");
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
     }
-
   language: typescript
 style:
   content: |
@@ -128,15 +108,6 @@ template:
     do with the current selected range.</h2>
 
 
-    <div id="setup-container">
-        <p class="ms-font-m">Click "setup" between runs to delete the contents of your active worksheet:</p>
-
-        <button id="setup" class="ms-Button">
-            <span class="ms-Button-label">Setup</span>
-        </button>
-    </div>
-
-
     <div id="samples-container">
         <p class="ms-font-m">Sample snippets to try:</p>
 
@@ -166,4 +137,3 @@ libraries: |-
   dt~jquery
   dt~core-js
   @microsoft/office-js-helpers/dist/office.helpers.d.ts
-

@@ -2,65 +2,19 @@ id: ''
 gist: ''
 source: EXCEL
 author: Microsoft
-name: 'Copy, move and multiply values'
-description: 'Explore the APIs to copy, move and multiply values in a range'
+name: Copy and multiply values
+description: Explore the APIs to copy and multiply values in a range
 script:
-  content: |
+  content: >
     $("#setup").click(setup);
 
+
     $("#copy-values").click(copyValues);
-    $("#move-values").click(moveValues);
+
     $("#multiply-values-for-loop").click(multiplyValuesForLoop);
+
     $("#multiply-values-map").click(multiplyValuesMap);
 
-    async function setup() {
-        try {
-            await Excel.run(async (context) => {
-
-                await resetWorksheet(context.workbook.worksheets.getActiveWorksheet());
-                
-                let sheet = context.workbook.worksheets.getActiveWorksheet();
-
-                let data = [
-                    ["Product", "Qty", "Unit Price", "Total Price"],
-                    ["Almonds", 2, 7.50, "=C3 * D3"],
-                    ["Coffee", 1, 34.50, "=C4 * D4"],
-                    ["Chocolate", 5, 9.56, "=C5 * D5"]
-                ];
-
-                let range = sheet.getRange("B2:E5");
-                range.values = data;
-                range.format.autofitColumns();
-
-                let header = sheet.getRange("B2:E2");
-                header.format.fill.color = "#4472C4";;
-                header.format.font.color = "white";
-
-                await context.sync();
-            });
-
-            console.log("Done!");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
-
-    async function resetWorksheet(sheet: Excel.Worksheet) {
-        let context = <Excel.RequestContext>sheet.context;
-
-        sheet.load("name, position");
-
-        await context.sync();
-
-        let newSheet = context.workbook.worksheets.add();
-        newSheet.position = sheet.position;
-        sheet.delete();
-        newSheet.name = sheet.name;
-        newSheet.activate();
-
-        await context.sync();
-    }
 
     async function copyValues() {
         try {
@@ -85,30 +39,6 @@ script:
         }
     }
 
-    async function moveValues() {
-        try {
-            await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getActiveWorksheet();
-
-                let fromRange = sheet.getRange("B2:E5");
-                fromRange.load("values");
-
-                await context.sync();
-
-                let toRange = sheet.getRange("B10:E13");
-                toRange.values = fromRange.values;
-
-                fromRange.clear(Excel.ClearApplyTo.all);
-
-                await context.sync();
-            });
-
-            console.log("Done!");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
 
     async function multiplyValuesForLoop() {
         try {
@@ -120,13 +50,13 @@ script:
 
                 await context.sync();
 
-                var vals = range.values;
-                for (var i = 0; i < vals.length; i++){
-                    for (var j = 0; j < vals[i].length; j++){
-                        vals[i][j] = vals[i][j] * 10;
+                var newValues = range.values;
+                for (var i = 0; i < newValues.length; i++){
+                    for (var j = 0; j < newValues[i].length; j++){
+                        newValues[i][j] = newValues[i][j] * 10;
                     }
                 }
-                range.values = vals;
+                range.values = newValues;
 
                 range.format.autofitColumns();
                 
@@ -140,6 +70,7 @@ script:
         }
     }
 
+
     async function multiplyValuesMap() {
         try {
             await Excel.run(async (context) => {
@@ -150,9 +81,9 @@ script:
 
                 await context.sync();
 
-                range.values = range.values.map((rowValues) => {
-                    return rowValues.map((cellValue) => { return cellValue * 10 });
-                });
+                range.values = range.values.map(
+                    (rowValues) => rowValues.map((cellValue) => cellValue * 10)
+                );
 
                 range.format.autofitColumns();
                 
@@ -164,6 +95,58 @@ script:
         catch (error) {
             OfficeHelpers.Utilities.log(error);
         }
+    }
+
+
+    async function setup() {
+        try {
+            await Excel.run(async (context) => {
+
+                let sheet = await resetWorksheet(context.workbook.worksheets.getActiveWorksheet());
+                
+                let data = [
+                    ["Product", "Qty", "Unit Price", "Total Price"],
+                    ["Almonds", 2, 7.50, "=C3 * D3"],
+                    ["Coffee", 1, 34.50, "=C4 * D4"],
+                    ["Chocolate", 5, 9.56, "=C5 * D5"]
+                ];
+
+                let range = sheet.getRange("B2:E5");
+                range.values = data;
+                range.format.autofitColumns();
+
+                let header = range.getRow(0);
+                header.format.fill.color = "#4472C4";
+                header.format.font.color = "white";
+
+                await context.sync();
+            });
+
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+
+
+    async function resetWorksheet(sheet: Excel.Worksheet):
+    Promise<Excel.Worksheet> {
+        let context = <Excel.RequestContext>sheet.context;
+
+        sheet.load("name, position");
+
+        await context.sync();
+
+        let newSheet = context.workbook.worksheets.add();
+        newSheet.position = sheet.position;
+        sheet.delete();
+        newSheet.name = sheet.name;
+        newSheet.activate();
+
+        await context.sync();
+
+        return newSheet;
     }
   language: typescript
 style:
@@ -245,9 +228,6 @@ template:
         <button id="copy-values" class="ms-Button">
             <span class="ms-Button-label">Copy values</span>
         </button>   
-        <button id="move-values" class="ms-Button">
-            <span class="ms-Button-label">Move values</span>
-        </button>
         <button id="multiply-values-for-loop" class="ms-Button">
             <span class="ms-Button-label">Multiply values using for loop</span>
         </button>

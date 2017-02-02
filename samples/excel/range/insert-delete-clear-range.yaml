@@ -6,90 +6,110 @@ name: 'Insert, delete, clear range'
 description: 'Explore the APIs to inset, delete and clear a range'
 script:
   content: |+
-    $("#setup").click(() => invoke(setup));
+    $("#setup").click(setup);
 
-    $("#insert-range").click(() => invoke(insertRange));
-    $("#delete-range").click(() => invoke(deleteRange));
-    $("#clear-range").click(() => invoke(clearRange));
+    $("#insert-range").click(insertRange);
+    $("#delete-range").click(deleteRange);
+    $("#clear-range").click(clearRange);
 
-    async function invoke(action: () => Promise<any>) {
+    async function setup() {
         try {
-            await action();
-        } catch (error) {
+            await Excel.run(async (context) => {
+                
+                await resetWorksheet(context.workbook.worksheets.getActiveWorksheet());
+                
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                let data = [
+                    ["Product", "Qty", "Unit Price", "Total Price"],
+                    ["Almonds", 2, 7.50, "=C3 * D3"],
+                    ["Coffee", 1, 34.50, "=C4 * D4"],
+                    ["Chocolate", 5, 9.56, "=C5 * D5"]
+                ];
+
+                let range = sheet.getRange("B2:E5");
+                range.values = data;
+                range.format.autofitColumns();
+
+                let header = sheet.getRange("B2:E2");
+                header.format.fill.color = "#4472C4";;
+                header.format.font.color = "white";
+
+                await context.sync();
+            });
+
+            console.log("Done!");
+        }
+        catch (error) {
             OfficeHelpers.Utilities.log(error);
         }
     }
 
-    async function setup() {
-        await Excel.run(async (context) => {
-            let oldSheet = context.workbook.worksheets.getActiveWorksheet();
-            oldSheet.load("name, position");
+    async function resetWorksheet(sheet: Excel.Worksheet) {
+        let context = <Excel.RequestContext>sheet.context;
 
-            await context.sync();
+        sheet.load("name, position");
 
-            let newSheet = context.workbook.worksheets.add();
-            newSheet.position = oldSheet.position;
-            oldSheet.delete();
-            newSheet.name = oldSheet.name;
-            newSheet.activate();
+        await context.sync();
 
-            await context.sync();
+        let newSheet = context.workbook.worksheets.add();
+        newSheet.position = sheet.position;
+        sheet.delete();
+        newSheet.name = sheet.name;
+        newSheet.activate();
 
-            let data = [
-                ["Product", "Qty", "Unit Price", "Total Price"],
-                ["Almonds", 2, 7.50, "=C3 * D3"],
-                ["Coffee", 1, 34.50, "=C4 * D4"],
-                ["Chocolate", 5, 9.56, "=C5 * D5"]
-            ];
-
-            let range = newSheet.getRange("B2:E5");
-            range.values = data;
-            range.format.autofitColumns();
-
-            let header = newSheet.getRange("B2:E2");
-            header.format.fill.color = "#4472C4";;
-            header.format.font.color = "white";
-
-            await context.sync();
-        });
-
-        console.log("Done!");
+        await context.sync();
     }
 
     async function insertRange() {
-        await Excel.run(async (context) => {
-            let sheet = context.workbook.worksheets.getActiveWorksheet();
-            let range = sheet.getRange("B4:E4");
-            range.insert(Excel.InsertShiftDirection.down);
-            
-            await context.sync();
-        });
+        try {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+                let range = sheet.getRange("B4:E4");
+                range.insert(Excel.InsertShiftDirection.down);
+                
+                await context.sync();
+            });
 
-        console.log("Done!");
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
     }
 
     async function deleteRange() {
-        await Excel.run(async (context) => {
-            let sheet = context.workbook.worksheets.getActiveWorksheet();
-            let range = sheet.getRange("B4:E4");
-            range.delete(Excel.DeleteShiftDirection.up);
+        try {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+                let range = sheet.getRange("B4:E4");
+                range.delete(Excel.DeleteShiftDirection.up);
 
-            await context.sync();
-        });
+                await context.sync();
+            });
 
-        console.log("Done!");
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
     }
 
     async function clearRange() {
-        await Excel.run(async (context) => {
-            let sheet = context.workbook.worksheets.getActiveWorksheet();
-            let range = sheet.getRange("E2:E5");
-            range.clear();
+        try {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+                let range = sheet.getRange("E2:E5");
+                range.clear();
 
-            await context.sync();
-        });
+                await context.sync();
+            });
 
-        console.log("Done!");
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
     }
 
   language: typescript

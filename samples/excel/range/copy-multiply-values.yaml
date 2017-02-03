@@ -2,26 +2,32 @@ id: ''
 gist: ''
 source: EXCEL
 author: Microsoft
-name: Formatting
-description: Explore the APIs to format a range
+name: Copy and multiply values
+description: Explore the APIs to copy and multiply values in a range
 script:
-  content: >-
+  content: >
     $("#setup").click(setup);
 
 
-    $("#set-font-and-fill-color").click(setFontAndFillColor);
+    $("#copy-values").click(copyValues);
 
-    $("#set-number-format").click(setNumberFormat);
+    $("#multiply-values-for-loop").click(multiplyValuesForLoop);
+
+    $("#multiply-values-map").click(multiplyValuesMap);
 
 
-    async function setFontAndFillColor() {
+    async function copyValues() {
         try {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets.getActiveWorksheet();
 
-                let range = sheet.getRange("B2:E2");
-                range.format.fill.color = "#4472C4";
-                range.format.font.color = "white";
+                let fromRange = sheet.getRange("B2:E5");
+                fromRange.load("values");
+
+                await context.sync();
+                
+                let toRange = sheet.getRange("B10:E13");
+                toRange.values = fromRange.values;
 
                 await context.sync();
             });
@@ -34,19 +40,26 @@ script:
     }
 
 
-    async function setNumberFormat() {
+    async function multiplyValuesForLoop() {
         try {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets.getActiveWorksheet();
 
-                let formats = [
-                    ["0.00", "0.00"],
-                    ["0.00", "0.00"],
-                    ["0.00", "0.00"]
-                ];
+                let range = sheet.getRange("C3:C5");
+                range.load("values");
 
-                let range = sheet.getRange("D3:E5");
-                range.numberFormat = formats;
+                await context.sync();
+
+                var newValues = range.values;
+                for (var i = 0; i < newValues.length; i++){
+                    for (var j = 0; j < newValues[i].length; j++){
+                        newValues[i][j] = newValues[i][j] * 10;
+                    }
+                }
+                range.values = newValues;
+
+                range.format.autofitColumns();
+                
                 await context.sync();
             });
 
@@ -57,6 +70,32 @@ script:
         }
     }
 
+
+    async function multiplyValuesMap() {
+        try {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                let range = sheet.getRange("C3:C5");
+                range.load("values");
+
+                await context.sync();
+
+                range.values = range.values.map(
+                    (rowValues) => rowValues.map((cellValue) => cellValue * 10)
+                );
+
+                range.format.autofitColumns();
+                
+                await context.sync();
+            });
+
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
 
 
     async function setup() {
@@ -75,7 +114,11 @@ script:
                 let range = sheet.getRange("B2:E5");
                 range.values = data;
                 range.format.autofitColumns();
-                
+
+                let header = range.getRow(0);
+                header.format.fill.color = "#4472C4";
+                header.format.font.color = "white";
+
                 await context.sync();
             });
 
@@ -165,8 +208,10 @@ style:
     }
   language: css
 template:
-  content: |+
-    <h2 class="ms-font-m">This sample demonstrates how to format a range.</h2>
+  content: >+
+    <h2 class="ms-font-m">This sample demonstrates how to copy, move and
+    multiply the values in a range.</h2>
+
 
     <div id="setup-container">
         <p class="ms-font-m">Click "setup" between runs to delete the contents of your active worksheet and add sample data:</p>
@@ -176,15 +221,19 @@ template:
         </button>
     </div>
 
+
     <div id="samples-container">
         <p class="ms-font-m">Sample snippets to try:</p>
 
-        <button id="set-font-and-fill-color" class="ms-Button">
-            <span class="ms-Button-label">Set font and fill color</span>
+        <button id="copy-values" class="ms-Button">
+            <span class="ms-Button-label">Copy values</span>
         </button>   
-        <button id="set-number-format" class="ms-Button">
-            <span class="ms-Button-label">Set number format</span>
-        </button>        
+        <button id="multiply-values-for-loop" class="ms-Button">
+            <span class="ms-Button-label">Multiply values using for loop</span>
+        </button>
+        <button id="multiply-values-map" class="ms-Button">
+            <span class="ms-Button-label">Multiply values using map()</span>
+        </button>    
     </div>
 
   language: html

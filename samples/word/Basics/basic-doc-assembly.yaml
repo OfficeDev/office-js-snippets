@@ -1,0 +1,241 @@
+id: ciyvyru7l00014r6ydkzkwka7
+gist: ''
+source: WORD
+author: Juan Balmori - Microsoft
+name: Basic Word APIs
+description: Basic document assembly capabilities of the API. Learn the basic objects and usage.
+script:
+  content: |
+    $("#InsertHeader").click(InsertHeader);
+    $("#AddParagraphs").click(AddParagraphs);
+    $("#addContentControls").click(addContentControls);
+    $("#changeCustomer").click(ChangeCustomer);
+    $("#footer").click(insertFooter);
+
+
+
+    function InsertHeader() { 
+        Word.run(function (context) { 
+            var myHeader = context.document.body.insertText("This is a sample Heading 1 Title!!", "start");
+            myHeader.styleBuiltIn = Word.Style.heading1;
+            return context.sync();
+
+
+        })
+            .catch(function (error) { 
+                console.log(error.message);
+
+            })
+
+    }
+
+     // Using the WordJS API. Insert a set of paragraphs, a content control and a page break.
+        function AddParagraphs() {
+
+            Word.run(function (ctx) {
+
+                // Queue a command to add a paragraph at the end of the document. Set the style on the paragraph.
+                var myPar = ctx.document.body.insertParagraph("Timeline", "end");
+                myPar.style = "Heading 2";
+
+                var myPar2 = ctx.document.body.insertParagraph("The Services shall commence on July 31, 2015, and shall continue through July 29, 2015.", "end");
+                myPar2.style = "Normal";
+
+                var myPar3 = ctx.document.body.insertParagraph("Project Costs by Phase", "end");
+                myPar3.style = "Heading 2";
+
+                // Queue a command to add a paragraph at the end of the document. Set the style on the paragraph and wrap the paragraph
+                // in a content control with the title of "ProjectCosts".
+                var myPar4 = ctx.document.body.insertParagraph("<Add Project Costs Here>", "end");
+                myPar4.style = "Normal";
+                myPar4.font.highlightColor = "#FFFF00";
+                var myContentControl = myPar4.insertContentControl();
+                myContentControl.title = "ProjectCosts";
+
+                var myPar5 = ctx.document.body.insertParagraph("Project Team", "end");
+                myPar5.style = "Heading 2";
+                myPar5.font.highlightColor = "#FFFFFF";
+
+                var myPar6 = ctx.document.body.insertParagraph("Terms of Work", "end");
+                myPar6.style = "Heading 1";
+
+                var myPar7 = ctx.document.body.insertParagraph("Contractor shall provide the Services and Deliverable(s) as follows:", "end");
+                myPar7.style = "Normal";
+
+                var myPar8 = ctx.document.body.insertParagraph("Out-of-Pocket Expenses / Invoice Procedures", "end");
+                myPar8.style = "Heading 2";
+
+                var myPar9 = ctx.document.body.insertParagraph("Client will be invoiced monthly for the consulting services and T&L expenses. Standard Contractor invoicing is assumed to be acceptable. Invoices are due upon receipt. \n client will be invoiced all costs associated with out-of-pocket expenses (including, without limitation, costs and expenses associated with meals, lodging, local transportation and any other applicable business expenses) listed on the invoice as a separate line item. Reimbursement for out-of-pocket expenses in connection with performance of this SOW, when authorized and up to the limits set forth in this SOW, shall be in accordance with Client’s then-current published policies governing travel and associated business expenses, which information shall be provided by the Client Project Manager. The limit of reimbursable expenses pursuant to this SOW is estimated to be 15% of the fees unless otherwise authorized in writing and agreed to by both parties via the project change control procedure outlined within. \n Invoices shall be submitted monthly in arrears, referencing this Client’s SOW Number to the address indicated above. Each invoice will reflect charges for the time period being billed and cumulative figures for previous periods. Terms of payment for each invoice are due upon receipt by Client of a proper invoice. Contractor shall provide Client with sufficient details to support its invoices, including time sheets for services performed and expense receipts and justifications for authorized expenses, unless otherwise agreed to by the parties. Payments for services invoiced that are not received within 30-days from date of invoice will be subject to a 5% penalty per calendar month.", "end");
+                myPar9.style = "Normal";
+
+                          // Queue a command to insert a page break at the end of the document.
+                ctx.document.body.insertBreak("page", "End");
+                
+                // Synchronize the document state by executing the queued commands,
+                // and returning a promise to indicate task completion.             
+                return ctx.sync()
+               
+                .catch(function (error) {
+                    console.log(error.message);
+                })    
+            });
+        }
+
+      // Using the WordJS API. Search the document for instances of the string "Contoso". Change the font of 
+        // each search result, and wrap each search result in a content control. Set the tag and title property
+        // on each content control. 
+        function addContentControls() {
+            Word.run(function (ctx) {
+            
+                // Queue a command to search the document for the string "Contoso".
+                // Create a proxy search results collection object.
+                var results = ctx.document.body.search("Contractor");
+                
+                // Queue a command to load all of the properties on the search results collection object.
+                ctx.load(results);
+                
+                // Synchronize the document state by executing the queued commands,
+                // and returning a promise to indicate task completion.        
+                return ctx.sync().then(function () {
+                    
+                    // Once we have the results, we iterate through each result and set some properties on
+                    // each search result proxy object. Then we queue a command to wrap each search result
+                    // with a content control and set the tag and title property on the content control.
+                    for (var i = 0; i < results.items.length; i++) {
+                      //  results.items[i].font.color = "#FF0000"    // Change color to Red
+                        results.items[i].font.highlightColor = "#FFFF00";
+                        results.items[i].font.bold = true;
+                        var cc = results.items[i].insertContentControl();
+                        cc.tag = "customer";  // This value is used in another part of this sample.
+                        cc.title = "Customer Name";
+                    }
+                })
+                // Synchronize the document state by executing the queued commands.
+                .then(ctx.sync)
+                .catch(function (error) {
+                    console.log(error.message);
+                })    
+            });
+        }
+
+
+
+         function ChangeCustomer() {
+             Word.run(function (ctx) {
+
+                // Queue a command to get a content control that has the tag of "customer". 
+                // Create a proxy content controls collection object.
+                var ccs = ctx.document.contentControls.getByTag("customer");
+                
+                // Queue a command to load the text and font property on all of the content control 
+                // objects in the content control collection.            
+                ctx.load(ccs, { select: 'text', expand: 'font' }); 
+                
+                // Synchronize the document state by executing the queued commands,
+                // and returning a promise to indicate task completion.             
+                return ctx.sync().then(function () {
+                    
+                    // Replace the text value for each of the content controls that
+                    // have a tag called "customer". Highlight the content controls.
+                    for (var i = 0; i < ccs.items.length; i++) {
+                        ccs.items[i].insertText("Fabrikam", "replace");
+                       // ccs.items[i].font.highlightColor = "#FFFFFF";
+                    }
+                })
+                // Synchronize the document state by executing the queued commands.
+                .then(ctx.sync)
+            
+                .catch(function (error) { console.log(error); })
+            });
+
+                   
+         }
+
+
+         function insertFooter() {
+            
+              Word.run(function (ctx) {
+                
+                // Create a proxy collection for the sections collection.
+                var mySections = ctx.document.sections;
+                
+                // Queue a command to load style property of the sections.
+                ctx.load(mySections, 'body/style');
+                
+                // Synchronize the document state by executing the queued commands,
+                // and returning a promise to indicate task completion.
+                return ctx.sync().then(function () {
+
+                    // Get the primary footer of the first section and create
+                    // a proxy Body object for the footer.
+                    var myFooter = mySections.items[0].getFooter("primary");
+                    
+                    // Queue a command to insert a paragraph at the end of the footer.
+                    myFooter.insertParagraph("Confidential", "end");
+                    
+                    // Queue a command to insert a line break at the end of the footer. 
+                    myFooter.insertBreak("line", "end");
+                })
+                // Synchronize the document state by executing the queued commands.
+                .then(ctx.sync)
+              
+                .catch(function (error) {
+                    console.log(error);
+                })
+            });
+
+        }
+
+
+
+        
+  language: typescript
+style:
+  content: |+
+    body {
+        margin: 0;
+        padding: 10px;
+    }
+
+
+    /* Button customization, including overwriting some Fabric defaults */
+
+  language: css
+template:
+  content: |2
+       <button class="ms-Button ms-Button--compound" id="InsertHeader">
+                        <span class="ms-Button-label">1. Add H1 Title </span><span class="ms-Button-description">Adds a Title at the beginning of the document.</span>
+                    </button>
+    <button class="ms-Button ms-Button--compound" id="AddParagraphs">
+        <span class="ms-Button-label">2. Add Paragraphs</span><span class="ms-Button-description">Add  paragraphs with different styles, content controls, page break.</span>
+    </button>
+
+    <button class="ms-Button ms-Button--compound" id="addContentControls">
+        <span class="ms-Button-label">3. Search & Templetize</span><span class="ms-Button-description">Search for "Contractor" and insert content controls to hold the customer name</span>
+    </button>
+    <button class="ms-Button ms-Button--compound" id="changeCustomer">
+        <span class="ms-Button-label">4. Change Customer</span><span class="ms-Button-description">Set the customer name to 'Fabrikam' using the added content controls</span>
+    </button>
+
+    <button class="ms-Button ms-Button--compound" id="footer">
+        <span class="ms-Button-label">5. Insert Footer</span><span class="ms-Button-description">Add a "Confidential "footer to the document </span>
+    </button>
+  language: html
+libraries: |-
+  // Office.js
+  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+
+  // NPM libraries
+  jquery
+  office-ui-fabric-js/dist/js/fabric.min.js
+  office-ui-fabric-js/dist/css/fabric.min.css
+  office-ui-fabric-js/dist/css/fabric.components.min.css
+  @microsoft/office-js-helpers/dist/office.helpers.min.js
+  core-js/client/core.min.js
+
+  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+  dt~office-js
+  dt~jquery
+  dt~core-js
+  @microsoft/office-js-helpers/dist/office.helpers.d.ts
+lastModified: 1486502941617

@@ -1,0 +1,187 @@
+id:
+gist: ''
+source: WORD
+author: Juan Balmori - Microsoft
+name: Basic document assembly.
+description: >-
+  Basic document assembly capabilities of the Word JavaScript API. Learn the
+  basic objects and usage.
+script:
+  content: |2
+        $("#insert-header").click(insertHeader);
+        $("#add-paragraphs").click(addParagraphs);
+        $("#add-content-controls").click(addContentControls);
+        $("#change-customer").click(changeCustomer);
+        $("#add-footer").click(addFooter);
+
+      // Inserts a heading 1 Title.
+        function insertHeader() {
+            Word.run(function (context) {
+                var header = context.document.body.insertText("This is a sample Heading 1 Title!!", "start");
+                header.styleBuiltIn = Word.Style.heading1;
+                return context.sync();
+            })
+            .catch(function (error) {
+                console.log(error.message);
+            })
+        }
+
+         // Insert a set of paragraphs, a content control and a page break.
+    function addParagraphs() {
+        Word.run(function (context) {
+            // Queue a command to add a paragraph at the end of the document. Set the style on the paragraph.
+            var paragraph = context.document.body.insertParagraph("Timeline", "end");
+            paragraph.style = "Heading 2";
+            var paragraph2 = context.document.body.insertParagraph("The Services shall commence on July 31, 2015, and shall continue through July 29, 2015.", "end");
+            paragraph2.style = "Normal";
+
+            var paragraph3 = context.document.body.insertParagraph("Project Costs by Phase", "end");
+            paragraph3.style = "Heading 2";
+
+            // Queue a command to add a paragraph at the end of the document. Set the style on the paragraph and wrap the paragraph
+            // in a content control with the title of "ProjectCosts".
+            var paragraph4 = context.document.body.insertParagraph("<Add Project Costs Here>", "end");
+            paragraph4.style = "Normal";
+            paragraph4.font.highlightColor = "#FFFF00";
+            var contentControl = paragraph4.insertContentControl();
+            contentControl.title = "ProjectCosts";
+
+            var paragraph5 = context.document.body.insertParagraph("Project Team", "end");
+            paragraph5.style = "Heading 2";
+            paragraph5.font.highlightColor = "#FFFFFF";
+
+            var paragraph6 = context.document.body.insertParagraph("Terms of Work", "end");
+            paragraph6.style = "Heading 1";
+
+            var paragraph7 = context.document.body.insertParagraph("Contractor shall provide the Services and Deliverable(s) as follows:", "end");
+            paragraph7.style = "Normal";
+
+            var paragraph8 = context.document.body.insertParagraph("Out-of-Pocket Expenses / Invoice Procedures", "end");
+            paragraph8.style = "Heading 2";
+
+            var paragraph9 = context.document.body.insertParagraph("Client will be invoiced monthly for the consulting services and T&L expenses. Standard Contractor invoicing is assumed to be acceptable. Invoices are due upon receipt. client will be invoiced all costs associated with out-of-pocket expenses (including, without limitation, costs and expenses associated with meals, lodging, local transportation and any other applicable business expenses) listed on the invoice as a separate line item. Reimbursement for out-of-pocket expenses in connection with performance of this SOW, when authorized and up to the limits set forth in this SOW, shall be in accordance with Client's then-current published policies governing travel and associated business expenses, which information shall be provided by the Client Project Manager.", "end");
+            paragraph9.style = "Normal";
+            // Queue a command to insert a page break at the end of the document.
+            context.document.body.insertBreak("page", "End");
+            return context.sync()
+        .catch(function (error) {
+            console.log(error.message);
+            })
+        });
+    }
+
+        // Search the document for instances of the string "Contoso". Change the font of
+        // each search result, and wrap each search result in a content control. Set the tag and title property
+        // on each content control.
+    function addContentControls() {
+        Word.run(function (context) {
+            //we first search for the "Contractor string"
+        var results = context.document.body.search("Contractor");
+        context.load(results);
+        return context.sync().then(function () {
+
+        // Once we have the results, we iterate  
+        for (var i = 0; i < results.items.length; i++) {
+                results.items[i].font.highlightColor = "#FFFF00";
+                results.items[i].font.bold = true;
+                var cc = results.items[i].insertContentControl();
+                cc.tag = "customer";  // This value is used in another part of this sample.
+                cc.title = "Customer Name";
+        }
+
+        })
+            .then(context.sync)
+            .catch(function (error) {
+                     console.log(error.message);
+            })
+        });
+    }
+
+    function changeCustomer() {
+        Word.run(function (context) {
+
+        // Queue a command to get a content control that has the tag of "customer".
+        // Create a proxy content controls collection object.
+        var contentControls= context.document.contentControls.getByTag("customer");
+
+        // Queue a command to load the text and font property on all of the content control
+        // objects in the content control collection.
+        context.load(contentControls, { select: 'text', expand: 'font' });
+
+        // Synchronize the document state by executing the queued commands,
+        // and returning a promise to indicate task completion.
+        return context.sync().then(function () {
+
+        // Replace the text value for each of the content controls that
+        // have a tag called "customer". Highlight the content controls.
+            for (var i = 0; i < contentControls.items.length; i++) {
+                contentControls.items[i].insertText("Fabrikam", "replace");
+            }
+        })
+        // Synchronize the document state by executing the queued commands.
+        .then(context.sync)
+        .catch(function (error) { console.log(error); })
+        });
+    }
+
+    function addFooter() {
+        Word.run(function (context) {
+        // Create a proxy collection for the sections collection.
+            var sections = context.document.sections;
+            context.load(sections, 'body/style');
+            return context.sync().then(function () {
+                // Get the primary footer of the first section and create
+                // a proxy Body object for the footer.
+                var footer = sections.items[0].getFooter("primary");
+                footer.insertParagraph("Confidential", "end");
+                footer.insertBreak("line", "end");
+            })
+            .then(context.sync)
+            .catch(function (error) {
+                    console.log(error);
+                })
+         });
+    }
+  language: typescript
+style:
+  content: ''
+  language: css
+template:
+  content: |2
+     <h2 class="ms-font-m">This sample demonstrates how to the basic document assembly objects by creating sample document, search, create a template, add paragraphs and footers. Just click the buttons in top-down order.</h2>
+      <button class="ms-Button ms-Button--compound" id="insert-header">
+            <span class="ms-Button-label">1. Add H1 Title </span><span class="ms-Button-description">Adds a Title at the beginning of the document.</span>
+        </button>
+        <button class="ms-Button ms-Button--compound" id="add-paragraphs">
+            <span class="ms-Button-label">2. Add Paragraphs</span><span class="ms-Button-description">Add  paragraphs with different styles, content controls, page break.</span>
+        </button>
+
+        <button class="ms-Button ms-Button--compound" id="add-content-controls">
+            <span class="ms-Button-label">3. Search & Templetize</span><span class="ms-Button-description">Search for "Contractor" and insert content controls to hold the customer name</span>
+        </button>
+        <button class="ms-Button ms-Button--compound" id="change-customer">
+            <span class="ms-Button-label">4. Change Customer</span><span class="ms-Button-description">Set the customer name to 'Fabrikam' using the added content controls</span>
+        </button>
+
+        <button class="ms-Button ms-Button--compound" id="add-footer">
+            <span class="ms-Button-label">5. Insert Footer</span><span class="ms-Button-description">Add a "Confidential "footer to the document </span>
+        </button>
+  language: html
+libraries: |-
+  // Office.js
+  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+
+  // NPM libraries
+  jquery
+  office-ui-fabric-js/dist/js/fabric.min.js
+  office-ui-fabric-js/dist/css/fabric.min.css
+  office-ui-fabric-js/dist/css/fabric.components.min.css
+  @microsoft/office-js-helpers/dist/office.helpers.min.js
+  core-js/client/core.min.js
+
+  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+  dt~office-js
+  dt~jquery
+  dt~core-js
+  @microsoft/office-js-helpers/dist/office.helpers.d.ts
+lastModified: 1486757687688

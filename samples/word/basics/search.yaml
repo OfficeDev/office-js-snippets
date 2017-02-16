@@ -1,0 +1,163 @@
+﻿id:
+gist: ''
+source: WORD
+author: Juan Balmori - Microsoft
+name: Search
+description: Shows basic and advanced search capabilities.
+script:
+  content: |-
+    $("#setup").click(setup);
+    $("#basic").click(basic);
+    $("#wildcard").click(wildcard);
+
+
+    function setup() { 
+        Word.run(function (context) {
+            // lets insert a couple of paragraphs to illustrate the point..
+            context.document.body.clear();
+            var firstSentence = context.document.body.insertParagraph("Video provides a powerful way to help you prove $1,000.00 times your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start"); 
+            var secondSentence = context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the $250,000.00 Online elements you want from the different Online galleries.", "replace");
+            return context.sync();
+         })
+    }
+
+    function basic() {
+        Word.run(function (context) {
+            var results = context.document.body.search("Online");
+            context.load(results);
+            return context.sync()
+                .then(function () {
+                    //lets traverse the search results... and highlight..
+                    for (var i = 0; i < results.items.length; i++) {
+                        results.items[i].font.highlightColor = "yellow";
+                    }
+                    return context.sync();
+                })
+        })
+            .catch(function(e){
+                console.log(e.message);
+            })
+    }
+
+    function wildcard() {
+        Word.run(function (context) {
+            // check out how a wildcard expression be built, also use the second parameter of the search method to include search modes (i.e. we are using wildcards).
+            var results = context.document.body.search("$*.[0-9][0-9]", {matchWildcards:true} );
+            context.load(results);
+            return context.sync()
+                .then(function () {
+                    //lets traverse the search results... and highlight..
+                    for (var i = 0; i < results.items.length; i++) {
+                        results.items[i].font.highlightColor = "red";
+                         results.items[i].font.color = "white";
+                    }
+                    return context.sync();
+                })
+        })
+            .catch(function(e){
+                console.log(e.message);
+            })
+    }
+  language: typescript
+style:
+  content: |2
+        body {
+            margin: 0;
+            padding: 10px;
+        }
+
+
+        /* Button customization, including overwriting some Fabric defaults */
+
+        .ms-Button, .ms-Button:focus {
+            background: #217346;
+            border: #217346;
+        }
+
+            .ms-Button > .ms-Button-label,
+            .ms-Button:focus > .ms-Button-label,
+            .ms-Button:hover > .ms-Button-label {
+                color: white;
+            }
+
+            .ms-Button:hover, .ms-Button:active {
+                background: #164b2e;
+            }
+
+            .ms-Button.is-disabled, .ms-Button:disabled {
+                background-color: #f4f4f4;
+                border-color: #f4f4f4;
+            }
+
+            .ms-Button.is-disabled .ms-Button-label,
+            .ms-Button:disabled .ms-Button-label {
+                color: #a6a6a6;
+            }
+
+        #setup.ms-Button, #setup.ms-Button:focus {
+            background: darkred;
+            border: darkred;
+        }
+
+            #setup.ms-Button:hover, #setup.ms-Button:active {
+                background: red;
+            }
+
+        #samples-container {
+            margin-top: 20px;
+        }
+
+        #samples-container .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #samples-container .ms-Button, #setup-container .ms-Button {
+            margin-left: 20px;
+            min-width: 80px;
+        }
+  language: css
+template:
+  content: |2
+      <h2 class="ms-font-m">This sample demonstrates basic and advanced search capabilities of the API.</h2>
+
+
+        <div id="setup-container">
+            <p class="ms-font-m">Click "setup" to insert sample data and between runs to reset the sample.</p>
+
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup</span>
+            </button>
+        </div>
+
+
+        <div id="samples-container">
+            <p class="ms-font-m">Sample snippets to try.</p>
+
+            <button id="basic" class="ms-Button">
+                <span class="ms-Button-label">Basic search</span>
+            </button>   
+            <button id="wildcard" class="ms-Button">
+                <span class="ms-Button-label">Wildcard search</span>
+            </button>
+            
+        </div>
+  language: html
+libraries: |-
+  // Office.js
+  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+
+  // NPM libraries
+  jquery
+  office-ui-fabric-js/dist/js/fabric.min.js
+  office-ui-fabric-js/dist/css/fabric.min.css
+  office-ui-fabric-js/dist/css/fabric.components.min.css
+  @microsoft/office-js-helpers/dist/office.helpers.min.js
+  core-js/client/core.min.js
+
+  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+  dt~office-js
+  dt~jquery
+  dt~core-js
+  @microsoft/office-js-helpers/dist/office.helpers.d.ts
+lastModified: 1487192903964

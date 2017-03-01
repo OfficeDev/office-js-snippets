@@ -1,0 +1,218 @@
+id: ''
+gist: ''
+source: EXCEL
+author: Microsoft
+name: 'Add, delete, rename and move worksheet'
+description: 'Explore the APIs to add, delete, rename and change the position of a worksheet'
+script:
+  content: |-
+    $("#add-worksheet").click(addWorksheet);
+    $("#delete-worksheet").click(deleteWorksheet);
+    $("#rename-worksheet").click(renameWorksheet);
+    $("#move-worksheet").click(moveWorksheet);
+
+    async function addWorksheet() {
+        try {
+            await Excel.run(async (context) => {
+                let sheets = context.workbook.worksheets;
+
+                let sheet = sheets.add();
+                sheet.load("name, position");
+                
+                await context.sync();
+
+                console.log(`Added worksheet named "${sheet.name}" in position ${sheet.position}`)
+            });
+
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+
+    async function deleteWorksheet() {
+        try {
+            await Excel.run(async (context) => {
+                let sheets = context.workbook.worksheets;
+                sheets.load("items/name");
+
+                await context.sync();
+
+                if (sheets.items.length > 1) {
+                    let lastSheet = sheets.items[sheets.items.length - 1];
+
+                    console.log(`Deleting worksheet named "${lastSheet.name}"`); 
+                    lastSheet.delete();
+
+                    await context.sync();
+                    
+                } else {
+                    console.log("Unable to delete the last worksheet in the workbook");
+                }    
+            });
+
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+
+    async function renameWorksheet() {
+        try {
+            await Excel.run(async (context) => {
+                let currentSheet = context.workbook.worksheets.getActiveWorksheet();
+
+                currentSheet.name = await uniqueWorksheetName(context);            
+
+                await context.sync();
+            });
+
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+
+    async function uniqueWorksheetName(context: Excel.RequestContext) {
+        let number = 1;
+        let name: string;
+        while (true) {
+            name = `Renamed${number}`;
+
+            try {
+                let sheet = context.workbook.worksheets.getItem(name);
+
+                await context.sync();
+
+                ++number;
+            }
+            catch (e) {
+                break;
+            }
+        }
+        return name;
+    }
+
+    async function moveWorksheet() {
+        try {
+            await Excel.run(async (context) => {
+                let sheets = context.workbook.worksheets;
+                sheets.load("items");
+
+                await context.sync();
+
+                let lastSheet = sheets.items[sheets.items.length - 1];
+
+                lastSheet.position = 0;
+
+                await context.sync();
+            });
+
+            console.log("Done!");
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+  language: typescript
+style:
+  content: |
+    body {
+        margin: 0;
+        padding: 10px;
+    }
+
+
+    /* Button customization, including overwriting some Fabric defaults */
+
+    .ms-Button, .ms-Button:focus {
+        background: #217346;
+        border: #217346;
+    }
+
+        .ms-Button > .ms-Button-label,
+        .ms-Button:focus > .ms-Button-label,
+        .ms-Button:hover > .ms-Button-label {
+            color: white;
+        }
+
+        .ms-Button:hover, .ms-Button:active {
+            background: #164b2e;
+        }
+
+        .ms-Button.is-disabled, .ms-Button:disabled {
+            background-color: #f4f4f4;
+            border-color: #f4f4f4;
+        }
+
+        .ms-Button.is-disabled .ms-Button-label,
+        .ms-Button:disabled .ms-Button-label {
+            color: #a6a6a6;
+        }
+
+    #setup.ms-Button, #setup.ms-Button:focus {
+        background: darkred;
+        border: darkred;
+    }
+
+        #setup.ms-Button:hover, #setup.ms-Button:active {
+            background: red;
+        }
+
+    #samples-container {
+        margin-top: 20px;
+    }
+
+    #samples-container .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    #samples-container .ms-Button, #setup-container .ms-Button {
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+template:
+  content: >-
+    <h2 class="ms-font-m">This sample demonstrates how to add, delete, rename
+    and change the position of a worksheet.</h2>
+
+
+    <div id="samples-container">
+        <p class="ms-font-m">Sample snippets to try:</p>
+
+        <button id="add-worksheet" class="ms-Button">
+            <span class="ms-Button-label">Add worksheet</span>
+        </button>
+        <button id="delete-worksheet" class="ms-Button">
+            <span class="ms-Button-label">Delete worksheet</span>
+        </button>
+        <button id="rename-worksheet" class="ms-Button">
+            <span class="ms-Button-label">Rename worksheet</span>
+        </button>
+        <button id="move-worksheet" class="ms-Button">
+            <span class="ms-Button-label">Move worksheet</span>
+        </button>
+    </div>
+  language: html
+libraries: |-
+  // Office.js
+  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+
+  // NPM libraries
+  jquery
+  office-ui-fabric-js/dist/js/fabric.min.js
+  office-ui-fabric-js/dist/css/fabric.min.css
+  office-ui-fabric-js/dist/css/fabric.components.min.css
+  @microsoft/office-js-helpers/dist/office.helpers.min.js
+  core-js/client/core.min.js
+
+  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+  dt~office-js
+  dt~jquery
+  dt~core-js
+  @microsoft/office-js-helpers/dist/office.helpers.d.ts

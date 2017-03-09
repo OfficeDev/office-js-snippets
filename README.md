@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/WrathOfZombies/samples.svg?branch=master)](https://travis-ci.org/WrathOfZombies/samples)
+[![Build Status](https://travis-ci.com/OfficeDev/addin-playground-samples.svg?token=zKp5xy2SuSortMzv5Pqc&branch=master)](https://travis-ci.com/OfficeDev/addin-playground-samples)
 
 # Add-in Playground Samples
 A collection of samples for the Add-in Playground
@@ -6,7 +6,7 @@ A collection of samples for the Add-in Playground
 ## To contribute:
 - Fork this repo
 - Add samples using the instructions below
-- Submit a pull request that Bhargav or Michael Z. will review.
+- Submit a pull request that Jakob, Michael Z or Bhargav will review.
 
 ## Folder Structure
 - All snippets must be inside the samples folder.
@@ -19,7 +19,7 @@ A collection of samples for the Add-in Playground
 1. Create a snippet using the Add-in Playground.
 2. Click on `Copy to Clipboard` in the `Share` menu.
 3. Fill in the `author`, `name`, `description`, `source` properties if they are empty so that we can generate the playlist correctly.
-4. Add that snippet into the respective folders. Make sure that the snippet file names and folder names are in `kebabcase`.
+4. Add that snippet into the respective folders. Make sure that the snippet file names and folder names are in [`kebab-case`](http://wiki.c2.com/?KebabCase).
 
 ## Style guidelines:
 
@@ -43,9 +43,10 @@ Basic snippet structure is as follows:
 
 A few style rules to observe:
 
-* Each button-click handler should have its own async function, called "run" if there is only one button on the page -- otherwise, name it as you will.
+* Each button-click handler should have its own `async` function, called "run" if there is only one button on the page -- otherwise, name it as you will.
 * Inside the function there shall be a try/catch.  In it you will await the `Excel.run` or `Word.run`, and use `async/await` inside of the `.run` as well.
 * All HTML IDs should be `all-lower-case-and-hyphenated`.
 * Unless you are explicitly showing pretty UI, I wouldn't do the popup notification except for one or two samples.  It's a lot of HTML & JS code, and it's also not strictly Fabric-y (there is a more "correct" way of doing this with components).
 * Strings should be in double-quotes.
 * Don't forget the semicolons.
+* `Libraries` in snippets must have a specific version. Eg. `jquery@3.1.1`.

@@ -29,7 +29,7 @@ export const banner = (title: string, message: any = null, chalkFn: chalk.ChalkC
 };
 
 export interface File {
-    name: string;
+    file_name: string;
     path: string;
     host: string;
     group: string;
@@ -145,7 +145,7 @@ export const getFileMetadata = (file: string, root: string) => {
     const relativePath = path.relative(root, file);
 
     /* Extract the required properties */
-    let [name, group, host, ...additional] = relativePath.split(delimiter).reverse();
+    let [file_name, group, host, ...additional] = relativePath.split(delimiter).reverse();
 
     /* Additional must be null or empty */
     if (additional && additional.length > 0) {
@@ -162,7 +162,7 @@ export const getFileMetadata = (file: string, root: string) => {
         path: relativePath,
         host,
         group,
-        name
+        file_name
     });
 };
 

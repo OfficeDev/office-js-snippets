@@ -27,19 +27,19 @@ const files: File[] = [];
 
         files$.mergeMap(async (file) => {
             try {
-                status.add(`Processing ${file.host}::${file.name}`);
+                status.add(`Processing ${file.host}::${file.file_name}`);
                 let { name, description } = await loadYamlFile<{ name: string, description: string }>(path.resolve('samples', file.path));
-                status.complete(`Processing ${file.host}::${file.name}`);
+                status.complete(`Processing ${file.host}::${file.file_name}`);
                 return {
                     name,
                     description,
-                    ...file,
-                    gist: `https://raw.githubusercontent.com/${GH_ACCOUNT}/${GH_REPO}/deployment/samples/${file.host}/${file.group}/${file.name}`,
+                    host: file.host,
+                    gist: `https://raw.githubusercontent.com/${GH_ACCOUNT}/${GH_REPO}/deployment/samples/${file.host.toLowerCase()}/${file.group}/${file.file_name}`,
                     group: startCase(file.group)
                 };
             } catch (exception) {
-                status.complete(`Processing ${file.host}::${file.name}`, exception);
-                handleError(`Failed to process ${file.host}::${file.name}: ${exception.message || exception}`);
+                status.complete(`Processing ${file.host}::${file.file_name}`, exception);
+                handleError(`Failed to process ${file.host}::${file.file_name}: ${exception.message || exception}`);
                 return null;
             }
         })
@@ -72,10 +72,10 @@ async function snippetsProcessed() {
     /* Generating playlists */
     status.add('Generating playlists');
     const groups = groupBy(files, 'host');
-    let promises = map(groups, async (items, group) => {
+    let promises = map(groups, async (items, host) => {
         let contents = jsyaml.safeDump(items);
-        await writeFile(path.resolve(`playlists/${group.toLowerCase()}.yaml`), contents);
-        banner(`Created ${group}.yaml`);
+        await writeFile(path.resolve(`playlists/${host.toLowerCase()}.yaml`), contents);
+        banner(`Created ${host}.yaml`);
     });
     await Promise.all(promises);
     status.complete('Generating playlists');

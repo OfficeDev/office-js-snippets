@@ -5,12 +5,13 @@ import * as chalk from 'chalk';
 import { status } from './status';
 import { rmRf, mkDir, getFiles, writeFile, File, banner, loadYamlFile } from './helpers';
 import { startCase, groupBy, map } from 'lodash';
+import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 
 const { GH_ACCOUNT, GH_REPO } = process.env;
-const files: File[] = [];
+const files = new Dictionary<File>();
 
 (async () => {
     try {
@@ -28,9 +29,13 @@ const files: File[] = [];
         files$.mergeMap(async (file) => {
             try {
                 status.add(`Processing ${file.host}::${file.name}`);
-                let { name, description } = await loadYamlFile<{ name: string, description: string }>(path.resolve('samples', file.path));
+                let { name, description, id } = await loadYamlFile<{ name: string, description: string, id: string }>(path.resolve('samples', file.path));
+                if (id == null || id.trim() === '') {
+                    throw new Error('Snippet ID cannot be empty');
+                }
                 status.complete(`Processing ${file.host}::${file.name}`);
                 return {
+                    id,
                     name,
                     description,
                     ...file,
@@ -44,7 +49,7 @@ const files: File[] = [];
             }
         })
             .filter((file) => !(file == null) && file.name !== 'default.yaml')
-            .map((file) => files.push(file))
+            .map((file) => files.add(file.id, file))
             .subscribe(null, handleError, snippetsProcessed);
     }
     catch (exception) {
@@ -65,13 +70,13 @@ function handleError(error?: any) {
  * Generating playlists
  */
 async function snippetsProcessed() {
-    if (files == null || files.length < 1) {
+    if (files.count < 1) {
         return;
     }
 
     /* Generating playlists */
     status.add('Generating playlists');
-    const groups = groupBy(files, 'host');
+    const groups = groupBy(files.values(), 'host');
     let promises = map(groups, async (items, group) => {
         let contents = jsyaml.safeDump(items);
         await writeFile(path.resolve(`playlists/${group.toLowerCase()}.yaml`), contents);

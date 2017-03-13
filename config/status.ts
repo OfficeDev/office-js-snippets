@@ -1,4 +1,5 @@
 import * as nodeStatus from 'node-status';
+import { find } from 'lodash';
 
 interface IStage {
     steps: any[];
@@ -8,7 +9,7 @@ interface IStage {
 
 export class Status {
     stages: IStage;
-    active: boolean;
+    steps: { [step: string]: boolean } = {};
 
     get console() {
         return nodeStatus.console();
@@ -27,31 +28,22 @@ export class Status {
      * Update the status stage
      * @param error Error object.
      */
-    complete(error?: Error): boolean {
-        if (!this.active) {
-            return false;
-        }
-
-        this.active = false;
+    complete(stage: string, error?: Error) {
         this.stages.doneStep(error == null, error);
-        if (this.stages.count >= this.stages.steps.length) {
+        this.steps[stage] = false;
+
+        if (!find(this.steps as any, (item) => item === true)) {
             nodeStatus.stop();
         }
-
-        return true;
     };
 
     /**
      * Add a new stage and complete the previous stage.
      * @param stage Name of the stage.
      */
-    add(stage: string): boolean {
-        if (this.active) {
-            return false;
-        }
+    add(stage: string) {
         this.stages.steps.push(stage);
-        this.active = true;
-        return true;
+        this.steps[stage] = true;
     };
 };
 

@@ -7,13 +7,63 @@ import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/observable/from';
 import 'rxjs/add/observable/of';
 import { kebabCase } from 'lodash';
+import * as jsyaml from 'js-yaml';
+import { console } from './status';
+import * as rimraf from 'rimraf';
+
+/**
+ * Creates a chalk based section with the specific color.
+ * @param title Title of the banner.
+ * @param message Message of the banner.
+ * @param chalkFunction Chalk color function.
+ */
+export const banner = (title: string, message: any = null, chalkFn: chalk.ChalkChain = chalk.bold.green) => {
+    const space = '\n\n';
+    console.log(chalkFn(`${space}--------------------------------------`));
+    console.log(chalkFn(`\t${title}`));
+    if (message) {
+        console.log(chalkFn(`--------------------------------------`));
+        console.log(message);
+    }
+    console.log(chalkFn(`--------------------------------------${space}`));
+};
 
 export interface File {
     name: string;
     path: string;
-    source: string;
+    host: string;
     group: string;
 }
+
+/**
+ * Creates a folder.
+ * @param dir An absolute path to the directory.
+ */
+export const mkDir = (dir: string) =>
+    new Promise<string>((resolve, reject) => {
+        const location = path.resolve(dir);
+        fs.mkdir(location, (err) => {
+            if (err) {
+                return reject(err);
+            }
+            return resolve(location);
+        });
+    });
+
+/**
+* Deletes a folder.
+* @param dir An absolute path to the directory.
+*/
+export const rmRf = (dir: string) =>
+    new Promise<string>((resolve, reject) => {
+        const location = path.resolve(dir);
+        rimraf(location, (err) => {
+            if (err) {
+                return reject(err);
+            }
+            return resolve(location);
+        });
+    });
 
 /**
  * Load all the files and folders in a given directory.
@@ -26,6 +76,20 @@ export const readDir = (dir: string) =>
                 return reject(err);
             }
             return resolve(files);
+        });
+    });
+
+/**
+ * Load all the files and folders in a given directory.
+ * @param dir An absolute path to the directory.
+ */
+export const writeFile = (path: string, contents: string) =>
+    new Promise((resolve, reject) => {
+        fs.writeFile(path, contents, (err) => {
+            if (err) {
+                return reject(err);
+            }
+            return resolve();
         });
     });
 
@@ -44,11 +108,36 @@ export const isDir = (path: string) =>
     });
 
 /**
+ * Load the contents of the YAML file.
+ * @param path Absolute to the yaml file.
+ */
+export const loadYamlFile = <T>(path: string) =>
+    new Promise<T>(async (resolve, reject) => {
+        let pathIsDirectory = await isDir(path);
+        if (pathIsDirectory) {
+            return reject(new Error(`Cannot open a directory @ ${chalk.bold.red(path)}`));
+        }
+        else {
+            fs.readFile(path, 'UTF8', (err, contents) => {
+                try {
+                    if (err) {
+                        return reject(err);
+                    }
+                    return resolve(jsyaml.safeLoad(contents));
+                }
+                catch (err) {
+                    reject(err);
+                }
+            });
+        }
+    });
+
+/**
  * Check the file path against validations and return a 'File' object.
  * @param file An absolute path to the file.
   * @param root An absolute path to the root directory.
  */
-export const processFile = (file: string, root: string) => {
+export const getFileMetadata = (file: string, root: string) => {
     /* Determine the platform as windows uses '\' where as linux uses '/' */
     const delimiter = os.platform() === 'win32' ? '\\' : '/';
 
@@ -56,20 +145,22 @@ export const processFile = (file: string, root: string) => {
     const relativePath = path.relative(root, file);
 
     /* Extract the required properties */
-    let [name, group, source, ...additional] = relativePath.split(delimiter).reverse();
+    let [name, group, host, ...additional] = relativePath.split(delimiter).reverse();
 
     /* Additional must be null or empty */
     if (additional && additional.length > 0) {
-        throw new Error(`Invalid folder structure at ${chalk.bold.red(relativePath)}. File ${chalk.bold.yellow(name)} was located too deep.`);
+        throw new Error(`Invalid folder structure at ${chalk.bold.red(relativePath)}.File ${chalk.bold.yellow(name)} was located too deep.`);
     }
 
-    if (source == null) {
-        source = group;
+    if (host == null) {
+        host = group;
     }
+
+    host = host.toUpperCase();
 
     return Observable.of<File>({
         path: relativePath,
-        source,
+        host,
         group,
         name
     });
@@ -95,7 +186,7 @@ export const getFiles = (dir: string, root: string): Observable<File> =>
 
             /* Check for file/folder naming guidelines */
             if (kebabCase(withoutExt) !== withoutExt) {
-                throw new Error(`Invalid name at ${chalk.bold.red(filePath)}. Name was expected to be ${chalk.bold.magenta(kebabCase(withoutExt))}, found ${chalk.bold.yellow(withoutExt)}.`);
+                throw new Error(`Invalid name at ${chalk.bold.red(filePath)}.Name was expected to be ${chalk.bold.magenta(kebabCase(withoutExt))}, found ${chalk.bold.yellow(withoutExt)}.`);
             }
 
             /*
@@ -108,7 +199,6 @@ export const getFiles = (dir: string, root: string): Observable<File> =>
                 .mergeMap(pathIsDirectory =>
                     pathIsDirectory ?
                         getFiles(filePath, root) :
-                        processFile(filePath, root)
+                        getFileMetadata(filePath, root)
                 );
         });
-

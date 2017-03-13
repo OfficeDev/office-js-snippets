@@ -74,7 +74,7 @@ async function snippetsProcessed() {
     const groups = groupBy(files, 'host');
     let promises = map(groups, async (items, group) => {
         let contents = jsyaml.safeDump(items);
-        await writeFile(path.resolve(`playlists/${group}.yaml`), contents);
+        await writeFile(path.resolve(`playlists/${group.toLowerCase()}.yaml`), contents);
         banner(`Created ${group}.yaml`);
     });
     await Promise.all(promises);

@@ -34,19 +34,19 @@ async function deployBuild(url) {
         try {
             git.addConfig('user.name', 'Travis CI')
                 .addConfig('user.email', 'travis.ci@microsoft.com')
-                .checkout('HEAD')
-                .add(['samples/', '-A', '-f'], (err) => {
+                .checkout(['--orphan', 'prod'])
+                .add(['samples/', '-f'], (err) => {
                     if (err) {
                         return reject(err.replace(url, ''));
                     }
                 })
-                .add(['playlists/', '-A', '-f'], (err) => {
+                .add(['playlists/', '-f'], (err) => {
                     if (err) {
                         return reject(err.replace(url, ''));
                     }
                 })
                 .commit(TRAVIS_COMMIT_MESSAGE, () => console.log(chalk.bold.cyan('Pushing snippets & playlists... Please wait...')))
-                .push(['-f', '-u', url, 'HEAD:refs/heads/deployment'], (err) => {
+                .push(['-f', '-u', url, 'HEAD:refs/heads/prod'], (err) => {
                     if (err) {
                         return reject(err.replace(url, ''));
                     }

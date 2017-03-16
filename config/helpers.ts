@@ -156,7 +156,7 @@ export const getFileMetadata = (file: string, root: string) => {
         host = group;
     }
 
-    host = host.toUpperCase();
+    host = host.toLowerCase();
 
     return Observable.of<File>({
         path: relativePath,

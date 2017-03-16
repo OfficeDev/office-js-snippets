@@ -3,14 +3,15 @@
 import * as path from 'path';
 import * as chalk from 'chalk';
 import { status } from './status';
-import { rmRf, mkDir, getFiles, writeFile, File, banner, loadYamlFile } from './helpers';
+import { rmRf, mkDir, getFiles, writeFile, banner, loadYamlFile } from './helpers';
 import { startCase, groupBy, map } from 'lodash';
+import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 
-const { GH_ACCOUNT, GH_REPO } = process.env;
-const files: File[] = [];
+const { GH_ACCOUNT, GH_REPO, GH_BRANCH } = process.env;
+const files = new Dictionary<File>();
 
 (async () => {
     try {
@@ -28,13 +29,18 @@ const files: File[] = [];
         files$.mergeMap(async (file) => {
             try {
                 status.add(`Processing ${file.host}::${file.file_name}`);
-                let { name, description } = await loadYamlFile<{ name: string, description: string }>(path.resolve('samples', file.path));
+                let { name, description, id } = await loadYamlFile<{ name: string, description: string, id: string }>(path.resolve('samples', file.path));
+                // if (id == null || id.trim() === '') {
+                //     throw new Error('Snippet ID cannot be empty');
+                // }
                 status.complete(`Processing ${file.host}::${file.file_name}`);
                 return {
+                    id,
                     name,
+                    fileName: file.file_name,
                     description,
                     host: file.host,
-                    gist: `https://raw.githubusercontent.com/${GH_ACCOUNT}/${GH_REPO}/deployment/samples/${file.host.toLowerCase()}/${file.group}/${file.file_name}`,
+                    gist: `https://raw.githubusercontent.com/${GH_ACCOUNT}/${GH_REPO}/${GH_BRANCH}/samples/${file.host}/${file.group}/${file.file_name}`,
                     group: startCase(file.group)
                 };
             } catch (exception) {
@@ -43,8 +49,8 @@ const files: File[] = [];
                 return null;
             }
         })
-            .filter((file) => !(file == null) && file.name !== 'default.yaml')
-            .map((file) => files.push(file))
+            .filter((file) => !(file == null) && file.fileName !== 'default.yaml')
+            .map((file) => files.add(file.gist, file))
             .subscribe(null, handleError, snippetsProcessed);
     }
     catch (exception) {
@@ -65,16 +71,16 @@ function handleError(error?: any) {
  * Generating playlists
  */
 async function snippetsProcessed() {
-    if (files == null || files.length < 1) {
+    if (files.count < 1) {
         return;
     }
 
     /* Generating playlists */
     status.add('Generating playlists');
-    const groups = groupBy(files, 'host');
+    const groups = groupBy(files.values(), 'host');
     let promises = map(groups, async (items, host) => {
         let contents = jsyaml.safeDump(items);
-        await writeFile(path.resolve(`playlists/${host.toLowerCase()}.yaml`), contents);
+        await writeFile(path.resolve(`playlists/${host}.yaml`), contents);
         banner(`Created ${host}.yaml`);
     });
     await Promise.all(promises);

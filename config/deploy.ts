@@ -1,65 +1,56 @@
 #!/usr/bin/env node --harmony
 
 import * as chalk from 'chalk';
-import * as simpleGit from 'simple-git';
+import * as shell from 'shelljs';
 import { isString } from 'lodash';
 import { status } from './status';
 import { banner } from './helpers';
 
-const git = simpleGit();
 const { TRAVIS, TRAVIS_BRANCH, TRAVIS_PULL_REQUEST, GH_ACCOUNT, GH_TOKEN, GH_REPO, TRAVIS_COMMIT_MESSAGE } = process.env;
 
-let url = `https://${GH_TOKEN}@github.com/${GH_ACCOUNT}/${GH_REPO}.git`;
-
-(async () => {
-    try {
-        if (precheck()) {
-            /* Pushing to GitHub */
-            status.add('Pushing to GitHub');
-            await deployBuild(url);
-            status.complete('Pushing to GitHub');
-        }
+try {
+    if (precheck()) {
+        const URL = `https://${GH_TOKEN}@github.com/${GH_ACCOUNT}/${GH_REPO}.git`;
+        status.add('Pushing to GitHub');
+        deployBuild(URL);
+        status.complete('Pushing to GitHub');
     }
-    catch (exception) {
-        handleError(exception);
-    }
-})();
+}
+catch (exception) {
+    handleError(exception);
+}
 
 /**
  * Deploying to GitHub
  */
 async function deployBuild(url) {
-    return new Promise((resolve, reject) => {
+    try {
         const start = Date.now();
-        try {
-            git.addConfig('user.name', 'Travis CI')
-                .addConfig('user.email', 'travis.ci@microsoft.com')
-                .checkout(['--orphan', 'prod'])
-                .add(['samples/', '-f'], (err) => {
-                    if (err) {
-                        return reject(err.replace(url, ''));
-                    }
-                })
-                .add(['playlists/', '-f'], (err) => {
-                    if (err) {
-                        return reject(err.replace(url, ''));
-                    }
-                })
-                .commit(TRAVIS_COMMIT_MESSAGE, () => console.log(chalk.bold.cyan('Pushing snippets & playlists... Please wait...')))
-                .push(['-f', '-u', url, 'HEAD:refs/heads/prod'], (err) => {
-                    if (err) {
-                        return reject(err.replace(url, ''));
-                    }
-
-                    const end = Date.now();
-                    console.log(chalk.bold.cyan('Successfully deployed in ' + (end - start) / 1000 + ' seconds.', 'green'));
-                    return resolve();
-                });
+        shell.exec('git config --add user.name "Travis CI"');
+        shell.exec('git config --add user.email "travis.ci@microsoft.com"');
+        shell.exec('git checkout --orphan newbranch');
+        shell.exec('git reset');
+        let result: any = shell.exec('git add -f samples playlists');
+        if (result.code !== 0) {
+            shell.echo(result.stderr);
+            handleError('An error occurred while adding files...');
         }
-        catch (error) {
-            return reject(error);
+        result = shell.exec('git commit -m "' + TRAVIS_COMMIT_MESSAGE + '"');
+        if (result.code !== 0) {
+            shell.echo(result.stderr);
+            handleError('An error occurred while commiting files...');
         }
-    });
+        console.log(chalk.bold.cyan('Pushing snippets & playlists... Please wait...'));
+        result = shell.exec('git push ' + url + ' -q -f -u HEAD:refs/heads/prod', { silent: true });
+        if (result.code !== 0) {
+            handleError('An error occurred while deploying playlists to ...');
+        }
+        const end = Date.now();
+        console.log(chalk.bold.cyan('Successfully deployed in ' + (end - start) / 1000 + ' seconds.', 'green'));
+    }
+    catch (error) {
+        handleError('Deployment failed...');
+    }
 }
 
 function precheck() {

@@ -1,11 +1,9 @@
-id: ''
-gist: ''
-source: EXCEL
-author: Microsoft
 name: 'Add, delete, rename and move worksheet'
-description: 'Explore the APIs to add, delete, rename and change the position of a worksheet'
+description: 'Add, delete, rename and change the position of a worksheet'
+host: EXCEL
+api_set: {"ExcelApi": 1.1}
 script:
-  content: |-
+  content: |
     $("#add-worksheet").click(addWorksheet);
     $("#delete-worksheet").click(deleteWorksheet);
     $("#rename-worksheet").click(renameWorksheet);
@@ -14,17 +12,15 @@ script:
     async function addWorksheet() {
         try {
             await Excel.run(async (context) => {
-                let sheets = context.workbook.worksheets;
+                const sheets = context.workbook.worksheets;
 
-                let sheet = sheets.add();
+                const sheet = sheets.add();
                 sheet.load("name, position");
                 
                 await context.sync();
 
                 console.log(`Added worksheet named "${sheet.name}" in position ${sheet.position}`)
             });
-
-            console.log("Done!");
         }
         catch (error) {
             OfficeHelpers.Utilities.log(error);
@@ -34,13 +30,13 @@ script:
     async function deleteWorksheet() {
         try {
             await Excel.run(async (context) => {
-                let sheets = context.workbook.worksheets;
+                const sheets = context.workbook.worksheets;
                 sheets.load("items/name");
 
                 await context.sync();
 
                 if (sheets.items.length > 1) {
-                    let lastSheet = sheets.items[sheets.items.length - 1];
+                    const lastSheet = sheets.items[sheets.items.length - 1];
 
                     console.log(`Deleting worksheet named "${lastSheet.name}"`); 
                     lastSheet.delete();
@@ -51,8 +47,6 @@ script:
                     console.log("Unable to delete the last worksheet in the workbook");
                 }    
             });
-
-            console.log("Done!");
         }
         catch (error) {
             OfficeHelpers.Utilities.log(error);
@@ -62,14 +56,12 @@ script:
     async function renameWorksheet() {
         try {
             await Excel.run(async (context) => {
-                let currentSheet = context.workbook.worksheets.getActiveWorksheet();
+                const currentSheet = context.workbook.worksheets.getActiveWorksheet();
 
                 currentSheet.name = await uniqueWorksheetName(context);            
 
                 await context.sync();
             });
-
-            console.log("Done!");
         }
         catch (error) {
             OfficeHelpers.Utilities.log(error);
@@ -83,7 +75,7 @@ script:
             name = `Renamed${number}`;
 
             try {
-                let sheet = context.workbook.worksheets.getItem(name);
+                const sheet = context.workbook.worksheets.getItem(name);
 
                 await context.sync();
 
@@ -99,92 +91,31 @@ script:
     async function moveWorksheet() {
         try {
             await Excel.run(async (context) => {
-                let sheets = context.workbook.worksheets;
+                const sheets = context.workbook.worksheets;
                 sheets.load("items");
 
                 await context.sync();
 
-                let lastSheet = sheets.items[sheets.items.length - 1];
+                const lastSheet = sheets.items[sheets.items.length - 1];
 
                 lastSheet.position = 0;
 
                 await context.sync();
             });
-
-            console.log("Done!");
         }
         catch (error) {
             OfficeHelpers.Utilities.log(error);
         }
     }
   language: typescript
-style:
-  content: |
-    body {
-        margin: 0;
-        padding: 10px;
-    }
-
-
-    /* Button customization, including overwriting some Fabric defaults */
-
-    .ms-Button, .ms-Button:focus {
-        background: #217346;
-        border: #217346;
-    }
-
-        .ms-Button > .ms-Button-label,
-        .ms-Button:focus > .ms-Button-label,
-        .ms-Button:hover > .ms-Button-label {
-            color: white;
-        }
-
-        .ms-Button:hover, .ms-Button:active {
-            background: #164b2e;
-        }
-
-        .ms-Button.is-disabled, .ms-Button:disabled {
-            background-color: #f4f4f4;
-            border-color: #f4f4f4;
-        }
-
-        .ms-Button.is-disabled .ms-Button-label,
-        .ms-Button:disabled .ms-Button-label {
-            color: #a6a6a6;
-        }
-
-    #setup.ms-Button, #setup.ms-Button:focus {
-        background: darkred;
-        border: darkred;
-    }
-
-        #setup.ms-Button:hover, #setup.ms-Button:active {
-            background: red;
-        }
-
-    #samples-container {
-        margin-top: 20px;
-    }
-
-    #samples-container .ms-Button {
-        display: block;
-        margin-bottom: 5px;
-    }
-
-    #samples-container .ms-Button, #setup-container .ms-Button {
-        margin-left: 20px;
-        min-width: 80px;
-    }
-  language: css
 template:
-  content: >-
-    <h2 class="ms-font-m">This sample demonstrates how to add, delete, rename
-    and change the position of a worksheet.</h2>
+  content: |
+    <section class="ms-font-m">
+        <p>This sample shows how to add, delete, rename and change the position of a worksheet using the Excel API.</p>
+    </section>
 
-
-    <div id="samples-container">
-        <p class="ms-font-m">Sample snippets to try:</p>
-
+    <section class="samples ms-font-m">
+        <h3>Try it out</h3>
         <button id="add-worksheet" class="ms-Button">
             <span class="ms-Button-label">Add worksheet</span>
         </button>
@@ -197,22 +128,37 @@ template:
         <button id="move-worksheet" class="ms-Button">
             <span class="ms-Button-label">Move worksheet</span>
         </button>
-    </div>
+    </section>
   language: html
-libraries: |-
-  // Office.js
-  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+style:
+  content: |
+    section.samples {
+        margin-top: 20px;
+    }
 
-  // NPM libraries
-  jquery
-  office-ui-fabric-js/dist/js/fabric.min.js
-  office-ui-fabric-js/dist/css/fabric.min.css
-  office-ui-fabric-js/dist/css/fabric.components.min.css
-  @microsoft/office-js-helpers/dist/office.helpers.min.js
-  core-js/client/core.min.js
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+libraries: |
+  # Office.js
+  https://appsforoffice.microsoft.com/lib/1/hosted/office.js
 
-  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
-  dt~office-js
-  dt~jquery
-  dt~core-js
+  # CSS Libraries
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+  # NPM libraries
+  core-js@2.4.1/client/core.min.js
+  @microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js
+  jquery@3.1.1
+
+  # IntelliSense: @types/library or node_modules paths or URL to d.ts files
+  @types/office-js
+  @types/core-js
   @microsoft/office-js-helpers/dist/office.helpers.d.ts
+  @types/jquery
+

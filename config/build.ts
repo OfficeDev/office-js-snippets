@@ -19,21 +19,25 @@ const files = new Dictionary<File>();
         status.add('Creating \'playlists\' folder');
         await rmRf('playlists');
         await mkDir('playlists');
-        status.complete('Creating \'playlists\' folder');
+        status.complete(true /*success*/, 'Creating \'playlists\' folder');
 
         /* Loading samples */
         status.add('Loading snippets');
         let files$ = getFiles(path.resolve('samples'), path.resolve('samples'));
-        status.complete('Loading snippets');
+        status.complete(true /*success*/, 'Loading snippets');
 
         files$.mergeMap(async (file) => {
+            const messages: Array<string | Error> = [];
             try {
-                status.add(`Processing ${file.host}::${file.file_name}`);
-                let { name, description, id } = await loadYamlFile<{ name: string, description: string, id: string }>(path.resolve('samples', file.path));
+                const hostFilename = `${file.host}::${file.file_name}`;
+                status.add(`Processing ${hostFilename}`);
+                let { name, description, id } = await loadYamlFile<ISnippet>(path.resolve('samples', file.path));
+
                 // if (id == null || id.trim() === '') {
-                //     throw new Error('Snippet ID cannot be empty');
+                //     messages.push('Snippet ID cannot be empty');
                 // }
-                status.complete(`Processing ${file.host}::${file.file_name}`);
+
+                status.complete(true /*success*/, `Processing ${hostFilename}`, messages);
                 return {
                     id,
                     name,
@@ -44,7 +48,8 @@ const files = new Dictionary<File>();
                     group: startCase(file.group)
                 };
             } catch (exception) {
-                status.complete(`Processing ${file.host}::${file.file_name}`, exception);
+                messages.push(exception)
+                status.complete(false /*success*/, `Processing ${file.host}::${file.file_name}`, messages);
                 handleError(`Failed to process ${file.host}::${file.file_name}: ${exception.message || exception}`);
                 return null;
             }
@@ -84,5 +89,5 @@ async function snippetsProcessed() {
         banner(`Created ${host}.yaml`);
     });
     await Promise.all(promises);
-    status.complete('Generating playlists');
+    status.complete(true /*success*/, 'Generating playlists');
 }

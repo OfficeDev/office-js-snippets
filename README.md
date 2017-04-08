@@ -1,12 +1,12 @@
-[![Build Status](https://travis-ci.com/OfficeDev/addin-playground-samples.svg?token=zKp5xy2SuSortMzv5Pqc&branch=master)](https://travis-ci.com/OfficeDev/addin-playground-samples)
+[![Build Status](https://travis-ci.com/OfficeDev/script-lab-samples.svg?token=zKp5xy2SuSortMzv5Pqc&branch=master)](https://travis-ci.com/OfficeDev/script-lab-samples)
 
-# Add-in Playground Samples
-A collection of samples for the Add-in Playground
+# Script Lab Samples
+A collection of samples for Script Lab
 
 ## To contribute:
 - Fork this repo
 - Add samples using the instructions below
-- Submit a pull request that Jakob, Michael Z or Bhargav will review.
+- Submit a pull request that one of the repo contributors will review and merge in.
 
 ## Folder Structure
 - All snippets must be inside the samples folder.
@@ -16,7 +16,7 @@ A collection of samples for the Add-in Playground
 
 ## Adding a new sample
 
-1. Create a snippet using the Add-in Playground.
+1. Create a snippet using Script Lab.
 2. Click on `Copy to Clipboard` in the `Share` menu.
 3. Fill in the `author`, `name`, `description`, `source` properties if they are empty so that we can generate the playlist correctly.
 4. Add that snippet into the respective folders. Make sure that the snippet file names and folder names are in [`kebab-case`](http://wiki.c2.com/?KebabCase).

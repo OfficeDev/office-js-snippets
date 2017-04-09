@@ -7,9 +7,26 @@ import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/observable/from';
 import 'rxjs/add/observable/of';
 import { kebabCase } from 'lodash';
-import * as jsyaml from 'js-yaml';
 import { console } from './status';
 import * as rimraf from 'rimraf';
+
+export interface SnippetFileInput {
+    file_name: string;
+    path: string;
+    host: string;
+    group: string;
+}
+
+export interface SnippetProcessedData {
+    id: string;
+    name: string;
+    fileName: string;
+    localPath: string;
+    description: string;
+    host: string;
+    rawUrl: string;
+    group: string;
+}
 
 /**
  * Creates a chalk based section with the specific color.
@@ -17,23 +34,16 @@ import * as rimraf from 'rimraf';
  * @param message Message of the banner.
  * @param chalkFunction Chalk color function.
  */
-export const banner = (title: string, message: any = null, chalkFn: chalk.ChalkChain = chalk.bold.green) => {
-    const space = '\n\n';
-    console.log(chalkFn(`${space}--------------------------------------`));
-    console.log(chalkFn(`\t${title}`));
+export const banner = (title: string, message: string = null, chalkFn: chalk.ChalkChain = chalk.bold.green) => {
+    const dashes = Array(Math.max(title.length + 1, 30)).join('-');
+    console.log(chalkFn(`\n\n${dashes}`));
+    console.log(chalkFn(`${title}`));
     if (message) {
-        console.log(chalkFn(`--------------------------------------`));
+        console.log(chalkFn(dashes));
         console.log(message);
     }
-    console.log(chalkFn(`--------------------------------------${space}`));
+    console.log(chalkFn(`${dashes}\n`));
 };
-
-export interface File {
-    file_name: string;
-    path: string;
-    host: string;
-    group: string;
-}
 
 /**
  * Creates a folder.
@@ -80,12 +90,13 @@ export const readDir = (dir: string) =>
     });
 
 /**
- * Load all the files and folders in a given directory.
- * @param dir An absolute path to the directory.
+ * Write to file
+ * @param filename
+ * @param contents
  */
-export const writeFile = (path: string, contents: string) =>
+export const writeFile = (filename: string, contents: string) =>
     new Promise((resolve, reject) => {
-        fs.writeFile(path, contents, (err) => {
+        fs.writeFile(filename, contents, (err) => {
             if (err) {
                 return reject(err);
             }
@@ -107,12 +118,13 @@ export const isDir = (path: string) =>
         });
     });
 
+
 /**
  * Load the contents of the YAML file.
  * @param path Absolute to the yaml file.
  */
-export const loadYamlFile = <T>(path: string) =>
-    new Promise<T>(async (resolve, reject) => {
+export const loadFileContents = (path: string) =>
+    new Promise<string>(async (resolve, reject) => {
         let pathIsDirectory = await isDir(path);
         if (pathIsDirectory) {
             return reject(new Error(`Cannot open a directory @ ${chalk.bold.red(path)}`));
@@ -123,7 +135,7 @@ export const loadYamlFile = <T>(path: string) =>
                     if (err) {
                         return reject(err);
                     }
-                    return resolve(jsyaml.safeLoad(contents));
+                    return resolve(contents);
                 }
                 catch (err) {
                     reject(err);
@@ -158,7 +170,7 @@ export const getFileMetadata = (file: string, root: string) => {
 
     host = host.toLowerCase();
 
-    return Observable.of<File>({
+    return Observable.of<SnippetFileInput>({
         path: relativePath,
         host,
         group,
@@ -171,7 +183,7 @@ export const getFileMetadata = (file: string, root: string) => {
  * @param dir An absolute path to the directory.
  * @param root An absolute path to the root directory.
  */
-export const getFiles = (dir: string, root: string): Observable<File> =>
+export const getFiles = (dir: string, root: string): Observable<SnippetFileInput> =>
     /*
     * Convert all the files into an Observable stream of files.
     * This allows us to focus the remainder of the operations
@@ -186,7 +198,7 @@ export const getFiles = (dir: string, root: string): Observable<File> =>
 
             /* Check for file/folder naming guidelines */
             if (kebabCase(withoutExt) !== withoutExt) {
-                throw new Error(`Invalid name at ${chalk.bold.red(filePath)}.Name was expected to be ${chalk.bold.magenta(kebabCase(withoutExt))}, found ${chalk.bold.yellow(withoutExt)}.`);
+                throw new Error(`Invalid name at ${chalk.bold.red(filePath)}. Name was expected to be ${chalk.bold.magenta(kebabCase(withoutExt))}, found ${chalk.bold.yellow(withoutExt)}.`);
             }
 
             /*

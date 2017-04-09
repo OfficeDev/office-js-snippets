@@ -13,7 +13,7 @@ try {
         const URL = `https://${GH_TOKEN}@github.com/${GH_ACCOUNT}/${GH_REPO}.git`;
         status.add('Pushing to GitHub');
         deployBuild(URL);
-        status.complete('Pushing to GitHub');
+        status.complete(true, 'Pushing to GitHub');
     }
 }
 catch (exception) {

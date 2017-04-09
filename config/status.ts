@@ -1,10 +1,10 @@
 import * as nodeStatus from 'node-status';
-import { find } from 'lodash';
+import { isString, find, isNil, isArray } from 'lodash';
 
 interface IStage {
     steps: any[];
     count: number;
-    doneStep: (completed: boolean, err: Error) => void;
+    doneStep: (completed: boolean, message?: string) => void;
 };
 
 export class Status {
@@ -28,12 +28,47 @@ export class Status {
      * Update the status stage
      * @param error Error object.
      */
-    complete(stage: string, error?: Error) {
-        this.stages.doneStep(error == null, error);
+    complete(success: boolean, stage: string, additionalDetails?: string | Error | Array<string | Error>) {
+        const array = getDetailsArray();
+
+        if (array.length === 0) {
+            this.stages.doneStep(success);
+        } else {
+            // Add a newline before
+            array.splice(0, 0, '');
+            this.stages.doneStep(success, array.join('\n    * ') + '\n');
+        }
+
         this.steps[stage] = false;
 
         if (!find(this.steps as any, (item) => item === true)) {
             nodeStatus.stop();
+        }
+
+
+        // Helper:
+        function getDetailsArray() {
+            if (!isArray(additionalDetails)) {
+                additionalDetails = [additionalDetails];
+            }
+
+            return additionalDetails
+                .map(item => {
+                    if (isNil(item)) {
+                        return null;
+                    }
+
+                    if (isString(item)) {
+                        return item;
+                    }
+
+                    let stringified = item.message || item.toString();
+                    if (stringified === '[object Object]') {
+                        stringified = JSON.stringify(item);
+                    }
+                    return stringified;
+                })
+                .filter(item => !isNil(item));
         }
     };
 

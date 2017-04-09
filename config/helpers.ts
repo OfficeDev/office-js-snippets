@@ -16,15 +16,15 @@ import * as rimraf from 'rimraf';
  * @param message Message of the banner.
  * @param chalkFunction Chalk color function.
  */
-export const banner = (title: string, message: any = null, chalkFn: chalk.ChalkChain = chalk.bold.green) => {
-    const space = '\n\n';
-    console.log(chalkFn(`${space}--------------------------------------`));
-    console.log(chalkFn(`\t${title}`));
+export const banner = (title: string, message: string = null, chalkFn: chalk.ChalkChain = chalk.bold.green) => {
+    const dashes = Array(title.length + 1).join('-');
+    console.log(chalkFn(`\n\n${dashes}`));
+    console.log(chalkFn(`${title}`));
     if (message) {
-        console.log(chalkFn(`--------------------------------------`));
+        console.log(chalkFn(dashes));
         console.log(message);
     }
-    console.log(chalkFn(`--------------------------------------${space}`));
+    console.log(chalkFn(`${dashes}\n`));
 };
 
 export interface File {

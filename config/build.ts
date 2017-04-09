@@ -1,7 +1,7 @@
 #!/usr/bin/env node --harmony
 
 import * as path from 'path';
-import { isEmpty, isString, forIn } from 'lodash';
+import { isEmpty, isString, forIn, isArray } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
 import { rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
@@ -12,9 +12,21 @@ import * as jsyaml from 'js-yaml';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 
+interface SnippetFileData {
+    id: string;
+    name: string;
+    fileName: string;
+    localPath: string;
+    description: string;
+    host: string;
+    rawUrl: string;
+    group: string;
+}
+
 const { GH_ACCOUNT, GH_REPO, GH_BRANCH } = process.env;
-const processedSnippets = new Dictionary<File>();
+const processedSnippets = new Dictionary<SnippetFileData>();
 const snippetFilesToUpdate: { [fullPath: string]: string } = {};
+const accumulatedErrors: Array<string|Error> = [];
 
 (() => {
     processSnippets();
@@ -42,7 +54,6 @@ const snippetFilesToUpdate: { [fullPath: string]: string } = {};
                     const fullPath = path.resolve('samples', file.path);
 
                     status.add(`Processing ${localPath}`);
-                    messages.push(fullPath);
 
                     const originalFileContents = await loadFileContents(fullPath);
                     let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
@@ -53,7 +64,7 @@ const snippetFilesToUpdate: { [fullPath: string]: string } = {};
                     validateStringFieldNotEmptyOrThrow(snippet, 'description');
                     validateId(snippet, localPath, messages);
 
-                    // Additional fields relative to what is normally exposed in a public gist
+                    // Additional fields relative to what is normally exposed in sharing
                     // (and/or that would normally get erased when doing an export):
                     const additionalFields: ISnippet = <any>{};
                     additionalFields.id = snippet.id;
@@ -72,21 +83,22 @@ const snippetFilesToUpdate: { [fullPath: string]: string } = {};
                         id: snippet.id,
                         name: snippet.name,
                         fileName: file.file_name,
+                        localPath: localPath,
                         description: snippet.description,
                         host: file.host,
-                        gist: `https://raw.githubusercontent.com/${GH_ACCOUNT}/${GH_REPO}/${GH_BRANCH}/samples/${file.host}/${file.group}/${file.file_name}`,
+                        rawUrl: `https://raw.githubusercontent.com/${GH_ACCOUNT}/${GH_REPO}/${GH_BRANCH}/samples/${file.host}/${file.group}/${file.file_name}`,
                         group: startCase(file.group)
                     };
 
                 } catch (exception) {
                     messages.push(exception)
                     status.complete(false /*success*/, `Processing ${file.host}::${file.file_name}`, messages);
-                    handleError(`Failed to process ${file.host}::${file.file_name}: ${exception.message || exception}`);
+                    accumulatedErrors.push (`Failed to process ${file.host}::${file.file_name}: ${exception.message || exception}`);
                     return null;
                 }
             })
-                .filter((file) => !(file == null) && file.fileName !== 'default.yaml')
-                .map((file) => processedSnippets.add(file.gist, file))
+                .filter (file => file !== null)
+                .map(file => processedSnippets.add(file.rawUrl, file))
                 .subscribe(null, handleError, snippetsProcessed);
         }
         catch (exception) {
@@ -98,8 +110,18 @@ const snippetFilesToUpdate: { [fullPath: string]: string } = {};
      * Generic error handler.
      * @param error Error object.
      */
-    function handleError(error?: any) {
-        banner('An error has occured', error.message || error, chalk.bold.red);
+    function handleError(error: any | any[]) {
+        if (!isArray(error)) {
+            error = [error];
+        }
+
+        banner('One more more errors had occurred during processing:', null, chalk.bold.red);
+        (error as any[]).forEach(() => {
+            const statusMessage = error.message || error;
+            status.add(statusMessage);
+            status.complete(false /*successe*/, statusMessage)
+        });
+
         process.exit(1);
     }
 
@@ -107,10 +129,6 @@ const snippetFilesToUpdate: { [fullPath: string]: string } = {};
      * Generating playlists
      */
     async function snippetsProcessed() {
-        if (processedSnippets.count < 1) {
-            return;
-        }
-
         banner('Updating modified files');
 
         const fileWriteRequests = [];
@@ -128,9 +146,33 @@ const snippetFilesToUpdate: { [fullPath: string]: string } = {};
         await Promise.all(fileWriteRequests).catch(handleError);
 
 
+        banner('Testing every snippet for ID uniqueness');
+
+        let idsAllUnique = true; // assume best, until proven otherwise
+        processedSnippets.values()
+            .forEach(item => {
+                status.add(`Testing ID of snippet ${item.localPath}`);
+                const otherMatches = processedSnippets.values().filter(anotherItem => anotherItem !== item && anotherItem.id === item.id);
+                const isUnique = (otherMatches.length === 0);
+                status.complete(isUnique /*succeeded*/,
+                    `Testing ID of snippet ${item.localPath}`,
+                    isUnique ? null : [`ID "${item.id}" not unique, and matches the IDs of `].concat(otherMatches.map(item => '    ' + item.localPath)));
+                if (!isUnique) {
+                    idsAllUnique = false;
+                }
+            });
+
+        if (!idsAllUnique) {
+            handleError(new Error('Not all snippet IDs are unique; cannot continue'));
+        }
+
+
         banner('Generating playlists');
 
-        const groups = groupBy(processedSnippets.values(), 'host');
+        const groups = groupBy(
+            processedSnippets.values()
+                .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
+            'host');
         let playlistPromises = map(groups, async (items, host) => {
             const creatingStatusText = `Creating ${host}.yaml`;
             status.add(creatingStatusText);
@@ -140,6 +182,11 @@ const snippetFilesToUpdate: { [fullPath: string]: string } = {};
         });
 
         await Promise.all(playlistPromises).catch(handleError);
+
+
+        if (accumulatedErrors.length > 0) {
+            handleError(accumulatedErrors);
+        }
 
 
         banner('Done!');
@@ -167,7 +214,7 @@ const snippetFilesToUpdate: { [fullPath: string]: string } = {};
                 .replace(/^_+/, '') /* trim any underscores before */
                 .replace(/_+$/, '') /* and trim any at the end, as well */;
 
-            messages.push('Snippet id may not be empty or be a machine-generated ID.');
+            messages.push('Snippet ID may not be empty or be a machine-generated ID.');
             messages.push(`... replacing with an ID based on name: "${snippet.id}"`);
         }
 

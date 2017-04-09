@@ -79,12 +79,13 @@ export const readDir = (dir: string) =>
     });
 
 /**
- * Load all the files and folders in a given directory.
- * @param dir An absolute path to the directory.
+ * Write to file
+ * @param filename
+ * @param contents
  */
-export const writeFile = (path: string, contents: string) =>
+export const writeFile = (filename: string, contents: string) =>
     new Promise((resolve, reject) => {
-        fs.writeFile(path, contents, (err) => {
+        fs.writeFile(filename, contents, (err) => {
             if (err) {
                 return reject(err);
             }
@@ -186,7 +187,7 @@ export const getFiles = (dir: string, root: string): Observable<File> =>
 
             /* Check for file/folder naming guidelines */
             if (kebabCase(withoutExt) !== withoutExt) {
-                throw new Error(`Invalid name at ${chalk.bold.red(filePath)}.Name was expected to be ${chalk.bold.magenta(kebabCase(withoutExt))}, found ${chalk.bold.yellow(withoutExt)}.`);
+                throw new Error(`Invalid name at ${chalk.bold.red(filePath)}. Name was expected to be ${chalk.bold.magenta(kebabCase(withoutExt))}, found ${chalk.bold.yellow(withoutExt)}.`);
             }
 
             /*

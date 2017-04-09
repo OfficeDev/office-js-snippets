@@ -1,191 +1,184 @@
-id: cj0baffrd0000456yr59crib1
-gist: ''
+id: excel_general_starter_templates_report_generation
+name: Report generation
+description: 'Writes data to the workbook, reads and applies basic formatting, and adds a chart bound to that data.'
+author: Microsoft
 host: EXCEL
 api_set: {}
-platform: PC
-created_at: 1489532045640
-modified_at: 1489602092586
-origin: 'https://bornholm-edge.azurewebsites.net'
-author: Microsoft
-name: Report generation
-description: >-
-  Writes data to the workbook, reads and applies basic formatting, and adds a
-  chart bound to that data.
 script:
-  content: |
-    $("#create-report").click(createReport);
+    content: |
+        $("#create-report").click(createReport);
 
-    /** Load sample data into a new worksheet and create a chart */
-    async function createReport() {
-        try {
-            await Excel.run(async (context) => {
-                // Create a proxy object for a new worksheet
-                const sheet = context.workbook.worksheets.add();
+        /** Load sample data into a new worksheet and create a chart */
+        async function createReport() {
+            try {
+                await Excel.run(async (context) => {
+                    // Create a proxy object for a new worksheet
+                    const sheet = context.workbook.worksheets.add();
 
-                try {
-                    await writeSheetData(sheet);
-                    sheet.activate();
-                    await context.sync();
-                }
-                catch (error) {
-                    /**
-                     * Try to activate the new sheet regardless, to show
-                     * how far the processing got before failing
-                     */
-                    sheet.activate();
-                    await context.sync();
+                    try {
+                        await writeSheetData(sheet);
+                        sheet.activate();
+                        await context.sync();
+                    }
+                    catch (error) {
+                        /**
+                         * Try to activate the new sheet regardless, to show
+                         * how far the processing got before failing
+                         */
+                        sheet.activate();
+                        await context.sync();
 
-                    /**
-                     * Then re-throw the original error, for appropriate error-handling
-                     * (in this snippet, simply showing a notification)
-                     */
-                    throw error;
-                }
-            });
+                        /**
+                         * Then re-throw the original error, for appropriate error-handling
+                         * (in this snippet, simply showing a notification)
+                         */
+                        throw error;
+                    }
+                });
 
-            showNotification("Report generated successfully.");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-            showNotification("Failed to generate report. See console for errors.")
-        }
-
-        async function writeSheetData(sheet: Excel.Worksheet) {
-            // Queue commands to set the report title in the worksheet
-            let titleCell = sheet.getCell(0, 0);
-            titleCell.values = [["Quarterly Sales Report"]];
-            titleCell.format.font.name = "Century";
-            titleCell.format.font.size = 26;
-
-            // Create an array containing sample data
-            const headerNames = ["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"];
-            const data = [
-                ["Frames", 5000, 7000, 6544, 4377],
-                ["Saddles", 400, 323, 276, 651],
-                ["Brake levers", 12000, 8766, 8456, 9812],
-                ["Chains", 1550, 1088, 692, 853],
-                ["Mirrors", 225, 600, 923, 544],
-                ["Spokes", 6005, 7634, 4589, 8765]
-            ];
-
-            // Queue a command to write the sample data to the
-            // specified range in the worksheet and bold the header row
-            let headerRow = titleCell.getOffsetRange(1, 0)
-                .getResizedRange(0, headerNames.length - 1);
-            headerRow.values = [headerNames];
-            headerRow.getRow(0).format.font.bold = true;
-
-            let dataRange = headerRow.getOffsetRange(1, 0)
-                .getResizedRange(data.length - 1, 0);
-            dataRange.values = data;
-
-
-            titleCell.getResizedRange(0, headerNames.length - 1).merge();
-            dataRange.format.autofitColumns();
-
-            let columnRanges = headerNames.map((header, index) => dataRange.getColumn(index).load("format/columnWidth"));
-            await sheet.context.sync();
-
-            // For the header (product name) column, make it a minimum of 100px;
-            let firstColumn = columnRanges.shift();
-            if (firstColumn.format.columnWidth < 100) {
-                console.log("Expanding the first column to 100px");
-                firstColumn.format.columnWidth = 100;
+                showNotification("Report generated successfully.");
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+                showNotification("Failed to generate report. See console for errors.")
             }
 
-            // For the remainder, make them identical or a minimum of 60px
-            let minColumnWidth = 60;
-            columnRanges.forEach((column, index) => {
-                console.log(`Column #${index + 1}: auto-fitted width = ${column.format.columnWidth}`);
-                minColumnWidth = Math.max(minColumnWidth, column.format.columnWidth);
-            })
-            console.log(`Setting data columns to a width of ${minColumnWidth} pixels`);
-            dataRange.getOffsetRange(0, 1).getResizedRange(0, -1)
-                .format.columnWidth = minColumnWidth;
+            async function writeSheetData(sheet: Excel.Worksheet) {
+                // Queue commands to set the report title in the worksheet
+                let titleCell = sheet.getCell(0, 0);
+                titleCell.values = [["Quarterly Sales Report"]];
+                titleCell.format.font.name = "Century";
+                titleCell.format.font.size = 26;
 
-            // Queue a command to add a new chart
-            let chart = sheet.charts.add(
-                Excel.ChartType.columnClustered,
-                dataRange, Excel.ChartSeriesBy.columns);
+                // Create an array containing sample data
+                const headerNames = ["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"];
+                const data = [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ];
 
-            // Queue commands to set the properties and format the chart
-            let chartTopRow = dataRange.getLastRow().getOffsetRange(2, 0);
-            chart.setPosition(chartTopRow, chartTopRow.getOffsetRange(14, 0));
-            chart.title.text = "Quarterly sales chart";
-            chart.legend.position = "right"
-            chart.legend.format.fill.setSolidColor("white");
-            chart.dataLabels.format.font.size = 15;
-            chart.dataLabels.format.font.color = "black";
+                // Queue a command to write the sample data to the
+                // specified range in the worksheet and bold the header row
+                let headerRow = titleCell.getOffsetRange(1, 0)
+                    .getResizedRange(0, headerNames.length - 1);
+                headerRow.values = [headerNames];
+                headerRow.getRow(0).format.font.bold = true;
 
-            let points = chart.series.getItemAt(0).points;
-            points.getItemAt(0).format.fill.setSolidColor("pink");
-            points.getItemAt(1).format.fill.setSolidColor("indigo");
+                let dataRange = headerRow.getOffsetRange(1, 0)
+                    .getResizedRange(data.length - 1, 0);
+                dataRange.values = data;
+
+
+                titleCell.getResizedRange(0, headerNames.length - 1).merge();
+                dataRange.format.autofitColumns();
+
+                let columnRanges = headerNames.map((header, index) => dataRange.getColumn(index).load("format/columnWidth"));
+                await sheet.context.sync();
+
+                // For the header (product name) column, make it a minimum of 100px;
+                let firstColumn = columnRanges.shift();
+                if (firstColumn.format.columnWidth < 100) {
+                    console.log("Expanding the first column to 100px");
+                    firstColumn.format.columnWidth = 100;
+                }
+
+                // For the remainder, make them identical or a minimum of 60px
+                let minColumnWidth = 60;
+                columnRanges.forEach((column, index) => {
+                    console.log(`Column #${index + 1}: auto-fitted width = ${column.format.columnWidth}`);
+                    minColumnWidth = Math.max(minColumnWidth, column.format.columnWidth);
+                })
+                console.log(`Setting data columns to a width of ${minColumnWidth} pixels`);
+                dataRange.getOffsetRange(0, 1).getResizedRange(0, -1)
+                    .format.columnWidth = minColumnWidth;
+
+                // Queue a command to add a new chart
+                let chart = sheet.charts.add(
+                    Excel.ChartType.columnClustered,
+                    dataRange, Excel.ChartSeriesBy.columns);
+
+                // Queue commands to set the properties and format the chart
+                let chartTopRow = dataRange.getLastRow().getOffsetRange(2, 0);
+                chart.setPosition(chartTopRow, chartTopRow.getOffsetRange(14, 0));
+                chart.title.text = "Quarterly sales chart";
+                chart.legend.position = "right"
+                chart.legend.format.fill.setSolidColor("white");
+                chart.dataLabels.format.font.size = 15;
+                chart.dataLabels.format.font.color = "black";
+
+                let points = chart.series.getItemAt(0).points;
+                points.getItemAt(0).format.fill.setSolidColor("pink");
+                points.getItemAt(1).format.fill.setSolidColor("indigo");
+            }
         }
-    }
 
-    /**
-     * Display the notification having synced the changes.
-     */
-    function showNotification(message: string) {
-        const messageBanner = $('.ms-MessageBanner');
-        $('.ms-MessageBanner-clipper').text(message);
-        $('.ms-MessageBanner-close').click(() => {
-            messageBanner.hide();
-            messageBanner.off('click');
-        });
-        messageBanner.show();
-    }
-  language: typescript
-style:
-  content: |-
-    /* Button customization, including overwriting some Fabric defaults */
-    .ms-Button, .ms-Button:focus {
-        background: #217346;
-        border: #217346;
-    }
-
-    .ms-Button > .ms-Button-label,
-    .ms-Button:focus > .ms-Button-label,
-    .ms-Button:hover > .ms-Button-label {
-        color: white;
-    }
-
-    .ms-Button:hover, .ms-Button:active {
-        background: #164b2e;
-    }
-
-    .ms-Button.is-disabled, .ms-Button:disabled {
-        background-color: #f4f4f4;
-        border-color: #f4f4f4;
-    }
-
-    .ms-Button.is-disabled .ms-Button-label,
-    .ms-Button:disabled .ms-Button-label {
-        color: #a6a6a6;
-    }
-
-    .ms-MessageBanner {
-        display: none;
-    }
-  language: css
+        /**
+         * Display the notification having synced the changes.
+         */
+        function showNotification(message: string) {
+            const messageBanner = $('.ms-MessageBanner');
+            $('.ms-MessageBanner-clipper').text(message);
+            $('.ms-MessageBanner-close').click(() => {
+                messageBanner.hide();
+                messageBanner.off('click');
+            });
+            messageBanner.show();
+        }
+    language: typescript
 template:
-  content: "<!-- Fabric Message Banner template -->\n<!-- https://dev.office.com/fabric-js/Components/MessageBanner/MessageBanner.html -->\n<div class=\"ms-MessageBanner\">\n\t<div class=\"ms-MessageBanner-content\">\n\t\t<div class=\"ms-MessageBanner-text\">\n\t\t\t<div class=\"ms-MessageBanner-clipper\"></div>\n\t\t</div>\n\t\t<button class=\"ms-MessageBanner-expand\">\n      <i class=\"ms-Icon ms-Icon--ChevronDown\"></i>\n    </button>\n\t</div>\n\t<button class=\"ms-MessageBanner-close\">\n    <i class=\"ms-Icon ms-Icon--Clear\"></i>\n  </button>\n</div>\n\n<h1 class=\"ms-font-xxl\">Report Generation</h1>\n\n<p class=\"ms-font-m\">This sample shows how to load some sample data into the worksheet, and then create a chart using the Excel JavaScript API.</p>\n<h3 class=\"ms-font-l ms-fontWeight-semibold\">Try it out</h3>\n<button id=\"create-report\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Create report</span>\n</button>"
-  language: html
+    content: "<!-- Fabric Message Banner template -->\n<!-- https://dev.office.com/fabric-js/Components/MessageBanner/MessageBanner.html -->\n<div class=\"ms-MessageBanner\">\n\t<div class=\"ms-MessageBanner-content\">\n\t\t<div class=\"ms-MessageBanner-text\">\n\t\t\t<div class=\"ms-MessageBanner-clipper\"></div>\n\t\t</div>\n\t\t<button class=\"ms-MessageBanner-expand\">\n      <i class=\"ms-Icon ms-Icon--ChevronDown\"></i>\n    </button>\n\t</div>\n\t<button class=\"ms-MessageBanner-close\">\n    <i class=\"ms-Icon ms-Icon--Clear\"></i>\n  </button>\n</div>\n\n<h1 class=\"ms-font-xxl\">Report Generation</h1>\n\n<p class=\"ms-font-m\">This sample shows how to load some sample data into the worksheet, and then create a chart using the Excel JavaScript API.</p>\n<h3 class=\"ms-font-l ms-fontWeight-semibold\">Try it out</h3>\n<button id=\"create-report\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Create report</span>\n</button>"
+    language: html
+style:
+    content: |-
+        /* Button customization, including overwriting some Fabric defaults */
+        .ms-Button, .ms-Button:focus {
+            background: #217346;
+            border: #217346;
+        }
+
+        .ms-Button > .ms-Button-label,
+        .ms-Button:focus > .ms-Button-label,
+        .ms-Button:hover > .ms-Button-label {
+            color: white;
+        }
+
+        .ms-Button:hover, .ms-Button:active {
+            background: #164b2e;
+        }
+
+        .ms-Button.is-disabled, .ms-Button:disabled {
+            background-color: #f4f4f4;
+            border-color: #f4f4f4;
+        }
+
+        .ms-Button.is-disabled .ms-Button-label,
+        .ms-Button:disabled .ms-Button-label {
+            color: #a6a6a6;
+        }
+
+        .ms-MessageBanner {
+            display: none;
+        }
+    language: css
 libraries: |
-  # Office.js
-  https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    # Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
 
-  # CSS Libraries
-  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
-  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    # CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
 
-  # NPM libraries
-  core-js@2.4.1/client/core.min.js
-  @microsoft/office-js-helpers@0.5.0/dist/office.helpers.min.js
-  jquery@3.1.1
+    # NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.5.0/dist/office.helpers.min.js
+    jquery@3.1.1
 
-  # IntelliSense: @types/library or node_modules paths or URL to d.ts files
-  @types/office-js
-  @types/core-js
-  @microsoft/office-js-helpers/dist/office.helpers.d.ts
-  @types/jquery
+    # IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers/dist/office.helpers.d.ts
+    @types/jquery

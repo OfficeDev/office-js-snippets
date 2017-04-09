@@ -1,168 +1,159 @@
-id: ''
-gist: ''
-source: EXCEL
-author: Microsoft
+id: excel_worksheet_hide_unhide_worksheet
 name: Hide and unhide worksheet
 description: Explore the APIs to hide and unhide a worksheet
+author: Microsoft
 script:
-  content: >-
-    $("#hide-worksheet").click(hideWorksheet);
+    content: |-
+        $("#hide-worksheet").click(hideWorksheet);
+        $("#unhide-worksheet").click(unhideWorksheet);
 
-    $("#unhide-worksheet").click(unhideWorksheet);
+        async function hideWorksheet() {
+            try {
+                await Excel.run(async (context) => {
 
+                    let visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.visible);
 
-    async function hideWorksheet() {
-        try {
-            await Excel.run(async (context) => {
+                    if (visibleSheets.length > 1) {
+                        console.log(`Hiding worksheet named "${visibleSheets[0].name}"...`);
 
-                let visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.visible);
+                        visibleSheets[0].visibility = Excel.SheetVisibility.hidden;
 
-                if (visibleSheets.length > 1) {
-                    console.log(`Hiding worksheet named "${visibleSheets[0].name}"...`);
+                        await context.sync();
 
-                    visibleSheets[0].visibility = Excel.SheetVisibility.hidden;
+                    } else {
+                        console.log("Cannot hide the only visible worksheet");
+                    }
+                });
 
-                    await context.sync();
-
-                } else {
-                    console.log("Cannot hide the only visible worksheet");
-                }
-            });
-
-            console.log("Done!");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
-
-
-    async function unhideWorksheet() {
-        try {
-            await Excel.run(async (context) => {
-
-                let visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.hidden);
-
-                if (visibleSheets.length > 0) {
-                    console.log(`Unhiding worksheet named "${visibleSheets[0].name}"...`);
-
-                    visibleSheets[0].visibility = Excel.SheetVisibility.visible;
-
-                    await context.sync();
-                    
-                } else {
-                    console.log("No hidden worksheets in the workbook");
-                }
-            });
-
-            console.log("Done!");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
-
-
-    async function filterWorksheetsByVisibility(context: Excel.RequestContext,
-    visibility: string): Promise<Excel.Worksheet[]> {
-
-        let sheets = context.workbook.worksheets;
-        sheets.load("items/name, items/visibility");
-
-        await context.sync();
-
-        return sheets.items.filter((s) => (s.visibility === visibility));
-    }
-  language: typescript
-style:
-  content: |
-    body {
-        margin: 0;
-        padding: 10px;
-    }
-
-
-    /* Button customization, including overwriting some Fabric defaults */
-
-    .ms-Button, .ms-Button:focus {
-        background: #217346;
-        border: #217346;
-    }
-
-        .ms-Button > .ms-Button-label,
-        .ms-Button:focus > .ms-Button-label,
-        .ms-Button:hover > .ms-Button-label {
-            color: white;
+                console.log("Done!");
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
         }
 
-        .ms-Button:hover, .ms-Button:active {
-            background: #164b2e;
+        async function unhideWorksheet() {
+            try {
+                await Excel.run(async (context) => {
+
+                    let visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.hidden);
+
+                    if (visibleSheets.length > 0) {
+                        console.log(`Unhiding worksheet named "${visibleSheets[0].name}"...`);
+
+                        visibleSheets[0].visibility = Excel.SheetVisibility.visible;
+
+                        await context.sync();
+                        
+                    } else {
+                        console.log("No hidden worksheets in the workbook");
+                    }
+                });
+
+                console.log("Done!");
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
         }
 
-        .ms-Button.is-disabled, .ms-Button:disabled {
-            background-color: #f4f4f4;
-            border-color: #f4f4f4;
+        async function filterWorksheetsByVisibility(context: Excel.RequestContext, visibility: string): Promise<Excel.Worksheet[]> {
+
+            let sheets = context.workbook.worksheets;
+            sheets.load("items/name, items/visibility");
+
+            await context.sync();
+
+            return sheets.items.filter((s) => (s.visibility === visibility));
         }
-
-        .ms-Button.is-disabled .ms-Button-label,
-        .ms-Button:disabled .ms-Button-label {
-            color: #a6a6a6;
-        }
-
-    #setup.ms-Button, #setup.ms-Button:focus {
-        background: darkred;
-        border: darkred;
-    }
-
-        #setup.ms-Button:hover, #setup.ms-Button:active {
-            background: red;
-        }
-
-    #samples-container {
-        margin-top: 20px;
-    }
-
-    #samples-container .ms-Button {
-        display: block;
-        margin-bottom: 5px;
-    }
-
-    #samples-container .ms-Button, #setup-container .ms-Button {
-        margin-left: 20px;
-        min-width: 80px;
-    }
-  language: css
+    language: typescript
 template:
-  content: >-
-    <h2 class="ms-font-m">This sample demonstrates how to change the visbility
-    of a worksheet.</h2>
+    content: |-
+        <h2 class="ms-font-m">This sample demonstrates how to change the visbility of a worksheet.</h2>
+
+        <div id="samples-container">
+            <p class="ms-font-m">Sample snippets to try:</p>
+
+            <button id="hide-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Hide worksheet</span>
+            </button>
+            <button id="unhide-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Unhide worksheet</span>
+            </button>
+        </div>
+    language: html
+style:
+    content: |
+        body {
+            margin: 0;
+            padding: 10px;
+        }
 
 
-    <div id="samples-container">
-        <p class="ms-font-m">Sample snippets to try:</p>
+        /* Button customization, including overwriting some Fabric defaults */
 
-        <button id="hide-worksheet" class="ms-Button">
-            <span class="ms-Button-label">Hide worksheet</span>
-        </button>
-        <button id="unhide-worksheet" class="ms-Button">
-            <span class="ms-Button-label">Unhide worksheet</span>
-        </button>
-    </div>
-  language: html
+        .ms-Button, .ms-Button:focus {
+            background: #217346;
+            border: #217346;
+        }
+
+            .ms-Button > .ms-Button-label,
+            .ms-Button:focus > .ms-Button-label,
+            .ms-Button:hover > .ms-Button-label {
+                color: white;
+            }
+
+            .ms-Button:hover, .ms-Button:active {
+                background: #164b2e;
+            }
+
+            .ms-Button.is-disabled, .ms-Button:disabled {
+                background-color: #f4f4f4;
+                border-color: #f4f4f4;
+            }
+
+            .ms-Button.is-disabled .ms-Button-label,
+            .ms-Button:disabled .ms-Button-label {
+                color: #a6a6a6;
+            }
+
+        #setup.ms-Button, #setup.ms-Button:focus {
+            background: darkred;
+            border: darkred;
+        }
+
+            #setup.ms-Button:hover, #setup.ms-Button:active {
+                background: red;
+            }
+
+        #samples-container {
+            margin-top: 20px;
+        }
+
+        #samples-container .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #samples-container .ms-Button, #setup-container .ms-Button {
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
 libraries: |-
-  // Office.js
-  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
 
-  // NPM libraries
-  jquery
-  office-ui-fabric-js/dist/js/fabric.min.js
-  office-ui-fabric-js/dist/css/fabric.min.css
-  office-ui-fabric-js/dist/css/fabric.components.min.css
-  @microsoft/office-js-helpers/dist/office.helpers.min.js
-  core-js/client/core.min.js
+    // NPM libraries
+    jquery
+    office-ui-fabric-js/dist/js/fabric.min.js
+    office-ui-fabric-js/dist/css/fabric.min.css
+    office-ui-fabric-js/dist/css/fabric.components.min.css
+    @microsoft/office-js-helpers/dist/office.helpers.min.js
+    core-js/client/core.min.js
 
-  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
-  dt~office-js
-  dt~jquery
-  dt~core-js
-  @microsoft/office-js-helpers/dist/office.helpers.d.ts
+    // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+    dt~office-js
+    dt~jquery
+    dt~core-js
+    @microsoft/office-js-helpers/dist/office.helpers.d.ts

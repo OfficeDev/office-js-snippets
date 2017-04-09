@@ -1,194 +1,189 @@
-id: ''
-gist: ''
-source: EXCEL
-author: Microsoft
+id: excel_worksheet_activeworksheet
 name: Active worksheet
 description: Explore the APIs to get and set the active worksheet
+author: Microsoft
 script:
-  content: |-
-    $("#setup").click(setup);
+    content: |-
+        $("#setup").click(setup);
 
-    $("#get-active-worksheet").click(getActiveWorksheet);
-    $("#set-active-worksheet").click(setActiveWorksheet);
+        $("#get-active-worksheet").click(getActiveWorksheet);
+        $("#set-active-worksheet").click(setActiveWorksheet);
 
-    async function getActiveWorksheet() {
-        try {
-            await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getActiveWorksheet();
-                sheet.load("name");
-                
-                await context.sync();
+        async function getActiveWorksheet() {
+            try {
+                await Excel.run(async (context) => {
+                    let sheet = context.workbook.worksheets.getActiveWorksheet();
+                    sheet.load("name");
+                    
+                    await context.sync();
 
-                console.log(`The active worksheet is "${sheet.name}"`);
-            });
+                    console.log(`The active worksheet is "${sheet.name}"`);
+                });
 
-            console.log("Done!");
+                console.log("Done!");
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
         }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
 
-    async function setActiveWorksheet() {
-        try {
-            await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getActiveWorksheet();
-                sheet.load("name");
-                
-                let sheets = context.workbook.worksheets;
-                sheets.load("items");
+        async function setActiveWorksheet() {
+            try {
+                await Excel.run(async (context) => {
+                    let sheet = context.workbook.worksheets.getActiveWorksheet();
+                    sheet.load("name");
+                    
+                    let sheets = context.workbook.worksheets;
+                    sheets.load("items");
 
-                await context.sync();
+                    await context.sync();
 
-                let newSheet = sheet;
+                    let newSheet = sheet;
 
-                if (sheets.items.length > 1) {
-                    if (sheet.id === sheets.items[0].id) {
-                        newSheet = sheets.items[1];
+                    if (sheets.items.length > 1) {
+                        if (sheet.id === sheets.items[0].id) {
+                            newSheet = sheets.items[1];
+                        } else {
+                            newSheet = sheets.items[0];
+                        }
+                        newSheet.load("name");
+
+                        newSheet.activate();
+
+                        await context.sync();
                     } else {
-                        newSheet = sheets.items[0];
+                        console.log("Cannot change the active worksheet since there is only one sheet in the workbook");
                     }
-                    newSheet.load("name");
 
-                    newSheet.activate();
+                    console.log(`The active worksheet is "${newSheet.name}"`);
+                });
 
+                console.log("Done!");
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function setup() {
+            try {
+                await Excel.run(async (context) => {
+
+                    let sheets = context.workbook.worksheets;
+                    sheets.load("items");
+                    
                     await context.sync();
-                } else {
-                    console.log("Cannot change the active worksheet since there is only one sheet in the workbook");
-                }
 
-                console.log(`The active worksheet is "${newSheet.name}"`);
-            });
+                    if (sheets.items.length < 2) {
+                        sheets.add();
 
-            console.log("Done!");
+                        await context.sync();
+                    }
+                });
+
+                console.log("Done!");
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
         }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
-
-    async function setup() {
-        try {
-            await Excel.run(async (context) => {
-
-                let sheets = context.workbook.worksheets;
-                sheets.load("items");
-                
-                await context.sync();
-
-                if (sheets.items.length < 2) {
-                    sheets.add();
-
-                    await context.sync();
-                }
-            });
-
-            console.log("Done!");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
-  language: typescript
-style:
-  content: |
-    body {
-        margin: 0;
-        padding: 10px;
-    }
-
-
-    /* Button customization, including overwriting some Fabric defaults */
-
-    .ms-Button, .ms-Button:focus {
-        background: #217346;
-        border: #217346;
-    }
-
-        .ms-Button > .ms-Button-label,
-        .ms-Button:focus > .ms-Button-label,
-        .ms-Button:hover > .ms-Button-label {
-            color: white;
-        }
-
-        .ms-Button:hover, .ms-Button:active {
-            background: #164b2e;
-        }
-
-        .ms-Button.is-disabled, .ms-Button:disabled {
-            background-color: #f4f4f4;
-            border-color: #f4f4f4;
-        }
-
-        .ms-Button.is-disabled .ms-Button-label,
-        .ms-Button:disabled .ms-Button-label {
-            color: #a6a6a6;
-        }
-
-    #setup.ms-Button, #setup.ms-Button:focus {
-        background: darkred;
-        border: darkred;
-    }
-
-        #setup.ms-Button:hover, #setup.ms-Button:active {
-            background: red;
-        }
-
-    #samples-container {
-        margin-top: 20px;
-    }
-
-    #samples-container .ms-Button {
-        display: block;
-        margin-bottom: 5px;
-    }
-
-    #samples-container .ms-Button, #setup-container .ms-Button {
-        margin-left: 20px;
-        min-width: 80px;
-    }
-  language: css
+    language: typescript
 template:
-  content: >+
-    <h2 class="ms-font-m">This sample demonstrates how to get and set the active
-    worksheet.</h2>
+    content: |+
+        <h2 class="ms-font-m">This sample demonstrates how to get and set the active worksheet.</h2>
+
+        <div id="setup-container">
+            <p class="ms-font-m">Click "setup" between runs to ensure at minimum two worksheets in the workbook:</p>
+
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup</span>
+            </button>
+        </div>
+
+        <div id="samples-container">
+            <p class="ms-font-m">Sample snippets to try:</p>
+
+            <button id="get-active-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Get active worksheet</span>
+            </button>   
+            <button id="set-active-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Set active worksheet</span>
+            </button>        
+        </div>
+
+    language: html
+style:
+    content: |
+        body {
+            margin: 0;
+            padding: 10px;
+        }
 
 
-    <div id="setup-container">
-        <p class="ms-font-m">Click "setup" between runs to ensure at minimum two worksheets in the workbook:</p>
+        /* Button customization, including overwriting some Fabric defaults */
 
-        <button id="setup" class="ms-Button">
-            <span class="ms-Button-label">Setup</span>
-        </button>
-    </div>
+        .ms-Button, .ms-Button:focus {
+            background: #217346;
+            border: #217346;
+        }
 
+            .ms-Button > .ms-Button-label,
+            .ms-Button:focus > .ms-Button-label,
+            .ms-Button:hover > .ms-Button-label {
+                color: white;
+            }
 
-    <div id="samples-container">
-        <p class="ms-font-m">Sample snippets to try:</p>
+            .ms-Button:hover, .ms-Button:active {
+                background: #164b2e;
+            }
 
-        <button id="get-active-worksheet" class="ms-Button">
-            <span class="ms-Button-label">Get active worksheet</span>
-        </button>   
-        <button id="set-active-worksheet" class="ms-Button">
-            <span class="ms-Button-label">Set active worksheet</span>
-        </button>        
-    </div>
+            .ms-Button.is-disabled, .ms-Button:disabled {
+                background-color: #f4f4f4;
+                border-color: #f4f4f4;
+            }
 
-  language: html
+            .ms-Button.is-disabled .ms-Button-label,
+            .ms-Button:disabled .ms-Button-label {
+                color: #a6a6a6;
+            }
+
+        #setup.ms-Button, #setup.ms-Button:focus {
+            background: darkred;
+            border: darkred;
+        }
+
+            #setup.ms-Button:hover, #setup.ms-Button:active {
+                background: red;
+            }
+
+        #samples-container {
+            margin-top: 20px;
+        }
+
+        #samples-container .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #samples-container .ms-Button, #setup-container .ms-Button {
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
 libraries: |-
-  // Office.js
-  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
 
-  // NPM libraries
-  jquery
-  office-ui-fabric-js/dist/js/fabric.min.js
-  office-ui-fabric-js/dist/css/fabric.min.css
-  office-ui-fabric-js/dist/css/fabric.components.min.css
-  @microsoft/office-js-helpers/dist/office.helpers.min.js
-  core-js/client/core.min.js
+    // NPM libraries
+    jquery
+    office-ui-fabric-js/dist/js/fabric.min.js
+    office-ui-fabric-js/dist/css/fabric.min.css
+    office-ui-fabric-js/dist/css/fabric.components.min.css
+    @microsoft/office-js-helpers/dist/office.helpers.min.js
+    core-js/client/core.min.js
 
-  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
-  dt~office-js
-  dt~jquery
-  dt~core-js
-  @microsoft/office-js-helpers/dist/office.helpers.d.ts
+    // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+    dt~office-js
+    dt~jquery
+    dt~core-js
+    @microsoft/office-js-helpers/dist/office.helpers.d.ts

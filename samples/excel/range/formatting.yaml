@@ -1,207 +1,198 @@
-id: ''
-gist: ''
-source: EXCEL
-author: Microsoft
+id: excel_range_formatting
 name: Formatting
 description: Explore the APIs to format a range
+author: Microsoft
 script:
-  content: >-
-    $("#setup").click(setup);
+    content: |-
+        $("#setup").click(setup);
 
+        $("#set-font-and-fill-color").click(setFontAndFillColor);
+        $("#set-number-format").click(setNumberFormat);
 
-    $("#set-font-and-fill-color").click(setFontAndFillColor);
+        async function setFontAndFillColor() {
+            try {
+                await Excel.run(async (context) => {
+                    let sheet = context.workbook.worksheets.getActiveWorksheet();
 
-    $("#set-number-format").click(setNumberFormat);
+                    let range = sheet.getRange("B2:E2");
+                    range.format.fill.color = "#4472C4";;
+                    range.format.font.color = "white";
 
+                    await context.sync();
+                });
 
-    async function setFontAndFillColor() {
-        try {
-            await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getActiveWorksheet();
-
-                let range = sheet.getRange("B2:E2");
-                range.format.fill.color = "#4472C4";;
-                range.format.font.color = "white";
-
-                await context.sync();
-            });
-
-            console.log("Done!");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
-
-
-    async function setNumberFormat() {
-        try {
-            await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getActiveWorksheet();
-
-                let formats = [
-                    ["0.00", "0.00"],
-                    ["0.00", "0.00"],
-                    ["0.00", "0.00"]
-                ];
-
-                let range = sheet.getRange("D3:E5");
-                range.numberFormat = formats;
-                await context.sync();
-            });
-
-            console.log("Done!");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
-
-
-
-    async function setup() {
-        try {
-            await Excel.run(async (context) => {
-
-                let sheet = await resetWorksheet(context.workbook.worksheets.getActiveWorksheet());
-                
-                let data = [
-                    ["Product", "Qty", "Unit Price", "Total Price"],
-                    ["Almonds", 2, 7.50, "=C3 * D3"],
-                    ["Coffee", 1, 34.50, "=C4 * D4"],
-                    ["Chocolate", 5, 9.56, "=C5 * D5"]
-                ];
-
-                let range = sheet.getRange("B2:E5");
-                range.values = data;
-                range.format.autofitColumns();
-                
-                await context.sync();
-            });
-
-            console.log("Done!");
-        }
-        catch (error) {
-            OfficeHelpers.Utilities.log(error);
-        }
-    }
-
-
-    async function resetWorksheet(sheet: Excel.Worksheet):
-    Promise<Excel.Worksheet> {
-        let context = <Excel.RequestContext>sheet.context;
-
-        sheet.load("name, position");
-
-        await context.sync();
-
-        let newSheet = context.workbook.worksheets.add();
-        newSheet.position = sheet.position;
-        sheet.delete();
-        newSheet.name = sheet.name;
-        newSheet.activate();
-
-        await context.sync();
-
-        return newSheet;
-    }
-  language: typescript
-style:
-  content: |
-    body {
-        margin: 0;
-        padding: 10px;
-    }
-
-
-    /* Button customization, including overwriting some Fabric defaults */
-
-    .ms-Button, .ms-Button:focus {
-        background: #217346;
-        border: #217346;
-    }
-
-        .ms-Button > .ms-Button-label,
-        .ms-Button:focus > .ms-Button-label,
-        .ms-Button:hover > .ms-Button-label {
-            color: white;
+                console.log("Done!");
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
         }
 
-        .ms-Button:hover, .ms-Button:active {
-            background: #164b2e;
+        async function setNumberFormat() {
+            try {
+                await Excel.run(async (context) => {
+                    let sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                    let formats = [
+                        ["0.00", "0.00"],
+                        ["0.00", "0.00"],
+                        ["0.00", "0.00"]
+                    ];
+
+                    let range = sheet.getRange("D3:E5");
+                    range.numberFormat = formats;
+                    await context.sync();
+                });
+
+                console.log("Done!");
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
         }
 
-        .ms-Button.is-disabled, .ms-Button:disabled {
-            background-color: #f4f4f4;
-            border-color: #f4f4f4;
+
+        async function setup() {
+            try {
+                await Excel.run(async (context) => {
+
+                    let sheet = await resetWorksheet(context.workbook.worksheets.getActiveWorksheet());
+                    
+                    let data = [
+                        ["Product", "Qty", "Unit Price", "Total Price"],
+                        ["Almonds", 2, 7.50, "=C3 * D3"],
+                        ["Coffee", 1, 34.50, "=C4 * D4"],
+                        ["Chocolate", 5, 9.56, "=C5 * D5"]
+                    ];
+
+                    let range = sheet.getRange("B2:E5");
+                    range.values = data;
+                    range.format.autofitColumns();
+                    
+                    await context.sync();
+                });
+
+                console.log("Done!");
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
         }
 
-        .ms-Button.is-disabled .ms-Button-label,
-        .ms-Button:disabled .ms-Button-label {
-            color: #a6a6a6;
+        async function resetWorksheet(sheet: Excel.Worksheet): Promise<Excel.Worksheet> {
+            let context = <Excel.RequestContext>sheet.context;
+
+            sheet.load("name, position");
+
+            await context.sync();
+
+            let newSheet = context.workbook.worksheets.add();
+            newSheet.position = sheet.position;
+            sheet.delete();
+            newSheet.name = sheet.name;
+            newSheet.activate();
+
+            await context.sync();
+
+            return newSheet;
         }
-
-    #setup.ms-Button, #setup.ms-Button:focus {
-        background: darkred;
-        border: darkred;
-    }
-
-        #setup.ms-Button:hover, #setup.ms-Button:active {
-            background: red;
-        }
-
-    #samples-container {
-        margin-top: 20px;
-    }
-
-    #samples-container .ms-Button {
-        display: block;
-        margin-bottom: 5px;
-    }
-
-    #samples-container .ms-Button, #setup-container .ms-Button {
-        margin-left: 20px;
-        min-width: 80px;
-    }
-  language: css
+    language: typescript
 template:
-  content: |+
-    <h2 class="ms-font-m">This sample demonstrates how to format a range.</h2>
+    content: |+
+        <h2 class="ms-font-m">This sample demonstrates how to format a range.</h2>
 
-    <div id="setup-container">
-        <p class="ms-font-m">Click "setup" between runs to delete the contents of your active worksheet and add sample data:</p>
+        <div id="setup-container">
+            <p class="ms-font-m">Click "setup" between runs to delete the contents of your active worksheet and add sample data:</p>
 
-        <button id="setup" class="ms-Button">
-            <span class="ms-Button-label">Setup</span>
-        </button>
-    </div>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup</span>
+            </button>
+        </div>
 
-    <div id="samples-container">
-        <p class="ms-font-m">Sample snippets to try:</p>
+        <div id="samples-container">
+            <p class="ms-font-m">Sample snippets to try:</p>
 
-        <button id="set-font-and-fill-color" class="ms-Button">
-            <span class="ms-Button-label">Set font and fill color</span>
-        </button>   
-        <button id="set-number-format" class="ms-Button">
-            <span class="ms-Button-label">Set number format</span>
-        </button>        
-    </div>
+            <button id="set-font-and-fill-color" class="ms-Button">
+                <span class="ms-Button-label">Set font and fill color</span>
+            </button>   
+            <button id="set-number-format" class="ms-Button">
+                <span class="ms-Button-label">Set number format</span>
+            </button>        
+        </div>
 
-  language: html
+    language: html
+style:
+    content: |
+        body {
+            margin: 0;
+            padding: 10px;
+        }
+
+
+        /* Button customization, including overwriting some Fabric defaults */
+
+        .ms-Button, .ms-Button:focus {
+            background: #217346;
+            border: #217346;
+        }
+
+            .ms-Button > .ms-Button-label,
+            .ms-Button:focus > .ms-Button-label,
+            .ms-Button:hover > .ms-Button-label {
+                color: white;
+            }
+
+            .ms-Button:hover, .ms-Button:active {
+                background: #164b2e;
+            }
+
+            .ms-Button.is-disabled, .ms-Button:disabled {
+                background-color: #f4f4f4;
+                border-color: #f4f4f4;
+            }
+
+            .ms-Button.is-disabled .ms-Button-label,
+            .ms-Button:disabled .ms-Button-label {
+                color: #a6a6a6;
+            }
+
+        #setup.ms-Button, #setup.ms-Button:focus {
+            background: darkred;
+            border: darkred;
+        }
+
+            #setup.ms-Button:hover, #setup.ms-Button:active {
+                background: red;
+            }
+
+        #samples-container {
+            margin-top: 20px;
+        }
+
+        #samples-container .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #samples-container .ms-Button, #setup-container .ms-Button {
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
 libraries: |-
-  // Office.js
-  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
 
-  // NPM libraries
-  jquery
-  office-ui-fabric-js/dist/js/fabric.min.js
-  office-ui-fabric-js/dist/css/fabric.min.css
-  office-ui-fabric-js/dist/css/fabric.components.min.css
-  @microsoft/office-js-helpers/dist/office.helpers.min.js
-  core-js/client/core.min.js
+    // NPM libraries
+    jquery
+    office-ui-fabric-js/dist/js/fabric.min.js
+    office-ui-fabric-js/dist/css/fabric.min.css
+    office-ui-fabric-js/dist/css/fabric.components.min.css
+    @microsoft/office-js-helpers/dist/office.helpers.min.js
+    core-js/client/core.min.js
 
-  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
-  dt~office-js
-  dt~jquery
-  dt~core-js
-  @microsoft/office-js-helpers/dist/office.helpers.d.ts
+    // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+    dt~office-js
+    dt~jquery
+    dt~core-js
+    @microsoft/office-js-helpers/dist/office.helpers.d.ts

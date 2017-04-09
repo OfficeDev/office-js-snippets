@@ -72,7 +72,7 @@ async function processSnippets() {
             additionalFields.id = snippet.id;
             additionalFields.api_set = snippet.api_set;
             additionalFields.author = 'Microsoft';
-            if ((typeof (additionalFields as any).order) != 'undefined') {
+            if ((typeof (additionalFields as any).order) !== 'undefined') {
                 // # for ordering, if present (used for samples only)
                 (additionalFields as any).order = (snippet as any).order;
             }
@@ -101,7 +101,7 @@ async function processSnippets() {
             };
 
         } catch (exception) {
-            messages.push(exception)
+            messages.push(exception);
             status.complete(false /*success*/, `Processing ${file.host}::${file.file_name}`, messages);
             accumulatedErrors.push(`Failed to process ${file.host}::${file.file_name}: ${exception.message || exception}`);
             return null;
@@ -159,7 +159,7 @@ async function updateModifiedFiles() {
                     status.complete(true /*succeeded*/, `Updating ${path}`);
                 })
         );
-    })
+    });
 
     await Promise.all(fileWriteRequests);
 }
@@ -221,7 +221,7 @@ function handleError(error: any | any[]) {
     (error as any[]).forEach(() => {
         const statusMessage = error.message || error;
         status.add(statusMessage);
-        status.complete(false /*successe*/, statusMessage)
+        status.complete(false /*successe*/, statusMessage);
     });
 
     process.exit(1);

@@ -10,6 +10,24 @@ import { kebabCase } from 'lodash';
 import { console } from './status';
 import * as rimraf from 'rimraf';
 
+export interface SnippetFileInput {
+    file_name: string;
+    path: string;
+    host: string;
+    group: string;
+}
+
+export interface SnippetProcessedData {
+    id: string;
+    name: string;
+    fileName: string;
+    localPath: string;
+    description: string;
+    host: string;
+    rawUrl: string;
+    group: string;
+}
+
 /**
  * Creates a chalk based section with the specific color.
  * @param title Title of the banner.
@@ -26,13 +44,6 @@ export const banner = (title: string, message: string = null, chalkFn: chalk.Cha
     }
     console.log(chalkFn(`${dashes}\n`));
 };
-
-export interface File {
-    file_name: string;
-    path: string;
-    host: string;
-    group: string;
-}
 
 /**
  * Creates a folder.
@@ -159,7 +170,7 @@ export const getFileMetadata = (file: string, root: string) => {
 
     host = host.toLowerCase();
 
-    return Observable.of<File>({
+    return Observable.of<SnippetFileInput>({
         path: relativePath,
         host,
         group,
@@ -172,7 +183,7 @@ export const getFileMetadata = (file: string, root: string) => {
  * @param dir An absolute path to the directory.
  * @param root An absolute path to the root directory.
  */
-export const getFiles = (dir: string, root: string): Observable<File> =>
+export const getFiles = (dir: string, root: string): Observable<SnippetFileInput> =>
     /*
     * Convert all the files into an Observable stream of files.
     * This allows us to focus the remainder of the operations

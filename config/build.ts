@@ -4,7 +4,7 @@ import * as path from 'path';
 import { isEmpty, isString, forIn, isArray, sortBy } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
-import { rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
+import { SnippetFileInput, SnippetProcessedData, rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
 import { getShareableYaml } from './snippet.helpers';
 import { startCase, groupBy, map } from 'lodash';
 import { Dictionary } from '@microsoft/office-js-helpers';
@@ -12,19 +12,8 @@ import * as jsyaml from 'js-yaml';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 
-interface SnippetFileData {
-    id: string;
-    name: string;
-    fileName: string;
-    localPath: string;
-    description: string;
-    host: string;
-    rawUrl: string;
-    group: string;
-}
-
 const { GH_ACCOUNT, GH_REPO, GH_BRANCH } = process.env;
-const processedSnippets = new Dictionary<SnippetFileData>();
+const processedSnippets = new Dictionary<SnippetProcessedData>();
 const snippetFilesToUpdate: { [fullPath: string]: string } = {};
 const accumulatedErrors: Array<string | Error> = [];
 
@@ -51,62 +40,7 @@ async function processSnippets() {
         banner('Loading & processing snippets');
         let files$ = getFiles(path.resolve('samples'), path.resolve('samples'));
 
-        files$.mergeMap(async (file) => {
-            const messages: Array<string | Error> = [];
-            try {
-                const localPath = `${file.host}/${file.group}/${file.file_name}`;
-                const fullPath = path.resolve('samples', file.path);
-
-                status.add(`Processing ${localPath}`);
-
-                const originalFileContents = await loadFileContents(fullPath);
-                let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
-
-
-                // Do validations & auto-corrections
-                validateStringFieldNotEmptyOrThrow(snippet, 'name');
-                validateStringFieldNotEmptyOrThrow(snippet, 'description');
-                validateId(snippet, localPath, messages);
-
-                // Additional fields relative to what is normally exposed in sharing
-                // (and/or that would normally get erased when doing an export):
-                const additionalFields: ISnippet = <any>{};
-                additionalFields.id = snippet.id;
-                additionalFields.api_set = snippet.api_set;
-                additionalFields.author = 'Microsoft';
-                if ((typeof (additionalFields as any).order) != 'undefined') {
-                    // # for ordering, if present (used for samples only)
-                    (additionalFields as any).order = (snippet as any).order;
-                }
-
-                let finalFileContents = getShareableYaml(snippet, additionalFields);
-                if (originalFileContents !== finalFileContents) {
-                    messages.push('Final snippet != original snippet. Queueing to write in new changes.');
-                    snippetFilesToUpdate[fullPath] = finalFileContents;
-                }
-
-                status.complete(true /*success*/, `Processing ${localPath}`, messages);
-
-                return {
-                    id: snippet.id,
-                    name: snippet.name,
-                    fileName: file.file_name,
-                    localPath: localPath,
-                    description: snippet.description,
-                    host: file.host,
-                    rawUrl: 'https://raw.githubusercontent.com/' +
-                    `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${GH_BRANCH || '<BRANCH>'}` +
-                    `/samples/${file.host}/${file.group}/${file.file_name}`,
-                    group: startCase(file.group)
-                };
-
-            } catch (exception) {
-                messages.push(exception)
-                status.complete(false /*success*/, `Processing ${file.host}::${file.file_name}`, messages);
-                accumulatedErrors.push(`Failed to process ${file.host}::${file.file_name}: ${exception.message || exception}`);
-                return null;
-            }
-        })
+        files$.mergeMap(processAndValidateSnippet)
             .filter(file => file !== null)
             .map(file => processedSnippets.add(file.rawUrl, file))
             .subscribe(null, reject, resolve);
@@ -114,6 +48,65 @@ async function processSnippets() {
 
 
     // Helpers:
+
+    async function processAndValidateSnippet(file: SnippetFileInput): Promise<SnippetProcessedData> {
+        const messages: Array<string | Error> = [];
+        try {
+            const localPath = `${file.host}/${file.group}/${file.file_name}`;
+            const fullPath = path.resolve('samples', file.path);
+
+            status.add(`Processing ${localPath}`);
+
+            const originalFileContents = await loadFileContents(fullPath);
+            let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
+
+
+            // Do validations & auto-corrections
+            validateStringFieldNotEmptyOrThrow(snippet, 'name');
+            validateStringFieldNotEmptyOrThrow(snippet, 'description');
+            validateId(snippet, localPath, messages);
+
+            // Additional fields relative to what is normally exposed in sharing
+            // (and/or that would normally get erased when doing an export):
+            const additionalFields: ISnippet = <any>{};
+            additionalFields.id = snippet.id;
+            additionalFields.api_set = snippet.api_set;
+            additionalFields.author = 'Microsoft';
+            if ((typeof (additionalFields as any).order) != 'undefined') {
+                // # for ordering, if present (used for samples only)
+                (additionalFields as any).order = (snippet as any).order;
+            }
+
+            let finalFileContents = getShareableYaml(snippet, additionalFields);
+            if (originalFileContents !== finalFileContents) {
+                messages.push('Final snippet != original snippet. Queueing to write in new changes.');
+                snippetFilesToUpdate[fullPath] = finalFileContents;
+            }
+
+            status.complete(true /*success*/, `Processing ${localPath}`, messages);
+
+            const rawUrl = 'https://raw.githubusercontent.com/' +
+                `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${GH_BRANCH || '<BRANCH>'}` +
+                `/samples/${file.host}/${file.group}/${file.file_name}`;
+
+            return {
+                id: snippet.id,
+                name: snippet.name,
+                fileName: file.file_name,
+                localPath: localPath,
+                description: snippet.description,
+                host: file.host,
+                rawUrl: rawUrl,
+                group: startCase(file.group)
+            };
+
+        } catch (exception) {
+            messages.push(exception)
+            status.complete(false /*success*/, `Processing ${file.host}::${file.file_name}`, messages);
+            accumulatedErrors.push(`Failed to process ${file.host}::${file.file_name}: ${exception.message || exception}`);
+            return null;
+        }
+    }
 
     function validateStringFieldNotEmptyOrThrow(snippet: ISnippet, field: string): void {
         if (isEmpty(snippet[field])) {

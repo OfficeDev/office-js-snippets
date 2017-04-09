@@ -1,9 +1,11 @@
 #!/usr/bin/env node --harmony
 
 import * as path from 'path';
+import { isEmpty, isString } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
-import { rmRf, mkDir, getFiles, writeFile, banner, loadYamlFile } from './helpers';
+import { rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
+import { getShareableYaml } from './snippet.helpers';
 import { startCase, groupBy, map } from 'lodash';
 import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
@@ -30,23 +32,43 @@ const files = new Dictionary<File>();
             const messages: Array<string | Error> = [];
             try {
                 const hostFilename = `${file.host}::${file.file_name}`;
+                const fullPath = path.resolve('samples', file.path);
                 status.add(`Processing ${hostFilename}`);
-                let { name, description, id } = await loadYamlFile<ISnippet>(path.resolve('samples', file.path));
+                const originalFileContents = await loadFileContents(fullPath);
+                let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
 
-                // if (id == null || id.trim() === '') {
-                //     messages.push('Snippet ID cannot be empty');
-                // }
+                // Do validations & auto-corrections
+                validateStringFieldNotEmptyOrThrow(snippet, 'name');
+                validateStringFieldNotEmptyOrThrow(snippet, 'description');
+                validateId(snippet, messages);
+
+                // Additional fields relative to what is normally exposed in a public gist
+                // (and/or that would normally get erased when doing an export):
+                const additionalFields: ISnippet = <any> {};
+                additionalFields.id = snippet.id;
+                additionalFields.api_set = snippet.api_set;
+                additionalFields.author = 'Microsoft';
+                
+                messages.push("Before sharing yaml");
+                let finalFileContents = getShareableYaml(snippet, additionalFields);
+                if (originalFileContents !== finalFileContents) {
+                    messages.push("Right before writing...")
+                    writeFile(fullPath, finalFileContents);
+                    messages.push('Final snippet != original snippet. Writing in the new changes.');
+                }
 
                 status.complete(true /*success*/, `Processing ${hostFilename}`, messages);
+
                 return {
-                    id,
-                    name,
+                    id: snippet.id,
+                    name: snippet.name,
                     fileName: file.file_name,
-                    description,
+                    description: snippet.description,
                     host: file.host,
                     gist: `https://raw.githubusercontent.com/${GH_ACCOUNT}/${GH_REPO}/${GH_BRANCH}/samples/${file.host}/${file.group}/${file.file_name}`,
                     group: startCase(file.group)
                 };
+
             } catch (exception) {
                 messages.push(exception)
                 status.complete(false /*success*/, `Processing ${file.host}::${file.file_name}`, messages);
@@ -90,4 +112,38 @@ async function snippetsProcessed() {
     });
     await Promise.all(promises);
     status.complete(true /*success*/, 'Generating playlists');
+}
+
+function validateStringFieldNotEmptyOrThrow(snippet: ISnippet, field: string): void {
+    if (isEmpty(snippet[field])) {
+        throw `Snippet ${field} may not be empty`;
+    }
+
+    if (!isString(snippet[field])) {
+        throw `Snippet ${field} must be a string`;
+    }
+
+    snippet[field] = snippet[field].trim();
+}
+
+function validateId(snippet: ISnippet, messages: any[]): void {
+    // Don't want empty IDs -- or GUID-y IDs either, since they're not particularly memorable...
+    if (isEmpty(snippet.id) || isCUID(snippet.id)) {
+        snippet.id = snippet.name.trim().toLowerCase()
+            .replace(/[^0-9a-zA-Z]/g, '_') /* replace any non-alphanumeric with an underscore */
+            .replace(/_+/g, '_') /* and ensure that don't end up with __ or ___, just a single underscore */;
+
+        messages.push('Snippet id may not be empty or be a machine-generated ID.');
+        messages.push(`... replacing with an ID based on name: "${snippet.id}"`);
+    }
+
+    // Helper:
+    function isCUID(id: string) {
+        if (id.length === 25 && id.indexOf('_') === -1) {
+            // not likely to be a real id, with a name of that precise length and all as one word.
+            return true;
+        }
+
+        return false;
+    }
 }

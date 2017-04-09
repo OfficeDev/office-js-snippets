@@ -7,7 +7,6 @@ import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/observable/from';
 import 'rxjs/add/observable/of';
 import { kebabCase } from 'lodash';
-import * as jsyaml from 'js-yaml';
 import { console } from './status';
 import * as rimraf from 'rimraf';
 
@@ -107,12 +106,13 @@ export const isDir = (path: string) =>
         });
     });
 
+
 /**
  * Load the contents of the YAML file.
  * @param path Absolute to the yaml file.
  */
-export const loadYamlFile = <T>(path: string) =>
-    new Promise<T>(async (resolve, reject) => {
+export const loadFileContents = (path: string) =>
+    new Promise<string>(async (resolve, reject) => {
         let pathIsDirectory = await isDir(path);
         if (pathIsDirectory) {
             return reject(new Error(`Cannot open a directory @ ${chalk.bold.red(path)}`));
@@ -123,7 +123,7 @@ export const loadYamlFile = <T>(path: string) =>
                     if (err) {
                         return reject(err);
                     }
-                    return resolve(jsyaml.safeLoad(contents));
+                    return resolve(contents);
                 }
                 catch (err) {
                     reject(err);

@@ -1,5 +1,5 @@
 import * as nodeStatus from 'node-status';
-import { isString, find, isEmpty, isArray } from 'lodash';
+import { isString, find, isNil, isArray } from 'lodash';
 
 interface IStage {
     steps: any[];
@@ -54,7 +54,7 @@ export class Status {
 
             return additionalDetails
                 .map(item => {
-                    if (isEmpty(item)) {
+                    if (isNil(item)) {
                         return null;
                     }
 
@@ -68,7 +68,7 @@ export class Status {
                     }
                     return stringified;
                 })
-                .filter(item => !isEmpty(item));
+                .filter(item => !isNil(item));
         }
     };
 

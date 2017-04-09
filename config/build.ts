@@ -1,7 +1,7 @@
 #!/usr/bin/env node --harmony
 
 import * as path from 'path';
-import { isEmpty, isString, isArray, sortBy } from 'lodash';
+import { isNil, isString, isArray, sortBy } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
 import { SnippetFileInput, SnippetProcessedData, rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
@@ -65,6 +65,9 @@ async function processSnippets() {
             validateStringFieldNotEmptyOrThrow(snippet, 'name');
             validateStringFieldNotEmptyOrThrow(snippet, 'description');
             validateId(snippet, localPath, messages);
+            validateSnippetHost(snippet, file.host, messages);
+            validateAtTypesDeclarations(snippet, messages);
+            validateOfficialOfficeJs(snippet, file.host, messages);
 
             // Additional fields relative to what is normally exposed in sharing
             // (and/or that would normally get erased when doing an export):
@@ -109,7 +112,7 @@ async function processSnippets() {
     }
 
     function validateStringFieldNotEmptyOrThrow(snippet: ISnippet, field: string): void {
-        if (isEmpty(snippet[field])) {
+        if (isNil(snippet[field])) {
             throw `Snippet ${field} may not be empty`;
         }
 
@@ -120,9 +123,76 @@ async function processSnippets() {
         snippet[field] = snippet[field].trim();
     }
 
+    function validateSnippetHost(snippet: ISnippet, host: string, messages: any[]): void {
+        host = host.toUpperCase();
+
+        if (typeof snippet.host === 'undefined') {
+            messages.push(`Snippet is missing "host" property. Settings based on file path to ${host}`);
+            snippet.host = host;
+        }
+
+        if (snippet.host !== snippet.host.toUpperCase()) {
+            messages.push(`Snippet host is inconsistently-cased. Changing to all-caps`);
+            snippet.host = snippet.host.toUpperCase();
+        }
+
+        if (snippet.host !== host) {
+            throw new Error(`Snippet's specified host "${snippet.host}" is different than the directory path host "${host}". Please fix the mismatch.`);
+        }
+    }
+
+    function validateAtTypesDeclarations(snippet: ISnippet, messages: any[]) {
+        snippet.libraries.split('\n')
+            .map(reference => reference.trim())
+            .filter(reference => reference.match(/^dt~.*$/gi))
+            .map(reference => {
+                const atTypesNotation = `@types/${reference.substr('dt~'.length)}`;
+                snippet.libraries = snippet.libraries.replace(reference, atTypesNotation);
+                messages.push(`Replacing reference "${reference}" with the @types notation: "${atTypesNotation}"`);
+            });
+    }
+
+    function validateOfficialOfficeJs(snippet: ISnippet, host: string, messages: any[]): void {
+        const officeHosts = ['ACCESS', 'EXCEL', 'ONENOTE', 'OUTLOOK', 'POWERPOINT', 'PROJECT', 'WORD'];
+        const isOfficeSnippet = officeHosts.indexOf(host.toUpperCase()) >= 0;
+        const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1/hosted/office.js';
+        const officeDTS = '@types/office-js';
+
+        const officeJsReferences =
+            snippet.libraries.split('\n')
+            .map(reference => reference.trim())
+            .filter(reference => reference.match(/^http.*\/office\.js$/gi));
+        
+        const officeJsDTSReference =
+            snippet.libraries.split('\n')
+            .map(reference => reference.trim())
+            .filter(reference => reference === officeDTS);
+        
+        if (!isOfficeSnippet) {
+            if (officeJsReferences.length > 0 || officeJsDTSReference.length > 0) {
+                throw new Error(`Snippet for host "${host}" should not have a reference to Office.js or ${officeDTS}`);
+            }
+            return;
+        }
+
+        // From here on out, can assume that is an Office snippet;
+        if (officeJsReferences.length === 0 || officeJsDTSReference.length === 0) {
+            throw new Error(`Snippet for host "${host}" should have a reference to Office.js and ${officeDTS}`);
+        }
+
+        if (officeJsReferences.length > 1 || officeJsDTSReference.length === 0) {
+            throw new Error(`Cannot have more than one reference to Office.js or ${officeDTS}`);
+        }
+
+        if (officeJsReferences[0] !== canonicalOfficeJsReference) {
+            messages.push(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}". Fixing it.`);
+            snippet.libraries = snippet.libraries.replace(officeJsReferences[0], canonicalOfficeJsReference);
+        }
+    }
+
     function validateId(snippet: ISnippet, localPath: string, messages: any[]): void {
         // Don't want empty IDs -- or GUID-y IDs either, since they're not particularly memorable...
-        if (isEmpty(snippet.id) || isCUID(snippet.id)) {
+        if (isNil(snippet.id) || isCUID(snippet.id)) {
             snippet.id = localPath.trim().toLowerCase()
                 .replace(/[^0-9a-zA-Z]/g, '_') /* replace any non-alphanumeric with an underscore */
                 .replace(/_+/g, '_') /* and ensure that don't end up with __ or ___, just a single underscore */
@@ -218,10 +288,10 @@ function handleError(error: any | any[]) {
     }
 
     banner('One more more errors had occurred during processing:', null, chalk.bold.red);
-    (error as any[]).forEach(() => {
-        const statusMessage = error.message || error;
+    (error as any[]).forEach(item => {
+        const statusMessage = item.message || item;
         status.add(statusMessage);
-        status.complete(false /*successe*/, statusMessage);
+        status.complete(false /*success*/, statusMessage);
     });
 
     process.exit(1);

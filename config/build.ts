@@ -100,7 +100,13 @@ async function processSnippets() {
                 description: snippet.description,
                 host: file.host,
                 rawUrl: rawUrl,
-                group: startCase(file.group)
+                group: startCase(file.group),
+
+                /**
+                 * Necessary for back-compat with currently (April 2017)-deployed ScriptLab.
+                 * Going forward, though, we want to simply use "rawUrl", as that's more correct semantically.
+                 **/
+                gist: rawUrl
             };
 
         } catch (exception) {

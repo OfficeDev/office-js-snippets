@@ -42,7 +42,8 @@ const snippetFields: { [key: string]: SnippetFieldType } = {
 
 export const snippetFieldSortingOrder: { [key: string]: number } = {
     /* Sample-exported fields */
-    id: 1,
+    order: 1,
+    id: 2,
 
     /* ITemplate base class */
     name: 11,

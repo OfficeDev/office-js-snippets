@@ -160,14 +160,14 @@ async function processSnippets() {
 
         const officeJsReferences =
             snippet.libraries.split('\n')
-            .map(reference => reference.trim())
-            .filter(reference => reference.match(/^http.*\/office\.js$/gi));
-        
+                .map(reference => reference.trim())
+                .filter(reference => reference.match(/^http.*\/office\.js$/gi));
+
         const officeJsDTSReference =
             snippet.libraries.split('\n')
-            .map(reference => reference.trim())
-            .filter(reference => reference === officeDTS);
-        
+                .map(reference => reference.trim())
+                .filter(reference => reference === officeDTS);
+
         if (!isOfficeSnippet) {
             if (officeJsReferences.length > 0 || officeJsDTSReference.length > 0) {
                 throw new Error(`Snippet for host "${host}" should not have a reference to Office.js or ${officeDTS}`);

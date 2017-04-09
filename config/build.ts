@@ -1,7 +1,7 @@
 #!/usr/bin/env node --harmony
 
 import * as path from 'path';
-import { isEmpty, isString, forIn, isArray, sortBy } from 'lodash';
+import { isEmpty, isString, isArray, sortBy } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
 import { SnippetFileInput, SnippetProcessedData, rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
@@ -14,7 +14,7 @@ import 'rxjs/add/operator/filter';
 
 const { GH_ACCOUNT, GH_REPO, GH_BRANCH } = process.env;
 const processedSnippets = new Dictionary<SnippetProcessedData>();
-const snippetFilesToUpdate: { [fullPath: string]: string } = {};
+const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
 
 
@@ -80,7 +80,7 @@ async function processSnippets() {
             let finalFileContents = getShareableYaml(snippet, additionalFields);
             if (originalFileContents !== finalFileContents) {
                 messages.push('Final snippet != original snippet. Queueing to write in new changes.');
-                snippetFilesToUpdate[fullPath] = finalFileContents;
+                snippetFilesToUpdate.push({ path: fullPath, contents: finalFileContents });
             }
 
             status.complete(true /*success*/, `Processing ${localPath}`, messages);
@@ -147,15 +147,15 @@ async function processSnippets() {
 }
 
 async function updateModifiedFiles() {
-    banner('Updating modified files');
+    banner('Updating modified files', snippetFilesToUpdate.length === 0 ? '<No files to modify>' : null);
 
     const fileWriteRequests = [];
-    forIn(snippetFilesToUpdate, (contents, path) => {
+    snippetFilesToUpdate.forEach(item => {
         fileWriteRequests.push(
             Promise.resolve()
                 .then(async () => {
                     status.add(`Updating ${path}`);
-                    await writeFile(path, contents);
+                    await writeFile(item.path, item.contents);
                     status.complete(true /*succeeded*/, `Updating ${path}`);
                 })
         );

@@ -1,12 +1,12 @@
 [![Build Status](https://travis-ci.com/OfficeDev/script-lab-samples.svg?token=zKp5xy2SuSortMzv5Pqc&branch=master)](https://travis-ci.com/OfficeDev/script-lab-samples)
 
 # Script Lab Samples
-A collection of samples for Script Lab
+A collection of samples for Script Lab.
 
 ## To contribute:
 - Fork this repo
 - Add samples using the instructions below
-- Submit a pull request that one of the repo contributors will review and merge in.
+- Submit a pull request that Jakob, Michael Z or Bhargav will review.
 
 ## Folder Structure
 - All snippets must be inside the samples folder.
@@ -30,7 +30,7 @@ Basic snippet structure is as follows:
     async function run() {
         try {
             await Word.run(async (context) => {
-                let range = context.document.getSelection();
+                const range = context.document.getSelection();
                 range.font.color = "red";
 
                 await context.sync();

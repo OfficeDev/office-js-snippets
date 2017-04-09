@@ -35,7 +35,7 @@ export class Status {
             this.stages.doneStep(success);
         } else {
             // Add a newline before
-            array.splice(0, 0, '')
+            array.splice(0, 0, '');
             this.stages.doneStep(success, array.join('\n    * ') + '\n');
         }
 

@@ -86,7 +86,9 @@ const accumulatedErrors: Array<string|Error> = [];
                         localPath: localPath,
                         description: snippet.description,
                         host: file.host,
-                        rawUrl: `https://raw.githubusercontent.com/${GH_ACCOUNT}/${GH_REPO}/${GH_BRANCH}/samples/${file.host}/${file.group}/${file.file_name}`,
+                        rawUrl: 'https://raw.githubusercontent.com/' + 
+                            `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${GH_BRANCH || '<BRANCH>'}` + 
+                            `/samples/${file.host}/${file.group}/${file.file_name}`,
                         group: startCase(file.group)
                     };
 

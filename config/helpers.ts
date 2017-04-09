@@ -17,7 +17,7 @@ import * as rimraf from 'rimraf';
  * @param chalkFunction Chalk color function.
  */
 export const banner = (title: string, message: string = null, chalkFn: chalk.ChalkChain = chalk.bold.green) => {
-    const dashes = Array(title.length + 1).join('-');
+    const dashes = Array(Math.max(title.length + 1, 30)).join('-');
     console.log(chalkFn(`\n\n${dashes}`));
     console.log(chalkFn(`${title}`));
     if (message) {

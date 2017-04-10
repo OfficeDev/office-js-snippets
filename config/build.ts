@@ -6,11 +6,14 @@ import * as chalk from 'chalk';
 import { status } from './status';
 import { SnippetFileInput, SnippetProcessedData, rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
 import { getShareableYaml } from './snippet.helpers';
+import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
 import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
+import escapeStringRegexp = require('escape-string-regexp');
+
 
 const { GH_ACCOUNT, GH_REPO, GH_BRANCH } = process.env;
 const processedSnippets = new Dictionary<SnippetProcessedData>();
@@ -84,6 +87,7 @@ async function processSnippets() {
             validateAtTypesDeclarations(snippet, messages);
             validateOfficialOfficeJs(snippet, file.host, messages);
             validateApiSetNonEmpty(snippet, file.host, localPath, messages);
+            validateVersionNumbersOnLibraries(snippet, messages);
 
             // Additional fields relative to what is normally exposed in sharing
             // (and/or that would normally get erased when doing an export):
@@ -107,6 +111,10 @@ async function processSnippets() {
             const rawUrl = 'https://raw.githubusercontent.com/' +
                 `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${GH_BRANCH || '<BRANCH>'}` +
                 `/samples/${file.host}/${file.group}/${file.file_name}`;
+
+            if (messages.findIndex(item => item instanceof Error) >= 0) {
+                accumulatedErrors.push(`One or more critical errors on ${localPath}`);
+            }
 
             return {
                 id: snippet.id,
@@ -229,8 +237,77 @@ async function processSnippets() {
             messages.push(new Error('   Please check your pending changes to see the substituted version.'));
 
             snippet.api_set = cloneDeep(defaultApiSets[host]);
+        }
+    }
 
-            accumulatedErrors.push(new Error(`No API set specified for ${localPath}`));
+    function validateVersionNumbersOnLibraries(snippet: ISnippet, messages: any[]): void {
+        const { scriptReferences, linkReferences } = processLibraries(snippet);
+        const allWithoutVersionNumbers = ([].concat(scriptReferences).concat(linkReferences) as string[])
+            .filter(item => item.startsWith('https://unpkg.com/'))
+            .map(item => item.substr('https://unpkg.com/'.length))
+            .filter(item => {
+                const containsVersionNumberRegex = /^(@[a-zA-Z_-]+\/)?([a-zA-Z_-]+)@[0-9\.]*.*$/;
+                /* Tested with:
+                        @microsft/office-js-helpers
+                            => wrong
+
+                        @microsft/office-js-helpers/lib.js
+                            => wrong
+
+                        @microsft/office-js-helpers@0.6.0
+                            => right
+
+                        @microsft/office-js-helpers@0.6.0
+                            => right
+
+                        jquery@0.6.0/lib.js
+                            => right
+
+                        jquery@0.6.0
+                            => right
+
+                        jquery/lib.js
+                            => wrong
+
+                        foo-bar/
+                            => wrong
+
+                        foo-bar@1.5
+                            => right
+                */
+
+                return !item.match(containsVersionNumberRegex);
+            });
+
+        if (allWithoutVersionNumbers.length === 0) {
+            return;
+        }
+
+        const defaultSubstitutions = {
+            "jquery": "jquery@3.1.1",
+            "office-ui-fabric-js/dist/js/fabric.min.js": 'office-ui-fabric-js@1.4.0/dist/js/fabric.min.js',
+            "@microsoft/office-js-helpers/dist/office.helpers.min.js": '@microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js',
+            "core-js/client/core.min.js": 'core-js@2.4.1/client/core.min.js',
+            "office-ui-fabric-js/dist/css/fabric.min.css": 'office-ui-fabric-js@1.4.0/dist/css/fabric.min.css',
+            "office-ui-fabric-js/dist/css/fabric.components.min.css": 'office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css'
+        };
+
+        let hadDefaultSubstitution = false;
+        allWithoutVersionNumbers.forEach(item => {
+            if (defaultSubstitutions[item]) {
+                const regex = new RegExp(`(^\s*)${escapeStringRegexp(item)}(.*)`, 'm');
+                snippet.libraries = snippet.libraries.replace(regex, ($0, $1, $2) => $1 + defaultSubstitutions[item] + $2);
+
+                messages.push(new Error(`Missing version number on library ${item}. If building locally, substituting with a default of ` +
+                    `"${defaultSubstitutions[item]}", but failing the build.`));
+                hadDefaultSubstitution = true;
+            }
+
+            messages.push(new Error(`Missing version number on library ${item}. A version # is required for NPM packages.`));
+        });
+
+        if (hadDefaultSubstitution) {
+            messages.push(new Error('Please check your pending changes to see the default-subtituted substituted library version(s).'));
         }
     }
 
@@ -274,7 +351,7 @@ async function updateModifiedFiles() {
                     const updatingStatusText = `Updating ${item.path}`;
                     status.add(updatingStatusText);
                     await writeFile(item.path, item.contents);
-                    status.complete(true /*succeeded*/,updatingStatusText);
+                    status.complete(true /*succeeded*/, updatingStatusText);
                 })
         );
     });
@@ -343,7 +420,7 @@ function handleError(error: any | any[]) {
     });
 
     banner('Cannot continue, closing.',
-        'Note that if you were building locally, please see pending changes ' + 
+        'Note that if you were building locally, please see pending changes ' +
         'for anything that may have modified locally (and which might make you pass on a 2nd try).',
         chalk.bold.red);
 

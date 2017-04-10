@@ -16,10 +16,16 @@ A collection of samples for Script Lab.
 
 ## Adding a new sample
 
-1. Create a snippet using Script Lab.
-2. Click on `Copy to Clipboard` in the `Share` menu.
-3. Fill in the `author`, `name`, `description`, `source` properties if they are empty so that we can generate the playlist correctly.
+Adding a new sample can be done via the website... but if you want a variety of auto-completions to ensure that your snippet doesn't fail the build:
+1. Clone the samples repo. Run "npm install" (or "yarn install")
+2. Create a snippet using Script Lab.  Ensure that the name and description are what you want them to be shown, publicly.
+3. Click on `Copy to Clipboard` in the `Share` menu. 
 4. Add that snippet into the respective folders. Make sure that the snippet file names and folder names are in [`kebab-case`](http://wiki.c2.com/?KebabCase).
+5. Stage the change.
+6. Run `npm start`. If not everything succeeded, inspect the console output to check what validation is failing. Also check the pending changes relative to the staged version, as you may find that the script already substituted in required fields like `id` or `api_set` with reasonable defaults.
+7. Re-run `npm start` until the build succeeds.
+8. Submit to the repo.
+
 
 ## Style guidelines:
 

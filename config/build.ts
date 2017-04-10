@@ -1,7 +1,7 @@
 #!/usr/bin/env node --harmony
 
 import * as path from 'path';
-import { isNil, isString, isArray, sortBy } from 'lodash';
+import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
 import { SnippetFileInput, SnippetProcessedData, rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
@@ -16,6 +16,21 @@ const { GH_ACCOUNT, GH_REPO, GH_BRANCH } = process.env;
 const processedSnippets = new Dictionary<SnippetProcessedData>();
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
+
+const officeHosts = ['ACCESS', 'EXCEL', 'ONENOTE', 'OUTLOOK', 'POWERPOINT', 'PROJECT', 'WORD'];
+const defaultApiSets = {
+    'EXCEL': {
+        'ExcelApi': 1.1
+    },
+    'ONENOTE': {
+        'OneNoteApi': 1.1
+    },
+    'WORD': {
+        'WordApi': 1.1
+    }
+
+    /* any other hosts is allowed to have no API sets specified*/
+};
 
 
 (() => {
@@ -68,6 +83,7 @@ async function processSnippets() {
             validateSnippetHost(snippet, file.host, messages);
             validateAtTypesDeclarations(snippet, messages);
             validateOfficialOfficeJs(snippet, file.host, messages);
+            validateApiSetNonEmpty(snippet, file.host, localPath, messages);
 
             // Additional fields relative to what is normally exposed in sharing
             // (and/or that would normally get erased when doing an export):
@@ -82,7 +98,7 @@ async function processSnippets() {
 
             let finalFileContents = getShareableYaml(snippet, additionalFields);
             if (originalFileContents !== finalFileContents) {
-                messages.push('Final snippet != original snippet. Queueing to write in new changes.');
+                messages.push(chalk.bold.yellow('Final snippet != original snippet. Queueing to write in new changes.'));
                 snippetFilesToUpdate.push({ path: fullPath, contents: finalFileContents });
             }
 
@@ -159,7 +175,6 @@ async function processSnippets() {
     }
 
     function validateOfficialOfficeJs(snippet: ISnippet, host: string, messages: any[]): void {
-        const officeHosts = ['ACCESS', 'EXCEL', 'ONENOTE', 'OUTLOOK', 'POWERPOINT', 'PROJECT', 'WORD'];
         const isOfficeSnippet = officeHosts.indexOf(host.toUpperCase()) >= 0;
         const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1/hosted/office.js';
         const officeDTS = '@types/office-js';
@@ -196,6 +211,29 @@ async function processSnippets() {
         }
     }
 
+    function validateApiSetNonEmpty(snippet: ISnippet, host: string, localPath: string, messages: any[]): void {
+        host = host.toUpperCase();
+
+        if (typeof snippet.api_set === 'undefined') {
+            snippet.api_set = {};
+        }
+
+        if (isEmpty(snippet.api_set)) {
+            if (typeof defaultApiSets[host] === 'undefined') {
+                // No API set required (not a host with host-specific APIs), so just exit the function
+                return;
+            }
+
+            messages.push(new Error(`No API set specified. If building locally, substituting with a default of ` +
+                `"${JSON.stringify(defaultApiSets[host])}", but failing the build.`));
+            messages.push(new Error('   Please check your pending changes to see the substituted version.'));
+
+            snippet.api_set = cloneDeep(defaultApiSets[host]);
+
+            accumulatedErrors.push(new Error(`No API set specified for ${localPath}`));
+        }
+    }
+
     function validateId(snippet: ISnippet, localPath: string, messages: any[]): void {
         // Don't want empty IDs -- or GUID-y IDs either, since they're not particularly memorable...
         if (isNil(snippet.id) || isCUID(snippet.id)) {
@@ -223,16 +261,20 @@ async function processSnippets() {
 }
 
 async function updateModifiedFiles() {
-    banner('Updating modified files', snippetFilesToUpdate.length === 0 ? '<No files to modify>' : null);
+    const hasChanges = snippetFilesToUpdate.length > 0;
+    banner('Updating modified files',
+        hasChanges ? null : '<No files to modify>',
+        hasChanges ? chalk.bold.yellow : null);
 
     const fileWriteRequests = [];
     snippetFilesToUpdate.forEach(item => {
         fileWriteRequests.push(
             Promise.resolve()
                 .then(async () => {
-                    status.add(`Updating ${path}`);
+                    const updatingStatusText = `Updating ${item.path}`;
+                    status.add(updatingStatusText);
                     await writeFile(item.path, item.contents);
-                    status.complete(true /*succeeded*/, `Updating ${path}`);
+                    status.complete(true /*succeeded*/,updatingStatusText);
                 })
         );
     });
@@ -299,6 +341,11 @@ function handleError(error: any | any[]) {
         status.add(statusMessage);
         status.complete(false /*success*/, statusMessage);
     });
+
+    banner('Cannot continue, closing.',
+        'Note that if you were building locally, please see pending changes ' + 
+        'for anything that may have modified locally (and which might make you pass on a 2nd try).',
+        chalk.bold.red);
 
     process.exit(1);
 }

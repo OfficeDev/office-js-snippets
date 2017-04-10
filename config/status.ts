@@ -1,4 +1,5 @@
 import * as nodeStatus from 'node-status';
+import * as chalk from 'chalk';
 import { isString, find, isNil, isArray } from 'lodash';
 
 interface IStage {
@@ -29,14 +30,21 @@ export class Status {
      * @param error Error object.
      */
     complete(success: boolean, stage: string, additionalDetails?: string | Error | Array<string | Error>) {
-        const array = getDetailsArray();
+        if (!isArray(additionalDetails)) {
+            additionalDetails = [additionalDetails];
+        }
 
-        if (array.length === 0) {
+        success = success && additionalDetails.findIndex(item => item instanceof Error) < 0;
+
+        const messageArray = getDetailsArray();
+
+        if (messageArray.length === 0) {
             this.stages.doneStep(success);
         } else {
             // Add a newline before
-            array.splice(0, 0, '');
-            this.stages.doneStep(success, array.join('\n    * ') + '\n');
+            messageArray.splice(0, 0, '');
+            this.stages.doneStep(success, messageArray.join('\n    * ') + '\n');
+            //FIXME `${chalk.bold.red('WARNING: one of the messages above was an error')}`)
         }
 
         this.steps[stage] = false;
@@ -48,11 +56,7 @@ export class Status {
 
         // Helper:
         function getDetailsArray() {
-            if (!isArray(additionalDetails)) {
-                additionalDetails = [additionalDetails];
-            }
-
-            return additionalDetails
+            return (additionalDetails as any[])
                 .map(item => {
                     if (isNil(item)) {
                         return null;
@@ -66,7 +70,12 @@ export class Status {
                     if (stringified === '[object Object]') {
                         stringified = JSON.stringify(item);
                     }
-                    return stringified;
+
+                    if (item instanceof Error) {
+                        return chalk.bold.red(stringified);
+                    } else {
+                        return stringified;
+                    }
                 })
                 .filter(item => !isNil(item));
         }

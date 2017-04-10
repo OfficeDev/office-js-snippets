@@ -40,7 +40,11 @@ export interface SnippetProcessedData {
  * @param message Message of the banner.
  * @param chalkFunction Chalk color function.
  */
-export const banner = (title: string, message: string = null, chalkFn: chalk.ChalkChain = chalk.bold.green) => {
+export const banner = (title: string, message: string = null, chalkFn: chalk.ChalkChain = null) => {
+    if (!chalkFn) {
+        chalkFn = chalk.bold.green;
+    }
+
     const dashes = Array(Math.max(title.length + 1, 30)).join('-');
     console.log(chalkFn(`\n\n${dashes}`));
     console.log(chalkFn(`${title}`));

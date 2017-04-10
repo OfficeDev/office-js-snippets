@@ -1,0 +1,73 @@
+$("#setup").click(setup);
+$("#create-column-clustered-chart").click(createChart);
+
+async function createChart() {
+    try {
+        await Excel.run(async (context) => {
+
+            const sheet = context.workbook.worksheets.getItem("Sample");
+        
+            const salesTable = sheet.tables.getItem("SalesTable");
+
+            const dataRange = salesTable.getDataBodyRange();
+
+            let chart = sheet.charts.add("ColumnClustered", dataRange, "auto");
+
+		    chart.setPosition("A15", "F30");
+		    chart.title.text = "Quarterly sales chart";
+		    chart.legend.position = "right"
+		    chart.legend.format.fill.setSolidColor("white");
+		    chart.dataLabels.format.font.size = 15;
+			chart.dataLabels.format.font.color = "black";
+			let points = chart.series.getItemAt(0).points;
+			points.getItemAt(0).format.fill.setSolidColor("pink");
+			points.getItemAt(1).format.fill.setSolidColor("indigo");
+
+            await context.sync();
+        });
+    }
+    catch (error) {
+        OfficeHelpers.Utilities.log(error);
+    }
+}
+
+async function setup() {
+    try {
+        await Excel.run(async (context) => {
+
+            await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+            const sheet = context.workbook.worksheets.getItem("Sample");
+
+            let expensesTable = sheet.tables.add('A1:E1', true);
+         
+            expensesTable.name = "SalesTable";
+
+            expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+            expensesTable.rows.add(null, [
+						  ["Frames", 5000, 7000, 6544, 4377],
+						  ["Saddles", 400, 323, 276, 651],
+						  ["Brake levers", 12000, 8766, 8456, 9812],
+						  ["Chains", 1550, 1088, 692, 853],
+						  ["Mirrors", 225, 600, 923, 544],
+						  ["Spokes", 6005, 7634, 4589, 8765]
+            ]);  
+
+		    if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+			    sheet.getUsedRange().format.autofitColumns();
+			    sheet.getUsedRange().format.autofitRows();
+		    }
+
+
+            sheet.activate();
+
+            await context.sync();
+        });
+    }
+    catch (error) {
+        OfficeHelpers.Utilities.log(error);
+    }
+}
+
+

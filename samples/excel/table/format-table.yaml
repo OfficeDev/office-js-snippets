@@ -1,0 +1,50 @@
+id: ''
+gist: ''
+source: EXCEL
+author: Microsoft
+name: Format table
+description: Format a table
+script:
+  content: "$(\"#setup\").click(setup);\n$(\"#format-table\").click(formatTable);\n\nasync function formatTable() {\n\ttry {\n\t\tawait Excel.run(async (context) => {\n\t\t\tconst sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n\t\t\tconst expensesTable = sheet.tables.getItem(\"ExpensesTable\");\n\n\t\t\texpensesTable.getHeaderRowRange().format.fill.color = \"#C70039\";\n\n\t\t\texpensesTable.getDataBodyRange().format.fill.color = \"#DAF7A6\";\n\n\t\t\texpensesTable.rows.getItemAt(1).getRange().format.fill.color = \"#FFC300\";\n\n\t\t\texpensesTable.columns.getItemAt(0).getDataBodyRange().format.fill.color = \"#FFA07A\";\n            \n\t\t  await context.sync();\n\t\t});\n\t }\n\tcatch (error) {\n\t\tOfficeHelpers.Utilities.log(error);\n\t}\n}\n\n/** Create a new table with sample data */\nasync function setup() {\n\ttry {\n\t\tawait Excel.run(async (context) => {\n\n\t\t\tawait OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, \"Sample\");\n\n\t\t\tconst sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n\t\t\tconst expensesTable = sheet.tables.add(\"A1:D1\", true /*hasHeaders*/);\n\t\t\t expensesTable.name = \"ExpensesTable\";\n\n\t\t\texpensesTable.getHeaderRowRange().values = [[\"Date\", \"Merchant\", \"Category\", \"Amount\"]];\n\n\t\t\texpensesTable.rows.add(null /*add at the end*/, [\n\t\t\t[\"1/1/2017\", \"The Phone Company\", \"Communications\", \"$120\"],\n\t\t\t[\"1/2/2017\", \"Northwind Electric Cars\", \"Transportation\", \"$142\"],\n\t\t\t[\"1/5/2017\", \"Best For You Organics Company\", \"Groceries\", \"$27\"],\n\t\t\t[\"1/10/2017\", \"Coho Vineyard\", \"Restaurant\", \"$33\"],\n\t\t\t[\"1/11/2017\", \"Bellows College\", \"Education\", \"$350\"],\n\t\t\t[\"1/15/2017\", \"Trey Research\", \"Other\", \"$135\"],\n\t\t\t[\"1/15/2017\", \"Best For You Organics Company\", \"Groceries\", \"$97\"]\n\t\t]);\n\n\t\tif (Office.context.requirements.isSetSupported(\"ExcelApi\", 1.2)) {\n\t\t\tsheet.getUsedRange().format.autofitColumns();\n\t\t\tsheet.getUsedRange().format.autofitRows();\n\t\t}\n\t    \tsheet.activate();\n\n\t\t    await context.sync();\n\t    });\n    }\n\tcatch (error) {\n\t\tOfficeHelpers.Utilities.log(error);\n\t}\n}\n"
+  language: typescript
+style:
+  content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+  language: css
+template:
+  content: |
+    <section class="ms-font-m">
+        <p>This sample shows how to format the different components of a table using the Excel JavaScript API.</p>
+    </section>
+
+    <section class="setup ms-font-m">
+        <h3>Set up</h3>
+        <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Create table</span>
+        </button>
+    </section>
+
+    <section class="samples ms-font-m">
+        <h3>Try it out</h3>
+        <button id="format-table" class="ms-Button">
+            <span class="ms-Button-label">Format table</span>
+        </button>
+    </section>
+  language: html
+libraries: |
+  // Office.js
+  https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+  // CSS Libraries
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+  // NPM libraries
+  core-js@2.4.1/client/core.min.js
+  @microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js
+  jquery@3.1.1
+
+  // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+  @types/office-js
+  @types/core-js
+  @microsoft/office-js-helpers/dist/office.helpers.d.ts
+  @types/jquery

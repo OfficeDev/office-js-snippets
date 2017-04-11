@@ -6,7 +6,76 @@ host: EXCEL
 api_set:
     ExcelApi: 1.1
 script:
-    content: "$(\"#setup\").click(setup);\n\n$(\"#set-font-and-fill-color\").click(setFontAndFillColor);\n$(\"#set-number-format\").click(setNumberFormat);\n\nasync function setFontAndFillColor() {\n    try {\n        await Excel.run(async (context) => {\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n            const range = sheet.getRange(\"B2:E2\");\n            range.format.fill.color = \"#4472C4\";;\n            range.format.font.color = \"white\";\n\n            await context.sync();\n        });\n    }\n    catch (error) {\n        OfficeHelpers.Utilities.log(error);\n    }\n}\n\nasync function setNumberFormat() {\n    try {\n        await Excel.run(async (context) => {\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n            const formats = [\n                [\"0.00\", \"0.00\"],\n                [\"0.00\", \"0.00\"],\n                [\"0.00\", \"0.00\"]\n            ];\n\n            const range = sheet.getRange(\"D3:E5\");\n            range.numberFormat = formats;\n            await context.sync();\n        });\n    }\n    catch (error) {\n        OfficeHelpers.Utilities.log(error);\n    }\n}\n\nasync function setup() {\n    try {\n        await Excel.run(async (context) => {\n            const sheet = await OfficeHelpers.ExcelUtilities\n                .forceCreateSheet(context.workbook, \"Sample\");\n\n\t    \tconst data = [\n                [\"Product\", \"Qty\", \"Unit Price\", \"Total Price\"],\n                [\"Almonds\", 2, 7.50, \"=C3 * D3\"],\n                [\"Coffee\", 1, 34.50, \"=C4 * D4\"],\n                [\"Chocolate\", 5, 9.56, \"=C5 * D5\"]\n            ];\n\n            const range = sheet.getRange(\"B2:E5\");\n            range.values = data;\n            range.format.autofitColumns();\n\n            sheet.activate();\n            \n            await context.sync();\n        });\n    }\n    catch (error) {\n        OfficeHelpers.Utilities.log(error);\n    }\n}\n"
+    content: |
+        $("#setup").click(setup);
+
+        $("#set-font-and-fill-color").click(setFontAndFillColor);
+        $("#set-number-format").click(setNumberFormat);
+
+        async function setFontAndFillColor() {
+            try {
+                await Excel.run(async (context) => {
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const range = sheet.getRange("B2:E2");
+                    range.format.fill.color = "#4472C4";;
+                    range.format.font.color = "white";
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function setNumberFormat() {
+            try {
+                await Excel.run(async (context) => {
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const formats = [
+                        ["0.00", "0.00"],
+                        ["0.00", "0.00"],
+                        ["0.00", "0.00"]
+                    ];
+
+                    const range = sheet.getRange("D3:E5");
+                    range.numberFormat = formats;
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function setup() {
+            try {
+                await Excel.run(async (context) => {
+                    const sheet = await OfficeHelpers.ExcelUtilities
+                        .forceCreateSheet(context.workbook, "Sample");
+
+                    const data = [
+                        ["Product", "Qty", "Unit Price", "Total Price"],
+                        ["Almonds", 2, 7.50, "=C3 * D3"],
+                        ["Coffee", 1, 34.50, "=C4 * D4"],
+                        ["Chocolate", 5, 9.56, "=C5 * D5"]
+                    ];
+
+                    const range = sheet.getRange("B2:E5");
+                    range.values = data;
+                    range.format.autofitColumns();
+
+                    sheet.activate();
+                    
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
     language: typescript
 template:
     content: |

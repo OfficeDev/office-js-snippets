@@ -70,24 +70,22 @@ async function processSnippets() {
     async function processAndValidateSnippet(file: SnippetFileInput): Promise<SnippetProcessedData> {
         const messages: Array<string | Error> = [];
         try {
-            const localPath = `${file.host}/${file.group}/${file.file_name}`;
-            const fullPath = path.resolve('samples', file.path);
+            status.add(`Processing ${file.relativePath}`);
 
-            status.add(`Processing ${localPath}`);
-
-            const originalFileContents = await loadFileContents(fullPath);
+            const fullPath = path.resolve('samples', file.relativePath);
+            const originalFileContents = (await loadFileContents(fullPath)).trim();
             let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
-
 
             // Do validations & auto-corrections
             validateStringFieldNotEmptyOrThrow(snippet, 'name');
             validateStringFieldNotEmptyOrThrow(snippet, 'description');
-            validateId(snippet, localPath, messages);
+            validateId(snippet, file.relativePath, messages);
             validateSnippetHost(snippet, file.host, messages);
             validateAtTypesDeclarations(snippet, messages);
             validateOfficialOfficeJs(snippet, file.host, messages);
-            validateApiSetNonEmpty(snippet, file.host, localPath, messages);
+            validateApiSetNonEmpty(snippet, file.host, file.relativePath, messages);
             validateVersionNumbersOnLibraries(snippet, messages);
+            validateTabsInsteadOfSpaces(snippet, messages);
 
             // Additional fields relative to what is normally exposed in sharing
             // (and/or that would normally get erased when doing an export):
@@ -100,27 +98,32 @@ async function processSnippets() {
                 (additionalFields as any).order = (snippet as any).order;
             }
 
-            let finalFileContents = getShareableYaml(snippet, additionalFields);
-            if (originalFileContents !== finalFileContents) {
+            // Finally, some fields simply don't apply, and should be deleted.
+            delete snippet.gist;
+
+            let finalFileContents = getShareableYaml(snippet, additionalFields).trim();
+
+            let isDifferent = finalFileContents.replace(/\r\n/g, '\n') !== originalFileContents.replace(/\r\n/g, '\n');
+            if (isDifferent) {
                 messages.push(chalk.bold.yellow('Final snippet != original snippet. Queueing to write in new changes.'));
                 snippetFilesToUpdate.push({ path: fullPath, contents: finalFileContents });
             }
 
-            status.complete(true /*success*/, `Processing ${localPath}`, messages);
+            status.complete(true /*success*/, `Processing ${file.relativePath}`, messages);
 
             const rawUrl = 'https://raw.githubusercontent.com/' +
                 `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${GH_BRANCH || '<BRANCH>'}` +
                 `/samples/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {
-                accumulatedErrors.push(`One or more critical errors on ${localPath}`);
+                accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
             }
 
             return {
                 id: snippet.id,
                 name: snippet.name,
                 fileName: file.file_name,
-                localPath: localPath,
+                relativePath: file.relativePath,
                 description: snippet.description,
                 host: file.host,
                 rawUrl: rawUrl,
@@ -313,7 +316,7 @@ async function processSnippets() {
 
     function validateId(snippet: ISnippet, localPath: string, messages: any[]): void {
         // Don't want empty IDs -- or GUID-y IDs either, since they're not particularly memorable...
-        if (isNil(snippet.id) || isCUID(snippet.id)) {
+        if (isNil(snippet.id) || snippet.id.trim().length === 0 || isCUID(snippet.id)) {
             snippet.id = localPath.trim().toLowerCase()
                 .replace(/[^0-9a-zA-Z]/g, '_') /* replace any non-alphanumeric with an underscore */
                 .replace(/_+/g, '_') /* and ensure that don't end up with __ or ___, just a single underscore */
@@ -327,12 +330,25 @@ async function processSnippets() {
 
         // Helper:
         function isCUID(id: string) {
-            if (id.length === 25 && id.indexOf('_') === -1) {
+            if (id.trim().length === 25 && id.indexOf('_') === -1) {
                 // not likely to be a real id, with a name of that precise length and all as one word.
                 return true;
             }
 
             return false;
+        }
+    }
+
+    function validateTabsInsteadOfSpaces(snippet: ISnippet, messages: any[]): void {
+        const codeFields = [snippet.template.content, snippet.script.content, snippet.style.content, snippet.libraries];
+        if (codeFields.findIndex(code => code.indexOf('\t') >= 0) >= 0) {
+            snippet.template.content = snippet.template.content.replace(/\t/g, '    ');
+            snippet.script.content = snippet.script.content.replace(/\t/g, '    ');
+            snippet.style.content = snippet.style.content.replace(/\t/g, '    ');
+            snippet.libraries = snippet.libraries.replace(/\t/g, '    ');
+
+            messages.push('Snippet had one or more fields (template/script/style/libraries) ' +
+                'that contained tabs instead of spaces. Replacing everything with 4 spaces.');
         }
     }
 }
@@ -365,12 +381,12 @@ function checkSnippetsForUniqueIDs() {
     let idsAllUnique = true; // assume best, until proven otherwise
     processedSnippets.values()
         .forEach(item => {
-            status.add(`Testing ID of snippet ${item.localPath}`);
+            status.add(`Testing ID of snippet ${item.relativePath}`);
             const otherMatches = processedSnippets.values().filter(anotherItem => anotherItem !== item && anotherItem.id === item.id);
             const isUnique = (otherMatches.length === 0);
             status.complete(isUnique /*succeeded*/,
-                `Testing ID of snippet ${item.localPath}`,
-                isUnique ? null : [`ID "${item.id}" not unique, and matches the IDs of `].concat(otherMatches.map(item => '    ' + item.localPath)));
+                `Testing ID of snippet ${item.relativePath}`,
+                isUnique ? null : [`ID "${item.id}" not unique, and matches the IDs of `].concat(otherMatches.map(item => '    ' + item.relativePath)));
             if (!isUnique) {
                 idsAllUnique = false;
             }
@@ -389,7 +405,6 @@ async function generatePlaylists() {
     await rmRf('playlists');
     await mkDir('playlists');
     status.complete(true /*success*/, 'Creating \'playlists\' folder');
-
 
     const groups = groupBy(
         processedSnippets.values()

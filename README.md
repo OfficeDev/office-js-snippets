@@ -3,10 +3,12 @@
 # Script Lab Samples
 A collection of samples for Script Lab.
 
+
 ## To contribute:
 - Fork this repo
 - Add samples using the instructions below
 - Submit a pull request that Jakob, Michael Z or Bhargav will review.
+
 
 ## Folder Structure
 - All snippets must be inside the samples folder.
@@ -14,17 +16,20 @@ A collection of samples for Script Lab.
 - Inside of each `base folder`, there are `group folders` for the group in which a sample belongs to.
 - Inside of each `group folder`, there are `.yaml` which represent a snippet.
 
+
 ## Adding a new sample
 
 Adding a new sample can be done via the website... but if you want a variety of auto-completions to ensure that your snippet doesn't fail the build:
-1. Clone the samples repo. Run "npm install" (or "yarn install")
-2. Create a snippet using Script Lab.  Ensure that the name and description are what you want them to be shown, publicly.
-3. Click on `Copy to Clipboard` in the `Share` menu. 
-4. Add that snippet into the respective folders. Make sure that the snippet file names and folder names are in [`kebab-case`](http://wiki.c2.com/?KebabCase).
-5. Stage the change.
-6. Run `npm start`. If not everything succeeded, inspect the console output to check what validation is failing. Also check the pending changes relative to the staged version, as you may find that the script already substituted in required fields like `id` or `api_set` with reasonable defaults.
-7. Re-run `npm start` until the build succeeds.
-8. Submit to the repo.
+1. Clone the samples repo (or create a branch within the current repo, if you have permissions to it).
+2. Ensure you have a recent build of Node [6.10+] (`node -v`). Then install `yarn` as a global package `npm install yarn --global`.
+3. Run `yarn install` (similar to `npm install`, but better; and that's what is used by Travis, so best to have the same environment in both places)
+4. Create a snippet using Script Lab.  Ensure that the name and description are what you want them to be shown publicly.
+5. Click on `Copy to Clipboard` in the `Share` menu. 
+6. Add that snippet into the respective folders. Make sure that the snippet file names and folder names are in [`kebab-case`](http://wiki.c2.com/?KebabCase).
+7. Stage the change.
+8. Run `npm start`. If not everything succeeded, inspect the console output to check what validation is failing. Also check the pending changes relative to the staged version, as you may find that the script already substituted in required fields like `id` or `api_set` with reasonable defaults.
+9. Re-run `npm start` until the build succeeds.
+10. Submit to the repo, and create a merge request into master.
 
 
 ## Style guidelines:
@@ -56,3 +61,10 @@ A few style rules to observe:
 * Strings should be in double-quotes.
 * Don't forget the semicolons.
 * `Libraries` in snippets must have a specific version. Eg. `jquery@3.1.1`.
+
+
+## Debugging the build script
+
+* The scripts for building/validating the snippets are under the `config` folder -- in particular, under `build.ts`. There is also a `deploy.ts` for copying the built files to their final location.)
+
+>> **NOTE**: If debugging in Visual Studio Code, you can use "F5" to attach the debugger, but be sure to run `npm run tsc` before you do (and after any code change!). `F5` is not set to recompile!

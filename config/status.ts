@@ -22,7 +22,7 @@ export class Status {
             steps: []
         });
 
-        nodeStatus.start({ pattern: '{spinner.cyan} {job.step}' });
+        nodeStatus.start();
     }
 
     /**

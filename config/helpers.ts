@@ -12,7 +12,7 @@ import * as rimraf from 'rimraf';
 
 export interface SnippetFileInput {
     file_name: string;
-    path: string;
+    relativePath: string;
     host: string;
     group: string;
 }
@@ -21,7 +21,7 @@ export interface SnippetProcessedData {
     id: string;
     name: string;
     fileName: string;
-    localPath: string;
+    relativePath: string;
     description: string;
     host: string;
     rawUrl: string;
@@ -181,7 +181,7 @@ export const getFileMetadata = (file: string, root: string) => {
     host = host.toLowerCase();
 
     return Observable.of<SnippetFileInput>({
-        path: relativePath,
+        relativePath: relativePath,
         host,
         group,
         file_name

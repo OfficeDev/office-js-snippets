@@ -1,9 +1,79 @@
+id: excel_pivottable_refresh_pivot_table
 name: Refresh pivot table
-description: |
-    Refresh pivot table
-api_set: {"ExcelApi": 1.3}
+description: Refresh pivot table
+author: Microsoft
+host: EXCEL
+api_set:
+    ExcelApi: 1.3
 script:
-    content: "$(\"#setup\").click(setup);\n$(\"#refresh-pivot-table\").click(refreshPivotTable);\n\nasync function refreshPivotTable() {\n    await Excel.run(async (context) => {\n        try {\n\t\t\tconst sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n            // First, force a change in the table data by setting the value of Amount in the third row to $500\n            const expensesTable = sheet.tables.getItem(\"ExpensesTable\");\n\n            const range = expensesTable.columns.getItem(\"Amount\").getDataBodyRange().getRow(2).values = [[\"$500\"]];\n\n            await sheet.context.sync();\n\n\t\t\t// Now, refresh the pivot table. This should pick up our changes made with code as well as any changes made in the UI\n\t\t\tconst expensesPivot = sheet.pivotTables.getItem(\"PivotTable1\");\n\n            expensesPivot.refresh();\n\n            await context.sync();\n        }\n        catch (error) {\n             OfficeHelpers.Utilities.log(error);\n        }\n    })\n}\n\n/** Create a new table with some sample data */\nasync function setup() {\n    try {\n    \tawait Excel.run(async (context) => {\n\n\t\t\tawait OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, \"Sample\");\n\n\t\t\tconst sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n\t\t\tconst expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);\n\t\t\t expensesTable.name = \"ExpensesTable\";\n\n\t\t\texpensesTable.getHeaderRowRange().values = [[\"Date\", \"Merchant\", \"Category\", \"Amount\"]];\n\n\t\t\texpensesTable.rows.add(null /*add at the end*/, [\n\t\t\t[\"1/1/2017\", \"The Phone Company\", \"Communications\", \"$120\"],\n\t\t\t[\"1/2/2017\", \"Northwind Electric Cars\", \"Transportation\", \"$142\"],\n\t\t\t[\"1/5/2017\", \"Best For You Organics Company\", \"Groceries\", \"$27\"],\n\t\t\t[\"1/10/2017\", \"Coho Vineyard\", \"Restaurant\", \"$33\"],\n\t\t\t[\"1/11/2017\", \"Bellows College\", \"Education\", \"$350\"],\n\t\t\t[\"1/15/2017\", \"Trey Research\", \"Other\", \"$135\"],\n\t\t\t[\"1/15/2017\", \"Best For You Organics Company\", \"Groceries\", \"$97\"]\n\t\t]);\n\n\t\tif (Office.context.requirements.isSetSupported(\"ExcelApi\", 1.2)) {\n\t\t\tsheet.getUsedRange().format.autofitColumns();\n\t\t\tsheet.getUsedRange().format.autofitRows();\n\t\t}\n\n\t    sheet.activate();\n\n\t\tawait context.sync();\n\t\t});\n    }\n\tcatch (error) {\n\t\tOfficeHelpers.Utilities.log(error);\n\t}\n}\n\n"
+    content: |+
+        $("#setup").click(setup);
+        $("#refresh-pivot-table").click(refreshPivotTable);
+
+        async function refreshPivotTable() {
+            await Excel.run(async (context) => {
+                try {
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    // First, force a change in the table data by setting the value of Amount in the third row to $500
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+
+                    const range = expensesTable.columns.getItem("Amount").getDataBodyRange().getRow(2).values = [["$500"]];
+
+                    await sheet.context.sync();
+
+                    // Now, refresh the pivot table. This should pick up our changes made with code as well as any changes made in the UI
+                    const expensesPivot = sheet.pivotTables.getItem("PivotTable1");
+
+                    expensesPivot.refresh();
+
+                    await context.sync();
+                }
+                catch (error) {
+                     OfficeHelpers.Utilities.log(error);
+                }
+            })
+        }
+
+        /** Create a new table with some sample data */
+        async function setup() {
+            try {
+                await Excel.run(async (context) => {
+
+                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);
+                     expensesTable.name = "ExpensesTable";
+
+                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                    expensesTable.rows.add(null /*add at the end*/, [
+                    ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                    ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                    ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                    ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                    ["1/11/2017", "Bellows College", "Education", "$350"],
+                    ["1/15/2017", "Trey Research", "Other", "$135"],
+                    ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                sheet.activate();
+
+                await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
     language: typescript
 template:
     content: |+

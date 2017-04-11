@@ -1,9 +1,145 @@
+id: excel_table_add_rows_and_columns_to_a_table
 name: Add rows and columns
 description: Add rows and columns to a table
-author: jakobpn
-api_set: {}
+author: Microsoft
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
 script:
-    content: "$(\"#setup\").click(setup);\n$(\"#add-column\").click(addColumn);\n$(\"#add-calculated-column\").click(addCalculatedColumn);\n$(\"#add-row\").click(addRow);\n\nasync function addColumn() {\n    try {\n        await Excel.run(async (context) => {\n\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n          \n            const expensesTable = sheet.tables.getItem(\"ExpensesTable\");\n \n            expensesTable.columns.add(null, [\n                [\"Day of the Week\"],\n                [\"Saturday\"],\n                [\"Friday\"],\n                [\"Monday\"],\n                [\"Thursday\"],\n                [\"Sunday\"],\n                [\"Saturday\"],\n                [\"Monday\"]\n             ]);\n\n            sheet.getUsedRange().format.autofitColumns();\n            sheet.getUsedRange().format.autofitRows();\n\n            await context.sync();\n        });\n    }\n    catch (error) {\n            OfficeHelpers.Utilities.log(error);\n    }\n}\n\nasync function addCalculatedColumn() {\n    try {\n        await Excel.run(async (context) => {\n\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n          \n            const expensesTable = sheet.tables.getItem(\"ExpensesTable\");\n        \n            expensesTable.columns.add(null, [\n                [\"Type of the Day\"],\n                ['=IF(OR((TEXT([DATE], \"dddd\") = \"Saturday\"), (TEXT([DATE], \"dddd\") = \"Sunday\")), \"Weekend\", \"Weekday\")'],\n                ['=IF(OR((TEXT([DATE], \"dddd\") = \"Saturday\"), (TEXT([DATE], \"dddd\") = \"Sunday\")), \"Weekend\", \"Weekday\")'],\n                ['=IF(OR((TEXT([DATE], \"dddd\") = \"Saturday\"), (TEXT([DATE], \"dddd\") = \"Sunday\")), \"Weekend\", \"Weekday\")'],\n                ['=IF(OR((TEXT([DATE], \"dddd\") = \"Saturday\"), (TEXT([DATE], \"dddd\") = \"Sunday\")), \"Weekend\", \"Weekday\")'],\n                ['=IF(OR((TEXT([DATE], \"dddd\") = \"Saturday\"), (TEXT([DATE], \"dddd\") = \"Sunday\")), \"Weekend\", \"Weekday\")'],\n                ['=IF(OR((TEXT([DATE], \"dddd\") = \"Saturday\"), (TEXT([DATE], \"dddd\") = \"Sunday\")), \"Weekend\", \"Weekday\")'],\n                ['=IF(OR((TEXT([DATE], \"dddd\") = \"Saturday\"), (TEXT([DATE], \"dddd\") = \"Sunday\")), \"Weekend\", \"Weekday\")']\n            ]);\n\n            sheet.getUsedRange().format.autofitColumns();\n            sheet.getUsedRange().format.autofitRows();\n\n            await context.sync();\n        });\n    }\n    catch (error) {\n            OfficeHelpers.Utilities.log(error);\n    }\n}\n\nasync function addRow() {\n    try {\n        await Excel.run(async (context) => {\n\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n          \n            const expensesTable = sheet.tables.getItem(\"ExpensesTable\");\n\n            expensesTable.rows.add(null, [\n                [\"1/16/2017\", \"The Phone Company\", \"Communications\", \"$120\"],\n                [\"1/20/2017\", \"Northwind Electic Cars\", \"Transportation\", \"$142\"],\n                [\"1/20/2017\", \"Best for You Organics Company\", \"Groceries\", \"$27\"],\n                [\"1/21/2017\", \"Coho Vineyard\", \"Restaurant\", \"$33\"],\n                [\"1/25/2017\", \"Bellows College\", \"Education\", \"$350\"],\n                [\"1/28/2017\", \"Trey Research\", \"Other\", \"$135\"],\n                [\"1/31/2017\", \"Best for You Organics Company\", \"Groceries\", \"$97\"]\n            ]); \n\n            sheet.getUsedRange().format.autofitColumns();\n            sheet.getUsedRange().format.autofitRows();\n\n            await context.sync();\n        });\n    }\n    catch (error) {\n            OfficeHelpers.Utilities.log(error);\n    }\n}\n\n\n/** Create a new table with sample data */\nasync function setup() {\n\ttry {\n\t\tawait Excel.run(async (context) => {\n\n\t\t\tawait OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, \"Sample\");\n\n\t\t\tconst sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n\t\t\tconst expensesTable = sheet.tables.add(\"A1:D1\", true /*hasHeaders*/);\n\t\t\t expensesTable.name = \"ExpensesTable\";\n\n\t\t\texpensesTable.getHeaderRowRange().values = [[\"Date\", \"Merchant\", \"Category\", \"Amount\"]];\n\n\t\t\texpensesTable.rows.add(null /*add at the end*/, [\n\t\t\t[\"1/1/2017\", \"The Phone Company\", \"Communications\", \"$120\"],\n\t\t\t[\"1/2/2017\", \"Northwind Electric Cars\", \"Transportation\", \"$142\"],\n\t\t\t[\"1/5/2017\", \"Best For You Organics Company\", \"Groceries\", \"$27\"],\n\t\t\t[\"1/10/2017\", \"Coho Vineyard\", \"Restaurant\", \"$33\"],\n\t\t\t[\"1/11/2017\", \"Bellows College\", \"Education\", \"$350\"],\n\t\t\t[\"1/15/2017\", \"Trey Research\", \"Other\", \"$135\"],\n\t\t\t[\"1/15/2017\", \"Best For You Organics Company\", \"Groceries\", \"$97\"]\n\t\t]);\n\n\t\tif (Office.context.requirements.isSetSupported(\"ExcelApi\", 1.2)) {\n\t\t\tsheet.getUsedRange().format.autofitColumns();\n\t\t\tsheet.getUsedRange().format.autofitRows();\n\t\t}\n\t    \tsheet.activate();\n\n\t\t    await context.sync();\n\t    });\n    }\n\tcatch (error) {\n\t\tOfficeHelpers.Utilities.log(error);\n\t}\n}\n\n"
+    content: |+
+        $("#setup").click(setup);
+        $("#add-column").click(addColumn);
+        $("#add-calculated-column").click(addCalculatedColumn);
+        $("#add-row").click(addRow);
+
+        async function addColumn() {
+            try {
+                await Excel.run(async (context) => {
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+                  
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+         
+                    expensesTable.columns.add(null, [
+                        ["Day of the Week"],
+                        ["Saturday"],
+                        ["Friday"],
+                        ["Monday"],
+                        ["Thursday"],
+                        ["Sunday"],
+                        ["Saturday"],
+                        ["Monday"]
+                     ]);
+
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                    OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function addCalculatedColumn() {
+            try {
+                await Excel.run(async (context) => {
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+                  
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+                
+                    expensesTable.columns.add(null, [
+                        ["Type of the Day"],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")']
+                    ]);
+
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                    OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function addRow() {
+            try {
+                await Excel.run(async (context) => {
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+                  
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+
+                    expensesTable.rows.add(null, [
+                        ["1/16/2017", "The Phone Company", "Communications", "$120"],
+                        ["1/20/2017", "Northwind Electic Cars", "Transportation", "$142"],
+                        ["1/20/2017", "Best for You Organics Company", "Groceries", "$27"],
+                        ["1/21/2017", "Coho Vineyard", "Restaurant", "$33"],
+                        ["1/25/2017", "Bellows College", "Education", "$350"],
+                        ["1/28/2017", "Trey Research", "Other", "$135"],
+                        ["1/31/2017", "Best for You Organics Company", "Groceries", "$97"]
+                    ]); 
+
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                    OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+
+        /** Create a new table with sample data */
+        async function setup() {
+            try {
+                await Excel.run(async (context) => {
+
+                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
+                     expensesTable.name = "ExpensesTable";
+
+                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                    expensesTable.rows.add(null /*add at the end*/, [
+                    ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                    ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                    ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                    ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                    ["1/11/2017", "Bellows College", "Education", "$350"],
+                    ["1/15/2017", "Trey Research", "Other", "$135"],
+                    ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+                    sheet.activate();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
     language: typescript
 template:
     content: |

@@ -75,9 +75,8 @@ async function processSnippets() {
 
             status.add(`Processing ${localPath}`);
 
-            const originalFileContents = await loadFileContents(fullPath);
+            const originalFileContents = (await loadFileContents(fullPath)).trim();
             let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
-
 
             // Do validations & auto-corrections
             validateStringFieldNotEmptyOrThrow(snippet, 'name');
@@ -88,6 +87,7 @@ async function processSnippets() {
             validateOfficialOfficeJs(snippet, file.host, messages);
             validateApiSetNonEmpty(snippet, file.host, localPath, messages);
             validateVersionNumbersOnLibraries(snippet, messages);
+            validateTabsInsteadOfSpaces(snippet, messages);
 
             // Additional fields relative to what is normally exposed in sharing
             // (and/or that would normally get erased when doing an export):
@@ -100,8 +100,13 @@ async function processSnippets() {
                 (additionalFields as any).order = (snippet as any).order;
             }
 
-            let finalFileContents = getShareableYaml(snippet, additionalFields);
-            if (originalFileContents !== finalFileContents) {
+            // Finally, some fields simply don't apply, and should be deleted.
+            delete snippet.gist;
+
+            let finalFileContents = getShareableYaml(snippet, additionalFields).trim();
+
+            let isDifferent = finalFileContents.replace(/\r\n/g, '\n') !== originalFileContents.replace(/\r\n/g, '\n');
+            if (isDifferent) {
                 messages.push(chalk.bold.yellow('Final snippet != original snippet. Queueing to write in new changes.'));
                 snippetFilesToUpdate.push({ path: fullPath, contents: finalFileContents });
             }
@@ -313,7 +318,7 @@ async function processSnippets() {
 
     function validateId(snippet: ISnippet, localPath: string, messages: any[]): void {
         // Don't want empty IDs -- or GUID-y IDs either, since they're not particularly memorable...
-        if (isNil(snippet.id) || isCUID(snippet.id)) {
+        if (isNil(snippet.id) || snippet.id.trim().length === 0 || isCUID(snippet.id)) {
             snippet.id = localPath.trim().toLowerCase()
                 .replace(/[^0-9a-zA-Z]/g, '_') /* replace any non-alphanumeric with an underscore */
                 .replace(/_+/g, '_') /* and ensure that don't end up with __ or ___, just a single underscore */
@@ -327,12 +332,25 @@ async function processSnippets() {
 
         // Helper:
         function isCUID(id: string) {
-            if (id.length === 25 && id.indexOf('_') === -1) {
+            if (id.trim().length === 25 && id.indexOf('_') === -1) {
                 // not likely to be a real id, with a name of that precise length and all as one word.
                 return true;
             }
 
             return false;
+        }
+    }
+
+    function validateTabsInsteadOfSpaces(snippet: ISnippet, messages: any[]): void {
+        const codeFields = [snippet.template.content, snippet.script.content, snippet.style.content, snippet.libraries];
+        if (codeFields.findIndex(code => code.indexOf('\t') >= 0) >= 0) {
+            snippet.template.content = snippet.template.content.replace(/\t/g, '    ');
+            snippet.script.content = snippet.script.content.replace(/\t/g, '    ');
+            snippet.style.content = snippet.style.content.replace(/\t/g, '    ');
+            snippet.libraries = snippet.libraries.replace(/\t/g, '    ');
+
+            messages.push('Snippet had one or more fields (template/script/style/libraries) ' +
+                'that contained tabs instead of spaces. Replacing everything with 4 spaces.');
         }
     }
 }

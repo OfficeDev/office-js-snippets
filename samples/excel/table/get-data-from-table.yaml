@@ -1,9 +1,93 @@
+id: excel_table_get_data_from_table
 name: Get data from a table
 description: Get data from a table
-author: jakobpn
-api_set: {}
+author: Microsoft
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
 script:
-    content: "$(\"#setup\").click(setup);\n$(\"#get-data-from-table\").click(getData);\n\nasync function getData() {\n    try {\n        await Excel.run(async (context) => {\n\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n            const expensesTable = sheet.tables.getItem(\"ExpensesTable\");\n\n            const headerRange = expensesTable.getHeaderRowRange().load(\"values\");\n\n            const bodyRange = expensesTable.getDataBodyRange().load(\"values\");\n\n            const columnRange = expensesTable.columns.getItem(\"MERCHANT\").getDataBodyRange().load(\"values\");\n\n            const rowRange= expensesTable.rows.getItemAt(1).load(\"values\");\n\n            await sheet.context.sync();\n\n            const headerValues = headerRange.values;\n            const bodyValues = bodyRange.values;\n            const merchantColumnValues = columnRange.values;\n            const secondRowValues = rowRange.values;\n\n            sheet.getRange(\"A18:A18\").values = [[\"Results\"]];\n\n            sheet.getRange(\"A20:D20\").values = headerValues;\n\n            sheet.getRange(\"A21:D27\").values = bodyValues;\n\n            sheet.getRange(\"B30:B36\").values = merchantColumnValues;\n\n            sheet.getRange(\"A17:D17\").values = secondRowValues;\n            await context.sync();\n        });\n    }\n    catch (error) {\n                OfficeHelpers.Utilities.log(error);\n    }\n}\n\n/** Create a new table with some sample data */\nasync function setup() {\n    try {\n    \tawait Excel.run(async (context) => {\n\n\t\t\tawait OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, \"Sample\");\n\n\t\t\tconst sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n\t\t\tconst expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);\n\t\t\t expensesTable.name = \"ExpensesTable\";\n\n\t\t\texpensesTable.getHeaderRowRange().values = [[\"Date\", \"Merchant\", \"Category\", \"Amount\"]];\n\n\t\t\texpensesTable.rows.add(null /*add at the end*/, [\n\t\t\t[\"1/1/2017\", \"The Phone Company\", \"Communications\", \"$120\"],\n\t\t\t[\"1/2/2017\", \"Northwind Electric Cars\", \"Transportation\", \"$142\"],\n\t\t\t[\"1/5/2017\", \"Best For You Organics Company\", \"Groceries\", \"$27\"],\n\t\t\t[\"1/10/2017\", \"Coho Vineyard\", \"Restaurant\", \"$33\"],\n\t\t\t[\"1/11/2017\", \"Bellows College\", \"Education\", \"$350\"],\n\t\t\t[\"1/15/2017\", \"Trey Research\", \"Other\", \"$135\"],\n\t\t\t[\"1/15/2017\", \"Best For You Organics Company\", \"Groceries\", \"$97\"]\n\t\t    ]);\n\n\t\t    if (Office.context.requirements.isSetSupported(\"ExcelApi\", 1.2)) {\n\t\t\t    sheet.getUsedRange().format.autofitColumns();\n\t\t        sheet.getUsedRange().format.autofitRows();\n\t\t    }\n\n\t        sheet.activate();\n\n\t\t    await context.sync();\n\t    });\n    }\n\tcatch (error) {\n\t\tOfficeHelpers.Utilities.log(error);\n\t}\n} \n"
+    content: |
+        $("#setup").click(setup);
+        $("#get-data-from-table").click(getData);
+
+        async function getData() {
+            try {
+                await Excel.run(async (context) => {
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+
+                    const headerRange = expensesTable.getHeaderRowRange().load("values");
+
+                    const bodyRange = expensesTable.getDataBodyRange().load("values");
+
+                    const columnRange = expensesTable.columns.getItem("MERCHANT").getDataBodyRange().load("values");
+
+                    const rowRange= expensesTable.rows.getItemAt(1).load("values");
+
+                    await sheet.context.sync();
+
+                    const headerValues = headerRange.values;
+                    const bodyValues = bodyRange.values;
+                    const merchantColumnValues = columnRange.values;
+                    const secondRowValues = rowRange.values;
+
+                    sheet.getRange("A18:A18").values = [["Results"]];
+
+                    sheet.getRange("A20:D20").values = headerValues;
+
+                    sheet.getRange("A21:D27").values = bodyValues;
+
+                    sheet.getRange("B30:B36").values = merchantColumnValues;
+
+                    sheet.getRange("A17:D17").values = secondRowValues;
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                        OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        /** Create a new table with some sample data */
+        async function setup() {
+            try {
+                await Excel.run(async (context) => {
+
+                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);
+                     expensesTable.name = "ExpensesTable";
+
+                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                    expensesTable.rows.add(null /*add at the end*/, [
+                    ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                    ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                    ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                    ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                    ["1/11/2017", "Bellows College", "Education", "$350"],
+                    ["1/15/2017", "Trey Research", "Other", "$135"],
+                    ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                    ]);
+
+                    if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                        sheet.getUsedRange().format.autofitColumns();
+                        sheet.getUsedRange().format.autofitRows();
+                    }
+
+                    sheet.activate();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
+        } 
     language: typescript
 template:
     content: |+

@@ -1,57 +1,174 @@
-id: ''
-gist: ''
-source: EXCEL
-author: Microsoft
+id: excel_table_get_visible_range_of_a_filtered_table
 name: Get visible range from a filtered table
 description: Get visible range from a filtered table
+author: Microsoft
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
 script:
-  content: "$(\"#create-table\").click(createTable);\n$(\"#filter-table\").click(filterTable);\n$(\"#get-range\").click(getRange);\n$(\"#get-visible-range\").click(getVisibleRange);\n\nasync function getVisibleRange() {\n  try {\n    await Excel.run(async (context) => {\n\n      const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n\t\t\tconst expensesTable = sheet.tables.getItem(\"ExpensesTable\");\n\t\t\t\n      const visibleRange = expensesTable.getDataBodyRange().getVisibleView().load(\"values\");\n\n      await sheet.context.sync();\n\n      const visibleValues = visibleRange.values;\n\n      console.log(visibleValues);\n\n      await context.sync();\n    })\n  }\n  catch (error) {\n    OfficeHelpers.Utilities.log(error);\n  }\n}\n\nasync function getRange() {\n  try {\n    await Excel.run(async (context) => {\n\n      const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n\t\t\tconst expensesTable = sheet.tables.getItem(\"ExpensesTable\");\n\t\t\t\n      const range = expensesTable.getDataBodyRange().load(\"values\");\n\n      await sheet.context.sync();\n\n      const values = range.values;\n\n      console.log(values);\n\n      await context.sync();\n    })\n  }\n  catch (error) {\n    OfficeHelpers.Utilities.log(error);\n  }\n}\n\n/** Create a new table with some sample data*/\nasync function createTable() {\n    try {\n\t\t\tawait Excel.run(async (context) => {\n\n\t\t\t\tawait OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, \"Sample\");\n\n\t\t\t\tconst sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n\t\t\t\tlet expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);\n\t\t\t\texpensesTable.name = \"ExpensesTable\";\n\n\t\t\t\texpensesTable.getHeaderRowRange().values = [[\"Date\", \"Merchant\", \"Category\", \"Amount\"]];\n\n\t\t\t\texpensesTable.rows.add(null /*add at the end*/, [\n\t\t\t\t\t[\"1/1/2017\", \"The Phone Company\", \"Communications\", \"$120\"],\n\t\t\t\t\t[\"1/2/2017\", \"Northwind Electric Cars\", \"Transportation\", \"$142\"],\n\t\t\t\t\t[\"1/5/2017\", \"Best For You Organics Company\", \"Groceries\", \"$27\"],\n\t\t\t\t\t[\"1/10/2017\", \"Coho Vineyard\", \"Restaurant\", \"$33\"],\n\t\t\t\t\t[\"1/11/2017\", \"Bellows College\", \"Education\", \"$350\"],\n\t\t\t\t\t[\"1/15/2017\", \"Trey Research\", \"Other\", \"$135\"],\n\t\t\t\t\t[\"1/15/2017\", \"Best For You Organics Company\", \"Groceries\", \"$97\"]\n\t\t\t\t]);\n\n\t\t\t\tif (Office.context.requirements.isSetSupported(\"ExcelApi\", 1.2)) {\n\t\t\t\t\tsheet.getUsedRange().format.autofitColumns();\n\t\t\t\t\tsheet.getUsedRange().format.autofitRows();\n\t\t\t\t}\n\n\t\t\t\tsheet.activate();\n\n\t\t\t\tawait context.sync();\n\t\t\t})\n    }\n  \tcatch (error) {\n\t\t\tOfficeHelpers.Utilities.log(error);\n\t\t}\n}\n\n/** Filter the table*/\nasync function filterTable() {\n    try {\n\t\t\tawait Excel.run(async (context) => {\n\n\t\t\t\tconst sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n\t\t\t  const expensesTable = sheet.tables.getItem(\"ExpensesTable\");\n\n\t\t\t\tconst filter = expensesTable.columns.getItem(\"Amount\").filter;\n\n\t\t\t\tfilter.apply({\n\t\t\t\t\tfilterOn: Excel.FilterOn.dynamic,\n\t\t\t\t\tdynamicCriteria: Excel.DynamicFilterCriteria.belowAverage\n\t\t\t\t});\n\n\t\t\t\tawait context.sync();\n\t\t\t})\n    }\n  \tcatch (error) {\n\t\t\tOfficeHelpers.Utilities.log(error);\n\t\t}\n}\n\n"
-  language: typescript
-style:
-  content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
-  language: css
+    content: |+
+        $("#create-table").click(createTable);
+        $("#filter-table").click(filterTable);
+        $("#get-range").click(getRange);
+        $("#get-visible-range").click(getVisibleRange);
+
+        async function getVisibleRange() {
+          try {
+            await Excel.run(async (context) => {
+
+              const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+                    
+              const visibleRange = expensesTable.getDataBodyRange().getVisibleView().load("values");
+
+              await sheet.context.sync();
+
+              const visibleValues = visibleRange.values;
+
+              console.log(visibleValues);
+
+              await context.sync();
+            })
+          }
+          catch (error) {
+            OfficeHelpers.Utilities.log(error);
+          }
+        }
+
+        async function getRange() {
+          try {
+            await Excel.run(async (context) => {
+
+              const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+                    
+              const range = expensesTable.getDataBodyRange().load("values");
+
+              await sheet.context.sync();
+
+              const values = range.values;
+
+              console.log(values);
+
+              await context.sync();
+            })
+          }
+          catch (error) {
+            OfficeHelpers.Utilities.log(error);
+          }
+        }
+
+        /** Create a new table with some sample data*/
+        async function createTable() {
+            try {
+                    await Excel.run(async (context) => {
+
+                        await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                        const sheet = context.workbook.worksheets.getItem("Sample");
+
+                        let expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);
+                        expensesTable.name = "ExpensesTable";
+
+                        expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                        expensesTable.rows.add(null /*add at the end*/, [
+                            ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                            ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                            ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                            ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                            ["1/11/2017", "Bellows College", "Education", "$350"],
+                            ["1/15/2017", "Trey Research", "Other", "$135"],
+                            ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                        ]);
+
+                        if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                            sheet.getUsedRange().format.autofitColumns();
+                            sheet.getUsedRange().format.autofitRows();
+                        }
+
+                        sheet.activate();
+
+                        await context.sync();
+                    })
+            }
+              catch (error) {
+                    OfficeHelpers.Utilities.log(error);
+                }
+        }
+
+        /** Filter the table*/
+        async function filterTable() {
+            try {
+                    await Excel.run(async (context) => {
+
+                        const sheet = context.workbook.worksheets.getItem("Sample");
+
+                      const expensesTable = sheet.tables.getItem("ExpensesTable");
+
+                        const filter = expensesTable.columns.getItem("Amount").filter;
+
+                        filter.apply({
+                            filterOn: Excel.FilterOn.dynamic,
+                            dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
+                        });
+
+                        await context.sync();
+                    })
+            }
+              catch (error) {
+                    OfficeHelpers.Utilities.log(error);
+                }
+        }
+
+    language: typescript
 template:
-  content: |+
-    <section class="ms-font-m">
-        <p>This sample shows how to filter the data in a table using different filter types using the Excel JavaScript API. This snippet prints the results in the console below.</p>
-    </section>
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to filter the data in a table using different filter types using the Excel JavaScript API. This snippet prints the results in the console below.</p>
+        </section>
 
-    <section class="setup ms-font-m">
-        <h3>Set up</h3>
-        <button id="create-table" class="ms-Button">
-            <span class="ms-Button-label">Create table</span>
-        </button>
-            <button id="filter-table" class="ms-Button">
-            <span class="ms-Button-label">Filter table</span>
-        </button>
-    </section>
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="create-table" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+                <button id="filter-table" class="ms-Button">
+                <span class="ms-Button-label">Filter table</span>
+            </button>
+        </section>
 
-    <section class="samples ms-font-m">
-        <h3>Try it out</h3>
-        <button id="get-range" class="ms-Button">
-            <span class="ms-Button-label">Get range</span>
-        </button>
-            <button id="get-visible-range" class="ms-Button">
-            <span class="ms-Button-label">Get visible range</span>
-        </button>
-    </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-range" class="ms-Button">
+                <span class="ms-Button-label">Get range</span>
+            </button>
+                <button id="get-visible-range" class="ms-Button">
+                <span class="ms-Button-label">Get visible range</span>
+            </button>
+        </section>
 
-  language: html
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
 libraries: |
-  // Office.js
-  https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
 
-  // CSS Libraries
-  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
-  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
 
-  // NPM libraries
-  core-js@2.4.1/client/core.min.js
-  @microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js
-  jquery@3.1.1
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js
+    jquery@3.1.1
 
-  // IntelliSense: @types/library or node_modules paths or URL to d.ts files
-  @types/office-js
-  @types/core-js
-  @@microsoft/office-js-helpers/dist/office.helpers.d.ts
-  @types/jquery
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @@microsoft/office-js-helpers/dist/office.helpers.d.ts
+    @types/jquery

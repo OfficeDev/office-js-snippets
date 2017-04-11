@@ -47,7 +47,10 @@ const defaultApiSets = {
                 throw accumulatedErrors;
             }
         })
-        .then(() => banner('Done!'))
+        .then(() => {
+            banner('Done!');
+            process.exit(0);
+        })
         .catch(handleError);
 })();
 

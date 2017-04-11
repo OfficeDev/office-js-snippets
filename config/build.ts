@@ -70,22 +70,20 @@ async function processSnippets() {
     async function processAndValidateSnippet(file: SnippetFileInput): Promise<SnippetProcessedData> {
         const messages: Array<string | Error> = [];
         try {
-            const localPath = `${file.host}/${file.group}/${file.file_name}`;
-            const fullPath = path.resolve('samples', file.path);
+            status.add(`Processing ${file.relativePath}`);
 
-            status.add(`Processing ${localPath}`);
-
+            const fullPath = path.resolve('samples', file.relativePath);
             const originalFileContents = (await loadFileContents(fullPath)).trim();
             let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
 
             // Do validations & auto-corrections
             validateStringFieldNotEmptyOrThrow(snippet, 'name');
             validateStringFieldNotEmptyOrThrow(snippet, 'description');
-            validateId(snippet, localPath, messages);
+            validateId(snippet, file.relativePath, messages);
             validateSnippetHost(snippet, file.host, messages);
             validateAtTypesDeclarations(snippet, messages);
             validateOfficialOfficeJs(snippet, file.host, messages);
-            validateApiSetNonEmpty(snippet, file.host, localPath, messages);
+            validateApiSetNonEmpty(snippet, file.host, file.relativePath, messages);
             validateVersionNumbersOnLibraries(snippet, messages);
             validateTabsInsteadOfSpaces(snippet, messages);
 
@@ -111,21 +109,21 @@ async function processSnippets() {
                 snippetFilesToUpdate.push({ path: fullPath, contents: finalFileContents });
             }
 
-            status.complete(true /*success*/, `Processing ${localPath}`, messages);
+            status.complete(true /*success*/, `Processing ${file.relativePath}`, messages);
 
             const rawUrl = 'https://raw.githubusercontent.com/' +
                 `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${GH_BRANCH || '<BRANCH>'}` +
                 `/samples/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {
-                accumulatedErrors.push(`One or more critical errors on ${localPath}`);
+                accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
             }
 
             return {
                 id: snippet.id,
                 name: snippet.name,
                 fileName: file.file_name,
-                localPath: localPath,
+                relativePath: file.relativePath,
                 description: snippet.description,
                 host: file.host,
                 rawUrl: rawUrl,
@@ -383,12 +381,12 @@ function checkSnippetsForUniqueIDs() {
     let idsAllUnique = true; // assume best, until proven otherwise
     processedSnippets.values()
         .forEach(item => {
-            status.add(`Testing ID of snippet ${item.localPath}`);
+            status.add(`Testing ID of snippet ${item.relativePath}`);
             const otherMatches = processedSnippets.values().filter(anotherItem => anotherItem !== item && anotherItem.id === item.id);
             const isUnique = (otherMatches.length === 0);
             status.complete(isUnique /*succeeded*/,
-                `Testing ID of snippet ${item.localPath}`,
-                isUnique ? null : [`ID "${item.id}" not unique, and matches the IDs of `].concat(otherMatches.map(item => '    ' + item.localPath)));
+                `Testing ID of snippet ${item.relativePath}`,
+                isUnique ? null : [`ID "${item.id}" not unique, and matches the IDs of `].concat(otherMatches.map(item => '    ' + item.relativePath)));
             if (!isUnique) {
                 idsAllUnique = false;
             }
@@ -407,7 +405,6 @@ async function generatePlaylists() {
     await rmRf('playlists');
     await mkDir('playlists');
     status.complete(true /*success*/, 'Creating \'playlists\' folder');
-
 
     const groups = groupBy(
         processedSnippets.values()

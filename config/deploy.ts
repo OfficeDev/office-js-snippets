@@ -14,6 +14,9 @@ try {
         status.add('Pushing to GitHub');
         deployBuild(URL);
         status.complete(true, 'Pushing to GitHub');
+    } else {
+        console.log('Deploy not needed. Exiting with status code 0');
+        process.exit(0);
     }
 }
 catch (exception) {

@@ -26,6 +26,7 @@ export interface SnippetProcessedData {
     host: string;
     rawUrl: string;
     group: string;
+    order: number;
 
     /**
      * Necessary for back-compat with currently (April 2017)-deployed ScriptLab.

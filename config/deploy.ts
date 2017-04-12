@@ -4,7 +4,7 @@ import * as chalk from 'chalk';
 import * as shell from 'shelljs';
 import { isString } from 'lodash';
 import { status } from './status';
-import { banner } from './helpers';
+import { banner, destinationBranch } from './helpers';
 
 const { TRAVIS, TRAVIS_BRANCH, TRAVIS_PULL_REQUEST, GH_ACCOUNT, GH_TOKEN, GH_REPO, TRAVIS_COMMIT_MESSAGE } = process.env;
 
@@ -15,7 +15,6 @@ try {
         deployBuild(URL);
         status.complete(true, 'Pushing to GitHub');
     } else {
-        console.log('Deploy not needed. Exiting with status code 0');
         process.exit(0);
     }
 }
@@ -44,7 +43,7 @@ async function deployBuild(url) {
             handleError('An error occurred while commiting files...');
         }
         console.log(chalk.bold.cyan('Pushing snippets & playlists... Please wait...'));
-        result = shell.exec('git push ' + url + ' -q -f -u HEAD:refs/heads/prod', { silent: true });
+        result = shell.exec('git push ' + url + ' -q -f -u HEAD:refs/heads/' + destinationBranch(TRAVIS_BRANCH), { silent: true });
         if (result.code !== 0) {
             handleError('An error occurred while deploying playlists to ...');
         }
@@ -70,8 +69,8 @@ function precheck() {
         return false;
     }
 
-    if (TRAVIS_BRANCH !== 'master') {
-        console.log('Skipping deploy for non master branches.');
+    if (destinationBranch(TRAVIS_BRANCH) == null) {
+        console.log('Skipping deploy for non `master` or `prod` branches.');
         return false;
     }
 

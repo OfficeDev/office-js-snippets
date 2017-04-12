@@ -56,6 +56,18 @@ export const banner = (title: string, message: string = null, chalkFn: chalk.Cha
     console.log(chalkFn(`${dashes}\n`));
 };
 
+export const destinationBranch = (sourceBranch: string): 'beta' | 'prod' | null => {
+    if (sourceBranch === 'master') {
+        return 'beta';
+    }
+    else if (sourceBranch === 'prod') {
+        return 'prod';
+    }
+    else {
+        return null;
+    }
+}
+
 /**
  * Creates a folder.
  * @param dir An absolute path to the directory.

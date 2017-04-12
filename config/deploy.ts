@@ -2,6 +2,7 @@
 
 import * as chalk from 'chalk';
 import * as shell from 'shelljs';
+import { forIn } from 'lodash';
 import { isString } from 'lodash';
 import { status } from './status';
 import { banner, destinationBranch } from './helpers';
@@ -11,10 +12,7 @@ const { TRAVIS, TRAVIS_BRANCH, TRAVIS_PULL_REQUEST, GH_ACCOUNT, GH_TOKEN, GH_REP
 (() => {
     try {
         if (precheck()) {
-            const URL = `https://${GH_TOKEN}@github.com/${GH_ACCOUNT}/${GH_REPO}.git`;
-            status.add('Pushing to GitHub');
             deployBuild(URL);
-            status.complete(true, 'Pushing to GitHub');
         } else {
             console.log('Did not pass pre-check. Exiting.');
             process.exit(0);
@@ -46,44 +44,49 @@ function precheck() {
     }
 
     /* Check if the username is configured. If not abort immediately. */
-    if (!isString(GH_ACCOUNT)) {
-        throw new Error('"AZURE_WA_USERNAME" is a required global variable.');
-    }
-
-    /* Check if the password is configured. If not abort immediately. */
-    if (!isString(GH_TOKEN)) {
-        throw new Error('"AZURE_WA_PASSWORD" is a required global variable.');
+    if (!isString(GH_ACCOUNT) || !isString(GH_TOKEN)) {
+        throw new Error('"GH_ACCOUNT" and "GH_TOKEN" are required global variables.');
     }
 
     return true;
 }
 
 async function deployBuild(url) {
+    status.add('Pushing to GitHub');
+
     const start = Date.now();
     shell.exec('git config --add user.name "Travis CI"');
     shell.exec('git config --add user.email "travis.ci@microsoft.com"');
     shell.exec('git checkout --orphan newbranch');
     shell.exec('git reset');
 
-    let result: any = shell.exec('git add -f samples playlists');
-    if (result.code !== 0) {
-        shell.echo(result.stderr);
-        throw new Error('An error occurred while adding files...');
-    }
+    execCommand('git add -f samples playlists');
+    execCommand('git commit -m "' + TRAVIS_COMMIT_MESSAGE + '"');
 
-    result = shell.exec('git commit -m "' + TRAVIS_COMMIT_MESSAGE + '"');
-    if (result.code !== 0) {
-        shell.echo(result.stderr);
-        throw new Error('An error occurred while commiting files...');
-    }
-
-    const gitPushCommand = `git push ${url} -q -f -u HEAD:refs/heads/${destinationBranch(TRAVIS_BRANCH)}`;
-    console.log(chalk.bold.cyan('Pushing snippets & playlists... Please wait...'));
-    result = shell.exec(gitPushCommand, { silent: true });
-    if (result.code !== 0) {
-        throw new Error(`An error occurred while executing ${gitPushCommand}`);
-    }
+    execCommand(`git push <<<url>>> -q -f -u HEAD:refs/heads/${destinationBranch(TRAVIS_BRANCH)}`, {
+        url: `https://${GH_TOKEN}@github.com/${GH_ACCOUNT}/${GH_REPO}.git`
+    });
 
     const end = Date.now();
-    console.log(chalk.bold.cyan('Successfully deployed in ' + (end - start) / 1000 + ' seconds.', 'green'));
+    status.complete(true, 'Pushing to GitHub', chalk.bold.green(`Successfully deployed in ${(end - start) / 1000} seconds.`));
+}
+
+/**
+ * Execute a shall command.
+ * @param command - The command to execute. Note that if it contains something secret, put it in tripple <<<NAME>>> syntax, as the command itself will get echo-ed.
+ * @param secretSubstitutions - key-value pairs to substitute into the command when executing.
+ */
+function execCommand(command: string, secretSubstitutions = {}) {
+    console.log(command);
+
+    forIn(secretSubstitutions, (value, key) => command = replaceAll(command, '<<<' + key + '>>>', value));
+    let result: any = shell.exec(command);
+    if (result.code !== 0) {
+        shell.echo(result.stderr);
+        throw new Error(`An error occurred while executing "${command}"`);
+    }
+}
+
+function replaceAll(source, search, replacement) {
+    return source.split(search).join(replacement);
 }

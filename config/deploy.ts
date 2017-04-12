@@ -36,6 +36,8 @@ const environmentVariables: IEnvironmentVariables = process.env;
         // But do want to make it very obvious that deployment went wrong when
         // looking at the logs.
     }
+
+    process.exit(0);
 })();
 
 

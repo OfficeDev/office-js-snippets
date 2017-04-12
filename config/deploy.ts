@@ -22,7 +22,23 @@ const environmentVariables: IEnvironmentVariables = process.env;
 (() => {
     try {
         if (precheck()) {
-            deployBuild(URL);
+            status.add('Pushing to GitHub');
+
+            const start = Date.now();
+            shell.exec('git config --add user.name "Travis CI"');
+            shell.exec('git config --add user.email "travis.ci@microsoft.com"');
+            shell.exec('git checkout --orphan newbranch');
+            shell.exec('git reset');
+
+            execCommand('git add -f samples playlists');
+            execCommand('git commit -m "' + environmentVariables.TRAVIS_COMMIT_MESSAGE + '"');
+
+            execCommand(`git push <<<url>>> -q -f -u HEAD:refs/heads/${destinationBranch(environmentVariables.TRAVIS_BRANCH)}`, {
+                url: `https://${environmentVariables.GH_TOKEN}@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`
+            });
+
+            const end = Date.now();
+            status.complete(true, 'Pushing to GitHub', chalk.bold.green(`Successfully deployed in ${(end - start) / 1000} seconds.`));
         } else {
             console.log('Deployment: Did not pass pre-check. Exiting with a no-op.');
         }
@@ -68,26 +84,6 @@ function precheck() {
     });
 
     return true;
-}
-
-async function deployBuild(url) {
-    status.add('Pushing to GitHub');
-
-    const start = Date.now();
-    shell.exec('git config --add user.name "Travis CI"');
-    shell.exec('git config --add user.email "travis.ci@microsoft.com"');
-    shell.exec('git checkout --orphan newbranch');
-    shell.exec('git reset');
-
-    execCommand('git add -f samples playlists');
-    execCommand('git commit -m "' + environmentVariables.TRAVIS_COMMIT_MESSAGE + '"');
-
-    execCommand(`git push <<<url>>> -q -f -u HEAD:refs/heads/${destinationBranch(environmentVariables.TRAVIS_BRANCH)}`, {
-        url: `https://${environmentVariables.GH_TOKEN}@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`
-    });
-
-    const end = Date.now();
-    status.complete(true, 'Pushing to GitHub', chalk.bold.green(`Successfully deployed in ${(end - start) / 1000} seconds.`));
 }
 
 /**

@@ -1,13 +1,13 @@
-[![Build Status](https://travis-ci.com/OfficeDev/script-lab-samples.svg?token=zKp5xy2SuSortMzv5Pqc&branch=master)](https://travis-ci.com/OfficeDev/script-lab-samples)
+[![Build Status](https://travis-ci.com/OfficeDev/office-js-snippets.svg?token=zKp5xy2SuSortMzv5Pqc&branch=master)](https://travis-ci.com/OfficeDev/office-js-snippets)
 
-# Script Lab Samples
-A collection of samples for Script Lab.
+# Office JS Snippets
+A growing collection of office.js snippets.
 
 
 ## To contribute:
 - Fork this repo
 - Add samples using the instructions below
-- Submit a pull request that Jakob, Michael Z or Bhargav will review.
+- Submit a pull request.
 
 
 ## Folder Structure

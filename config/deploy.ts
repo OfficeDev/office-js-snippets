@@ -7,7 +7,17 @@ import { isString } from 'lodash';
 import { status } from './status';
 import { banner, destinationBranch } from './helpers';
 
-const { TRAVIS, TRAVIS_BRANCH, TRAVIS_PULL_REQUEST, GH_ACCOUNT, GH_TOKEN, GH_REPO, TRAVIS_COMMIT_MESSAGE } = process.env;
+interface IEnvironmentVariables {
+    TRAVIS: string,
+    TRAVIS_BRANCH: string,
+    TRAVIS_PULL_REQUEST: string,
+    TRAVIS_COMMIT_MESSAGE: string,
+    GH_ACCOUNT: string,
+    GH_REPO: string,
+    GH_TOKEN: string
+}
+
+const environmentVariables: IEnvironmentVariables = process.env;
 
 (() => {
     try {
@@ -27,26 +37,29 @@ const { TRAVIS, TRAVIS_BRANCH, TRAVIS_PULL_REQUEST, GH_ACCOUNT, GH_TOKEN, GH_REP
 
 function precheck() {
     /* Check if the code is running inside of travis.ci. If not abort immediately. */
-    if (!TRAVIS) {
+    if (!environmentVariables.TRAVIS) {
         console.log('Not running inside of Travis. Skipping deploy.');
         return false;
     }
 
     // Careful! Need this check because otherwise, a pull request against master would immediately trigger a deployment.
-    if (TRAVIS_PULL_REQUEST !== 'false') {
+    if (environmentVariables.TRAVIS_PULL_REQUEST !== 'false') {
         console.log('Skipping deploy for pull requests.');
         return false;
     }
 
-    if (destinationBranch(TRAVIS_BRANCH) == null) {
+    if (destinationBranch(environmentVariables.TRAVIS_BRANCH) == null) {
         console.log('Skipping deploy for non `master` or `prod` branches.');
         return false;
     }
 
     /* Check if the username is configured. If not abort immediately. */
-    if (!isString(GH_ACCOUNT) || !isString(GH_TOKEN)) {
-        throw new Error('"GH_ACCOUNT" and "GH_TOKEN" are required global variables.');
-    }
+    const requiredFields: Array<keyof IEnvironmentVariables> = ['GH_ACCOUNT', 'GH_REPO', 'GH_TOKEN'];
+    requiredFields.forEach(key => {
+        if (!isString(environmentVariables[key])) {
+            throw new Error('"GH_ACCOUNT" and "GH_TOKEN" are required global variables.');
+        }
+    });
 
     return true;
 }
@@ -61,10 +74,10 @@ async function deployBuild(url) {
     shell.exec('git reset');
 
     execCommand('git add -f samples playlists');
-    execCommand('git commit -m "' + TRAVIS_COMMIT_MESSAGE + '"');
+    execCommand('git commit -m "' + environmentVariables.TRAVIS_COMMIT_MESSAGE + '"');
 
-    execCommand(`git push <<<url>>> -q -f -u HEAD:refs/heads/${destinationBranch(TRAVIS_BRANCH)}`, {
-        url: `https://${GH_TOKEN}@github.com/${GH_ACCOUNT}/${GH_REPO}.git`
+    execCommand(`git push <<<url>>> -q -f -u HEAD:refs/heads/${destinationBranch(environmentVariables.TRAVIS_BRANCH)}`, {
+        url: `https://${environmentVariables.GH_TOKEN}@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`
     });
 
     const end = Date.now();

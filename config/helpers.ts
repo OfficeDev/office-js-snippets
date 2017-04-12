@@ -66,7 +66,7 @@ export const destinationBranch = (sourceBranch: string): 'beta' | 'prod' | null 
     else {
         return null;
     }
-}
+};
 
 /**
  * Creates a folder.

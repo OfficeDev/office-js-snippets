@@ -24,13 +24,17 @@ const environmentVariables: IEnvironmentVariables = process.env;
         if (precheck()) {
             deployBuild(URL);
         } else {
-            console.log('Did not pass pre-check. Exiting.');
-            process.exit(0);
+            console.log('Deployment: Did not pass pre-check. Exiting with a no-op.');
         }
     }
     catch (error) {
         banner('An error has occured', error.message || error, chalk.bold.red);
-        process.exit(1);
+        banner('DEPLOYMENT DID NOT GET TRIGGERED', error.message || error, chalk.bold.red);
+
+        // Note: Don't exit the process with "process.exit(1);", since deployment
+        // failure does not imply dev failure, so don't want to "break the build".
+        // But do want to make it very obvious that deployment went wrong when
+        // looking at the logs.
     }
 })();
 

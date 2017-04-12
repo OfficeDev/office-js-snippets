@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-/// NOTE: This file is an identical copy from the main Script Lab Samples project.                ///
+/// NOTE: This file is an identical copy from the main Office JavaScript API Snippets project.                ///
 ///       Please be sure that any changes that you make here are also copied to there.            ///
-///       See "src/server/core/libraries.processor.ts" in https://github.com/OfficeDev/script-lab ///
+///       See "src/server/core/libraries.processor.ts" in https://github.com/OfficeDev/project-bornholm ///
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 
 

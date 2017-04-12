@@ -1,8 +1,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 /// NOTE: This file is a (partial) copy of "src\client\app\helpers\snippet.helper.ts" ///
-///       of the main Script Lab project. Please be sure that any changes that you    ///
+///       of the main Project Bornholm project. Please be sure that any changes that you    ///
 ///       make here (or vice-versa) are applied to both projects.                     ///
-///       see https://github.com/OfficeDev/script-lab-samples                         ///
+///       see https://github.com/OfficeDev/office-js-snippets                         ///
 /////////////////////////////////////////////////////////////////////////////////////////
 
 import * as jsyaml from 'js-yaml';

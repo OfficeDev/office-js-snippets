@@ -56,12 +56,12 @@ export const banner = (title: string, message: string = null, chalkFn: chalk.Cha
     console.log(chalkFn(`${dashes}\n`));
 };
 
-export const destinationBranch = (sourceBranch: string): 'beta' | 'prod' | null => {
+export const destinationBranch = (sourceBranch: 'master' | 'prod' | any): 'deploy-beta' | 'deploy-prod' | null => {
     if (sourceBranch === 'master') {
-        return 'beta';
+        return 'deploy-beta';
     }
     else if (sourceBranch === 'prod') {
-        return 'prod';
+        return 'deploy-prod';
     }
     else {
         return null;

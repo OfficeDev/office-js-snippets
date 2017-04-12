@@ -4,7 +4,7 @@ import * as path from 'path';
 import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
-import { SnippetFileInput, SnippetProcessedData, rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
+import { destinationBranch, SnippetFileInput, SnippetProcessedData, rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
 import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
@@ -15,7 +15,7 @@ import 'rxjs/add/operator/filter';
 import escapeStringRegexp = require('escape-string-regexp');
 
 
-const { GH_ACCOUNT, GH_REPO, GH_BRANCH } = process.env;
+const { GH_ACCOUNT, GH_REPO, TRAVIS_BRANCH } = process.env;
 const processedSnippets = new Dictionary<SnippetProcessedData>();
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
@@ -114,9 +114,7 @@ async function processSnippets() {
 
             status.complete(true /*success*/, `Processing ${file.relativePath}`, messages);
 
-            const rawUrl = 'https://raw.githubusercontent.com/' +
-                `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${GH_BRANCH || '<BRANCH>'}` +
-                `/samples/${file.host}/${file.group}/${file.file_name}`;
+            const rawUrl = `https://raw.githubusercontent.com/${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${destinationBranch(TRAVIS_BRANCH) || '<BRANCH>'}/samples/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);

@@ -1,0 +1,48 @@
+name: Create a column clustered chart
+description: Create a column clustered chart
+host: EXCEL
+api_set: {"ExcelApi": 1.1}
+script:
+    content: "$(\"#setup\").click(setup);\n$(\"#create-column-clustered-chart\").click(createChart);\n\nasync function createChart() {\n    try {\n        await Excel.run(async (context) => {\n\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n        \n            const salesTable = sheet.tables.getItem(\"SalesTable\");\n\n            const dataRange = salesTable.getDataBodyRange();\n\n            let chart = sheet.charts.add(\"ColumnClustered\", dataRange, \"auto\");\n\n\t\t    chart.setPosition(\"A15\", \"F30\");\n\t\t    chart.title.text = \"Quarterly sales chart\";\n\t\t    chart.legend.position = \"right\"\n\t\t    chart.legend.format.fill.setSolidColor(\"white\");\n\t\t    chart.dataLabels.format.font.size = 15;\n\t\t\tchart.dataLabels.format.font.color = \"black\";\n\t\t\tlet points = chart.series.getItemAt(0).points;\n\t\t\tpoints.getItemAt(0).format.fill.setSolidColor(\"pink\");\n\t\t\tpoints.getItemAt(1).format.fill.setSolidColor(\"indigo\");\n\n            await context.sync();\n        });\n    }\n    catch (error) {\n        OfficeHelpers.Utilities.log(error);\n    }\n}\n\nasync function setup() {\n    try {\n        await Excel.run(async (context) => {\n\n            await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, \"Sample\");\n\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n            let expensesTable = sheet.tables.add('A1:E1', true);\n         \n            expensesTable.name = \"SalesTable\";\n\n            expensesTable.getHeaderRowRange().values = [[\"Product\", \"Qtr1\", \"Qtr2\", \"Qtr3\", \"Qtr4\"]];\n\n            expensesTable.rows.add(null, [\n\t\t\t\t\t\t  [\"Frames\", 5000, 7000, 6544, 4377],\n\t\t\t\t\t\t  [\"Saddles\", 400, 323, 276, 651],\n\t\t\t\t\t\t  [\"Brake levers\", 12000, 8766, 8456, 9812],\n\t\t\t\t\t\t  [\"Chains\", 1550, 1088, 692, 853],\n\t\t\t\t\t\t  [\"Mirrors\", 225, 600, 923, 544],\n\t\t\t\t\t\t  [\"Spokes\", 6005, 7634, 4589, 8765]\n            ]);  \n\n\t\t    if (Office.context.requirements.isSetSupported(\"ExcelApi\", 1.2)) {\n\t\t\t    sheet.getUsedRange().format.autofitColumns();\n\t\t\t    sheet.getUsedRange().format.autofitRows();\n\t\t    }\n\n            sheet.activate();\n\n            await context.sync();\n        });\n    }\n    catch (error) {\n        OfficeHelpers.Utilities.log(error);\n    }\n}\n\n\n"
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create a column clustered chart using the Excel JavaScript API.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="create-column-clustered-chart" class="ms-Button">
+                <span class="ms-Button-label">Create a column clustered chart</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers/dist/office.helpers.d.ts
+    @types/jquery

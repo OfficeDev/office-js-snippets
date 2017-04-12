@@ -36,23 +36,22 @@ const defaultApiSets = {
 };
 
 
-(async () => {
-    try {
-        await processSnippets;
-        await updateModifiedFiles;
-        await checkSnippetsForUniqueIDs;
-        await generatePlaylists;
-
-        if (accumulatedErrors.length > 0) {
-            throw accumulatedErrors;
-        }
-
-        banner('Done!');
-        process.exit(0);
-    }
-    catch (error) {
-        handleError(error);
-    };
+(() => {
+    Promise.resolve()
+        .then(processSnippets)
+        .then(updateModifiedFiles)
+        .then(checkSnippetsForUniqueIDs)
+        .then(generatePlaylists)
+        .then(() => {
+            if (accumulatedErrors.length > 0) {
+                throw accumulatedErrors;
+            }
+        })
+        .then(() => {
+            banner('Done!');
+            process.exit(0);
+        })
+        .catch(handleError);
 })();
 
 

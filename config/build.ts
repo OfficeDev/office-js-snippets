@@ -47,7 +47,10 @@ const defaultApiSets = {
                 throw accumulatedErrors;
             }
         })
-        .then(() => banner('Done!'))
+        .then(() => {
+            banner('Done!');
+            process.exit(0);
+        })
         .catch(handleError);
 })();
 
@@ -93,7 +96,7 @@ async function processSnippets() {
             additionalFields.id = snippet.id;
             additionalFields.api_set = snippet.api_set;
             additionalFields.author = 'Microsoft';
-            if ((typeof (additionalFields as any).order) !== 'undefined') {
+            if ((typeof (snippet as any).order) !== 'undefined') {
                 // # for ordering, if present (used for samples only)
                 (additionalFields as any).order = (snippet as any).order;
             }
@@ -128,6 +131,7 @@ async function processSnippets() {
                 host: file.host,
                 rawUrl: rawUrl,
                 group: startCase(file.group),
+                order: (snippet as any).order /* or undefined... */,
 
                 /**
                  * Necessary for back-compat with currently (April 2017)-deployed ScriptLab.
@@ -414,8 +418,33 @@ async function generatePlaylists() {
         const creatingStatusText = `Creating ${host}.yaml`;
         status.add(creatingStatusText);
         items = sortBy(items, ['group', 'order', 'id']);
-        let contents = jsyaml.safeDump(items);
+
+        /*
+           Having sorted the items -- which may have included a number in the group name! -- remove the group number if any
+           Note that by this time, the group names have already had the dash removed from them,
+           and would now have <number><space> if anything at all.
+
+            01 basics
+            ==> Contains number, strip it
+
+            basics
+            ==> No number, keep as is
+
+            hello-world-123-foo
+            ==> No number, keep as is
+        */
+        const groupNumberRegex = /^(\d+\s)?(\w.*)$/;
+
+        items.forEach(item => {
+            item.group = item.group.replace(groupNumberRegex, '$2');
+        });
+
+        let contents = jsyaml.safeDump(items, {
+            skipInvalid: true /* skip "undefined" (e.g., for "order" on some of the snippets) */
+        });
+
         await writeFile(path.resolve(`playlists/${host}.yaml`), contents);
+
         status.complete(true /*success*/, creatingStatusText);
     });
 

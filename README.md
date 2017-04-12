@@ -26,6 +26,9 @@ Adding a new sample can be done via the website... but if you want a variety of 
 4. Create a snippet using Script Lab.  Ensure that the name and description are what you want them to be shown publicly.
 5. Click on `Copy to Clipboard` in the `Share` menu. 
 6. Add that snippet into the respective folders. Make sure that the snippet file names and folder names are in [`kebab-case`](http://wiki.c2.com/?KebabCase).
+  - Note: For snippet and group ordering:
+    - To order **folders** in a particular way, just add a numeric prefix to the folder name (e.g., "03-range", and the folder will get correctly ordered in the playlist, but have the "03" stripped from any visible place).
+    - To order **snippets amongst themselves** in a particular folder, add an "order: <#>" to the top of the snippet file(s). Any snippets with order numbers will be sorted relative to that order.
 7. Stage the change.
 8. Run `npm start`. If not everything succeeded, inspect the console output to check what validation is failing. Also check the pending changes relative to the staged version, as you may find that the script already substituted in required fields like `id` or `api_set` with reasonable defaults.
 9. Re-run `npm start` until the build succeeds.

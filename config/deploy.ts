@@ -14,6 +14,9 @@ try {
         status.add('Pushing to GitHub');
         deployBuild(URL);
         status.complete(true, 'Pushing to GitHub');
+    } else {
+        console.log('Deploy not needed. Exiting with status code 0');
+        process.exit(0);
     }
 }
 catch (exception) {
@@ -60,6 +63,8 @@ function precheck() {
         return false;
     }
 
+    // Careful! Need this check because otherwise, a pull request against master would immediately trigger a deployment.
+    // On the other hand, TODO (issue #6): Still need to make it so that a MERGED pull request INTO master *does* create a deployment.
     if (TRAVIS_PULL_REQUEST !== 'false') {
         console.log('Skipping deploy for pull requests.');
         return false;

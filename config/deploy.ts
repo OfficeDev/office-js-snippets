@@ -98,7 +98,7 @@ function execCommand(originalSanitizedCommand: string, secretSubstitutions = {})
     let command = originalSanitizedCommand;
     forIn(secretSubstitutions, (value, key) => {
         hadSecrets = true;
-        command = replaceAll(command, '<<<' + key + '>>>', value)
+        command = replaceAll(command, '<<<' + key + '>>>', value);
     });
 
     if (hadSecrets) {

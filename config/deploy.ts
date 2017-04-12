@@ -31,7 +31,7 @@ const environmentVariables: IEnvironmentVariables = process.env;
             shell.exec('git reset');
 
             execCommand('git add -f samples playlists');
-            execCommand('git commit -m "' + environmentVariables.TRAVIS_COMMIT_MESSAGE + '"');
+            execCommand(`git commit -m "Travis auto-deploy of ${environmentVariables.TRAVIS_COMMIT_MESSAGE.replace(/\W/g, '_')}"`);
 
             execCommand(`git push <<<url>>> -q -f -u HEAD:refs/heads/${destinationBranch(environmentVariables.TRAVIS_BRANCH)}`, {
                 url: `https://${environmentVariables.GH_TOKEN}@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`
@@ -88,17 +88,26 @@ function precheck() {
 
 /**
  * Execute a shall command.
- * @param command - The command to execute. Note that if it contains something secret, put it in tripple <<<NAME>>> syntax, as the command itself will get echo-ed.
- * @param secretSubstitutions - key-value pairs to substitute into the command when executing.
+ * @param originalSanitizedCommand - The command to execute. Note that if it contains something secret, put it in tripple <<<NAME>>> syntax, as the command itself will get echo-ed.
+ * @param secretSubstitutions - key-value pairs to substitute into the command when executing.  Having any secret substitutions will automatically make the command run silently.
  */
-function execCommand(command: string, secretSubstitutions = {}) {
-    console.log(command);
+function execCommand(originalSanitizedCommand: string, secretSubstitutions = {}) {
+    console.log(originalSanitizedCommand);
 
-    forIn(secretSubstitutions, (value, key) => command = replaceAll(command, '<<<' + key + '>>>', value));
-    let result: any = shell.exec(command);
+    let hadSecrets = false;
+    let command = originalSanitizedCommand;
+    forIn(secretSubstitutions, (value, key) => {
+        hadSecrets = true;
+        command = replaceAll(command, '<<<' + key + '>>>', value)
+    });
+
+    if (hadSecrets) {
+        console.log(chalk.yellow('Command contained secret substitution values; running the `shell.exec` silently'));
+    }
+
+    let result: any = shell.exec(command, hadSecrets ? { silent: true } : null);
     if (result.code !== 0) {
-        shell.echo(result.stderr);
-        throw new Error(`An error occurred while executing "${command}"`);
+        throw new Error(`An error occurred while executing "${originalSanitizedCommand}"`);
     }
 }
 

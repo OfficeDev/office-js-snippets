@@ -4,8 +4,7 @@ import * as chalk from 'chalk';
 import * as shell from 'shelljs';
 import { forIn } from 'lodash';
 import { isString } from 'lodash';
-import { status } from './status';
-import { banner, destinationBranch } from './helpers';
+import { banner, getDestinationBranch } from './helpers';
 
 interface IEnvironmentVariables {
     TRAVIS: string,
@@ -21,8 +20,11 @@ const environmentVariables: IEnvironmentVariables = process.env;
 
 (() => {
     try {
+        // Note, if precheck fails, it will do its own banner, so only need to focus on the true case.
         if (precheck()) {
-            status.add('Pushing to GitHub');
+            const destinationBranch = getDestinationBranch(environmentVariables.TRAVIS_BRANCH);
+            const repoUrl = `https://github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}/tree/${destinationBranch}`;
+            banner('Starting deployment', repoUrl);
 
             const start = Date.now();
             shell.exec('git config --add user.name "Travis CI"');
@@ -33,14 +35,14 @@ const environmentVariables: IEnvironmentVariables = process.env;
             execCommand('git add -f samples playlists');
             execCommand(`git commit -m "Travis auto-deploy of ${environmentVariables.TRAVIS_COMMIT_MESSAGE.replace(/\W/g, '_')}"`);
 
-            execCommand(`git push <<<url>>> -q -f -u HEAD:refs/heads/${destinationBranch(environmentVariables.TRAVIS_BRANCH)}`, {
-                url: `https://${environmentVariables.GH_TOKEN}@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`
+            const tokenizedGitHubGitUrl = `https://<<<token>>>@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`;
+            execCommand(`git push ${tokenizedGitHubGitUrl} -q -f -u HEAD:refs/heads/${destinationBranch}`, {
+                token: environmentVariables.GH_TOKEN
             });
 
             const end = Date.now();
-            status.complete(true, 'Pushing to GitHub', chalk.bold.green(`Successfully deployed in ${(end - start) / 1000} seconds.`));
-        } else {
-            console.log('Deployment: Did not pass pre-check. Exiting with a no-op.');
+
+            banner('Deployment succeeded', `Successfully deployed to ${repoUrl} in ${(end - start) / 1000} seconds.`, chalk.bold.green);
         }
     }
     catch (error) {
@@ -60,18 +62,18 @@ const environmentVariables: IEnvironmentVariables = process.env;
 function precheck() {
     /* Check if the code is running inside of travis.ci. If not abort immediately. */
     if (!environmentVariables.TRAVIS) {
-        console.log('Not running inside of Travis. Skipping deploy.');
+        banner('Deployment skipped', 'Not running inside of Travis.', chalk.yellow.bold);
         return false;
     }
 
     // Careful! Need this check because otherwise, a pull request against master would immediately trigger a deployment.
     if (environmentVariables.TRAVIS_PULL_REQUEST !== 'false') {
-        console.log('Skipping deploy for pull requests.');
+        banner('Deployment skipped', 'Skipping deploy for pull requests.', chalk.yellow.bold);
         return false;
     }
 
-    if (destinationBranch(environmentVariables.TRAVIS_BRANCH) == null) {
-        console.log('Skipping deploy for non `master` or `prod` branches.');
+    if (getDestinationBranch(environmentVariables.TRAVIS_BRANCH) == null) {
+        banner('Deployment skipped', 'Skipping deploy for pull requests.', chalk.yellow.bold);
         return false;
     }
 
@@ -79,7 +81,7 @@ function precheck() {
     const requiredFields: Array<keyof IEnvironmentVariables> = ['GH_ACCOUNT', 'GH_REPO', 'GH_TOKEN'];
     requiredFields.forEach(key => {
         if (!isString(environmentVariables[key])) {
-            throw new Error('"GH_ACCOUNT" and "GH_TOKEN" are required global variables.');
+            throw new Error(`"${key}" is a required global variables.`);
         }
     });
 

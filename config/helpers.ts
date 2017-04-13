@@ -68,7 +68,7 @@ export function getPrintableDetails(item: any, indent: number) {
     return details.split('\n').map(line => new Array(indent).join(' ') + line).join('\n');
 }
 
-export const destinationBranch = (sourceBranch: 'master' | 'prod' | any): 'deploy-beta' | 'deploy-prod' | null => {
+export const getDestinationBranch = (sourceBranch: 'master' | 'prod' | any): 'deploy-beta' | 'deploy-prod' | null => {
     if (sourceBranch === 'master') {
         return 'deploy-beta';
     }

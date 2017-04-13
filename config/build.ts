@@ -6,7 +6,7 @@ import * as chalk from 'chalk';
 import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
-    destinationBranch, followsNamingGuidelines, isCUID,
+    getDestinationBranch, followsNamingGuidelines, isCUID,
     rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails
 } from './helpers';
 import { getShareableYaml } from './snippet.helpers';
@@ -52,7 +52,7 @@ const defaultApiSets = {
             }
         })
         .then(() => {
-            banner('Done!');
+            banner('Done!', null, chalk.bold.green);
             process.exit(0);
         })
         .catch(handleError);
@@ -123,7 +123,9 @@ async function processSnippets() {
 
             status.complete(true /*success*/, `Processing ${file.relativePath}`, messages);
 
-            const rawUrl = `https://raw.githubusercontent.com/${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${destinationBranch(TRAVIS_BRANCH) || '<BRANCH>'}/samples/${file.host}/${file.group}/${file.file_name}`;
+            const rawUrl = `https://raw.githubusercontent.com/` +
+                `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${getDestinationBranch(TRAVIS_BRANCH) || '<BRANCH>'}` +
+                `/samples/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);

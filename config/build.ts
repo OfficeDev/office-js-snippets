@@ -137,6 +137,7 @@ async function processSnippets() {
                 rawUrl: rawUrl,
                 group: startCase(file.group),
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
+                api_set: snippet.api_set,
 
                 /**
                  * Necessary for back-compat with currently (April 2017)-deployed ScriptLab.
@@ -327,10 +328,10 @@ async function processSnippets() {
         // Don't want empty IDs -- or GUID-y IDs either, since they're not particularly memorable...
         if (isNil(snippet.id) || snippet.id.trim().length === 0 || isCUID(snippet.id)) {
             snippet.id = localPath.trim().toLowerCase()
-                .replace(/[^0-9a-zA-Z]/g, '-') /* replace any non-alphanumeric with an underscore */
-                .replace(/_+/g, '-') /* and ensure that don't end up with __ or ___, just a single underscore */
-                .replace(/yaml$/i, '') /* remove "yaml" suffix (the ".", now "_", will get removed via underscore-trimming below) */
-                .replace(/^_+/, '') /* trim any underscores before */
+                .replace(/[^0-9a-zA-Z]/g, '-') /* replace any non-alphanumeric with a hyphen */
+                .replace(/_+/g, '-') /* and ensure that don't end up with -- or --, just a single hyphen */
+                .replace(/yaml$/i, '') /* remove "yaml" suffix (the ".", now "-", will get removed via hyphen-trimming below) */
+                .replace(/^_+/, '') /* trim any hyphens before */
                 .replace(/_+$/, '') /* and trim any at the end, as well */;
 
             messages.push('Snippet ID may not be empty or be a machine-generated ID.');

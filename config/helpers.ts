@@ -29,12 +29,6 @@ export interface SnippetProcessedData {
     rawUrl: string;
     group: string;
     order: number;
-
-    /**
-     * Necessary for back-compat with currently (April 2017)-deployed ScriptLab.
-     * Going forward, though, we want to simply use "rawUrl", as that's more correct semantically.
-     **/
-    gist: string;
 }
 
 /**

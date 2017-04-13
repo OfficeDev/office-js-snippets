@@ -61,7 +61,6 @@ const defaultApiSets = {
 
 async function processSnippets() {
     return new Promise((resolve, reject) => {
-        /* Loading samples */
         banner('Loading & processing snippets');
         let files$ = getFiles(path.resolve('samples'), path.resolve('samples'));
 
@@ -141,13 +140,7 @@ async function processSnippets() {
                 rawUrl: rawUrl,
                 group: startCase(file.group),
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
-                api_set: snippet.api_set,
-
-                /**
-                 * Necessary for back-compat with currently (April 2017)-deployed ScriptLab.
-                 * Going forward, though, we want to simply use "rawUrl", as that's more correct semantically.
-                 **/
-                gist: rawUrl
+                api_set: snippet.api_set
             };
 
         } catch (exception) {

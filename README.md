@@ -66,6 +66,11 @@ A few style rules to observe:
 * `Libraries` in snippets must have a specific version. Eg. `jquery@3.1.1`.
 
 
+## Branches
+
+When a snippet is commited into the `master` branch, a Travis-CI build process kicks off to validate the build.  If successful, it  commits the samples & playlist folders into a `deploy-beta` branch, which is used for local and "edge" testing.  For production, a the `prod` and `deploy-prod` branches are used, instead.
+
+
 ## Debugging the build script
 
 * The scripts for building/validating the snippets are under the `config` folder -- in particular, under `build.ts`. There is also a `deploy.ts` for copying the built files to their final location.)

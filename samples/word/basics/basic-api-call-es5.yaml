@@ -1,7 +1,7 @@
-order: 1
-id: word_basic_api_call
-name: Basic API call (TypeScript + async/await)
-description: 'Performs a basic Word API call (using the host-specific API syntax of Office 2016+, but using plain ES5 JavaScript syntax)'
+order: 2
+id: word_basic_api_call_es5
+name: Basic API call  (plain ES5 JavaScript)
+description: 'Performs a basic Word API call (using the host-specific API syntax of Office 2016+, and using TypeScript and async/await)'
 author: Microsoft
 host: WORD
 api_set:
@@ -10,21 +10,20 @@ script:
     content: |-
         $("#run").click(run);
 
-        async function run() {
-            try {
-                await Word.run(async (context) => {
-                    const range = context.document.getSelection();
-                    range.font.color = "red";
-                    range.load("text");
+        function run() {
+            Word.run(function (context) {
+                var range = context.document.getSelection();
+                range.font.color = "red";
+                range.load("text");
 
-                    await context.sync();
-
-                    console.log(`The selected text was "${range.text}".`);
+                return context.sync()
+                    .then(function() {
+                        console.log("The selected text was \"" + range.text + "\".");
+                    })
+            })
+                .catch(function(error) {
+                    OfficeHelpers.Utilities.log(error);
                 });
-            }
-            catch (error) {
-                OfficeHelpers.Utilities.log(error);
-            }
         }
     language: typescript
 template:

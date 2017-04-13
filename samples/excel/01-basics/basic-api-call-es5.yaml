@@ -1,7 +1,7 @@
-order: 1
-id: excel_basic_api_call
-name: Basic API call (TypeScript + async/await)
-description: 'Makes a basic Excel API call (using the host-specific API syntax of Office 2016+, and using TypeScript and async/await)'
+order: 2
+id: excel_basic_api_call_es5
+name: Basic API call (plain ES5 JavaScript)
+description: 'Makes a basic Excel API call (using the host-specific API syntax of Office 2016+, but using plain ES5 JavaScript syntax)'
 author: Microsoft
 host: EXCEL
 api_set:
@@ -10,21 +10,19 @@ script:
     content: |
         $("#run").click(run);
 
-        async function run() {
-            try {
-                await Excel.run(async (context) => {
-                    const range = context.workbook.getSelectedRange();
-                    range.format.fill.color = "yellow";
-                    range.load("address");
-
-                    await context.sync()
-
-                    console.log(`The range address was "${range.address}".`);
+        function run() {
+            Excel.run(function (context) {
+                var range = context.workbook.getSelectedRange();
+                range.format.fill.color = "yellow";
+                range.load("address");
+                return context.sync()
+                    .then(function() {
+                        console.log("The range address was \"" + range.address + "\".");
+                    });
+            })
+                .catch(function(error) {
+                    OfficeHelpers.Utilities.log(error);
                 });
-            }
-            catch (error) {
-                OfficeHelpers.Utilities.log(error);
-            }
         }
     language: typescript
 template:

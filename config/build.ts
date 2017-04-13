@@ -95,7 +95,12 @@ async function processSnippets() {
             const additionalFields: ISnippet = <any>{};
             additionalFields.id = snippet.id;
             additionalFields.api_set = snippet.api_set;
+
             additionalFields.author = 'Microsoft';
+            if (snippet.author !== 'Microsoft') {
+                messages.push(`Replacing "author" field with "Microsoft"`);
+            }
+
             if ((typeof (snippet as any).order) !== 'undefined') {
                 // # for ordering, if present (used for samples only)
                 (additionalFields as any).order = (snippet as any).order;

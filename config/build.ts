@@ -4,7 +4,9 @@ import * as path from 'path';
 import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
-import { destinationBranch, SnippetFileInput, SnippetProcessedData, rmRf, mkDir, getFiles, writeFile, banner, loadFileContents } from './helpers';
+import { SnippetFileInput, SnippetProcessedData,
+    destinationBranch, followsNamingGuidelines, isCUID,
+    rmRf, mkDir, getFiles, writeFile, loadFileContents, banner } from './helpers';
 import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
@@ -325,8 +327,8 @@ async function processSnippets() {
         // Don't want empty IDs -- or GUID-y IDs either, since they're not particularly memorable...
         if (isNil(snippet.id) || snippet.id.trim().length === 0 || isCUID(snippet.id)) {
             snippet.id = localPath.trim().toLowerCase()
-                .replace(/[^0-9a-zA-Z]/g, '_') /* replace any non-alphanumeric with an underscore */
-                .replace(/_+/g, '_') /* and ensure that don't end up with __ or ___, just a single underscore */
+                .replace(/[^0-9a-zA-Z]/g, '-') /* replace any non-alphanumeric with an underscore */
+                .replace(/_+/g, '-') /* and ensure that don't end up with __ or ___, just a single underscore */
                 .replace(/yaml$/i, '') /* remove "yaml" suffix (the ".", now "_", will get removed via underscore-trimming below) */
                 .replace(/^_+/, '') /* trim any underscores before */
                 .replace(/_+$/, '') /* and trim any at the end, as well */;
@@ -335,14 +337,13 @@ async function processSnippets() {
             messages.push(`... replacing with an ID based on name: "${snippet.id}"`);
         }
 
-        // Helper:
-        function isCUID(id: string) {
-            if (id.trim().length === 25 && id.indexOf('_') === -1) {
-                // not likely to be a real id, with a name of that precise length and all as one word.
-                return true;
-            }
+        if (snippet.id.indexOf('_') > 0) {
+            snippet.id = snippet.id.replace(/_/g, '-');
+            messages.push(`Replacing underscores with hyphens in ID "${snippet.id}"`);
+        }
 
-            return false;
+        if (!followsNamingGuidelines(snippet.id)) {
+            messages.push(new Error('Snippet ID does not follow naming conventions (only lowercase letters, numbers, and hyphens). Please change it.'));
         }
     }
 

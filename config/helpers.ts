@@ -260,3 +260,13 @@ export const getFiles = (dir: string, root: string): Observable<SnippetFileInput
 export function followsNamingGuidelines(name: string) {
     return /^[a-z0-9\-]+$/.test(name);
 }
+
+/** Determines if a name is really just a 25-character machine-generated ID */
+export function isCUID(id: string) {
+    if (id.trim().length === 25 && id.indexOf('_') === -1) {
+        // not likely to be a real id, with a name of that precise length and all as one word.
+        return true;
+    }
+
+    return false;
+}

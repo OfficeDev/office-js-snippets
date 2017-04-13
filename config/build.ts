@@ -134,7 +134,7 @@ async function processSnippets() {
                 host: file.host,
                 rawUrl: rawUrl,
                 group: startCase(file.group),
-                order: (snippet as any).order /* or undefined... */,
+                order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
 
                 /**
                  * Necessary for back-compat with currently (April 2017)-deployed ScriptLab.
@@ -440,6 +440,9 @@ async function generatePlaylists() {
 
         items.forEach(item => {
             item.group = item.group.replace(groupNumberRegex, '$2');
+
+            // Also remove "order", it's no longer needed (the snippets themselves are already in an ordered array in the YAML file)
+            delete item.order;
         });
 
         let contents = jsyaml.safeDump(items, {

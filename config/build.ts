@@ -4,9 +4,11 @@ import * as path from 'path';
 import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
-import { SnippetFileInput, SnippetProcessedData,
+import {
+    SnippetFileInput, SnippetProcessedData,
     destinationBranch, followsNamingGuidelines, isCUID,
-    rmRf, mkDir, getFiles, writeFile, loadFileContents, banner } from './helpers';
+    rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails
+} from './helpers';
 import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
@@ -466,8 +468,10 @@ function handleError(error: any | any[]) {
 
     banner('One or more errors had occurred during processing:', null, chalk.bold.red);
     (error as any[]).forEach(item => {
-        const statusMessage = item.message || item;
-        console.log(statusMessage);
+        console.log(chalk.red(` * ${item.message || item}`));
+        if (item instanceof Error) {
+            console.log(getPrintableDetails(item, 4 /*indent*/));
+        }
     });
 
     banner('Cannot continue, closing.',

@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as chalk from 'chalk';
+import * as jsyaml from 'js-yaml';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/operator/catch';
@@ -44,7 +45,7 @@ export interface SnippetProcessedData {
  */
 export const banner = (title: string, message: string = null, chalkFn: chalk.ChalkChain = null) => {
     if (!chalkFn) {
-        chalkFn = chalk.bold.green;
+        chalkFn = chalk.bold;
     }
 
     const dashes = Array(Math.max(title.length + 1, 30)).join('-');
@@ -56,6 +57,16 @@ export const banner = (title: string, message: string = null, chalkFn: chalk.Cha
     }
     console.log(chalkFn(`${dashes}\n`));
 };
+
+export function getPrintableDetails(item: any, indent: number) {
+    const details = jsyaml.safeDump(item, {
+        indent: 4,
+        lineWidth: -1,
+        skipInvalid: true
+    });
+
+    return details.split('\n').map(line => new Array(indent).join(' ') + line).join('\n');
+}
 
 export const destinationBranch = (sourceBranch: 'master' | 'prod' | any): 'deploy-beta' | 'deploy-prod' | null => {
     if (sourceBranch === 'master') {

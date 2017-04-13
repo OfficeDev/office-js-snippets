@@ -467,8 +467,7 @@ function handleError(error: any | any[]) {
     banner('One or more errors had occurred during processing:', null, chalk.bold.red);
     (error as any[]).forEach(item => {
         const statusMessage = item.message || item;
-        status.add(statusMessage);
-        status.complete(false /*success*/, statusMessage);
+        console.log(statusMessage);
     });
 
     banner('Cannot continue, closing.',

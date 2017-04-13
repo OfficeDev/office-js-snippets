@@ -4,8 +4,10 @@ import * as os from 'os';
 import * as chalk from 'chalk';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/mergeMap';
+import 'rxjs/add/operator/catch';
 import 'rxjs/add/observable/from';
 import 'rxjs/add/observable/of';
+import 'rxjs/add/observable/throw';
 import { console } from './status';
 import * as rimraf from 'rimraf';
 
@@ -230,11 +232,13 @@ export const getFiles = (dir: string, root: string): Observable<SnippetFileInput
             */
             return Observable
                 .from(isDir(filePath))
-                .mergeMap(pathIsDirectory =>
-                    pathIsDirectory ?
+                .mergeMap(pathIsDirectory => {
+                    const files$ = pathIsDirectory ?
                         getFiles(filePath, root) :
-                        getFileMetadata(filePath, root)
-                );
+                        getFileMetadata(filePath, root);
+                    return files$.catch(error => Observable.throw(error));
+                })
+                .catch(error => Observable.throw(error));
         });
 
 

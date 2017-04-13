@@ -145,8 +145,8 @@ async function processSnippets() {
 
         } catch (exception) {
             messages.push(exception);
-            status.complete(false /*success*/, `Processing ${file.host}::${file.file_name}`, messages);
-            accumulatedErrors.push(`Failed to process ${file.host}::${file.file_name}: ${exception.message || exception}`);
+            status.complete(false /*success*/, `Processing ${file.relativePath}`, messages);
+            accumulatedErrors.push(`Failed to process ${file.relativePath}: ${exception.message || exception}`);
             return null;
         }
     }
@@ -459,7 +459,7 @@ function handleError(error: any | any[]) {
         error = [error];
     }
 
-    banner('One more more errors had occurred during processing:', null, chalk.bold.red);
+    banner('One or more errors had occurred during processing:', null, chalk.bold.red);
     (error as any[]).forEach(item => {
         const statusMessage = item.message || item;
         status.add(statusMessage);

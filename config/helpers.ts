@@ -6,7 +6,6 @@ import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/mergeMap';
 import 'rxjs/add/observable/from';
 import 'rxjs/add/observable/of';
-import { kebabCase } from 'lodash';
 import { console } from './status';
 import * as rimraf from 'rimraf';
 
@@ -220,8 +219,8 @@ export const getFiles = (dir: string, root: string): Observable<SnippetFileInput
             const withoutExt = file.replace('.yaml', '');
 
             /* Check for file/folder naming guidelines */
-            if (kebabCase(withoutExt) !== withoutExt) {
-                throw new Error(`Invalid name at ${chalk.bold.red(filePath)}. Name was expected to be ${chalk.bold.magenta(kebabCase(withoutExt))}, found ${chalk.bold.yellow(withoutExt)}.`);
+            if (!followsNamingGuidelines(withoutExt)) {
+                throw new Error(`Invalid name at ${chalk.bold.red(filePath)}. Name must only contain lowercase letters, numbers, and hyphens.`);
             }
 
             /*
@@ -237,3 +236,27 @@ export const getFiles = (dir: string, root: string): Observable<SnippetFileInput
                         getFileMetadata(filePath, root)
                 );
         });
+
+
+/**
+    Naming guidelines:  only allow lowercase letters, numbers, and hyphens
+
+    OK:
+
+    sample
+    sample-with-hyphen
+    sample-es5
+
+
+    BAD:
+
+    sample with space
+    Any-uppercase
+    anyWhere
+    or_underscores
+    or.dots
+    $likethistoo
+*/
+export function followsNamingGuidelines(name: string) {
+    return /^[a-z0-9\-]+$/.test(name);
+}

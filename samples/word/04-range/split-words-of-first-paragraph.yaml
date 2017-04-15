@@ -1,6 +1,6 @@
-id: word-basics-insert-line-and-page-breaks
-name: Insert breaks
-description: Shows how to insert page and line breaks in a document.
+id: word-basics-split-words-of-first-paragraph-
+name: Range manipulation
+description: 'Show how to split a paragraph into word ranges and then traverses all the ranges to format each word, producing a "karaoke" effect.'
 author: Microsoft
 host: WORD
 api_set:
@@ -8,48 +8,61 @@ api_set:
 script:
     content: |-
         $("#setup").click(setup);
-        $("#line").click(insertLineBreak);
-        $("#page").click(insertPageBreak);
+        $("#highlight").click(highlightWords);
 
-        function insertLineBreak() {
+        function highlightWords() {
             Word.run(function (context) {
-               var paragraph = context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "after");
+                // var myWords = context.document.body.paragraphs.first.split([" "], true, true);
+                var myPars = context.document.body.paragraphs;
+                context.load(myPars, { expand: 'font' });
                 return context.sync()
                     .then(function () {
-                        console.log("success");
+                        var myWords = myPars.items[0].split([" "], true, true);
+                        context.load(myWords, { expand: 'font' });
+                        return context.sync()
+                            .then(function () {
+                                return forEach(myWords, function (item, i) {
+                                    if (i >= 1) {
+                                        myWords.items[i - 1].font.highlightColor = "#FFFFFF";
+                                    }
+                                    myWords.items[i].font.highlightColor = "#FFFF00";
+                                    return createTimerPromise(200).then(context.sync);
+                                })
+                            })
                     })
             })
-                .catch(function(e){
-                    console.log(e.message);
-                })
-        }
+                .catch(OfficeHelpers.Utilities.log);
 
-        function insertPageBreak() {
-            Word.run(function (context) {
-                var picture = context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "after");
-                return context.sync()
-                    .then(function () {
-                        console.log("success");
+            function createTimerPromise(ms) {
+                return new OfficeExtension.Promise(function (resolve) {
+                    setTimeout(resolve, ms);
+                })
+            }
+
+            function forEach(collection, handler) {
+                var promise = new OfficeExtension.Promise(function (resolve) { resolve(); });
+                collection.items.forEach(function (item, index) {
+                    promise = promise.then(function () {
+                        return handler(item, index);
                     })
-            })
-                .catch(function(e){
-                    console.log(e.message);
-                })
+                });
+                return promise;
+            }
         }
 
-        function setup() { 
+        function setup() {
             Word.run(function (context) {
                 // lets insert a couple of paragraphs to illustrate the point..
                 context.document.body.clear();
-                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start"); 
-                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the elements you want from the different Online galleries.", "replace");
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.", "replace");
                 return context.sync();
-             })
+            })
         }
     language: typescript
 template:
     content: |4
-          <h2 class="ms-font-m">This sample demonstrates how to insert pagr and line breaks.</h2>
+          <h2 class="ms-font-m">This sample demonstrates splitting and traversing ranges.</h2>
 
 
             <div id="setup-container">
@@ -63,11 +76,9 @@ template:
 
             <div id="samples-container">
                 <p class="ms-font-m">Sample snippets to try:</p>
-                <button id="line" class="ms-Button">
-                    <span class="ms-Button-label">Insert line break</span>
-                </button>
-                <button id="page" class="ms-Button">
-                    <span class="ms-Button-label">Insert page break</span>
+
+                <button id="highlight" class="ms-Button">
+                    <span class="ms-Button-label">Highlight word by word</span>
                 </button>   
 
                 

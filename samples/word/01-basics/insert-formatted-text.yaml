@@ -1,35 +1,50 @@
-order: 1
-id: word-basic-api-call
-name: Basic API call
-description: Executes a basic Word API call
+id: word-basics-insert-formatted-text-
+name: Insert formatted text
+description: Shows how to use formatting objects as well as applying pre-built styles.
 author: Microsoft
 host: WORD
 api_set:
     WordApi: 1.1
 script:
-    content: |-
+    content: |
         $("#run").click(run);
 
         async function run() {
             try {
                 await Word.run(async (context) => {
-                    const range = context.document.getSelection();
-                    range.font.color = "red";
-                    range.load("text");
+                    // Here we go to insert first sentence. Then we adjust the formatting.
+                    // Note that replace affects the calling object, in this case the entire document body.
+                    // A similar method can also be used at the range level.
+                    var firstSentence = context.document.body.insertText("This is some formatted text!", "replace");
+                    firstSentence.font.name = "Courier New";
+                    firstSentence.font.bold = true;
+                    firstSentence.font.size = 18;
 
-                    await context.sync();
+                    // Second sentence, let's insert it after the previously inserted one.
+                    var secondSentence = context.document.body.insertText("This is other formatted text.", "end");
+                    secondSentence.font.bold = false;
+                    secondSentence.font.italic = true;
+                    secondSentence.font.name = "Berlin Sans FB";
+                    secondSentence.font.size = 30;
+                    secondSentence.font.color = "blue";
 
-                    console.log(`The selected text was "${range.text}".`);
-                });
-            }
-            catch (error) {
-                OfficeHelpers.Utilities.log(error);
+                    // You can also use pre-exsiting styles.
+                    var lastSentence = context.document.body.insertParagraph("To be or not to be", "end");
+
+                    // Use styleBuiltIn to use an enumeration of existing styles. If your style is custom make sure to use range.style = "name of your style";
+                    lastSentence.styleBuiltIn = Word.Style.intenseReference;
+
+                    await context.sync()
+                    console.log("success");
+                })
+            } catch (e) {
+                OfficeHelpers.Utilities.log(e);
             }
         }
     language: typescript
 template:
     content: |-
-        <p class="ms-font-m">Executes a simple code snippet</p>
+        <p class="ms-font-m">Shows how to insert basic formatted text and apply built-in styles.</p>
         <button id="run" class="ms-Button">
             <span class="ms-Button-label">Run code</span>
         </button>

@@ -1,72 +1,59 @@
-id: word-basics-search
-name: Search
-description: Shows basic and advanced search capabilities.
+id: word-basics-scroll-to-range-
+name: Scroll to range
+description: Shows how to scroll to a range with and without selection.
 author: Microsoft
 host: WORD
 api_set:
     WordApi: 1.1
 script:
-    content: |-
+    content: |
         $("#setup").click(setup);
-        $("#basic").click(basicSearch);
-        $("#wildcard").click(wildcardSearch);
+        $("#scroll").click(scroll);
+        $("#scroll-end").click(scrollEnd);
 
-
-        function basicSearch() {
+        function scroll() {
             Word.run(function (context) {
-                var results = context.document.body.search("Online");
-                context.load(results);
+                //if select is called with no parameters it selects the object.
+                var paragraph = context.document.body.paragraphs.getLast().select();
                 return context.sync()
                     .then(function () {
-                        //lets traverse the search results... and highlight..
-                        for (var i = 0; i < results.items.length; i++) {
-                            results.items[i].font.highlightColor = "yellow";
-                        }
-                        return context.sync();
-                    })
+                        console.log("success");
+                    });
             })
-                .catch(function(e){
-                    console.log(e.message);
-                })
+                .catch(OfficeHelpers.Utilities.log);
         }
 
-        function wildcardSearch() {
+        function scrollEnd() {
             Word.run(function (context) {
-                // check out how wildcard expression are built, also use the second parameter of the search method to include search modes (i.e. we are using wildcards).
-                var results = context.document.body.search("$*.[0-9][0-9]", {matchWildcards:true} );
-                context.load(results);
+                // select can be at the start or end of a range, this by definition moves the insertion point without selecting the range. 
+                var paragraph = context.document.body.paragraphs.getLast().select("end");
                 return context.sync()
                     .then(function () {
-                        //lets traverse the search results... and highlight..
-                        for (var i = 0; i < results.items.length; i++) {
-                            results.items[i].font.highlightColor = "red";
-                             results.items[i].font.color = "white";
-                        }
-                        return context.sync();
-                    })
+                        console.log("success");
+                    });
             })
-                .catch(function(e){
-                    console.log(e.message);
-                })
+                .catch(OfficeHelpers.Utilities.log);
         }
 
-        function setup() { 
+        function setup() {
             Word.run(function (context) {
                 // lets insert a couple of paragraphs to illustrate the point..
                 context.document.body.clear();
-                context.document.body.insertParagraph("Video provides a powerful way to help you prove  your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start"); 
+                var firstSentence = context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
+                firstSentence.insertBreak(Word.BreakType.page, "after");
                 context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.", "replace");
                 return context.sync();
-             })
+            })
+                .catch(OfficeHelpers.Utilities.log);
         }
     language: typescript
 template:
     content: |4
-          <h2 class="ms-font-m">This sample demonstrates basic and advanced search capabilities of the API.</h2>
+          <h2 class="ms-font-m">This sample demonstrates how to scroll to a range.</h2>
 
 
             <div id="setup-container">
-                <p class="ms-font-m">Click "setup" to insert sample text and between runs to reset the sample.</p>
+                <p class="ms-font-m">Click "setup" to insert sample text and between runs to reset the sample. This appends a paragraph in the second page to demonstrate scrolling of the document.</p>
 
                 <button id="setup" class="ms-Button">
                     <span class="ms-Button-label">Setup</span>
@@ -76,14 +63,13 @@ template:
 
             <div id="samples-container">
                 <p class="ms-font-m">Sample snippets to try:</p>
-
-                <button id="basic" class="ms-Button">
-                    <span class="ms-Button-label">Basic search</span>
-                </button>   
-                <button id="wildcard" class="ms-Button">
-                    <span class="ms-Button-label">Wildcard search</span>
+                <button id="scroll" class="ms-Button">
+                    <span class="ms-Button-label">Scroll with selection</span>
                 </button>
-                
+                    <button id="scroll-end" class="ms-Button">
+                    <span class="ms-Button-label">Scroll without selection</span>
+                </button>
+           
             </div>
     language: html
 style:

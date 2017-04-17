@@ -1,0 +1,236 @@
+id: cj01nsv8y00014k72y8ez5s7k
+gist: ''
+source: WORD
+author: Microsoft
+name: Fabric JS - Using form data
+description: >-
+  Takes form data entered in the task pane and pushes it into the document. This
+  is meant to show the use of common Fabric elements. 
+script:
+  content: |-
+    $("#run").click(run);
+    $("#clear").click(clear);
+    $('#tglFruitVege').click(switchLabels);
+    initializeUI();
+    var acceptCheckBox;
+
+    async function switchLabels() {    
+        if ($('#tglFruitVege').children('label').hasClass('is-selected')) {
+            $('#lblTitle').text('Favorite vegetable');
+            $('#lblSnack').text('Is this vegetable eaten as a snack?');        
+        }
+        else {
+            $('#lblTitle').text('Favorite fruit');
+            $('#lblSnack').text('Is this fruit eaten as a snack?');
+        }
+    }
+
+    async function run() {    
+        if (acceptCheckBox.getValue()) {
+            $('#error-message').hide();
+            try {
+                await Word.run(async (context) => {
+                    var strName = 'Name:' + $('#fruit-name').val();
+                    var strColor = 'Color: ' + $('#color').val();
+
+                    var strEatenSnack = 'Eaten as a snack: ';
+                    var eatSnack = $('.ms-RadioButton-field');
+                    eatSnack.each(function () {
+                        var _this = $(this);
+                        if (_this.hasClass('is-checked')) {
+                            strEatenSnack = strEatenSnack + (_this.siblings('input').val());
+                        }
+                    });
+                    var strAdditionalComments = 'Additional Comments: ' + $('#txtAdditionalComments').val();
+                    var strAcceptedTC = 'Terms and conditions accepted: ' + acceptCheckBox.getValue();
+                    var body = context.document.body;
+                    body.insertParagraph(strName, Word.InsertLocation.end);
+                    body.insertParagraph(strColor, Word.InsertLocation.end);
+                    body.insertParagraph(strEatenSnack, Word.InsertLocation.end);
+                    body.insertParagraph(strAdditionalComments, Word.InsertLocation.end);
+                    body.insertParagraph(strAcceptedTC, Word.InsertLocation.end);
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+        else {
+            $('#error-message').show();
+        }
+    }
+
+    async function clear() {
+
+        try {
+            $('#fruit-name').val('');
+            $('#color').siblings('ul.ms-Dropdown-items').children('.is-selected').removeClass('is-selected');
+            $('#color').siblings('.ms-Dropdown-title').text('Black');
+            $('#color').val('Black');
+            $(':input').not(':button, :submit, :reset, :hidden, :checkbox, :radio').val('');
+            $('#choicefieldgroup-no').removeClass('is-checked');
+            $('#choicefieldgroup-yes').addClass('is-checked');
+            acceptCheckBox.unCheck();
+        }
+        catch (error) {
+            OfficeHelpers.Utilities.log(error);
+        }
+    }
+
+    async function initializeUI() {
+
+        // Initialize all Fabric elements
+        var TextFieldElements = document.querySelectorAll(".ms-TextField");
+        for (var i = 0; i < TextFieldElements.length; i++) {
+            new fabric['TextField'](TextFieldElements[i]);
+        }
+        var DropdownHTMLElements = document.querySelectorAll('.ms-Dropdown');
+        for (var i = 0; i < DropdownHTMLElements.length; ++i) {
+            var Dropdown = new fabric['Dropdown'](DropdownHTMLElements[i]);
+        }
+        var CheckBoxElements = document.querySelectorAll(".ms-CheckBox");
+        var objCheckBox;
+        for (var i = 0; i < CheckBoxElements.length; i++) {
+            objCheckBox = new fabric['CheckBox'](CheckBoxElements[i]);
+        }
+        var ChoiceFieldGroupElements = document.querySelectorAll(".ms-ChoiceFieldGroup");
+        for (var i = 0; i < ChoiceFieldGroupElements.length; i++) {
+            new fabric['ChoiceFieldGroup'](ChoiceFieldGroupElements[i]);
+        }
+        var ToggleElements = document.querySelectorAll(".ms-Toggle");
+        for (var i = 0; i < ToggleElements.length; i++) {
+            new fabric['Toggle'](ToggleElements[i]);
+        }
+        $('#error-message').hide();
+        acceptCheckBox = objCheckBox;
+    }
+  language: typescript
+style:
+  content: |-
+    body {
+        margin: 0;
+        padding: 10px;
+    }
+
+
+    /* Button customization, including overwriting some Fabric defaults */
+
+    .ms-Button, .ms-Button:focus {
+        background: #2b579a;
+        border: #2b579a;
+    }
+
+        .ms-Button > .ms-Button-label,
+        .ms-Button:focus > .ms-Button-label,
+        .ms-Button:hover > .ms-Button-label {
+            color: white;
+        }
+
+        .ms-Button:hover, .ms-Button:active {
+            background: #204072;
+        }
+
+        .ms-Button.is-disabled, .ms-Button:disabled {
+            background-color: #f4f4f4;
+            border-color: #f4f4f4;
+        }
+
+        .ms-Button.is-disabled .ms-Button-label,
+        .ms-Button:disabled .ms-Button-label {
+            color: #a6a6a6;
+        }
+  language: css
+template:
+  content: |-
+    <div class="ms-Toggle ms-Toggle--textRight" id="tglFruitVege">
+      <span class="ms-Toggle-description">Fruit or Vegetable?</span> 
+      <input type="checkbox" id="demo-toggle-1" class="ms-Toggle-input" />
+      <label for="demo-toggle-1" class="ms-Toggle-field" tabindex="0">
+        <span class="ms-Label ms-Label--off">Fruit</span> 
+        <span class="ms-Label ms-Label--on">Vegetable</span> 
+      </label>
+    </div>
+    <p id="lblTitle" class="ms-font-xl">Favorite fruit</p>
+    <div class="ms-TextField">
+      <label class="ms-Label">Name</label>
+      <input class="ms-TextField-field" id="fruit-name" type="text" value="" placeholder="">
+    </div>
+    <div class="ms-Dropdown" tabindex="0">
+      <label class="ms-Label">What color is it?</label>
+      <i class="ms-Dropdown-caretDown ms-Icon ms-Icon--ChevronDown"></i>
+      <select class="ms-Dropdown-select" id="color">
+        <option value="Black">Black</option>
+        <option value="Blue">Blue</option>
+        <option value="Green">Green</option>
+        <option value="Red">Red</option>
+        <option value="Yellow">Yellow</option>
+      </select>
+    </div>
+    <div class="ms-ChoiceFieldGroup" id="choicefieldgroup" role="radiogroup">
+      <div class="ms-ChoiceFieldGroup-title">
+        <label class="ms-Label" id="lblSnack">Is this fruit eaten as a snack?</label>
+      </div>
+      <ul class="ms-ChoiceFieldGroup-list">      
+        <li class="ms-RadioButton">
+          <input tabindex="-1" value="yes" type="radio" class="ms-RadioButton-input">
+          <label role="radio"  id="choicefieldgroup-yes" class="ms-RadioButton-field is-checked" tabindex="0" aria-checked="false" name="choicefieldgroup" aria-disabled="true">
+            <span class="ms-Label">Yes</span> 
+          </label>
+        </li>
+        <li class="ms-RadioButton">
+          <input tabindex="-1" value="no" type="radio" class="ms-RadioButton-input">
+          <label role="radio" id="choicefieldgroup-no" class="ms-RadioButton-field" tabindex="0" aria-checked="false" name="choicefieldgroup">
+            <span class="ms-Label">No</span> 
+          </label>
+        </li>
+      </ul>
+    </div>
+    <p/>
+    <div class="ms-TextField ms-TextField--multiline">
+      <label class="ms-Label">Any other comments?</label>
+      <textarea id="txtAdditionalComments" class="ms-TextField-field"></textarea>
+    </div>
+    <div class="ms-CheckBox">
+      <input tabindex="-1" id="chkAccept" type="checkbox" class="ms-CheckBox-input">
+      <label role="checkbox" class="ms-CheckBox-field" tabindex="0" aria-checked="false" name="checkboxa">
+        <span class="ms-Label">Accept medical terms and conditions</span> 
+      </label>
+    </div>
+    <div class="ms-MessageBar ms-MessageBar--error" id="error-message">
+      <div class="ms-MessageBar-content">
+        <div class="ms-MessageBar-icon">
+          <i class="ms-Icon ms-Icon--ErrorBadge"></i>
+        </div>
+        <div class="ms-MessageBar-text">
+          Please accept the terms and conditions.     
+        </div>
+      </div>
+    </div>
+    <p>
+    <br/>
+    <button id="run" class="ms-Button">
+        <span class="ms-Button-label">Add</span>
+    </button>
+    <button id="clear" class="ms-Button">
+        <span class="ms-Button-label">Clear</span>
+    </button>
+  language: html
+libraries: |-
+  // Office.js
+  https://appsforoffice.microsoft.com/lib/1/hosted/Office.js
+
+  // NPM libraries
+  jquery
+  office-ui-fabric-js/dist/js/fabric.min.js
+  office-ui-fabric-js/dist/css/fabric.min.css
+  office-ui-fabric-js/dist/css/fabric.components.min.css
+  @microsoft/office-js-helpers/dist/office.helpers.min.js
+  core-js/client/core.min.js
+
+  // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+  dt~office-js
+  dt~jquery
+  dt~core-js
+  @microsoft/office-js-helpers/dist/office.helpers.d.ts
+lastModified: 1489793933768

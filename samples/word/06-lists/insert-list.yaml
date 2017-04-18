@@ -1,0 +1,145 @@
+id: word-06-lists-insert-list-
+name: List creation
+description: Inserts a new list into the document.
+author: Microsoft
+host: WORD
+api_set:
+    WordApi: 1.1
+script:
+    content: |-
+        $("#insert-controls").click(insertList);
+        $("#setup").click(setup);
+
+        function insertList() {
+            //this example starts a new list stating with the second paragraph.
+            Word.run(function (context) {
+                var paragraphs = context.document.body.paragraphs;
+                paragraphs.load();
+                return context.sync()
+                    .then(function () {
+                        var list = paragraphs.items[1].startNewList(); //indicates new list to be started in the second paragraph.
+                        list.load();
+                        context.sync()
+                            .then(function () {
+                                //to add new items to the list use start/end on the insert location parameter.
+                                list.insertParagraph('New list item on top of the list', 'start');
+                                var paragraph = list.insertParagraph('New list item at the end of the list (4th level)', 'end');
+                                paragraph.listItem.level = 4; //sets up list level for the lsit item.
+                                //to add paragraphs outside the list use before/after
+                                list.insertParagraph('New paragraph goes after (not part of the list)', 'after');
+                                return context.sync();
+                            });
+                    });
+            })
+                .catch(OfficeHelpers.Utilities.log);
+        }
+
+        function setup() {
+            Word.run(function (context) {
+                // lets insert a couple of paragraphs to illustrate the point..
+                context.document.body.clear();
+                context.document.body.insertParagraph("Themes and styles also help keep your document coordinated. When you click design and choose a new Theme, the pictures, charts, and SmartArt graphics change to match your new theme. When you apply styles, your headings change to match the new theme. ", "start");
+                context.document.body.insertParagraph("Save time in Word with new buttons that show up where you need them. To change the way a picture fits in your document, click it and a button for layout options appears next to it. When you work on a table, click where you want to add a row or a column, and then click the plus sign. ", "start");
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ", "replace");
+                return context.sync()
+                    .then(function () {
+                        context.document.body.paragraphs.getFirst().alignment = "left";
+                        context.document.body.paragraphs.getLast().alignment = "left";
+                        return context.sync();
+                    })
+            })
+                .catch(OfficeHelpers.Utilities.log);
+        }
+    language: typescript
+template:
+    content: |-
+        <h2 class="ms-font-m">This sample demonstrates how to insert and change lists. </h2>
+
+        <div id="setup-container">
+            <p class="ms-font-m">Click "setup" to reset the sample.</p>
+
+            <button id="setup" class="ms-Button">
+                    <span class="ms-Button-label">Setup</span>
+                </button>
+        </div>
+
+        <div id="samples-container">
+            <button id="insert-controls" class="ms-Button">
+                    <span class="ms-Button-label">Insert list</span>
+                </button>
+        </div>
+    language: html
+style:
+    content: |
+        body {
+            margin: 0;
+            padding: 10px;
+        }
+
+        /* Button customization, including overwriting some Fabric defaults */
+        .ms-Button, .ms-Button:focus {
+            background: #217346;
+            border: #217346;
+        }
+
+            .ms-Button > .ms-Button-label,
+            .ms-Button:focus > .ms-Button-label,
+            .ms-Button:hover > .ms-Button-label {
+                color: white;
+            }
+
+            .ms-Button:hover, .ms-Button:active {
+                background: #164b2e;
+            }
+
+            .ms-Button.is-disabled, .ms-Button:disabled {
+                background-color: #f4f4f4;
+                border-color: #f4f4f4;
+            }
+
+            .ms-Button.is-disabled .ms-Button-label,
+            .ms-Button:disabled .ms-Button-label {
+                color: #a6a6a6;
+            }
+
+        #setup.ms-Button, #setup.ms-Button:focus {
+            background: darkred;
+            border: darkred;
+        }
+
+            #setup.ms-Button:hover, #setup.ms-Button:active {
+                background: red;
+            }
+
+        #samples-container {
+            margin-top: 20px;
+        }
+
+        #samples-container .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #samples-container .ms-Button, #setup-container .ms-Button {
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    // NPM libraries
+    jquery@3.1.1
+    office-ui-fabric-js@1.4.0/dist/js/fabric.min.js
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    @microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js
+    core-js@2.4.1/client/core.min.js
+
+    // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
+    @types/office-js
+    @types/jquery
+    @types/core-js
+    @microsoft/office-js-helpers/dist/office.helpers.d.ts

@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/OfficeDev/office-js-snippets.svg?token=zKp5xy2SuSortMzv5Pqc&branch=master)](https://travis-ci.com/OfficeDev/office-js-snippets)
 
 # Office JS Snippets
-A growing collection of office.js snippets.
+A growing collection of office.js snippets -- built with [Script Lab](github.com/OfficeDev/script-lab)
 
 
 ## To contribute:
@@ -12,7 +12,7 @@ A growing collection of office.js snippets.
 
 ## Folder Structure
 - All snippets must be inside the samples folder.
-- The `base folders` such as Excel, Word etc. are all the various broad level categories.
+- The `base folders` such as Excel, Word etc. are all the various broad-level categories.
 - Inside of each `base folder`, there are `group folders` for the group in which a sample belongs to.
 - Inside of each `group folder`, there are `.yaml` which represent a snippet.
 
@@ -23,7 +23,7 @@ Adding a new sample can be done via the website... but if you want a variety of 
 1. Clone the samples repo (or create a branch within the current repo, if you have permissions to it).
 2. Ensure you have a recent build of Node [6.10+] (`node -v`). Then install `yarn` as a global package `npm install yarn --global`.
 3. Run `yarn install` (similar to `npm install`, but better; and that's what is used by Travis, so best to have the same environment in both places)
-4. Create a snippet.  Ensure that the name and description are what you want them to be shown publicly.
+4. Create a snippet using [Script Lab](https://github.com/OfficeDev/script-lab/blob/master/README.md#what-is).  Ensure that the name and description are what you want them to be shown publicly.
 5. Click on `Copy to Clipboard` in the `Share` menu. 
 6. Add that snippet into the respective folders. Make sure that the snippet file names and folder names are in [`kebab-case`](http://wiki.c2.com/?KebabCase).
   - Note: For snippet and group ordering:

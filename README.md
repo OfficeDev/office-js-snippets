@@ -3,6 +3,8 @@
 # Office JS Snippets
 A growing collection of office.js snippets.
 
+![Script Lab import gallery screenshot](.github/images/addin-samples-gallery-screenshot.jpg)
+
 
 ## To contribute:
 - Fork this repo

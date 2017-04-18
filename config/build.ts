@@ -92,6 +92,7 @@ async function processSnippets() {
             validateApiSetNonEmpty(snippet, file.host, file.relativePath, messages);
             validateVersionNumbersOnLibraries(snippet, messages);
             validateTabsInsteadOfSpaces(snippet, messages);
+            validateProperFabric(snippet);
 
             // Additional fields relative to what is normally exposed in sharing
             // (and/or that would normally get erased when doing an export):
@@ -148,6 +149,15 @@ async function processSnippets() {
             status.complete(false /*success*/, `Processing ${file.relativePath}`, messages);
             accumulatedErrors.push(`Failed to process ${file.relativePath}: ${exception.message || exception}`);
             return null;
+        }
+    }
+
+    function validateProperFabric(snippet: ISnippet): void {
+        const libs = snippet.libraries.split('\n').map(reference => reference.trim());
+        if (libs.indexOf('office-ui-fabric-js@1.4.0/dist/css/fabric.min.css') >= 0) {
+            if (libs.indexOf('office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css') <= 0) {
+                throw new Error('Fabric reference is specified, without a reference to a corresponding "fabric.components.min.css". Please add this second Fabric reference as well.');
+            }
         }
     }
 

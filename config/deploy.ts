@@ -46,7 +46,7 @@ const environmentVariables: IEnvironmentVariables = process.env;
         }
     }
     catch (error) {
-        banner('An error has occured', error.message || error, chalk.bold.red);
+        banner('An error has occurred', error.message || error, chalk.bold.red);
         banner('DEPLOYMENT DID NOT GET TRIGGERED', error.message || error, chalk.bold.red);
 
         // Note: Don't exit the process with "process.exit(1);", since deployment
@@ -90,7 +90,7 @@ function precheck() {
 
 /**
  * Execute a shall command.
- * @param originalSanitizedCommand - The command to execute. Note that if it contains something secret, put it in tripple <<<NAME>>> syntax, as the command itself will get echo-ed.
+ * @param originalSanitizedCommand - The command to execute. Note that if it contains something secret, put it in triple <<<NAME>>> syntax, as the command itself will get echo-ed.
  * @param secretSubstitutions - key-value pairs to substitute into the command when executing.  Having any secret substitutions will automatically make the command run silently.
  */
 function execCommand(originalSanitizedCommand: string, secretSubstitutions = {}) {

@@ -99,11 +99,7 @@ async function processSnippets() {
             const additionalFields: ISnippet = <any>{};
             additionalFields.id = snippet.id;
             additionalFields.api_set = snippet.api_set;
-
-            additionalFields.author = 'Microsoft';
-            if (snippet.author !== 'Microsoft') {
-                messages.push(`Replacing "author" field with "Microsoft"`);
-            }
+            additionalFields.author = snippet.author;
 
             if ((typeof (snippet as any).order) !== 'undefined') {
                 // # for ordering, if present (used for samples only)
@@ -268,16 +264,16 @@ async function processSnippets() {
             .filter(item => {
                 const containsVersionNumberRegex = /^(@[a-zA-Z_-]+\/)?([a-zA-Z_-]+)@[0-9\.]*.*$/;
                 /* Tested with:
-                        @microsft/office-js-helpers
+                        @microsoft/office-js-helpers
                             => wrong
 
-                        @microsft/office-js-helpers/lib.js
+                        @microsoft/office-js-helpers/lib.js
                             => wrong
 
-                        @microsft/office-js-helpers@0.6.0
+                        @microsoft/office-js-helpers@0.6.0
                             => right
 
-                        @microsft/office-js-helpers@0.6.0
+                        @microsoft/office-js-helpers@0.6.0
                             => right
 
                         jquery@0.6.0/lib.js
@@ -327,7 +323,7 @@ async function processSnippets() {
         });
 
         if (hadDefaultSubstitution) {
-            messages.push(new Error('Please check your pending changes to see the default-subtituted substituted library version(s).'));
+            messages.push(new Error('Please check your pending changes to see the default-substituted library version(s).'));
         }
     }
 

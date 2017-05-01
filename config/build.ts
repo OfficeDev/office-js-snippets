@@ -99,11 +99,7 @@ async function processSnippets() {
             const additionalFields: ISnippet = <any>{};
             additionalFields.id = snippet.id;
             additionalFields.api_set = snippet.api_set;
-
-            additionalFields.author = 'Microsoft';
-            if (snippet.author !== 'Microsoft') {
-                messages.push(`Replacing "author" field with "Microsoft"`);
-            }
+            additionalFields.author = snippet.author;
 
             if ((typeof (snippet as any).order) !== 'undefined') {
                 // # for ordering, if present (used for samples only)
@@ -268,16 +264,16 @@ async function processSnippets() {
             .filter(item => {
                 const containsVersionNumberRegex = /^(@[a-zA-Z_-]+\/)?([a-zA-Z_-]+)@[0-9\.]*.*$/;
                 /* Tested with:
-                        @microsft/office-js-helpers
+                        @microsoft/office-js-helpers
                             => wrong
 
-                        @microsft/office-js-helpers/lib.js
+                        @microsoft/office-js-helpers/lib.js
                             => wrong
 
-                        @microsft/office-js-helpers@0.6.0
+                        @microsoft/office-js-helpers@0.6.5
                             => right
 
-                        @microsft/office-js-helpers@0.6.0
+                        @microsoft/office-js-helpers@0.6.5
                             => right
 
                         jquery@0.6.0/lib.js
@@ -306,7 +302,7 @@ async function processSnippets() {
         const defaultSubstitutions = {
             'jquery': 'jquery@3.1.1',
             'office-ui-fabric-js/dist/js/fabric.min.js': 'office-ui-fabric-js@1.4.0/dist/js/fabric.min.js',
-            '@microsoft/office-js-helpers/dist/office.helpers.min.js': '@microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js',
+            '@microsoft/office-js-helpers/dist/office.helpers.min.js': '@microsoft/office-js-helpers@0.6.5/dist/office.helpers.min.js',
             'core-js/client/core.min.js': 'core-js@2.4.1/client/core.min.js',
             'office-ui-fabric-js/dist/css/fabric.min.css': 'office-ui-fabric-js@1.4.0/dist/css/fabric.min.css',
             'office-ui-fabric-js/dist/css/fabric.components.min.css': 'office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css'
@@ -327,7 +323,7 @@ async function processSnippets() {
         });
 
         if (hadDefaultSubstitution) {
-            messages.push(new Error('Please check your pending changes to see the default-subtituted substituted library version(s).'));
+            messages.push(new Error('Please check your pending changes to see the default-substituted library version(s).'));
         }
     }
 

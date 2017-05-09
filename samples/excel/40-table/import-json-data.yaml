@@ -1,0 +1,149 @@
+id: excel-table-import-json-data
+name: Import JSON data
+description: Import JSON data into a table
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#import-json-data").click(importJsonData);
+
+        async function importJsonData() {
+          try {
+                await Excel.run(async (context) => {
+
+                  await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                  const sheet = context.workbook.worksheets.getItem("Sample");
+
+              let expensesTable = sheet.tables.add("A1:D1", true);
+                expensesTable.name = "ExpensesTable";
+
+              expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+              const newData = transactions.map(item =>
+                  [item.DATE, item.MERCHANT, item.CATEGORY, item.AMOUNT]);
+
+              expensesTable.rows.add(null, newData);
+
+                  if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                      sheet.getUsedRange().format.autofitColumns();
+                      sheet.getUsedRange().format.autofitRows();
+              }
+              
+              sheet.activate();
+
+              await context.sync();
+             });
+            }
+            catch (error) {
+              OfficeHelpers.UI.notify(error);
+              OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        const transactions = [    
+          {
+            "DATE":"1/1/2017",
+            "MERCHANT":"The Phone Company",
+            "CATEGORY":"Communications",
+            "AMOUNT":"$120"
+          },
+          {
+            "DATE":"1/1/2017",
+            "MERCHANT":"Southridge Video",
+            "CATEGORY":"Entertainment",
+            "AMOUNT":"$40"
+          },
+          {
+            "DATE":"1/1/2017",
+            "MERCHANT":"Coho Winery",
+            "CATEGORY":"Restaurant",
+            "AMOUNT":"$47"
+          },
+          {
+            "DATE":"1/2/2017",
+            "MERCHANT":"Contoso Ltd",
+            "CATEGORY":"Shopping",
+            "AMOUNT":"$56"
+          },
+          {
+            "DATE":"1/2/2017",
+            "MERCHANT":"Contoso Ltd",
+            "CATEGORY":"Shopping",
+            "AMOUNT":"$110"
+          },
+          {
+            "DATE":"1/2/2017",
+            "MERCHANT":"Liberty Bakery & Cafe",
+            "CATEGORY":"Groceries",
+            "AMOUNT":"$27"
+          },
+          {
+            "DATE":"1/2/2017",
+            "MERCHANT":"Liberty Bakery & Cafe",
+            "CATEGORY":"Groceries",
+            "AMOUNT":"$38"
+          },
+          {
+            "DATE":"1/2/2017",
+            "MERCHANT":"Northwind Electric Cars",
+            "CATEGORY":"Transportation",
+            "AMOUNT":"$42"
+          },
+          {
+            "DATE":"1/2/2017",
+            "MERCHANT":"Best For You Organics Company",
+            "CATEGORY":"Groceries",
+            "AMOUNT":"$27"
+          },
+          {
+            "DATE":"1/3/2017",
+            "MERCHANT":"Contoso, LTD",
+            "CATEGORY":"Shopping",
+            "AMOUNT":"$25"
+          },
+          {
+            "DATE":"1/5/2017",
+            "MERCHANT":"Munson's Pickles & Preserves Farm",
+            "CATEGORY":"Groceries",
+            "AMOUNT":"$178"
+          }
+        ];
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to import json data into a new table the Excel JavaScript API.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="import-json-data" class="ms-Button">
+                <span class="ms-Button-label">Import JSON data</span>
+            </button>
+        </section>
+
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.d.ts
+    @types/jquery

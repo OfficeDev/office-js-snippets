@@ -1,0 +1,130 @@
+id: excel-chart-create-doughnut-chart
+name: Create a doughnut chart
+description: Create a doughnut chart
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#setup").click(setup);
+        $("#create-doughnut-chart").click(createChart);
+
+        async function createChart() {
+            try {
+                Excel.run(async (context) => {
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const expensesByCategoryTable = sheet.tables.getItem("ExpensesByCategoryTable");
+
+                    const dataRange = expensesByCategoryTable.getDataBodyRange();
+
+                    let categoryChart = sheet.charts.add(Excel.ChartType.doughnut, dataRange, "auto");
+
+                    categoryChart.setPosition("A15", "F25");
+                    categoryChart.title.text = "Expenses By Category";
+                    categoryChart.title.format.font.size = 10;
+                    categoryChart.title.format.font.name = "Corbel";
+                    categoryChart.title.format.font.color = "#41AEBD";
+                    categoryChart.legend.format.font.name = "Corbel";
+                    categoryChart.legend.format.font.size = 8;
+                    categoryChart.legend.position = "right";
+                    categoryChart.dataLabels.showPercentage = true;
+                    categoryChart.dataLabels.format.font.size = 8;
+                    categoryChart.dataLabels.format.font.color = "white";
+                    let points = categoryChart.series.getItemAt(0).points;
+                    points.getItemAt(0).format.fill.setSolidColor("#0C8DB9");
+                    points.getItemAt(1).format.fill.setSolidColor("#B1D9F7");
+                    points.getItemAt(2).format.fill.setSolidColor("#4C66C5");
+                    points.getItemAt(3).format.fill.setSolidColor("#5CC9EF");
+                    points.getItemAt(4).format.fill.setSolidColor("#5CCBAD");
+                    points.getItemAt(5).format.fill.setSolidColor("#A5E750");
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function setup() {
+            try {
+                await Excel.run(async (context) => {
+
+                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+
+                    const expensesTable = sheet.tables.add('A1:B1', true);
+                    expensesTable.name = "ExpensesByCategoryTable";
+
+                    expensesTable.getHeaderRowRange().values = [["Category", "Expense"]];
+
+                    expensesTable.rows.add(null, [
+                        ["Groceries", 5000],
+                        ["Entertaiment", 400],
+                        ["Education", 12000],
+                        ["Charity", 1550],
+                        ["Transportation", 225],
+                        ["Other", 6005]
+                    ]);
+
+                    sheet.getUsedRange().getEntireColumn().format.autofitColumns();
+                    sheet.getUsedRange().getEntireRow().format.autofitRows();
+
+                    sheet.activate();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create a doughnut chart using the Excel JavaScript API.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="create-doughnut-chart" class="ms-Button">
+                <span class="ms-Button-label">Create a doughnut chart</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @@microsoft/office-js-helpers@0.7.1/dist/office.helpers.d.ts
+    @types/jquery

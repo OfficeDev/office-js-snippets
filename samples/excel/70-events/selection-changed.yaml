@@ -1,0 +1,120 @@
+id: excel-09-events-selection-changed-
+name: Selection Changed
+description: Add and remove an event handler on the selection changed event
+host: EXCEL
+api_set:
+    ExcelApi: 1.2
+script:
+    content: |
+        $("#add-event-handler").click(addEventHandler);
+        $("#remove-last-event-handler").click(removeLastEventHandler);
+        $("#remove-all-event-handlers").click(removeAllEventHandlers);
+
+        let lastHandler: OfficeExtension.EventHandlerResult<Excel.Workbook>;
+        let workbook: Excel.Workbook;
+
+        async function addEventHandler() {
+            try {
+                if (workbook === undefined) {
+                    await Excel.run(addHandlerHelper);
+                } else {
+                    await Excel.run(workbook, addHandlerHelper);
+                }
+                console.log("Event handler added. Try changing the selection.");
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+            
+            async function addHandlerHelper(context: Excel.RequestContext) {
+                workbook = context.workbook;
+                lastHandler = context.workbook.onSelectionChanged.add(onSelectionChanged)
+
+                await context.sync();
+            }
+        }
+
+        async function removeLastEventHandler() {
+            try {
+                await Excel.run(workbook, async (context) => {
+                    lastHandler.remove();
+
+                    await context.sync();
+
+                    console.log("Last event handler removed");
+                })
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function removeAllEventHandlers() {
+            try {
+                await Excel.run(workbook, async (context) => {
+                    context.workbook.onSelectionChanged.removeAll();
+
+                    await context.sync();
+
+                    console.log("All event handlers removed");
+                })
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function onSelectionChanged() {
+            
+            await Excel.run(workbook, async (context) => {
+                const range = context.workbook.getSelectedRange().load("address");
+                
+                await context.sync();
+
+                console.log(`Selection changed to ${range.address}`);
+            });
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to add and remove an event handler on the selection changed event using the Excel JavaScript API.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="add-event-handler" class="ms-Button">
+                <span class="ms-Button-label">Add event handler</span>
+            </button>
+            <button id="remove-last-event-handler" class="ms-Button">
+                <span class="ms-Button-label">Remove last event handler</span>
+            </button>
+            <button id="remove-all-event-handlers" class="ms-Button">
+                <span class="ms-Button-label">Remove all event handlers</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    # Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    # CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    # NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    # IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.d.ts
+    @types/jquery

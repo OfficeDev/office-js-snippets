@@ -1,0 +1,34 @@
+id: excel-table-sort-data
+name: Sort table data
+description: Sort table data
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: "$(\"#setup\").click(setup);\r\n$(\"#sort-table\").click(sortTable);\r\n\r\nasync function sortTable() {\r\n    try {\r\n        await Excel.run(async (context) => {\r\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\r\n\r\n            const expensesTable = sheet.tables.getItem(\"ExpensesTable\");\r\n\r\n            // Queue a command to sort by most expensive transactions at the top (Amount, descending order)\r\n            var sortRange = expensesTable.getDataBodyRange();\r\n\r\n            sortRange.sort.apply([\r\n                {\r\n                    key: 3,\r\n                    ascending: false,\r\n                },\r\n            ]);\r\n\r\n            await context.sync();\r\n       });\r\n     }\r\n    catch (error) {\r\n        OfficeHelpers.UI.notify(error);\r\n        OfficeHelpers.Utilities.log(error);\r\n    }\r\n}\r\n\r\n/** Create a new table with sample data */\r\nasync function setup() {\r\n    try {\r\n        await Excel.run(async (context) => {\r\n\r\n            await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, \"Sample\");\r\n\r\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\r\n\r\n            const expensesTable = sheet.tables.add(\"A1:D1\", true /*hasHeaders*/);\r\n             expensesTable.name = \"ExpensesTable\";\r\n\r\n            expensesTable.getHeaderRowRange().values = [[\"Date\", \"Merchant\", \"Category\", \"Amount\"]];\r\n\r\n            expensesTable.rows.add(null /*add at the end*/, [\r\n            [\"1/1/2017\", \"The Phone Company\", \"Communications\", \"$120\"],\r\n            [\"1/2/2017\", \"Northwind Electric Cars\", \"Transportation\", \"$142\"],\r\n            [\"1/5/2017\", \"Best For You Organics Company\", \"Groceries\", \"$27\"],\r\n            [\"1/10/2017\", \"Coho Vineyard\", \"Restaurant\", \"$33\"],\r\n            [\"1/11/2017\", \"Bellows College\", \"Education\", \"$350\"],\r\n            [\"1/15/2017\", \"Trey Research\", \"Other\", \"$135\"],\r\n            [\"1/15/2017\", \"Best For You Organics Company\", \"Groceries\", \"$97\"]\r\n        ]);\r\n\r\n        if (Office.context.requirements.isSetSupported(\"ExcelApi\", 1.2)) {\r\n            sheet.getUsedRange().format.autofitColumns();\r\n            sheet.getUsedRange().format.autofitRows();\r\n        }\r\n            sheet.activate();\r\n\r\n            await context.sync();\r\n        });\r\n    }\r\n    catch (error) {\r\n        OfficeHelpers.UI.notify(error);\r\n        OfficeHelpers.Utilities.log(error);\r\n    }\r\n}\r\n"
+    language: typescript
+template:
+    content: "<section class=\"ms-font-m\">\r\n    <p>This sample shows how to sort the data in a table  using the Excel JavaScript API.</p>\r\n</section>\r\n\r\n<section class=\"setup ms-font-m\">\r\n    <h3>Set up</h3>\r\n    <button id=\"setup\" class=\"ms-Button\">\r\n        <span class=\"ms-Button-label\">Create table</span>\r\n    </button>\r\n</section>\r\n\r\n<section class=\"samples ms-font-m\">\r\n    <h3>Try it out</h3>\r\n    <button id=\"sort-table\" class=\"ms-Button\">\r\n        <span class=\"ms-Button-label\">Sort table</span>\r\n    </button>\r\n</section>\r\n"
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.d.ts
+    @types/jquery

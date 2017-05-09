@@ -53,6 +53,7 @@ Basic snippet structure is as follows:
             });
         }
         catch (error) {
+            OfficeHelpers.UI.notify(error);
             OfficeHelpers.Utilities.log(error);
         }
     }

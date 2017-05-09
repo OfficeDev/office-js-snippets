@@ -1,0 +1,197 @@
+id: excel-table-add-rows-and-columns-to-a-table
+name: Add rows and columns
+description: Add rows and columns to a table
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |+
+        $("#setup").click(setup);
+        $("#add-column").click(addColumn);
+        $("#add-calculated-column").click(addCalculatedColumn);
+        $("#add-row").click(addRow);
+
+        async function addColumn() {
+            try {
+                await setup();
+                await Excel.run(async (context) => {
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+                  
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+         
+                    expensesTable.columns.add(null, [
+                        ["Day of the Week"],
+                        ["Saturday"],
+                        ["Friday"],
+                        ["Monday"],
+                        ["Thursday"],
+                        ["Sunday"],
+                        ["Saturday"],
+                        ["Monday"]
+                     ]);
+
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function addCalculatedColumn() {
+            try {
+                await setup();
+                await Excel.run(async (context) => {
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+                  
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+                
+                    expensesTable.columns.add(null, [
+                        ["Type of the Day"],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")'],
+                        ['=IF(OR((TEXT([DATE], "dddd") = "Saturday"), (TEXT([DATE], "dddd") = "Sunday")), "Weekend", "Weekday")']
+                    ]);
+
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function addRow() {
+            try {
+                await setup();
+                await Excel.run(async (context) => {
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+                  
+                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+
+                    expensesTable.rows.add(null, [
+                        ["1/16/2017", "THE PHONE COMPANY", "Communications", "$120"],
+                        ["1/20/2017", "NORTHWIND ELECTRIC CARS", "Transportation", "$142"],
+                        ["1/20/2017", "BEST FOR YOU ORGANICS COMPANY", "Groceries", "$27"],
+                        ["1/21/2017", "COHO VINEYARD", "Restaurant", "$33"],
+                        ["1/25/2017", "BELLOWS COLLEGE", "Education", "$350"],
+                        ["1/28/2017", "TREY RESEARCH", "Other", "$135"],
+                        ["1/31/2017", "BEST FOR YOU ORGANICS COMPANY", "Groceries", "$97"]
+                    ]); 
+
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+
+        /** Create a new table with sample data */
+        async function setup() {
+            try {
+                await Excel.run(async (context) => {
+
+                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
+                     expensesTable.name = "ExpensesTable";
+
+                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                    expensesTable.rows.add(null /*add at the end*/, [
+                        ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                        ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                        ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                        ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                        ["1/11/2017", "Bellows College", "Education", "$350"],
+                        ["1/15/2017", "Trey Research", "Other", "$135"],
+                        ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                    ]);
+
+                    if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                        sheet.getUsedRange().format.autofitColumns();
+                        sheet.getUsedRange().format.autofitRows();
+                    }
+                    sheet.activate();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to add columns and rows to a table using the Excel JavaScript API.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="add-column" class="ms-Button">
+                <span class="ms-Button-label">Add a column</span>
+            </button>
+                <button id="add-calculated-column" class="ms-Button">
+                <span class="ms-Button-label">Add a calculated column</span>
+            </button>
+            <button id="add-row" class="ms-Button">
+                <span class="ms-Button-label">Add rows</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers@0.6.5/dist/office.helpers.d.ts
+    @types/jquery

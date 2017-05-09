@@ -1,16 +1,14 @@
-id: excel-09-events-selection-changed-
 name: Selection Changed
 description: Add and remove an event handler on the selection changed event
 host: EXCEL
-api_set:
-    ExcelApi: 1.2
+api_set: {"ExcelApi":1.2}
 script:
     content: |
         $("#add-event-handler").click(addEventHandler);
         $("#remove-last-event-handler").click(removeLastEventHandler);
         $("#remove-all-event-handlers").click(removeAllEventHandlers);
 
-        let lastHandler: OfficeExtension.EventHandlerResult<Excel.Workbook>;
+        let eventHandlers: OfficeExtension.EventHandlerResult<Excel.Workbook>[] = []; 
         let workbook: Excel.Workbook;
 
         async function addEventHandler() {
@@ -29,21 +27,32 @@ script:
             
             async function addHandlerHelper(context: Excel.RequestContext) {
                 workbook = context.workbook;
-                lastHandler = context.workbook.onSelectionChanged.add(onSelectionChanged)
-
+                eventHandlers.push(context.workbook.onSelectionChanged.add(onSelectionChanged));
+                
                 await context.sync();
             }
         }
 
         async function removeLastEventHandler() {
             try {
-                await Excel.run(workbook, async (context) => {
-                    lastHandler.remove();
+                if (workbook !== undefined) {
+                    await Excel.run(workbook, async (context) => {
+                        if (eventHandlers.length > 0) {
 
-                    await context.sync();
+                            const lastEventHandler = eventHandlers.pop();
 
-                    console.log("Last event handler removed");
-                })
+                            lastEventHandler.remove();
+
+                            await context.sync();
+
+                            console.log("Last event handler removed");
+                        } else {
+                            console.log("No event handlers to remove");
+                        }
+                    });
+                } else {
+                    console.log("No event handlers added");
+                }
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);
@@ -53,13 +62,22 @@ script:
 
         async function removeAllEventHandlers() {
             try {
-                await Excel.run(workbook, async (context) => {
-                    context.workbook.onSelectionChanged.removeAll();
-
-                    await context.sync();
-
-                    console.log("All event handlers removed");
-                })
+                if (workbook !== undefined) {
+                    await Excel.run(workbook, async (context) => {
+                        if (eventHandlers.length > 0) {
+                            while (eventHandlers.length > 0) {
+                                const lastEventHandler = eventHandlers.pop();
+                                lastEventHandler.remove();
+                            }
+                            await context.sync();
+                            console.log("All event handlers removed");
+                        } else {
+                            console.log("No event handlers to remove");
+                        }
+                    });
+                } else {
+                    console.log("No event handlers added");
+                }
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);
@@ -68,7 +86,6 @@ script:
         }
 
         async function onSelectionChanged() {
-            
             await Excel.run(workbook, async (context) => {
                 const range = context.workbook.getSelectedRange().load("address");
                 

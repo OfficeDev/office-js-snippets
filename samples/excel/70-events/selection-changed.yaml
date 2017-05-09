@@ -1,13 +1,14 @@
 name: Selection Changed
 description: Add and remove an event handler on the selection changed event
 host: EXCEL
-api_set: {"ExcelApi": 1.2}
+api_set: {"ExcelApi":1.2}
 script:
     content: |
         $("#add-event-handler").click(addEventHandler);
         $("#remove-last-event-handler").click(removeLastEventHandler);
+        $("#remove-all-event-handlers").click(removeAllEventHandlers);
 
-        let lastHandler: OfficeExtension.EventHandlerResult<Excel.Workbook>;
+        let eventHandlers: OfficeExtension.EventHandlerResult<Excel.Workbook>[] = []; 
         let workbook: Excel.Workbook;
 
         async function addEventHandler() {
@@ -20,34 +21,71 @@ script:
                 console.log("Event handler added. Try changing the selection.");
             }
             catch (error) {
+                OfficeHelpers.UI.notify(error);
                 OfficeHelpers.Utilities.log(error);
             }
             
             async function addHandlerHelper(context: Excel.RequestContext) {
                 workbook = context.workbook;
-                lastHandler = context.workbook.onSelectionChanged.add(onSelectionChanged)
-
+                eventHandlers.push(context.workbook.onSelectionChanged.add(onSelectionChanged));
+                
                 await context.sync();
             }
         }
 
         async function removeLastEventHandler() {
             try {
-                await Excel.run(workbook, async (context) => {
-                    lastHandler.remove();
+                if (workbook !== undefined) {
+                    await Excel.run(workbook, async (context) => {
+                        if (eventHandlers.length > 0) {
 
-                    await context.sync();
+                            const lastEventHandler = eventHandlers.pop();
 
-                    console.log("Last event handler removed");
-                })
+                            lastEventHandler.remove();
+
+                            await context.sync();
+
+                            console.log("Last event handler removed");
+                        } else {
+                            console.log("No event handlers to remove");
+                        }
+                    });
+                } else {
+                    console.log("No event handlers added");
+                }
             }
             catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function removeAllEventHandlers() {
+            try {
+                if (workbook !== undefined) {
+                    await Excel.run(workbook, async (context) => {
+                        if (eventHandlers.length > 0) {
+                            while (eventHandlers.length > 0) {
+                                const lastEventHandler = eventHandlers.pop();
+                                lastEventHandler.remove();
+                            }
+                            await context.sync();
+                            console.log("All event handlers removed");
+                        } else {
+                            console.log("No event handlers to remove");
+                        }
+                    });
+                } else {
+                    console.log("No event handlers added");
+                }
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
                 OfficeHelpers.Utilities.log(error);
             }
         }
 
         async function onSelectionChanged() {
-            
             await Excel.run(workbook, async (context) => {
                 const range = context.workbook.getSelectedRange().load("address");
                 
@@ -71,6 +109,9 @@ template:
             <button id="remove-last-event-handler" class="ms-Button">
                 <span class="ms-Button-label">Remove last event handler</span>
             </button>
+            <button id="remove-all-event-handlers" class="ms-Button">
+                <span class="ms-Button-label">Remove all event handlers</span>
+            </button>
         </section>
     language: html
 style:
@@ -86,11 +127,11 @@ libraries: |
 
     # NPM libraries
     core-js@2.4.1/client/core.min.js
-    @microsoft/office-js-helpers@0.6.5/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.min.js
     jquery@3.1.1
 
     # IntelliSense: @types/library or node_modules paths or URL to d.ts files
     @types/office-js
     @types/core-js
-    @microsoft/office-js-helpers/dist/office.helpers.d.ts
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.d.ts
     @types/jquery

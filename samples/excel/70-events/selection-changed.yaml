@@ -1,7 +1,9 @@
+id: excel-70-events-selection-changed-
 name: Selection Changed
 description: Add and remove an event handler on the selection changed event
 host: EXCEL
-api_set: {"ExcelApi":1.2}
+api_set:
+    ExcelApi: 1.2
 script:
     content: |
         $("#add-event-handler").click(addEventHandler);
@@ -86,13 +88,19 @@ script:
         }
 
         async function onSelectionChanged() {
-            await Excel.run(workbook, async (context) => {
-                const range = context.workbook.getSelectedRange().load("address");
-                
-                await context.sync();
+            try {
+                await Excel.run(workbook, async (context) => {
+                    const range = context.workbook.getSelectedRange().load("address");
+                    
+                    await context.sync();
 
-                console.log(`Selection changed to ${range.address}`);
-            });
+                    console.log(`Selection changed to ${range.address}`);
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:

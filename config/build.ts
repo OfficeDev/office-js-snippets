@@ -262,7 +262,7 @@ async function processSnippets() {
             .filter(item => item.startsWith('https://unpkg.com/'))
             .map(item => item.substr('https://unpkg.com/'.length))
             .filter(item => {
-                const containsVersionNumberRegex = /^(@[a-zA-Z_-]+\/)?([a-zA-Z_-]+)@[0-9\.]*.*$/;
+                const containsVersionNumberRegex = /^(@[a-zA-Z_\-0-9]+\/)?([a-zA-Z_0-9\-]+)@[0-9\.]*.*$/;
                 /* Tested with:
                         @microsoft/office-js-helpers
                             => wrong
@@ -289,6 +289,9 @@ async function processSnippets() {
                             => wrong
 
                         foo-bar@1.5
+                            => right
+
+                        foobar2@1.5
                             => right
                 */
 

@@ -1,0 +1,144 @@
+id: excel-90-just-for-fun-color-wheel-
+name: Wheel of colors
+description: Uses chart formatting to draw a wheel with changing colors. Contributed by Alexander Zlatkovski.
+author: AlexanderZlatkovski
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#wheel").click(wheelGo);
+        $("#stop").click(wheelStop);
+
+        let stop: boolean
+
+        const pauseLength = 50;
+        const numberOfSlices = 32;
+
+        async function wheelGo() {
+            try {
+                Excel.run(async (context) => {
+                    stop = false
+
+                    // Create a hidden sheet which will contain data for the color wheel chart:
+                    const sheetSettings = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Color Wheel Settings", true /*clearOnly*/);
+                    sheetSettings.visibility = Excel.SheetVisibility.hidden;
+                    const dataRange = sheetSettings.getRange("A1:A" + numberOfSlices);
+                    const matrix = new Array();
+                    for (let r = 0; r < numberOfSlices; r++) {
+                        matrix[r] = new Array();
+                        for (let c = 0; c < 1; c++) {
+                            matrix[r][c] = 1;
+                        }
+                    }
+                    dataRange.values = matrix;
+
+                    // Create a sheet for the color wheel and format it
+                    const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Color Wheel", true /*clearOnly*/);
+                    
+                    sheet.charts.load("id");
+                    sheet.activate();
+
+                    let theWheel = sheet.charts.add(Excel.ChartType.pie, dataRange, "auto");
+
+                    theWheel.format.fill.setSolidColor('black')
+                    theWheel.setPosition("A1");
+                    theWheel.width = 300;
+                    theWheel.height = 300;
+                    theWheel.title.visible = false;
+                    theWheel.legend.visible = false;
+
+                    let points = theWheel.series.getItemAt(0).points;
+                    for (var i = 0; i < numberOfSlices; i++) {
+                        points.getItemAt(i).format.fill.setSolidColor("black")
+                    }
+
+                    await context.sync();
+                    sheet.charts.items.forEach(item => item.delete());
+
+                    await pause(700);
+
+                    // Draw pretty colors, ad infinitum
+                    while (!stop) {
+                        const colorMultiplier = 256 / numberOfSlices;
+                        await loopThroughColors(points, numberOfSlices * 2, i =>
+                            rgb(255, colorMultiplier / 2 * i, 0)); /* red to orange to yellow*/
+                        await loopThroughColors(points, numberOfSlices, i =>
+                            rgb(255 - colorMultiplier * i, 255, 0)); /* yellow to green*/
+                        await loopThroughColors(points, numberOfSlices, i =>
+                            rgb(0, 255, colorMultiplier * i)); /* green to blue*/
+                        await loopThroughColors(points, numberOfSlices, i =>
+                            rgb(0, 255 - colorMultiplier * i, 255)); /* blue to indigo*/
+                        await loopThroughColors(points, numberOfSlices, i =>
+                            rgb(colorMultiplier * i, 0, 255)); /* indigo to violet*/
+                        await loopThroughColors(points, numberOfSlices, i =>
+                            rgb(255, 0, 255 - colorMultiplier * i)); /* back from violet to red*/
+                    }
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        async function loopThroughColors(points: Excel.ChartPointsCollection, max, colorGenerator: (i: number) => string) {
+            for (var i = 0; i < max; i++) {
+                if (stop) {
+                    return;
+                }
+                var X = i % numberOfSlices;
+                await pause(pauseLength);
+                var color = colorGenerator(i);
+                points.getItemAt(X).format.fill.setSolidColor(color);
+                await points.context.sync();
+            }
+        }
+
+        function wheelStop() {
+            stop = true
+        }
+
+        function pause(milliseconds) {
+            return new Promise(resolve => setTimeout(resolve, milliseconds))
+        }
+
+        function rgb(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
+        }
+    language: typescript
+template:
+    content: |+
+        <h2 class="ms-font-l">Spin the rainbow wheel</h2>
+        <br/>
+        <button id="wheel" class="ms-Button ms-Button--primary">
+                <span class="ms-Button-label">Start the Wheel</span>
+            </button>
+            <br/>
+        <br/>
+        <button id="stop" class="ms-Button">
+                <span class="ms-Button-label">Stop the Wheel</span>
+            </button>
+
+    language: html
+style:
+    content: "h2:not(:first-child) {\r\n    margin-top: 35px;\r\n}\r\n\r\n\r\nsection.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.1/dist/office.helpers.d.ts
+    @types/jquery

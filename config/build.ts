@@ -305,7 +305,7 @@ async function processSnippets() {
         const defaultSubstitutions = {
             'jquery': 'jquery@3.1.1',
             'office-ui-fabric-js/dist/js/fabric.min.js': 'office-ui-fabric-js@1.4.0/dist/js/fabric.min.js',
-            '@microsoft/office-js-helpers/dist/office.helpers.min.js': '@microsoft/office-js-helpers@0.7.1/dist/office.helpers.min.js',
+            '@microsoft/office-js-helpers/dist/office.helpers.min.js': '@microsoft/office-js-helpers@0.7.2/dist/office.helpers.min.js',
             'core-js/client/core.min.js': 'core-js@2.4.1/client/core.min.js',
             'office-ui-fabric-js/dist/css/fabric.min.css': 'office-ui-fabric-js@1.4.0/dist/css/fabric.min.css',
             'office-ui-fabric-js/dist/css/fabric.components.min.css': 'office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css'

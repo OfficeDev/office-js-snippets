@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/OfficeDev/office-js-snippets.svg?token=zKp5xy2SuSortMzv5Pqc&branch=master)](https://travis-ci.com/OfficeDev/office-js-snippets)
+[![Build Status](https://travis-ci.com/OfficeDev/office-js-snippets.svg?token=paK2s5RGiCpVHK6bYoFs&amp;branch=master)](https://travis-ci.com/OfficeDev/office-js-snippets)
 
 # Office JS Snippets
 A collection of code snippets built with [Script Lab](github.com/OfficeDev/script-lab)

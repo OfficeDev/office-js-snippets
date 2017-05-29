@@ -262,7 +262,7 @@ async function processSnippets() {
             .filter(item => item.startsWith('https://unpkg.com/'))
             .map(item => item.substr('https://unpkg.com/'.length))
             .filter(item => {
-                const containsVersionNumberRegex = /^(@[a-zA-Z_-]+\/)?([a-zA-Z_-]+)@[0-9\.]*.*$/;
+                const containsVersionNumberRegex = /^(@[a-zA-Z_\-0-9]+\/)?([a-zA-Z_0-9\-]+)@[0-9\.]*.*$/;
                 /* Tested with:
                         @microsoft/office-js-helpers
                             => wrong
@@ -290,6 +290,9 @@ async function processSnippets() {
 
                         foo-bar@1.5
                             => right
+
+                        foobar2@1.5
+                            => right
                 */
 
                 return !item.match(containsVersionNumberRegex);
@@ -302,7 +305,7 @@ async function processSnippets() {
         const defaultSubstitutions = {
             'jquery': 'jquery@3.1.1',
             'office-ui-fabric-js/dist/js/fabric.min.js': 'office-ui-fabric-js@1.4.0/dist/js/fabric.min.js',
-            '@microsoft/office-js-helpers/dist/office.helpers.min.js': '@microsoft/office-js-helpers@0.7.1/dist/office.helpers.min.js',
+            '@microsoft/office-js-helpers/dist/office.helpers.min.js': '@microsoft/office-js-helpers@0.7.2/dist/office.helpers.min.js',
             'core-js/client/core.min.js': 'core-js@2.4.1/client/core.min.js',
             'office-ui-fabric-js/dist/css/fabric.min.css': 'office-ui-fabric-js@1.4.0/dist/css/fabric.min.css',
             'office-ui-fabric-js/dist/css/fabric.components.min.css': 'office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css'

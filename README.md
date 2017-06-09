@@ -20,6 +20,7 @@ A growing collection of office.js snippets.
 ## Adding a new sample
 
 Adding a new sample can be done via the website...but if you want a variety of auto-completions to ensure that your sample doesn't fail the build:
+
 1. Fork the snippets repo, and then clone it. Alternatively, if you have repo permissions, you may create a branch within the snippets repo.
 2. Ensure you have a recent build of Node [6.10+] (`node -v`). Then install `yarn` as a global package `npm install yarn --global`.
 3. Run `yarn install`. Travis uses yarn for build verification. We recommend installing yarn locally to ensure your code will pass the verification tests.
@@ -29,9 +30,8 @@ Adding a new sample can be done via the website...but if you want a variety of a
     - To order folders in a particular way, add a numeric prefix to the folder name (for example, "03-range"). The folder will be ordered sequentially in the list, and the prefix ("03-") will be removed.
     - To order code samples in a particular folder, add **order: <#>** at the top of the code sample file(s). Code samples with order numbers will be sorted relative to the order specified.
 7. Stage the change.
-8. Run `npm start`. If not everything succeeded, inspect the console output to check what validation is failing. Also check the pending changes relative to the staged version, as you may find that the script already substituted in required fields like `id` or `api_set` with reasonable defaults.
-9. Re-run `npm start` until the build succeeds.
-10. Submit to the repo, and create a merge request into master.
+8. Run `npm start`. If you received warnings, review the output to check what caused the build validation to fail. Also, check the pending changes relative to the staged version, as you may find that the script already substituted in required fields like `id` or `api_set` with reasonable defaults. Re-run `npm start` until the build succeeds.
+9. Submit to the repo, and create a merge request into master.
 
 
 ## Style guidelines:

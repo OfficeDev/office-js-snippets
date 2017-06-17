@@ -1,43 +1,25 @@
-id: excel-named-item-create-and-remove-named-item
-name: Create & remove a named item
-description: Create & remove a named item for a formula
-author: Microsoft
+name: Create a named item
+description: Create a named item for a formula
 host: EXCEL
-api_set:
-    ExcelApi: 1.4
+api_set: {}
 script:
     content: |
         $("#add-name").click(addName);
         $("#remove-name").click(removeName);
+        $("#setup").click(setup);
 
         async function addName() {
             try {
                 await Excel.run(async (context) => {
 
-                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-
                     const sheet = context.workbook.worksheets.getItem("Sample");
-
-                    let expensesTable = sheet.tables.add("A1:D1", true);
-                    expensesTable.name = "ExpensesTable";
-
-                    expensesTable.getHeaderRowRange().values = [["DATE", "MERCHANT", "CATEGORY", "AMOUNT"]];
-
-                    let newData = transactions.map(item =>
-                        [item.DATE, item.MERCHANT, item.CATEGORY, item.AMOUNT]);
-
-                    expensesTable.rows.add(null, newData);
 
                     sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
 
                     sheet.getRange("D11").values = [["=TotalAmount"]];
 
-                    if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
-                        sheet.getUsedRange().format.autofitColumns();
-                        sheet.getUsedRange().format.autofitRows();
-                    }
-
-                    sheet.activate();
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
 
                     await context.sync();
                 });
@@ -53,12 +35,12 @@ script:
                 await Excel.run(async (context) => {
 
                     const sheet = context.workbook.worksheets.getItem("Sample");
-                    
+
                     sheet.names.getItem("TotalAmount").delete();
 
                     // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
                     sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
-                   
+
                 });
             }
             catch (error) {
@@ -67,7 +49,37 @@ script:
             }
         }
 
-        const transactions = [
+        async function setup() {
+            try {
+                await Excel.run(async (context) => {
+
+                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                    const sheet = context.workbook.worksheets.getItem("Sample");
+
+                    let expensesTable = sheet.tables.add("A1:D1", true);
+                    expensesTable.name = "ExpensesTable";
+
+                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                    let newData = Transactions.map(item =>
+                        [item.DATE, item.MERCHANT, item.CATEGORY, item.AMOUNT]);
+
+                    expensesTable.rows.add(null, newData);
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                    sheet.activate();
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        const Transactions = [
             {
                 "DATE": "1/1/2017",
                 "MERCHANT": "The Phone Company",
@@ -131,7 +143,11 @@ template:
         </section>
 
         <section class="samples ms-font-m">
-            <h3>Try it out</h3>
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+             <h3>Try it out</h3>
             <button id="add-name" class="ms-Button">
                 <span class="ms-Button-label">Create a named item for a formula</span>
             </button>

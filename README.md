@@ -31,9 +31,15 @@ Adding a new sample can be done via the website...but if you want a variety of a
 6. Open the folder where you want to store your code sample, and create a .yaml file. Paste your code sample into that file. Ensure that the code sample file names and folder names are in [`kebab-case`](http://wiki.c2.com/?KebabCase). To order folders and code samples:
     - To order folders in a particular way, add a numeric prefix to the folder name (for example, "03-range"). The folder will be ordered sequentially in the list, and the prefix ("03-") will be removed.
     - To order code samples in a particular folder, add **order: <#>** at the top of the code sample file(s). Code samples with order numbers will be sorted relative to the order specified.
-7. Stage the change.
-8. Run `npm start`. If you received warnings, review the output to check what caused the build validation to fail. Also, check the pending changes relative to the staged version, as you may find that the script already substituted in required fields like `id` or `api_set` with reasonable defaults. Re-run `npm start` until the build succeeds.
-9. Submit to the repo, and create a merge request into master.
+7. Stage the change:
+    1. Open the office-js-snippets project in Visual Studio Code.
+    2. Open the Source Control tab in VS Code. Your new YAML file will be listed in the **Source Control** pane just to the right of the tabs.
+    3. Right-click the file name and select **Stage Changes**. Leave VS Code open.
+10. Run `npm start`. If you received warnings, review the output to check what caused the build validation to fail, and fix as needed. As part of your troubleshooting, you can see what changes `npm start` made to the file:
+    1. In VS Code, you will see that Source Control pane now has two sections: **Staged Changes** and **Changes**, with your file listed under both.
+    2. Right-click the file name under **Changes** and select **Open changes**. Both versions of the file will be open in the editor so you can see the pending changes relative to the staged version. You may find that the script already substituted in required fields like `id` or `api_set` with reasonable defaults. 
+12. Re-run `npm start`, and fix errors, until the build succeeds. 
+13. Submit to the repo, and create a merge request into master.
 
 
 ## Style guidelines:

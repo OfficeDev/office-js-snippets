@@ -8,25 +8,31 @@ api_set:
     ExcelApi: 1.1
 script:
     content: |
-        $("#run").click(run);
+        $("#run").click(() => tryCatch(run));
 
         async function run() {
+            await Excel.run(async (context) => {
+                const range = context.workbook.getSelectedRange();
+                range.format.fill.color = "yellow";
+                range.load("address");
+
+                await context.sync()
+
+                console.log(`The range address was "${range.address}".`);
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                await Excel.run(async (context) => {
-                    const range = context.workbook.getSelectedRange();
-                    range.format.fill.color = "yellow";
-                    range.load("address");
-
-                    await context.sync()
-
-                    console.log(`The range address was "${range.address}".`);
-                });
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);
                 OfficeHelpers.Utilities.log(error);
             }
         }
+
     language: typescript
 template:
     content: |

@@ -40,22 +40,24 @@ Adding a new sample can be done via the website...but if you want a variety of a
 
 Basic snippet structure is as follows:
 
-    $("#run").click(run);
+```ts
+$("#run").click(run);
 
-    async function run() {
-        try {
-            await Word.run(async (context) => {
-                const range = context.document.getSelection();
-                range.font.color = "red";
+async function run() {
+    try {
+        await Word.run(async (context) => {
+            const range = context.document.getSelection();
+            range.font.color = "red";
 
-                await context.sync();
-            });
-        }
-        catch (error) {
-            OfficeHelpers.UI.notify(error);
-            OfficeHelpers.Utilities.log(error);
-        }
+            await context.sync();
+        });
     }
+    catch (error) {
+        OfficeHelpers.UI.notify(error);
+        OfficeHelpers.Utilities.log(error);
+    }
+}
+```
 
 A few style rules to observe:
 

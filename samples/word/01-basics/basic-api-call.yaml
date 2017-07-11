@@ -8,26 +8,32 @@ api_set:
     WordApi: 1.1
 script:
     content: |-
-        $("#run").click(run);
+        $("#run").click(() => tryCatch(run));
 
         async function run() {
+            // Gets the current selection and changes the font color to red.
+            await Word.run(async (context) => {
+                const range = context.document.getSelection();
+                range.font.color = "red";
+                range.load("text");
+
+                await context.sync();
+
+                console.log(`The selected text was "${range.text}".`);
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                // Gets the current selection and changes the font color to red.
-                await Word.run(async (context) => {
-                    const range = context.document.getSelection();
-                    range.font.color = "red";
-                    range.load("text");
-
-                    await context.sync();
-
-                    console.log(`The selected text was "${range.text}".`);
-                });
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);
                 OfficeHelpers.Utilities.log(error);
             }
         }
+
     language: typescript
 template:
     content: |-

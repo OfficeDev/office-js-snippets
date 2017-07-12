@@ -1,0 +1,171 @@
+id: excel-create-and-use-named-item-for-range
+name: Create and use named range item
+description: Create and use named range item
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.4
+script:
+    content: |-
+        $("#add-name").click(() => tryCatch(addName));
+        $("#format-named-range").click(() => tryCatch(formatRangeByName));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function addName() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const headerRange = sheet.getRange("A1:E1");
+                sheet.names.add("ExpensesHeader", headerRange);
+                const namedItems = sheet.names.load("name, type");
+
+                await context.sync();
+
+                let namedItemsList = `This workbook contains ${namedItems.items.length} named item(s):`;
+                for (let i = 0; i < namedItems.items.length; i++) {
+                    namedItemsList += JSON.stringify(namedItems.items[i]);
+                }
+                OfficeHelpers.UI.notify(namedItemsList);
+
+                await context.sync();
+            });
+        }
+
+        async function formatRangeByName() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const headerRowName = sheet.names.getItem("ExpensesHeader");
+                const headerRange = headerRowName.getRange();
+                headerRange.format.fill.color = "red";
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const expensesTable = sheet.tables.add("A1:D1", true);
+                expensesTable.name = "ExpensesTable";
+                expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+                const newData = transactions.map(item =>
+                    [item.date, item.merchant, item.category, item.amount]);
+                expensesTable.rows.add(null, // Row position (null = at the bottom)
+                                       newData);
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.getUsedRange().format.autofitRows();
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        const transactions = [
+            {
+                "date": "1/1/2017",
+                "merchant": "The Phone Company",
+                "category": "Communications",
+                "amount": "$120"
+            },
+            {
+                "date": "1/1/2017",
+                "merchant": "SouthRidge Video",
+                "category": "Entertainment",
+                "amount": "$40"
+            },
+            {
+                "date": "1/1/2017",
+                "merchant": "Coho Winery",
+                "category": "Restaurant",
+                "amount": "$47"
+            },
+            {
+                "date": "1/2/2017",
+                "merchant": "Contoso, Ltd",
+                "category": "Shopping",
+                "amount": "$56"
+            },
+            {
+                "date": "1/2/2017",
+                "merchant": "Contoso, Ltd",
+                "category": "Shopping",
+                "amount": "$110"
+            },
+            {
+                "date": "1/2/2017",
+                "merchant": "Liberty Bakery & Cafe",
+                "category": "Groceries",
+                "amount": "$27"
+            },
+            {
+                "date": "1/2/2017",
+                "merchant": "Liberty Bakery & Cafe",
+                "category": "Groceries",
+                "amount": "$38"
+            },
+            {
+                "date": "1/2/2017",
+                "merchant": "Northwind Electric Cars",
+                "category": "Transportation",
+                "amount": "$42"
+            },
+            {
+                "date": "1/2/2017",
+                "merchant": "Best For You Organics Company",
+                "category": "Groceries",
+                "amount": "$27"
+            }
+        ];
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to create a named item using the Excel JavaScript API. Note that this API requires the Excel 1.4 requirement set.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+             <h3>Try it out</h3>
+            <button id="add-name" class="ms-Button">
+                <span class="ms-Button-label">Create a named item for a range</span>
+            </button>
+            <button id="format-named-range" class="ms-Button">
+                <span class="ms-Button-label">Format named range</span>
+            </button>
+        </section>
+
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+    @types/jquery

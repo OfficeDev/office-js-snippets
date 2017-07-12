@@ -7,9 +7,9 @@ A collection of code snippets built with [Script Lab](github.com/OfficeDev/scrip
 
 
 ## To contribute:
-- Fork this repo
-- Add samples using the instructions below
-- Submit a pull request.
+- [Fork](https://help.github.com/articles/about-forks/) this project into your GitHub account and [create a branch](https://help.github.com/articles/creating-and-deleting-branches-within-your-repository/) for the set of snippets that you'd like to submit.
+- Add samples using the instructions below.
+- Submit a [pull request](https://help.github.com/articles/about-pull-requests/) from your branch to the `master` branch of this repository.
 
 
 ## Folder Structure

@@ -1,6 +1,6 @@
-id: excel-create-and-use-named-range-item
+id: excel-create-and-use-named-item-for-range
 name: Create and use named range item
-description: Create and use a named range item
+description: Create and use named range item
 author: OfficeDev
 host: EXCEL
 api_set:
@@ -13,21 +13,18 @@ script:
 
         async function addName() {
             await Excel.run(async (context) => {
-
                 const sheet = context.workbook.worksheets.getItem("Sample");
                 const headerRange = sheet.getRange("A1:E1");
-
                 sheet.names.add("ExpensesHeader", headerRange);
-
-                const namedItems = sheet.names.load();
+                const namedItems = sheet.names.load("name, type");
 
                 await context.sync();
 
-                console.log("This workbook contains " + namedItems.items.length + " named items.");
-
+                let namedItemsList = `This workbook contains ${namedItems.items.length} named item(s):`;
                 for (let i = 0; i < namedItems.items.length; i++) {
-                    console.log(JSON.stringify(namedItems.items[i])) + "\n";
-                }   
+                    namedItemsList += JSON.stringify(namedItems.items[i])
+                }
+                OfficeHelpers.UI.notify(namedItemsList);
 
                 await context.sync();
             });
@@ -35,9 +32,7 @@ script:
 
         async function formatRangeByName() {
             await Excel.run(async (context) => {
-
                 const sheet = context.workbook.worksheets.getItem("Sample");
-
                 const headerRowName = sheet.names.getItem("ExpensesHeader");
                 const headerRange = headerRowName.getRange();
                 headerRange.format.fill.color = "red";
@@ -48,18 +43,14 @@ script:
 
         async function setup() {
             await Excel.run(async (context) => {
-
-                let sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-
-                let expensesTable = sheet.tables.add("A1:D1", true);
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const expensesTable = sheet.tables.add("A1:D1", true);
                 expensesTable.name = "ExpensesTable";
-
                 expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
-
-                let newData = transactions.map(item =>
+                const newData = transactions.map(item =>
                     [item.date, item.merchant, item.category, item.amount]);
-
-                expensesTable.rows.add(null, newData);
+                expensesTable.rows.add(null, // Row position (null = at the bottom)
+                                       newData);
                 sheet.getUsedRange().format.autofitColumns();
                 sheet.getUsedRange().format.autofitRows();
                 sheet.activate();
@@ -139,7 +130,7 @@ script:
 template:
     content: |+
         <section class="ms-font-m">
-            <p>This sample shows how to create a named item from a range and use the name to work with the range. Note that this API requires the Excel 1.4 requirement set.</p>
+            <p>This sample shows how to create a named item using the Excel JavaScript API. Note that this API requires the Excel 1.4 requirement set.</p>
         </section>
 
         <section class="samples ms-font-m">

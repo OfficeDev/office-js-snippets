@@ -22,19 +22,19 @@ A collection of code snippets built with [Script Lab](github.com/OfficeDev/scrip
 
 > For the git tasks in this procedure, the instructions assume that you are using a CLI. You are welcome to use a GUI git client. Consult the client's help to learn how to carry out the same tasks.
 
-4. Create a snippet using [Script Lab](https://github.com/OfficeDev/script-lab/blob/master/README.md#what-is).  Ensure that the name and description are what you want to be shown publicly. Use standard TypeScript indentation. Improper indentation can cause a failure of the build that you run in a later step. See also the **Style guidelines** section below.
-5. Choose the Share icon, and then choose **Copy to Clipboard**. 
-6. Paste the contents into a text editor.
-7. Near the top of the file, you will see the line `api_set: {}`. This needs to be changed to specify the host API version of the most recently added API that is used in your snippet. For example, if the snippet is for Excel and it uses some APIs that were introduced in Excel API 1.3, some in 1.4, and some in 1.5, then you need to specify `ExcelApi 1.5` as the value of the `api_set` property. Put a line break and four spaces before the value and no {} characters. To continue the example, when you're done the property would look like this:
+1. Create a snippet using [Script Lab](https://github.com/OfficeDev/script-lab/blob/master/README.md#what-is).  Ensure that the name and description are what you want to be shown publicly. Use standard TypeScript indentation. Improper indentation can cause a failure of the build that you run in a later step. See also the **Style guidelines** section below.
+2. Choose the Share icon, and then choose **Copy to Clipboard**. 
+3. Paste the contents into a text editor.
+4. Near the top of the file, you will see the line `api_set: {}`. This needs to be changed to specify the host API version of the most recently added API that is used in your snippet. For example, if the snippet is for Excel and it uses some APIs that were introduced in Excel API 1.3, some in 1.4, and some in 1.5, then you need to specify `ExcelApi 1.5` as the value of the `api_set` property. Put a line break and four spaces before the value and no {} characters. To continue the example, when you're done the property would look like this:
 ```
 api_set:
     ExcelApi: 1.5
 ```
-8. Check the name and description property values, also near the top of the file, and edit as needed.
-9. Save the file **somewhere outside of the office-js-snippets project**. (You will move it into the project in a later step.) The file name must have a ".yaml" extension and it must be in [`kebab-case`](http://wiki.c2.com/?KebabCase). For examples, see the existing *.yaml files in the subfolders of the `samples` folder of the project.
-10. Make sure the master branch of your fork is in sync with the master branch of the upstream \OfficeDev\office-js-snippets repo by following the steps in [Syncing a fork](https://help.github.com/articles/syncing-a-fork/).
-11. Create a new branch in your local repo by running the command `git checkout -b {name_of_your_new_branch}`. (This will create and checkout the new branch. *Stay in this branch for all the remaining steps.*) Each snippet should have its own branch. Suggestion: use the name of the yaml file that you created above (without the extension) as the branch name.
-12. Decide the project folder to which your snippet should be added. All snippets must be inside the `samples` folder. The structure of the subfolders is:
+5. Check the name and description property values, also near the top of the file, and edit as needed.
+6. Save the file **somewhere outside of the office-js-snippets project**. (You will move it into the project in a later step.) The file name must have a ".yaml" extension and it must be in [`kebab-case`](http://wiki.c2.com/?KebabCase). For examples, see the existing *.yaml files in the subfolders of the `samples` folder of the project.
+7. Make sure the master branch of your fork is in sync with the master branch of the upstream \OfficeDev\office-js-snippets repo by following the steps in [Syncing a fork](https://help.github.com/articles/syncing-a-fork/).
+8. Create a new branch in your local repo by running the command `git checkout -b {name_of_your_new_branch}`. (This will create and checkout the new branch. *Stay in this branch for all the remaining steps.*) Each snippet should have its own branch. Suggestion: use the name of the yaml file that you created above (without the extension) as the branch name.
+9. Decide the project folder to which your snippet should be added. All snippets must be inside the `samples` folder. The structure of the subfolders is:
  - The base folders such as `Excel`, `Word` etc. are all the various broad-level categories.
  - Inside of each base folder, there are group folders for the group in which a snippet belongs.
  - Inside of each group folder, there are `.yaml` which represent a snippet.
@@ -43,38 +43,38 @@ api_set:
 
 10. Open one of the `.yaml` files already in the group folder. If it has an `order` property near the top, then the snippets in the group folder are ordered in a particular sequence in Script Lab. Add an `order` property to the top of your `.yaml` file and give it a number that is between the order numbers of the snippets between which you want it to appear.
 11. Copy your `.yaml` file to the chosen group folder.
-14. Run `npm start`. If there are no problems, the output will end with a `Done!`. If there are errors, review the output to check what caused the build validation to fail, and fix as needed. See **Known errors and fixes** below. 
+12. Run `npm start`. If there are no problems, the output will end with a `Done!`. If there are errors, review the output to check what caused the build validation to fail, and fix as needed. See **Known errors and fixes** below. 
 
  > Note: The `npm start` command adds an `id` property to the top of the file.
 
-15. Re-run `npm start`, and fix errors, until the build succeeds.
-16. Run `git status`. You should see that, in addition to your new `.yaml` file (or possibly new folder), a `playlist\{host}.yaml` file (where `{host}` is `excel`, `word`, etc.) has also been changed. This is expected. The build tool you just ran added a reference to your new snippet to this file.
-17. Run the following two commands. The commit message should be a brief description of what the snippet demonstrates; for example, `"shows how to use getWhatever method"`.
+13. Re-run `npm start`, and fix errors, until the build succeeds.
+14. Run `git status`. You should see that, in addition to your new `.yaml` file (or possibly new folder), a `playlist\{host}.yaml` file (where `{host}` is `excel`, `word`, etc.) has also been changed. This is expected. The build tool you just ran added a reference to your new snippet to this file.
+15. Run the following two commands. The commit message should be a brief description of what the snippet demonstrates; for example, `"shows how to use getWhatever method"`.
 ```
 git add -A
 git commit -m "{commit message}"
 ```
-18. Push the snippet to your fork by running:
+16. Push the snippet to your fork by running:
 ```
 git push --set-upstream origin {name_of_your_new_branch}
 ```
-19. You now create a [pull request](https://help.github.com/articles/about-pull-requests/). In your fork on GitHub, *switch to your new branch*. 
-20. Choose **New pull request**.
-21. On the **Open a pull request** page, verify that
+17. You now create a [pull request](https://help.github.com/articles/about-pull-requests/). In your fork on GitHub, *switch to your new branch*. 
+18. Choose **New pull request**.
+19. On the **Open a pull request** page, verify that
  - the base fork is `OfficeDev/office-js-snippets`
  - the base branch is `master`
  - the head fork is `{your-GitHub-account}/office-js-snippets`
  - the "compare" branch is `{name_of_your_new_branch}`.
-24. The title of the pull request defaults to your commit message. Change it as needed and optionally add a comment to provide additional information about the pull request to the reviewers.
-25. All pull requests to office-js-snippets must be approved by at least one reviewer. On the right side of the page is a **Reviewers** section. You can optionally suggest one or more people to review the pull request. (GitHub sometimes lists one or more admins of the repo by default, but it is not consistent in doing this.) Your pull request will be reviewed even if you don't suggest anyone.
-26. Choose **Create pull request**. The page for your pull request will open. There will initially be a message on the page saying **Some checks haven’t completed yet**. An online version of the same build tool that you ran locally is testing the files again. It usually takes a few minutes.
+20. The title of the pull request defaults to your commit message. Change it as needed and optionally add a comment to provide additional information about the pull request to the reviewers.
+21. All pull requests to office-js-snippets must be approved by at least one reviewer. On the right side of the page is a **Reviewers** section. You can optionally suggest one or more people to review the pull request. (GitHub sometimes lists one or more admins of the repo by default, but it is not consistent in doing this.) Your pull request will be reviewed even if you don't suggest anyone.
+22. Choose **Create pull request**. The page for your pull request will open. There will initially be a message on the page saying **Some checks haven’t completed yet**. An online version of the same build tool that you ran locally is testing the files again. It usually takes a few minutes.
 > Note: Since your pull request passed locally, it should pass the online test too. Once it a while, the online test fails when the local test passed. This is usually a bug in the online test service. If this happens, cancel the pull request, wait a few hours, and then repeat the steps for creating a pull request.
-28. The reviewer(s) may make comments on your pull request and ask you to make changes. Make changes in Script Lab and then repeat the process of creating the `.yaml` file. You do not have to create the new branch again, but make sure it is checked out when you copy the changed `.yaml` file over the previous version. After you commit and push the changed version to your fork, the new version is automatically added to your existing pull request. *Do **not** create a new pull request.*
-29. When the reviewer(s) are satisfied, your pull request will be merged to the `master` branch and the pull request will be closed. 
+23. The reviewer(s) may make comments on your pull request and ask you to make changes. Make changes in Script Lab and then repeat the process of creating the `.yaml` file. You do not have to create the new branch again, but make sure it is checked out when you copy the changed `.yaml` file over the previous version. After you commit and push the changed version to your fork, the new version is automatically added to your existing pull request. *Do **not** create a new pull request.*
+24. When the reviewer(s) are satisfied, your pull request will be merged to the `master` branch and the pull request will be closed. 
 
  > Note: In a few days, the repo admins will merge your snippet into the `prod` branch. It will then appear in **Samples** area of Script Lab. (It is in the **My Snippets** area as soon as you create it.) 
 
-30. Optionally, you can delete the branch you created from your fork and/or your local clone.
+25. Optionally, you can delete the branch you created from your fork and/or your local clone.
 
 #### Known errors and fixes in the build tool
 - An error saying that `name` has upper-case letters or other disallowed characters is *not* referring to the `name` property in the file. It is referring to the file name itself. You'll also get this error, if the file extension is not `.yaml`.

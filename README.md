@@ -7,39 +7,77 @@ A collection of code snippets built with [Script Lab](github.com/OfficeDev/scrip
 
 
 ## To contribute:
-- [Fork](https://help.github.com/articles/about-forks/) this project into your GitHub account and [create a branch](https://help.github.com/articles/creating-and-deleting-branches-within-your-repository/) for the set of snippets that you'd like to submit.
-- Add samples using the instructions below.
-- Submit a [pull request](https://help.github.com/articles/about-pull-requests/) from your branch to the `master` branch of this repository.
 
+> Note: For all command line interface (CLI) commands mentioned in these instructions, you can use either Git Bash or a Node Command Prompt.
 
-## Folder Structure
-- All snippets must be inside the samples folder.
-- The `base folders` such as Excel, Word etc. are all the various broad-level categories.
-- Inside of each `base folder`, there are `group folders` for the group in which a sample belongs to.
-- Inside of each `group folder`, there are `.yaml` which represent a snippet.
+### One-time tasks
+1. [Fork](https://help.github.com/articles/about-forks/) this project into your GitHub account.
+2. Clone your fork to your development computer.
+3. Ensure that you have Node, version 6.10+, installed. (To check the version run the command `node -v`.)
+4. Install `yarn` as a global package `npm install yarn --global`.
+5. Be sure your CLI is in the root of the office-js-snippets repo and run `yarn install`. (It is similar to `npm install`.)
+6. Set up the original \OfficeDev\office-js-snippets as the upstream repo for your local repo by following the steps in [Configuring a remote for a fork](https://help.github.com/articles/configuring-a-remote-for-a-fork/).
 
+### Adding a new sample
 
-## Adding a new sample
+> For the git tasks in this procedure, the instructions assume that you are using a CLI. You are welcome to use a GUI git client. Consult the client's help to learn how to carry out the same tasks.
 
-Adding a new sample can be done via the website...but if you want a variety of auto-completions to ensure that your sample doesn't fail the build:
-
-1. Fork the snippets repo, and then clone it. Alternatively, if you have repo permissions, you may create a branch within the snippets repo.
-2. Ensure you have a recent build of Node [6.10+] (`node -v`). Then install `yarn` as a global package `npm install yarn --global`.
-3. Run `yarn install` (similar to `npm install`, but better; and that's what is used by Travis, so best to have the same environment in both places)
-4. Create a snippet using [Script Lab](https://github.com/OfficeDev/script-lab/blob/master/README.md#what-is).  Ensure that the name and description are what you want them to be shown publicly.
+4. Create a snippet using [Script Lab](https://github.com/OfficeDev/script-lab/blob/master/README.md#what-is).  Ensure that the name and description are what you want to be shown publicly. Use standard TypeScript indentation. Improper indentation can cause a failure of the build that you run in a later step. See also the **Style guidelines** section below.
 5. Choose the Share icon, and then choose **Copy to Clipboard**. 
-6. Open the folder where you want to store your code sample, and create a .yaml file. Paste your code sample into that file. Ensure that the code sample file names and folder names are in [`kebab-case`](http://wiki.c2.com/?KebabCase). To order folders and code samples:
-    - To order folders in a particular way, add a numeric prefix to the folder name (for example, "03-range"). The folder will be ordered sequentially in the list, and the prefix ("03-") will be removed.
-    - To order code samples in a particular folder, add **order: <#>** at the top of the code sample file(s). Code samples with order numbers will be sorted relative to the order specified.
-7. Stage the change:
-    1. Open the office-js-snippets project in Visual Studio Code.
-    2. Open the Source Control tab in VS Code. Your new YAML file will be listed in the **Source Control** pane just to the right of the tabs.
-    3. Right-click the file name and select **Stage Changes**. Leave VS Code open.
-10. Run `npm start`. If you received warnings, review the output to check what caused the build validation to fail, and fix as needed. As part of your troubleshooting, you can see what changes `npm start` made to the file:
-    1. In VS Code, you will see that Source Control pane now has two sections: **Staged Changes** and **Changes**, with your file listed under both.
-    2. Right-click the file name under **Changes** and select **Open changes**. Both versions of the file will be open in the editor so you can see the pending changes relative to the staged version. You may find that the script already substituted in required fields like `id` or `api_set` with reasonable defaults. 
-12. Re-run `npm start`, and fix errors, until the build succeeds. 
-13. Submit to the repo, and create a merge request into master.
+6. Paste the contents into a text editor.
+7. Near the top of the file, you will see the line `api_set: {}`. This needs to be changed to specify the host API version of the most recently added API that is used in your snippet. For example, if the snippet is for Excel and it uses some APIs that were introduced in Excel API 1.3, some in 1.4, and some in 1.5, then you need to specify `ExcelApi 1.5` as the value of the `api_set` property. Put a line break and four spaces before the value and no {} characters. To continue the example, when you're done the property would look like this:
+```
+api_set:
+    ExcelApi: 1.5
+```
+8. Check the name and description property values, also near the top of the file, and edit as needed.
+9. Save the file **somewhere outside of the office-js-snippets project**. (You will move it into the project in a later step.) The file name must have a ".yaml" extension and it must be in [`kebab-case`](http://wiki.c2.com/?KebabCase). For examples, see the existing *.yaml files in the subfolders of the `samples` folder of the project.
+10. Make sure the master branch of your fork is in sync with the master branch of the upstream \OfficeDev\office-js-snippets repo by following the steps in [Syncing a fork](https://help.github.com/articles/syncing-a-fork/).
+11. Create a new branch in your local repo by running the command `git checkout -b {name_of_your_new_branch}`. (This will create and checkout the new branch. *Stay in this branch for all the remaining steps.*) Each snippet should have its own branch. Suggestion: use the name of the yaml file that you created above (without the extension) as the branch name.
+12. Decide the project folder to which your snippet should be added. All snippets must be inside the `samples` folder. The structure of the subfolders is:
+ - The base folders such as `Excel`, `Word` etc. are all the various broad-level categories.
+ - Inside of each base folder, there are group folders for the group in which a snippet belongs.
+ - Inside of each group folder, there are `.yaml` which represent a snippet.
+
+ > Note: If your snippet doesn't fit well with any existing group folder, you may want to create a new group folder inside the base folder. If the existing folders in the base folder begin with numbers, such as `03-range`, then your new folder should also begin with a number. The numbers determine the sequence of the groups in Script Lab, so use a number that is between the numbers of the groups between which you want the new folder to appear.
+
+10. Open one of the `.yaml` files already in the group folder. If it has an `order` property near the top, then the snippets in the group folder are ordered in a particular sequence in Script Lab. Add an `order` property to the top of your `.yaml` file and give it a number that is between the order numbers of the snippets between which you want it to appear.
+11. Copy your `.yaml` file to the chosen group folder.
+14. Run `npm start`. If there are no problems, the output will end with a `Done!`. If there are errors, review the output to check what caused the build validation to fail, and fix as needed. See **Known errors and fixes** below. 
+
+ > Note: The `npm start` command adds an `id` property to the top of the file.
+
+15. Re-run `npm start`, and fix errors, until the build succeeds.
+16. Run `git status`. You should see that, in addition to your new `.yaml` file (or possibly new folder), a `playlist\{host}.yaml` file (where `{host}` is `excel`, `word`, etc.) has also been changed. This is expected. The build tool you just ran added a reference to your new snippet to this file.
+17. Run the following two commands. The commit message should be a brief description of what the snippet demonstrates; for example, `"shows how to use getWhatever method"`.
+```
+git add -A
+git commit -m "{commit message}"
+```
+18. Push the snippet to your fork by running:
+```
+git push --set-upstream origin {name_of_your_new_branch}
+```
+19. You now create a [pull request](https://help.github.com/articles/about-pull-requests/). In your fork on GitHub, *switch to your new branch*. 
+20. Choose **New pull request**.
+21. On the **Open a pull request** page, verify that
+ - the base fork is `OfficeDev/office-js-snippets`
+ - the base branch is `master`
+ - the head fork is `{your-GitHub-account}/office-js-snippets`
+ - the "compare" branch is `{name_of_your_new_branch}`.
+24. The title of the pull request defaults to your commit message. Change it as needed and optionally add a comment to provide additional information about the pull request to the reviewers.
+25. All pull requests to office-js-snippets must be approved by at least one reviewer. On the right side of the page is a **Reviewers** section. You can optionally suggest one or more people to review the pull request. (GitHub sometimes lists one or more admins of the repo by default, but it is not consistent in doing this.) Your pull request will be reviewed even if you don't suggest anyone.
+26. Choose **Create pull request**. The page for your pull request will open. There will initially be a message on the page saying **Some checks haven’t completed yet**. An online version of the same build tool that you ran locally is testing the files again. It usually takes a few minutes.
+> Note: Since your pull request passed locally, it should pass the online test too. Once it a while, the online test fails when the local test passed. This is usually a bug in the online test service. If this happens, cancel the pull request, wait a few hours, and then repeat the steps for creating a pull request.
+28. The reviewer(s) may make comments on your pull request and ask you to make changes. Make changes in Script Lab and then repeat the process of creating the `.yaml` file. You do not have to create the new branch again, but make sure it is checked out when you copy the changed `.yaml` file over the previous version. After you commit and push the changed version to your fork, the new version is automatically added to your existing pull request. *Do **not** create a new pull request.*
+29. When the reviewer(s) are satisfied, your pull request will be merged to the `master` branch and the pull request will be closed. 
+
+ > Note: In a few days, the repo admins will merge your snippet into the `prod` branch. It will then appear in **Samples** area of Script Lab. (It is in the **My Snippets** area as soon as you create it.) 
+
+30. Optionally, you can delete the branch you created from your fork and/or your local clone.
+
+#### Known errors and fixes in the build tool
+- An error saying that `name` has upper-case letters or other disallowed characters is *not* referring to the `name` property in the file. It is referring to the file name itself. You'll also get this error, if the file extension is not `.yaml`.
 
 
 ## Style guidelines:
@@ -67,6 +105,7 @@ async function run() {
 
 A few style rules to observe:
 
+* Use standard TypeScript indentation.
 * Each button-click handler should have its own `async` function, called "run" if there is only one button on the page -- otherwise, name it as you will.
 * Inside the function there shall be a try/catch.  In it you will await the `Excel.run` or `Word.run`, and use `async/await` inside of the `.run` as well.
 * All HTML IDs should be `all-lower-case-and-hyphenated`.
@@ -75,14 +114,8 @@ A few style rules to observe:
 * Don't forget the semicolons.
 * `Libraries` in snippets must have a specific version. Eg. `jquery@3.1.1`.
 
-
-## Branches
-
-When a snippet is commited into the `master` branch, a Travis-CI build process kicks off to validate the build.  If successful, it  commits the samples & playlist folders into a `deploy-beta` branch, which is used for local and "edge" testing.  For production, a the `prod` and `deploy-prod` branches are used, instead.
-
-
 ## Debugging the build script
 
 * The scripts for building/validating the snippets are under the `config` folder -- in particular, under `build.ts`. There is also a `deploy.ts` for copying the built files to their final location.)
 
->> **NOTE**: If debugging in Visual Studio Code, you can use "F5" to attach the debugger, but be sure to run `npm run tsc` before you do (and after any code change!). `F5` is not set to recompile!
+> **NOTE**: If debugging in Visual Studio Code, you can use "F5" to attach the debugger, but be sure to run `npm run tsc` before you do (and after any code change!). `F5` is not set to recompile!

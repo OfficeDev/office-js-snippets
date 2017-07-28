@@ -40,20 +40,12 @@ const defaultApiSets = {
 
 
 (async() => {
-<<<<<<< HEAD
     let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
     await Promise.resolve()
         .then(() => processSnippets('samples', processedPublicSnippets))
         .then(updateModifiedFiles)
         .then(() => checkSnippetsForUniqueIDs(processedPublicSnippets))
         .then(() => generatePlaylists('playlists', processedPublicSnippets))
-=======
-    await Promise.resolve()
-        .then(() => processSnippets('samples'))
-        .then(updateModifiedFiles)
-        .then(checkSnippetsForUniqueIDs)
-        .then(() => generatePlaylists('playlists'))
->>>>>>> master
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -64,22 +56,12 @@ const defaultApiSets = {
         })
         .catch(handleError);
 
-<<<<<<< HEAD
     let processedPrivateSnippets = new Dictionary<SnippetProcessedData>();
     await Promise.resolve()
         .then(() => processSnippets('private-samples', processedPrivateSnippets))
         .then(updateModifiedFiles)
         .then(() => checkSnippetsForUniqueIDs(processedPrivateSnippets))
         .then(() => generatePlaylists('private-playlists', processedPrivateSnippets))
-=======
-    processedSnippets.clear();
-
-    await Promise.resolve()
-        .then(() => processSnippets('private-samples'))
-        .then(updateModifiedFiles)
-        .then(checkSnippetsForUniqueIDs)
-        .then(() => generatePlaylists('private-playlists'))
->>>>>>> master
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -94,11 +76,7 @@ const defaultApiSets = {
 })();
 
 
-<<<<<<< HEAD
 async function processSnippets(dir, processedSnippets) {
-=======
-async function processSnippets(dir) {
->>>>>>> master
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
         let files$ = getFiles(path.resolve(dir), path.resolve(dir));

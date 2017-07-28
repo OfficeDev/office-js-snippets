@@ -78,7 +78,7 @@ const defaultApiSets = {
 
 
 async function processSnippets(dir) {
-    await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
         let files$ = getFiles(path.resolve(dir), path.resolve(dir));
 

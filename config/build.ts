@@ -452,11 +452,7 @@ function checkSnippetsForUniqueIDs(processedSnippets) {
     }
 }
 
-<<<<<<< HEAD
 async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProcessedData>) {
-=======
-async function generatePlaylists(dir) {
->>>>>>> master
     banner('Generating playlists');
 
     /* Creating playlists directory */

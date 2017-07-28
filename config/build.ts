@@ -40,12 +40,12 @@ const defaultApiSets = {
 };
 
 
-(() => {
-    Promise.resolve()
-        .then(processSnippets)
+(async() => {
+    await Promise.resolve()
+        .then(() => processSnippets('samples'))
         .then(updateModifiedFiles)
         .then(checkSnippetsForUniqueIDs)
-        .then(generatePlaylists)
+        .then(() => generatePlaylists('playlists'))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -53,18 +53,37 @@ const defaultApiSets = {
         })
         .then(() => {
             banner('Done!', null, chalk.bold.green);
-            process.exit(0);
         })
         .catch(handleError);
+
+    processedSnippets.clear();
+
+    await Promise.resolve()
+        .then(() => processSnippets('private-samples'))
+        .then(updateModifiedFiles)
+        .then(checkSnippetsForUniqueIDs)
+        .then(() => generatePlaylists('private-playlists'))
+        .then(() => {
+            if (accumulatedErrors.length > 0) {
+                throw accumulatedErrors;
+            }
+        })
+        .then(() => {
+            banner('Done!', null, chalk.bold.green);
+        })
+        .catch(handleError);
+
+    process.exit(0);
 })();
 
 
-async function processSnippets() {
-    return new Promise((resolve, reject) => {
+async function processSnippets(dir) {
+    await new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve('samples'), path.resolve('samples'));
+        let files$ = getFiles(path.resolve(dir), path.resolve(dir));
 
-        files$.mergeMap(processAndValidateSnippet)
+        files$
+            .mergeMap((file) => (processAndValidateSnippet(file, dir)))
             .filter(file => file !== null)
             .map(file => processedSnippets.add(file.rawUrl, file))
             .subscribe(null, reject, resolve);
@@ -73,12 +92,12 @@ async function processSnippets() {
 
     // Helpers:
 
-    async function processAndValidateSnippet(file: SnippetFileInput): Promise<SnippetProcessedData> {
+    async function processAndValidateSnippet(file: SnippetFileInput, dir: string): Promise<SnippetProcessedData> {
         const messages: Array<string | Error> = [];
         try {
             status.add(`Processing ${file.relativePath}`);
 
-            const fullPath = path.resolve('samples', file.relativePath);
+            const fullPath = path.resolve(dir, file.relativePath);
             const originalFileContents = (await loadFileContents(fullPath)).trim();
             let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
 
@@ -121,7 +140,7 @@ async function processSnippets() {
 
             const rawUrl = `https://raw.githubusercontent.com/` +
                 `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${getDestinationBranch(TRAVIS_BRANCH) || '<BRANCH>'}` +
-                `/samples/${file.host}/${file.group}/${file.file_name}`;
+                `/${dir}/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
@@ -412,14 +431,14 @@ function checkSnippetsForUniqueIDs() {
     }
 }
 
-async function generatePlaylists() {
+async function generatePlaylists(dir) {
     banner('Generating playlists');
 
     /* Creating playlists directory */
-    status.add('Creating \'playlists\' folder');
-    await rmRf('playlists');
-    await mkDir('playlists');
-    status.complete(true /*success*/, 'Creating \'playlists\' folder');
+    status.add(`Creating \'${dir}\' folder`);
+    await rmRf(dir);
+    await mkDir(dir);
+    status.complete(true /*success*/, `Creating \'${dir}\' folder`);
 
     const groups = groupBy(
         processedSnippets.values()
@@ -457,7 +476,7 @@ async function generatePlaylists() {
             skipInvalid: true /* skip "undefined" (e.g., for "order" on some of the snippets) */
         });
 
-        await writeFile(path.resolve(`playlists/${host}.yaml`), contents);
+        await writeFile(path.resolve(`${dir}/${host}.yaml`), contents);
 
         status.complete(true /*success*/, creatingStatusText);
     });

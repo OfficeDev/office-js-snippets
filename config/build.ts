@@ -20,7 +20,6 @@ import escapeStringRegexp = require('escape-string-regexp');
 
 
 const { GH_ACCOUNT, GH_REPO, TRAVIS_BRANCH } = process.env;
-const processedSnippets = new Dictionary<SnippetProcessedData>();
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
 
@@ -41,11 +40,12 @@ const defaultApiSets = {
 
 
 (async() => {
+    let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
     await Promise.resolve()
-        .then(() => processSnippets('samples'))
+        .then(() => processSnippets('samples', processedPublicSnippets))
         .then(updateModifiedFiles)
-        .then(checkSnippetsForUniqueIDs)
-        .then(() => generatePlaylists('playlists'))
+        .then(() => checkSnippetsForUniqueIDs(processedPublicSnippets))
+        .then(() => generatePlaylists('playlists', processedPublicSnippets))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -56,13 +56,12 @@ const defaultApiSets = {
         })
         .catch(handleError);
 
-    processedSnippets.clear();
-
+    let processedPrivateSnippets = new Dictionary<SnippetProcessedData>();
     await Promise.resolve()
-        .then(() => processSnippets('private-samples'))
+        .then(() => processSnippets('private-samples', processedPrivateSnippets))
         .then(updateModifiedFiles)
-        .then(checkSnippetsForUniqueIDs)
-        .then(() => generatePlaylists('private-playlists'))
+        .then(() => checkSnippetsForUniqueIDs(processedPrivateSnippets))
+        .then(() => generatePlaylists('private-playlists', processedPrivateSnippets))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -77,7 +76,7 @@ const defaultApiSets = {
 })();
 
 
-async function processSnippets(dir) {
+async function processSnippets(dir, processedSnippets) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
         let files$ = getFiles(path.resolve(dir), path.resolve(dir));
@@ -409,7 +408,7 @@ async function updateModifiedFiles() {
     await Promise.all(fileWriteRequests);
 }
 
-function checkSnippetsForUniqueIDs() {
+function checkSnippetsForUniqueIDs(processedSnippets) {
     banner('Testing every snippet for ID uniqueness');
 
     let idsAllUnique = true; // assume best, until proven otherwise
@@ -431,7 +430,7 @@ function checkSnippetsForUniqueIDs() {
     }
 }
 
-async function generatePlaylists(dir) {
+async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProcessedData>) {
     banner('Generating playlists');
 
     /* Creating playlists directory */

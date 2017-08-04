@@ -75,13 +75,13 @@ const defaultApiSets = {
 })();
 
 
-async function processSnippets(dir, processedSnippets, isPrivateSample) {
+async function processSnippets(dir, processedSnippets, isAllSample) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
         let files$ = getFiles(path.resolve(dir), path.resolve(dir));
 
         files$
-            .mergeMap((file) => (processAndValidateSnippet(file, dir, isPrivateSample)))
+            .mergeMap((file) => (processAndValidateSnippet(file, dir, isAllSample)))
             .filter(file => file !== null)
             .map(file => processedSnippets.add(file.rawUrl, file))
             .subscribe(null, reject, resolve);
@@ -90,7 +90,7 @@ async function processSnippets(dir, processedSnippets, isPrivateSample) {
 
     // Helpers:
 
-    async function processAndValidateSnippet(file: SnippetFileInput, dir: string, isPrivateSample: boolean): Promise<SnippetProcessedData> {
+    async function processAndValidateSnippet(file: SnippetFileInput, dir: string, isAllSample: boolean): Promise<SnippetProcessedData> {
         const messages: Array<string | Error> = [];
         try {
             status.add(`Processing ${file.relativePath}`);
@@ -155,7 +155,7 @@ async function processSnippets(dir, processedSnippets, isPrivateSample) {
                 group: startCase(file.group),
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
                 api_set: snippet.api_set,
-                type: isPrivateSample ? 'private' : 'public'
+                type: isAllSample ? 'private' : 'public'
             };
         } catch (exception) {
             messages.push(exception);
@@ -429,10 +429,10 @@ function checkSnippetsForUniqueIDs(processedSnippets) {
     }
 }
 
-async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProcessedData>, isPrivateSample) {
+async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProcessedData>, isAllSample) {
     banner('Generating playlists');
 
-    if (!isPrivateSample) {
+    if (!isAllSample) {
         /* Creating playlists directory */
         status.add(`Creating \'${dir}\' folder`);
         await rmRf(dir);
@@ -445,7 +445,7 @@ async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProce
             .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
         'host');
     let playlistPromises = map(groups, async (items, host) => {
-        const suffix = isPrivateSample ? '-all' : '';
+        const suffix = isAllSample ? '-all' : '';
         const creatingStatusText = `Creating ${host}${suffix}.yaml`;
         status.add(creatingStatusText);
         items = sortBy(items, ['group', 'order', 'id']);
@@ -466,19 +466,20 @@ async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProce
         */
         const groupNumberRegex = /^(\d+\s)?(\w.*)$/;
 
-        items.forEach(item => {
+        let modifiedItems = cloneDeep(items);
+        modifiedItems.forEach(item => {
             item.group = item.group.replace(groupNumberRegex, '$2');
 
             // Also remove "order", it's no longer needed (the snippets themselves are already in an ordered array in the YAML file)
             delete item.order;
         });
 
-        let contents = jsyaml.safeDump(items, {
+        let contents = jsyaml.safeDump(modifiedItems, {
             skipInvalid: true /* skip "undefined" (e.g., for "order" on some of the snippets) */
         });
 
         /* Group private samples with public samples in one playlist */
-        let fileName = isPrivateSample ? `${dir}/${host}-all.yaml` : `${dir}/${host}.yaml`;
+        let fileName = isAllSample ? `${dir}/${host}-all.yaml` : `${dir}/${host}.yaml`;
         await writeFile(path.resolve(fileName), contents);
 
         status.complete(true /*success*/, creatingStatusText);

@@ -42,10 +42,10 @@ const defaultApiSets = {
 (async() => {
     let processedSnippets = new Dictionary<SnippetProcessedData>();
     await Promise.resolve()
-        .then(() => processSnippets('samples', processedSnippets))
+        .then(() => processSnippets('samples', processedSnippets, false))
         .then(updateModifiedFiles)
         .then(() => checkSnippetsForUniqueIDs(processedSnippets))
-        .then(() => generatePlaylists('playlists', processedSnippets))
+        .then(() => generatePlaylists('playlists', processedSnippets, false))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -79,7 +79,7 @@ const defaultApiSets = {
 })();
 
 
-async function processSnippets(dir, processedSnippets, isPrivateSample?) {
+async function processSnippets(dir, processedSnippets, isPrivateSample) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
         let files$ = getFiles(path.resolve(dir), path.resolve(dir));
@@ -94,7 +94,7 @@ async function processSnippets(dir, processedSnippets, isPrivateSample?) {
 
     // Helpers:
 
-    async function processAndValidateSnippet(file: SnippetFileInput, dir: string, isPrivateSample?: boolean): Promise<SnippetProcessedData> {
+    async function processAndValidateSnippet(file: SnippetFileInput, dir: string, isPrivateSample: boolean): Promise<SnippetProcessedData> {
         const messages: Array<string | Error> = [];
         try {
             status.add(`Processing ${file.relativePath}`);
@@ -148,7 +148,7 @@ async function processSnippets(dir, processedSnippets, isPrivateSample?) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
             }
 
-            let properties = {
+            return {
                 id: snippet.id,
                 name: snippet.name,
                 fileName: file.file_name,
@@ -158,12 +158,9 @@ async function processSnippets(dir, processedSnippets, isPrivateSample?) {
                 rawUrl: rawUrl,
                 group: startCase(file.group),
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
-                api_set: snippet.api_set
+                api_set: snippet.api_set,
+                type: isPrivateSample ? 'private' : 'public'
             };
-            if (isPrivateSample) {
-                properties['type'] = 'private';
-            }
-            return properties;
         } catch (exception) {
             messages.push(exception);
             status.complete(false /*success*/, `Processing ${file.relativePath}`, messages);
@@ -436,7 +433,7 @@ function checkSnippetsForUniqueIDs(processedSnippets) {
     }
 }
 
-async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProcessedData>, isPrivateSample?) {
+async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProcessedData>, isPrivateSample) {
     banner('Generating playlists');
 
     if (!isPrivateSample) {
@@ -452,7 +449,8 @@ async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProce
             .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
         'host');
     let playlistPromises = map(groups, async (items, host) => {
-        const creatingStatusText = `Creating ${host}.yaml`;
+        const suffix = isPrivateSample ? '-all' : '';
+        const creatingStatusText = `Creating ${host}${suffix}.yaml`;
         status.add(creatingStatusText);
         items = sortBy(items, ['group', 'order', 'id']);
 

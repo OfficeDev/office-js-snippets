@@ -56,10 +56,6 @@ const defaultApiSets = {
         })
         .catch(handleError);
 
-    for (let processedSnippet of processedSnippets.values()) {
-        processedSnippet['type'] = 'public';
-    }
-
     await Promise.resolve()
         .then(() => processSnippets('private-samples', processedSnippets, true))
         .then(updateModifiedFiles)

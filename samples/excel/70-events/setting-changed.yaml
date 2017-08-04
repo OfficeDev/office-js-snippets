@@ -1,0 +1,132 @@
+id: excel-70-events-setting-changed-
+name: Handle the settings-changed event
+description: This snippet shows how to register a handler for the SettingsChanged event.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.4
+script:
+    content: |
+        $("#create-setting").click(() => tryCatch(createSetting));
+        $("#change-setting").click(() => tryCatch(changeSetting));
+        $("#register-settings-changed-handler").click(() => tryCatch(registerSettingsChangedHandler));
+
+        async function createSetting() {
+            await Excel.run(async (context) => {
+                const settings = context.workbook.settings;
+                settings.add("NeedsReview", true);
+                const needsReview = settings.getItem("NeedsReview");
+                needsReview.load("value");
+
+                await context.sync();
+
+                OfficeHelpers.UI.notify("Setting added", `Setting value is: ${needsReview.value}`);
+
+                await context.sync();
+            });
+        }
+
+        async function registerSettingsChangedHandler() {
+            await Excel.run(async (context) => {
+                const settings = context.workbook.settings; 
+                settings.onSettingsChanged.add(onChangedSetting);
+                OfficeHelpers.UI.notify("Handler registered", "");
+
+                await context.sync();
+            });
+        }
+
+        async function onChangedSetting(args: Excel.SettingsChangedEventArgs)
+        {
+            try {
+                await Excel.run(async (context) => {
+                    const changedSetting = args.settings.getItem("NeedsReview");
+                    changedSetting.load("value");
+
+                    // Must sync with the context in the EventArgs
+                    // object, not the context that Office passes to
+                    // Excel.run. 
+                    await args.settings.context.sync();
+
+                    OfficeHelpers.UI.notify("Setting changed", `The new value is: ${changedSetting.value}`);
+
+                    await context.sync();
+                });
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+            }
+        } 
+
+        async function changeSetting() {
+
+            // The settings.add function is also how you change a 
+            // setting. There is no settings.setItem or setting.set 
+            // method. For example:
+            // await Excel.run(async (context) => { 
+            //      const settings = context.workbook.settings;
+            //      settings.add("NeedsReview", false);
+            //      await context.sync();
+            // });
+            // However, a bug prevents the SettingsChanged event 
+            // from firing when a setting is changed with the
+            // Excel 1.4 Settings APIs. So we must use the Settings
+            // object from the Office shared APIs:
+            Office.context.document.settings.set('NeedsReview', false);
+            await Office.context.document.settings.saveAsync();
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to register and use a handler for the SettingsChanged event.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Press the button to create and display a setting.</p>
+            <button id="create-setting" class="ms-Button">
+                <span class="ms-Button-label">Create setting</span>
+            </button>
+            <p>Press the button to register a settings-changed handler.</p>
+            <button id="register-settings-changed-handler" class="ms-Button">
+                <span class="ms-Button-label">Register settings-changed handler</span>
+            </button>
+            <p>Press the button to change a setting and trigger the event.</p>
+            <button id="change-setting" class="ms-Button">
+                <span class="ms-Button-label">Change setting</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    # Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    # CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    # NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    # IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+    @types/jquery

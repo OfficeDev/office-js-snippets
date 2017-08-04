@@ -20,7 +20,6 @@ import escapeStringRegexp = require('escape-string-regexp');
 
 
 const { GH_ACCOUNT, GH_REPO, TRAVIS_BRANCH } = process.env;
-const processedSnippets = new Dictionary<SnippetProcessedData>();
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
 
@@ -40,12 +39,13 @@ const defaultApiSets = {
 };
 
 
-(() => {
-    Promise.resolve()
-        .then(processSnippets)
+(async() => {
+    let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
+    await Promise.resolve()
+        .then(() => processSnippets('samples', processedPublicSnippets))
         .then(updateModifiedFiles)
-        .then(checkSnippetsForUniqueIDs)
-        .then(generatePlaylists)
+        .then(() => checkSnippetsForUniqueIDs(processedPublicSnippets))
+        .then(() => generatePlaylists('playlists', processedPublicSnippets))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -53,18 +53,36 @@ const defaultApiSets = {
         })
         .then(() => {
             banner('Done!', null, chalk.bold.green);
-            process.exit(0);
         })
         .catch(handleError);
+
+    let processedPrivateSnippets = new Dictionary<SnippetProcessedData>();
+    await Promise.resolve()
+        .then(() => processSnippets('private-samples', processedPrivateSnippets))
+        .then(updateModifiedFiles)
+        .then(() => checkSnippetsForUniqueIDs(processedPrivateSnippets))
+        .then(() => generatePlaylists('private-playlists', processedPrivateSnippets))
+        .then(() => {
+            if (accumulatedErrors.length > 0) {
+                throw accumulatedErrors;
+            }
+        })
+        .then(() => {
+            banner('Done!', null, chalk.bold.green);
+        })
+        .catch(handleError);
+
+    process.exit(0);
 })();
 
 
-async function processSnippets() {
+async function processSnippets(dir, processedSnippets) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve('samples'), path.resolve('samples'));
+        let files$ = getFiles(path.resolve(dir), path.resolve(dir));
 
-        files$.mergeMap(processAndValidateSnippet)
+        files$
+            .mergeMap((file) => (processAndValidateSnippet(file, dir)))
             .filter(file => file !== null)
             .map(file => processedSnippets.add(file.rawUrl, file))
             .subscribe(null, reject, resolve);
@@ -73,12 +91,12 @@ async function processSnippets() {
 
     // Helpers:
 
-    async function processAndValidateSnippet(file: SnippetFileInput): Promise<SnippetProcessedData> {
+    async function processAndValidateSnippet(file: SnippetFileInput, dir: string): Promise<SnippetProcessedData> {
         const messages: Array<string | Error> = [];
         try {
             status.add(`Processing ${file.relativePath}`);
 
-            const fullPath = path.resolve('samples', file.relativePath);
+            const fullPath = path.resolve(dir, file.relativePath);
             const originalFileContents = (await loadFileContents(fullPath)).trim();
             let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
 
@@ -121,7 +139,7 @@ async function processSnippets() {
 
             const rawUrl = `https://raw.githubusercontent.com/` +
                 `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${getDestinationBranch(TRAVIS_BRANCH) || '<BRANCH>'}` +
-                `/samples/${file.host}/${file.group}/${file.file_name}`;
+                `/${dir}/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
@@ -390,7 +408,7 @@ async function updateModifiedFiles() {
     await Promise.all(fileWriteRequests);
 }
 
-function checkSnippetsForUniqueIDs() {
+function checkSnippetsForUniqueIDs(processedSnippets) {
     banner('Testing every snippet for ID uniqueness');
 
     let idsAllUnique = true; // assume best, until proven otherwise
@@ -412,14 +430,14 @@ function checkSnippetsForUniqueIDs() {
     }
 }
 
-async function generatePlaylists() {
+async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProcessedData>) {
     banner('Generating playlists');
 
     /* Creating playlists directory */
-    status.add('Creating \'playlists\' folder');
-    await rmRf('playlists');
-    await mkDir('playlists');
-    status.complete(true /*success*/, 'Creating \'playlists\' folder');
+    status.add(`Creating \'${dir}\' folder`);
+    await rmRf(dir);
+    await mkDir(dir);
+    status.complete(true /*success*/, `Creating \'${dir}\' folder`);
 
     const groups = groupBy(
         processedSnippets.values()
@@ -457,7 +475,7 @@ async function generatePlaylists() {
             skipInvalid: true /* skip "undefined" (e.g., for "order" on some of the snippets) */
         });
 
-        await writeFile(path.resolve(`playlists/${host}.yaml`), contents);
+        await writeFile(path.resolve(`${dir}/${host}.yaml`), contents);
 
         status.complete(true /*success*/, creatingStatusText);
     });

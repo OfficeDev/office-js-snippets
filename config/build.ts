@@ -14,6 +14,7 @@ import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
 import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
+import 'rxjs/add/operator/merge';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 import escapeStringRegexp = require('escape-string-regexp');
@@ -42,25 +43,10 @@ const defaultApiSets = {
 (async() => {
     let processedSnippets = new Dictionary<SnippetProcessedData>();
     await Promise.resolve()
-        .then(() => processSnippets('samples', processedSnippets, false))
+        .then(() => processSnippets(processedSnippets))
         .then(updateModifiedFiles)
         .then(() => checkSnippetsForUniqueIDs(processedSnippets))
-        .then(() => generatePlaylists('playlists', processedSnippets, false))
-        .then(() => {
-            if (accumulatedErrors.length > 0) {
-                throw accumulatedErrors;
-            }
-        })
-        .then(() => {
-            banner('Done!', null, chalk.bold.green);
-        })
-        .catch(handleError);
-
-    await Promise.resolve()
-        .then(() => processSnippets('private-samples', processedSnippets, true))
-        .then(updateModifiedFiles)
-        .then(() => checkSnippetsForUniqueIDs(processedSnippets))
-        .then(() => generatePlaylists('playlists', processedSnippets, true))
+        .then(() => generatePlaylists(processedSnippets))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -75,13 +61,14 @@ const defaultApiSets = {
 })();
 
 
-async function processSnippets(dir, processedSnippets, isAllSample) {
+async function processSnippets(processedSnippets) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve(dir), path.resolve(dir));
+        let files$ = getFiles(path.resolve('private-samples'), path.resolve('private-samples'));
+        files$ = files$.merge(getFiles(path.resolve('samples'), path.resolve('samples')));
 
         files$
-            .mergeMap((file) => (processAndValidateSnippet(file, dir, isAllSample)))
+            .mergeMap((file) => (processAndValidateSnippet(file)))
             .filter(file => file !== null)
             .map(file => processedSnippets.add(file.rawUrl, file))
             .subscribe(null, reject, resolve);
@@ -90,10 +77,11 @@ async function processSnippets(dir, processedSnippets, isAllSample) {
 
     // Helpers:
 
-    async function processAndValidateSnippet(file: SnippetFileInput, dir: string, isAllSample: boolean): Promise<SnippetProcessedData> {
+    async function processAndValidateSnippet(file: SnippetFileInput): Promise<SnippetProcessedData> {
         const messages: Array<string | Error> = [];
         try {
             status.add(`Processing ${file.relativePath}`);
+            let dir = file.type === 'private' ? 'private-samples' : 'samples';
 
             const fullPath = path.resolve(dir, file.relativePath);
             const originalFileContents = (await loadFileContents(fullPath)).trim();
@@ -155,7 +143,7 @@ async function processSnippets(dir, processedSnippets, isAllSample) {
                 group: startCase(file.group),
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
                 api_set: snippet.api_set,
-                type: isAllSample ? 'private' : 'public'
+                type: file.type
             };
         } catch (exception) {
             messages.push(exception);
@@ -429,24 +417,28 @@ function checkSnippetsForUniqueIDs(processedSnippets) {
     }
 }
 
-async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProcessedData>, isAllSample) {
+async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedData>) {
     banner('Generating playlists');
 
-    if (!isAllSample) {
-        /* Creating playlists directory */
-        status.add(`Creating \'${dir}\' folder`);
-        await rmRf(dir);
-        await mkDir(dir);
-        status.complete(true /*success*/, `Creating \'${dir}\' folder`);
+    let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
+    for (let processedSnippet of processedSnippets.values()) {
+        if (processedSnippet.type === 'public') {
+            processedPublicSnippets.add(processedSnippet.rawUrl, processedSnippet);
+        }
     }
 
-    const groups = groupBy(
-        processedSnippets.values()
+    /* Creating playlists directory */
+    status.add(`Creating \'playlists\' folder`);
+    await rmRf('playlists');
+    await mkDir('playlists');
+    status.complete(true /*success*/, `Creating \'playlists\' folder`);
+
+    const publicGroups = groupBy(
+        processedPublicSnippets.values()
             .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
         'host');
-    let playlistPromises = map(groups, async (items, host) => {
-        const suffix = isAllSample ? '-all' : '';
-        const creatingStatusText = `Creating ${host}${suffix}.yaml`;
+    let publicPlaylistPromises = map(publicGroups, async (items, host) => {
+        const creatingStatusText = `Creating ${host}.yaml`;
         status.add(creatingStatusText);
         items = sortBy(items, ['group', 'order', 'id']);
 
@@ -470,8 +462,10 @@ async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProce
         modifiedItems.forEach(item => {
             item.group = item.group.replace(groupNumberRegex, '$2');
 
-            // Also remove "order", it's no longer needed (the snippets themselves are already in an ordered array in the YAML file)
+            // Also remove "order", "host" and "type", they are no longer needed (the snippets themselves are already in an ordered array in the YAML file, which is itself tied to host)
             delete item.order;
+            delete item.host;
+            delete item.type;
         });
 
         let contents = jsyaml.safeDump(modifiedItems, {
@@ -479,13 +473,40 @@ async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProce
         });
 
         /* Group private samples with public samples in one playlist */
-        let fileName = isAllSample ? `${dir}/${host}-all.yaml` : `${dir}/${host}.yaml`;
+        let fileName = `playlists/${host}.yaml`;
         await writeFile(path.resolve(fileName), contents);
 
         status.complete(true /*success*/, creatingStatusText);
     });
 
-    await Promise.all(playlistPromises);
+    /* Creating view directory */
+    status.add(`Creating \'view\' folder`);
+    await rmRf('view');
+    await mkDir('view');
+    status.complete(true /*success*/, `Creating \'view\' folder`);
+
+    const allGroups = groupBy(
+        processedSnippets.values()
+            .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
+        'host');
+    let allPlaylistPromises = map(allGroups, async (items, host) => {
+        const creatingStatusText = `Creating ${host}.json`;
+        status.add(creatingStatusText);
+        items = sortBy(items, ['group', 'order', 'id']);
+
+        let hostMapping = {};
+        items.forEach(item => {
+            hostMapping[item.id] = item.rawUrl;
+        });
+
+        /* Group private samples with public samples in one file */
+        let fileName = `view/${host}.json`;
+        await writeFile(path.resolve(fileName), JSON.stringify(hostMapping, null, 2));
+
+        status.complete(true /*success*/, creatingStatusText);
+    });
+
+    await Promise.all(publicPlaylistPromises.concat(allPlaylistPromises));
 }
 
 function handleError(error: any | any[]) {

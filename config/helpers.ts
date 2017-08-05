@@ -17,6 +17,7 @@ export interface SnippetFileInput {
     relativePath: string;
     host: string;
     group: string;
+    type: string;
 }
 
 export interface SnippetProcessedData {
@@ -29,6 +30,7 @@ export interface SnippetProcessedData {
     rawUrl: string;
     group: string;
     order: number;
+    type : string;
 }
 
 /**
@@ -201,6 +203,7 @@ export const getFileMetadata = (file: string, root: string) => {
 
     return Observable.of<SnippetFileInput>({
         relativePath: relativePath,
+        type: /private-samples/.test(file) ? 'private' : 'public',
         host,
         group,
         file_name

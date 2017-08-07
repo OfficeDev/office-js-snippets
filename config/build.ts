@@ -21,8 +21,11 @@ import escapeStringRegexp = require('escape-string-regexp');
 
 
 const { GH_ACCOUNT, GH_REPO, TRAVIS_BRANCH } = process.env;
+const PRIVATE_SAMPLES = 'private-samples';
+const PUBLIC_SAMPLES = 'samples';
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
+const sortingCriteria = ['group', 'order', 'id'];
 
 const officeHosts = ['ACCESS', 'EXCEL', 'ONENOTE', 'OUTLOOK', 'POWERPOINT', 'PROJECT', 'WORD'];
 const defaultApiSets = {
@@ -64,8 +67,8 @@ const defaultApiSets = {
 async function processSnippets(processedSnippets) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve('private-samples'), path.resolve('private-samples'));
-        files$ = files$.merge(getFiles(path.resolve('samples'), path.resolve('samples')));
+        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES), path.resolve(PRIVATE_SAMPLES));
+        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES), path.resolve(PUBLIC_SAMPLES)));
 
         files$
             .mergeMap((file) => (processAndValidateSnippet(file)))
@@ -81,7 +84,7 @@ async function processSnippets(processedSnippets) {
         const messages: Array<string | Error> = [];
         try {
             status.add(`Processing ${file.relativePath}`);
-            let dir = file.type === 'private' ? 'private-samples' : 'samples';
+            let dir = file.isPublic ? PUBLIC_SAMPLES : PRIVATE_SAMPLES;
 
             const fullPath = path.resolve(dir, file.relativePath);
             const originalFileContents = (await loadFileContents(fullPath)).trim();
@@ -143,7 +146,7 @@ async function processSnippets(processedSnippets) {
                 group: startCase(file.group),
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
                 api_set: snippet.api_set,
-                type: file.type
+                isPublic: file.isPublic
             };
         } catch (exception) {
             messages.push(exception);
@@ -422,7 +425,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
 
     let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
     for (let processedSnippet of processedSnippets.values()) {
-        if (processedSnippet.type === 'public') {
+        if (processedSnippet.isPublic) {
             processedPublicSnippets.add(processedSnippet.rawUrl, processedSnippet);
         }
     }
@@ -440,7 +443,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
     let publicPlaylistPromises = map(publicGroups, async (items, host) => {
         const creatingStatusText = `Creating ${host}.yaml`;
         status.add(creatingStatusText);
-        items = sortBy(items, ['group', 'order', 'id']);
+        items = sortBy(items, sortingCriteria);
 
         /*
            Having sorted the items -- which may have included a number in the group name! -- remove the group number if any
@@ -458,21 +461,23 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
         */
         const groupNumberRegex = /^(\d+\s)?(\w.*)$/;
 
-        let modifiedItems = cloneDeep(items);
-        modifiedItems.forEach(item => {
-            item.group = item.group.replace(groupNumberRegex, '$2');
-
-            // Also remove "order", "host" and "type", they are no longer needed (the snippets themselves are already in an ordered array in the YAML file, which is itself tied to host)
-            delete item.order;
-            delete item.host;
-            delete item.type;
+        let modifiedItems = items.map(item => {
+            /* Only keep select properties */
+            return {
+                id: item.id,
+                name: item.name,
+                fileName: item.fileName,
+                description: item.description,
+                rawUrl: item.rawUrl,
+                group: item.group.replace(groupNumberRegex, '$2'),
+                api_set: item.api_set,
+            };
         });
 
         let contents = jsyaml.safeDump(modifiedItems, {
             skipInvalid: true /* skip "undefined" (e.g., for "order" on some of the snippets) */
         });
 
-        /* Group private samples with public samples in one playlist */
         let fileName = `playlists/${host}.yaml`;
         await writeFile(path.resolve(fileName), contents);
 
@@ -492,14 +497,14 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
     let allPlaylistPromises = map(allGroups, async (items, host) => {
         const creatingStatusText = `Creating ${host}.json`;
         status.add(creatingStatusText);
-        items = sortBy(items, ['group', 'order', 'id']);
+        items = sortBy(items, sortingCriteria);
 
-        let hostMapping = {};
+        let hostMapping = {} as { [id: string]: string };
         items.forEach(item => {
             hostMapping[item.id] = item.rawUrl;
         });
 
-        /* Group private samples with public samples in one file */
+        /* Group private samples with public samples in one JSON file */
         let fileName = `view/${host}.json`;
         await writeFile(path.resolve(fileName), JSON.stringify(hostMapping, null, 2));
 

@@ -206,7 +206,7 @@ export const getFileMetadata = (file: string, root: string) => {
 
     return Observable.of<SnippetFileInput>({
         relativePath: relativePath,
-        isPublic: !(/\\private-samples$/.test(root)),
+        isPublic: !(/[\\/]private-samples$/.test(root)),
         host,
         group,
         file_name

@@ -462,7 +462,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
         const groupNumberRegex = /^(\d+\s)?(\w.*)$/;
 
         let modifiedItems = items.map(item => {
-            /* Only keep select properties */
+            /* Only keep select properties that are needed */
             return {
                 id: item.id,
                 name: item.name,

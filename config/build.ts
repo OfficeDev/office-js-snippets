@@ -237,7 +237,8 @@ async function processSnippets(processedSnippets) {
             throw new Error(`Cannot have more than one reference to Office.js or ${officeDTS}`);
         }
 
-        if (officeJsReferences[0] !== canonicalOfficeJsReference) {
+        // for now, outlook does not want to use cannonical Office.js due to bug #65.
+        if (officeJsReferences[0] !== canonicalOfficeJsReference && host.toUpperCase() !== 'OUTLOOK') {
             messages.push(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}". Fixing it.`);
             snippet.libraries = snippet.libraries.replace(officeJsReferences[0], canonicalOfficeJsReference);
         }

@@ -14,15 +14,18 @@ import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
 import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
+import 'rxjs/add/operator/merge';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 import escapeStringRegexp = require('escape-string-regexp');
 
 
 const { GH_ACCOUNT, GH_REPO, TRAVIS_BRANCH } = process.env;
-const processedSnippets = new Dictionary<SnippetProcessedData>();
+const PRIVATE_SAMPLES = 'private-samples';
+const PUBLIC_SAMPLES = 'samples';
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
+const sortingCriteria = ['group', 'order', 'id'];
 
 const officeHosts = ['ACCESS', 'EXCEL', 'ONENOTE', 'OUTLOOK', 'POWERPOINT', 'PROJECT', 'WORD'];
 const defaultApiSets = {
@@ -40,12 +43,13 @@ const defaultApiSets = {
 };
 
 
-(() => {
-    Promise.resolve()
-        .then(processSnippets)
+(async() => {
+    let processedSnippets = new Dictionary<SnippetProcessedData>();
+    await Promise.resolve()
+        .then(() => processSnippets(processedSnippets))
         .then(updateModifiedFiles)
-        .then(checkSnippetsForUniqueIDs)
-        .then(generatePlaylists)
+        .then(() => checkSnippetsForUniqueIDs(processedSnippets))
+        .then(() => generatePlaylists(processedSnippets))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -53,18 +57,21 @@ const defaultApiSets = {
         })
         .then(() => {
             banner('Done!', null, chalk.bold.green);
-            process.exit(0);
         })
         .catch(handleError);
+
+    process.exit(0);
 })();
 
 
-async function processSnippets() {
+async function processSnippets(processedSnippets) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve('samples'), path.resolve('samples'));
+        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES), path.resolve(PRIVATE_SAMPLES));
+        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES), path.resolve(PUBLIC_SAMPLES)));
 
-        files$.mergeMap(processAndValidateSnippet)
+        files$
+            .mergeMap((file) => (processAndValidateSnippet(file)))
             .filter(file => file !== null)
             .map(file => processedSnippets.add(file.rawUrl, file))
             .subscribe(null, reject, resolve);
@@ -77,8 +84,9 @@ async function processSnippets() {
         const messages: Array<string | Error> = [];
         try {
             status.add(`Processing ${file.relativePath}`);
+            let dir = file.isPublic ? PUBLIC_SAMPLES : PRIVATE_SAMPLES;
 
-            const fullPath = path.resolve('samples', file.relativePath);
+            const fullPath = path.resolve(dir, file.relativePath);
             const originalFileContents = (await loadFileContents(fullPath)).trim();
             let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
 
@@ -121,7 +129,7 @@ async function processSnippets() {
 
             const rawUrl = `https://raw.githubusercontent.com/` +
                 `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${getDestinationBranch(TRAVIS_BRANCH) || '<BRANCH>'}` +
-                `/samples/${file.host}/${file.group}/${file.file_name}`;
+                `/${dir}/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
@@ -137,9 +145,9 @@ async function processSnippets() {
                 rawUrl: rawUrl,
                 group: startCase(file.group),
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
-                api_set: snippet.api_set
+                api_set: snippet.api_set,
+                isPublic: file.isPublic
             };
-
         } catch (exception) {
             messages.push(exception);
             status.complete(false /*success*/, `Processing ${file.relativePath}`, messages);
@@ -229,7 +237,8 @@ async function processSnippets() {
             throw new Error(`Cannot have more than one reference to Office.js or ${officeDTS}`);
         }
 
-        if (officeJsReferences[0] !== canonicalOfficeJsReference) {
+        // for now, outlook does not want to use cannonical Office.js due to bug #65.
+        if (officeJsReferences[0] !== canonicalOfficeJsReference && host.toUpperCase() !== 'OUTLOOK') {
             messages.push(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}". Fixing it.`);
             snippet.libraries = snippet.libraries.replace(officeJsReferences[0], canonicalOfficeJsReference);
         }
@@ -390,7 +399,7 @@ async function updateModifiedFiles() {
     await Promise.all(fileWriteRequests);
 }
 
-function checkSnippetsForUniqueIDs() {
+function checkSnippetsForUniqueIDs(processedSnippets) {
     banner('Testing every snippet for ID uniqueness');
 
     let idsAllUnique = true; // assume best, until proven otherwise
@@ -412,23 +421,30 @@ function checkSnippetsForUniqueIDs() {
     }
 }
 
-async function generatePlaylists() {
+async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedData>) {
     banner('Generating playlists');
 
+    let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
+    for (let processedSnippet of processedSnippets.values()) {
+        if (processedSnippet.isPublic) {
+            processedPublicSnippets.add(processedSnippet.rawUrl, processedSnippet);
+        }
+    }
+
     /* Creating playlists directory */
-    status.add('Creating \'playlists\' folder');
+    status.add(`Creating \'playlists\' folder`);
     await rmRf('playlists');
     await mkDir('playlists');
-    status.complete(true /*success*/, 'Creating \'playlists\' folder');
+    status.complete(true /*success*/, `Creating \'playlists\' folder`);
 
-    const groups = groupBy(
-        processedSnippets.values()
+    const publicGroups = groupBy(
+        processedPublicSnippets.values()
             .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
         'host');
-    let playlistPromises = map(groups, async (items, host) => {
+    let publicPlaylistPromises = map(publicGroups, async (items, host) => {
         const creatingStatusText = `Creating ${host}.yaml`;
         status.add(creatingStatusText);
-        items = sortBy(items, ['group', 'order', 'id']);
+        items = sortBy(items, sortingCriteria);
 
         /*
            Having sorted the items -- which may have included a number in the group name! -- remove the group number if any
@@ -446,23 +462,57 @@ async function generatePlaylists() {
         */
         const groupNumberRegex = /^(\d+\s)?(\w.*)$/;
 
-        items.forEach(item => {
-            item.group = item.group.replace(groupNumberRegex, '$2');
-
-            // Also remove "order", it's no longer needed (the snippets themselves are already in an ordered array in the YAML file)
-            delete item.order;
+        let modifiedItems = items.map(item => {
+            /* Only keep select properties that are needed */
+            return {
+                id: item.id,
+                name: item.name,
+                fileName: item.fileName,
+                description: item.description,
+                rawUrl: item.rawUrl,
+                group: item.group.replace(groupNumberRegex, '$2'),
+                api_set: item.api_set,
+            };
         });
 
-        let contents = jsyaml.safeDump(items, {
+        let contents = jsyaml.safeDump(modifiedItems, {
             skipInvalid: true /* skip "undefined" (e.g., for "order" on some of the snippets) */
         });
 
-        await writeFile(path.resolve(`playlists/${host}.yaml`), contents);
+        let fileName = `playlists/${host}.yaml`;
+        await writeFile(path.resolve(fileName), contents);
 
         status.complete(true /*success*/, creatingStatusText);
     });
 
-    await Promise.all(playlistPromises);
+    /* Creating view directory */
+    status.add(`Creating \'view\' folder`);
+    await rmRf('view');
+    await mkDir('view');
+    status.complete(true /*success*/, `Creating \'view\' folder`);
+
+    const allGroups = groupBy(
+        processedSnippets.values()
+            .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
+        'host');
+    let allPlaylistPromises = map(allGroups, async (items, host) => {
+        const creatingStatusText = `Creating ${host}.json`;
+        status.add(creatingStatusText);
+        items = sortBy(items, sortingCriteria);
+
+        let hostMapping = {} as { [id: string]: string };
+        items.forEach(item => {
+            hostMapping[item.id] = item.rawUrl;
+        });
+
+        /* Group private samples with public samples in one JSON file */
+        let fileName = `view/${host}.json`;
+        await writeFile(path.resolve(fileName), JSON.stringify(hostMapping, null, 2));
+
+        status.complete(true /*success*/, creatingStatusText);
+    });
+
+    await Promise.all(publicPlaylistPromises.concat(allPlaylistPromises));
 }
 
 function handleError(error: any | any[]) {

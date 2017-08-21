@@ -85,16 +85,21 @@ git push --set-upstream origin {name_of_your_new_branch}
 Basic snippet structure is as follows:
 
 ```ts
-$("#run").click(run);
+$("#run").click(() => tryCatch(run));
 
 async function run() {
-    try {
-        await Word.run(async (context) => {
-            const range = context.document.getSelection();
-            range.font.color = "red";
+    await Word.run(async (context) => {
+        const range = context.document.getSelection();
+        range.font.color = "red";
 
-            await context.sync();
-        });
+        await context.sync();
+    });
+}
+
+/** Default helper for invoking an action and handling errors. */
+async function tryCatch(callback) {
+    try {
+        await callback();
     }
     catch (error) {
         OfficeHelpers.UI.notify(error);
@@ -106,8 +111,8 @@ async function run() {
 A few style rules to observe:
 
 * Use standard TypeScript indentation.
-* Each button-click handler should have its own `async` function, called "run" if there is only one button on the page -- otherwise, name it as you will.
-* Inside the function there shall be a try/catch.  In it you will await the `Excel.run` or `Word.run`, and use `async/await` inside of the `.run` as well.
+* For each button, define a corresponding `async` function that is to be executed when the button is clicked. The `async` function can be called "run" if there is only one button on the page -- otherwise, name it as you will.
+* Each button-click handler should invoke the `tryCatch` function, passing in the name of the `async` function to be executed when the button is clicked. 
 * All HTML IDs should be `all-lower-case-and-hyphenated`.
 * Unless you are explicitly showing pretty UI, I wouldn't do the popup notification except for one or two samples.  It's a lot of HTML & JS code, and it's also not strictly Fabric-y (there is a more "correct" way of doing this with components).
 * Strings should be in double-quotes.

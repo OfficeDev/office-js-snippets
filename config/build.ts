@@ -96,7 +96,7 @@ async function processSnippets(processedSnippets) {
             validateId(snippet, file.relativePath, messages);
             validateSnippetHost(snippet, file.host, messages);
             validateAtTypesDeclarations(snippet, messages);
-            validateOfficialOfficeJs(snippet, file.host, messages);
+            validateOfficialOfficeJs(snippet, file.host, file.group, messages);
             validateApiSetNonEmpty(snippet, file.host, file.relativePath, messages);
             validateVersionNumbersOnLibraries(snippet, messages);
             validateTabsInsteadOfSpaces(snippet, messages);
@@ -206,9 +206,10 @@ async function processSnippets(processedSnippets) {
             });
     }
 
-    function validateOfficialOfficeJs(snippet: ISnippet, host: string, messages: any[]): void {
+    function validateOfficialOfficeJs(snippet: ISnippet, host: string, group: string, messages: any[]): void {
         const isOfficeSnippet = officeHosts.indexOf(host.toUpperCase()) >= 0;
         const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1/hosted/office.js';
+        const betaOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/beta/hosted/office.js';
         const officeDTS = '@types/office-js';
 
         const officeJsReferences =
@@ -237,11 +238,15 @@ async function processSnippets(processedSnippets) {
             throw new Error(`Cannot have more than one reference to Office.js or ${officeDTS}`);
         }
 
-        // for now, outlook does not want to use cannonical Office.js due to bug #65.
-        if (officeJsReferences[0] !== canonicalOfficeJsReference && host.toUpperCase() !== 'OUTLOOK') {
-            messages.push(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}". Fixing it.`);
-            snippet.libraries = snippet.libraries.replace(officeJsReferences[0], canonicalOfficeJsReference);
+        let snippetOfficeReferenceIsOk = 
+            officeJsReferences[0] == canonicalOfficeJsReference ||
+            host.toUpperCase() == 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||
+            (group == "89-preview-apis" && officeJsReferences[0] == betaOfficeJsReference);
+         
+        if (!snippetOfficeReferenceIsOk) {
+            throw new Error(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}"`);
         }
+
     }
 
     function validateApiSetNonEmpty(snippet: ISnippet, host: string, localPath: string, messages: any[]): void {

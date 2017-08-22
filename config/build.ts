@@ -135,6 +135,17 @@ async function processSnippets(processedSnippets) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
             }
 
+            // Define dictionary of words in file.group that require special casing
+            let dictionary = {
+                "Apis": "APIs",
+                "Xml": "XML"
+            };
+
+            let groupName = startCase(file.group);
+            groupName = replaceUsingDictionary(dictionary, groupName, function(key, dictionary) {
+                return dictionary[key];
+            });
+
             return {
                 id: snippet.id,
                 name: snippet.name,
@@ -143,7 +154,7 @@ async function processSnippets(processedSnippets) {
                 description: snippet.description,
                 host: file.host,
                 rawUrl: rawUrl,
-                group: startCase(file.group),
+                group: groupName,
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
                 api_set: snippet.api_set,
                 isPublic: file.isPublic
@@ -154,6 +165,37 @@ async function processSnippets(processedSnippets) {
             accumulatedErrors.push(`Failed to process ${file.relativePath}: ${exception.message || exception}`);
             return null;
         }
+    }
+
+    function replaceUsingDictionary(dictionary, content, replacehandler): string {
+        let patterns = [], // \b is used to mark boundaries "foo" doesn't match food
+            patternHash = {},
+            oldkey, key, index = 0,
+            output = [];
+            
+        for (key in dictionary) {
+            // Case-insensitivity
+            key = (oldkey = key).toLowerCase();
+            dictionary[key] = dictionary[oldkey];
+            
+            // Sanitize the key, and push it in the list
+            patterns.push('\\b(?:' + key.replace(/([[^$.|?*+(){}])/g, '\\$1') + ')\\b');
+            
+            // Add entry to hash variable, for an optimized backtracking at the next loop
+            patternHash[key] = index++;
+        }
+        
+        let pattern = new RegExp(patterns.join('|'), 'gi'),
+            lastIndex = 0;
+    
+        while (key = pattern.exec(content)) {
+            key = key[0].toLowerCase();
+            output.push(content.substring(lastIndex, pattern.lastIndex - key.length));
+            output.push(replacehandler(key, dictionary));
+            lastIndex = pattern.lastIndex;
+        }
+        output.push(content.substring(lastIndex, content.length));
+        return output.join('');
     }
 
     function validateProperFabric(snippet: ISnippet): void {

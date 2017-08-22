@@ -137,14 +137,11 @@ async function processSnippets(processedSnippets) {
 
             // Define dictionary of words in file.group that require special casing
             let dictionary = {
-                "Apis": "APIs",
-                "Xml": "XML"
+                'Apis': 'APIs',
+                'Xml': 'XML'
             };
 
-            let groupName = startCase(file.group);
-            groupName = replaceUsingDictionary(dictionary, groupName, function(key, dictionary) {
-                return dictionary[key];
-            });
+            let groupName = replaceUsingDictionary(dictionary, startCase(file.group), (key, dictionary) => dictionary[key]);
 
             return {
                 id: snippet.id,
@@ -172,22 +169,24 @@ async function processSnippets(processedSnippets) {
             patternHash = {},
             oldkey, key, index = 0,
             output = [];
-            
+
         for (key in dictionary) {
-            // Case-insensitivity
-            key = (oldkey = key).toLowerCase();
-            dictionary[key] = dictionary[oldkey];
-            
-            // Sanitize the key, and push it in the list
-            patterns.push('\\b(?:' + key.replace(/([[^$.|?*+(){}])/g, '\\$1') + ')\\b');
-            
-            // Add entry to hash variable, for an optimized backtracking at the next loop
-            patternHash[key] = index++;
+            if (dictionary.hasOwnProperty(key)) {
+                // Case-insensitivity
+                key = (oldkey = key).toLowerCase();
+                dictionary[key] = dictionary[oldkey];
+
+                // Sanitize the key, and push it in the list
+                patterns.push('\\b(?:' + key.replace(/([[^$.|?*+(){}])/g, '\\$1') + ')\\b');
+
+                // Add entry to hash variable, for an optimized backtracking at the next loop
+                patternHash[key] = index++;
+            }
         }
-        
+
         let pattern = new RegExp(patterns.join('|'), 'gi'),
             lastIndex = 0;
-    
+
         while (key = pattern.exec(content)) {
             key = key[0].toLowerCase();
             output.push(content.substring(lastIndex, pattern.lastIndex - key.length));
@@ -280,11 +279,11 @@ async function processSnippets(processedSnippets) {
             throw new Error(`Cannot have more than one reference to Office.js or ${officeDTS}`);
         }
 
-        let snippetOfficeReferenceIsOk = 
-            officeJsReferences[0] == canonicalOfficeJsReference ||
-            host.toUpperCase() == 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||
-            (group == "89-preview-apis" && officeJsReferences[0] == betaOfficeJsReference);
-         
+        let snippetOfficeReferenceIsOk =
+            officeJsReferences[0] === canonicalOfficeJsReference ||
+            host.toUpperCase() === 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||
+            (group === '89-preview-apis' && officeJsReferences[0] === betaOfficeJsReference);
+
         if (!snippetOfficeReferenceIsOk) {
             throw new Error(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}"`);
         }

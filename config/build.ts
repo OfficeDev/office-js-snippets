@@ -43,7 +43,7 @@ const defaultApiSets = {
 };
 
 
-(async() => {
+(async () => {
     let processedSnippets = new Dictionary<SnippetProcessedData>();
     await Promise.resolve()
         .then(() => processSnippets(processedSnippets))
@@ -141,7 +141,7 @@ async function processSnippets(processedSnippets) {
                 'Xml': 'XML'
             };
 
-            let groupName = replaceUsingDictionary(dictionary, startCase(file.group), (key, dictionary) => dictionary[key]);
+            let groupName = replaceUsingDictionary(dictionary, startCase(file.group));
 
             return {
                 id: snippet.id,
@@ -162,39 +162,13 @@ async function processSnippets(processedSnippets) {
             accumulatedErrors.push(`Failed to process ${file.relativePath}: ${exception.message || exception}`);
             return null;
         }
-    }
 
-    function replaceUsingDictionary(dictionary, content, replacehandler): string {
-        let patterns = [], // \b is used to mark boundaries "foo" doesn't match food
-            patternHash = {},
-            oldkey, key, index = 0,
-            output = [];
 
-        for (key in dictionary) {
-            if (dictionary.hasOwnProperty(key)) {
-                // Case-insensitivity
-                key = (oldkey = key).toLowerCase();
-                dictionary[key] = dictionary[oldkey];
-
-                // Sanitize the key, and push it in the list
-                patterns.push('\\b(?:' + key.replace(/([[^$.|?*+(){}])/g, '\\$1') + ')\\b');
-
-                // Add entry to hash variable, for an optimized backtracking at the next loop
-                patternHash[key] = index++;
-            }
+        function replaceUsingDictionary(dictionary: { [key: string]: string }, originalName: string): string {
+            let text = startCase(file.group);
+            let parts = text.split(' ').map(item => dictionary[item] || item);
+            return parts.join(' ');
         }
-
-        let pattern = new RegExp(patterns.join('|'), 'gi'),
-            lastIndex = 0;
-
-        while (key = pattern.exec(content)) {
-            key = key[0].toLowerCase();
-            output.push(content.substring(lastIndex, pattern.lastIndex - key.length));
-            output.push(replacehandler(key, dictionary));
-            lastIndex = pattern.lastIndex;
-        }
-        output.push(content.substring(lastIndex, content.length));
-        return output.join('');
     }
 
     function validateProperFabric(snippet: ISnippet): void {
@@ -281,8 +255,8 @@ async function processSnippets(processedSnippets) {
 
         let snippetOfficeReferenceIsOk =
             officeJsReferences[0] === canonicalOfficeJsReference ||
-            host.toUpperCase() === 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||
-            (group === '89-preview-apis' && officeJsReferences[0] === betaOfficeJsReference);
+            host.toUpperCase() === 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||
+            (group === '89-preview-apis' && officeJsReferences[0] === betaOfficeJsReference);
 
         if (!snippetOfficeReferenceIsOk) {
             throw new Error(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}"`);

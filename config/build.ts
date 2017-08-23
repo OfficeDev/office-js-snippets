@@ -256,10 +256,10 @@ async function processSnippets(processedSnippets) {
         let snippetOfficeReferenceIsOk =
             officeJsReferences[0] === canonicalOfficeJsReference ||
             host.toUpperCase() === 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||
-            (group === '89-preview-apis' && officeJsReferences[0] === betaOfficeJsReference);
+            (group.indexOf('preview-apis') >= 0 && officeJsReferences[0] === betaOfficeJsReference);
 
         if (!snippetOfficeReferenceIsOk) {
-            throw new Error(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}"`);
+            throw new Error(`Office.js reference "${officeJsReferences[0]}" does match the canonical form of "${canonicalOfficeJsReference}" and does match any of the exceptions defined by "snippetOfficeReferenceIsOk".`);
         }
 
     }

@@ -226,6 +226,7 @@ async function processSnippets(processedSnippets) {
         const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1/hosted/office.js';
         const betaOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/beta/hosted/office.js';
         const officeDTS = '@types/office-js';
+        const betaOfficeDTS = '@microsoft/office-js@beta/dist/office.d.ts';
 
         const officeJsReferences =
             snippet.libraries.split('\n')
@@ -235,7 +236,7 @@ async function processSnippets(processedSnippets) {
         const officeJsDTSReference =
             snippet.libraries.split('\n')
                 .map(reference => reference.trim())
-                .filter(reference => reference === officeDTS);
+                .filter(reference => reference.match(/^@types\/office-js|@microsoft\/office-js@beta\/dist\/office.d.ts/gi));
 
         if (!isOfficeSnippet) {
             if (officeJsReferences.length > 0 || officeJsDTSReference.length > 0) {
@@ -246,11 +247,11 @@ async function processSnippets(processedSnippets) {
 
         // From here on out, can assume that is an Office snippet;
         if (officeJsReferences.length === 0 || officeJsDTSReference.length === 0) {
-            throw new Error(`Snippet for host "${host}" should have a reference to Office.js and ${officeDTS}`);
+            throw new Error(`Snippet for host "${host}" should have a reference to Office.js and either ${officeDTS} or ${betaOfficeDTS}`);
         }
 
-        if (officeJsReferences.length > 1 || officeJsDTSReference.length === 0) {
-            throw new Error(`Cannot have more than one reference to Office.js or ${officeDTS}`);
+        if (officeJsReferences.length > 1 || officeJsDTSReference.length > 1) {
+            throw new Error(`Cannot have more than one reference to Office.js or to ${officeDTS} and ${betaOfficeDTS}`);
         }
 
         let snippetOfficeReferenceIsOk =

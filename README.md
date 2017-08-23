@@ -17,6 +17,7 @@ A collection of code snippets built with [Script Lab](github.com/OfficeDev/scrip
 4. Install `yarn` as a global package `npm install yarn --global`.
 5. Be sure your CLI is in the root of the office-js-snippets repo and run `yarn install`. (It is similar to `npm install`.)
 6. Set up the original \OfficeDev\office-js-snippets as the upstream repo for your local repo by following the steps in [Configuring a remote for a fork](https://help.github.com/articles/configuring-a-remote-for-a-fork/).
+7. If you'll be using Visual Studio Code as your editor, install the [TSLint](https://marketplace.visualstudio.com/items?itemName=eg2.tslint) extension for Visual Studio Code.
 
 ### Adding a new sample
 

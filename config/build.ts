@@ -254,6 +254,14 @@ async function processSnippets(processedSnippets) {
             throw new Error(`Cannot have more than one reference to Office.js or to ${officeDTS} and ${betaOfficeDTS}`);
         }
 
+        if (officeJsReferences[0] === canonicalOfficeJsReference && officeJsDTSReference[0] !== officeDTS) {
+            throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${officeDTS}" (instead of "${officeJsDTSReference[0]}").`);
+        }
+
+        if (officeJsReferences[0] === betaOfficeJsReference && officeJsDTSReference[0] !== betaOfficeDTS) {
+            throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${betaOfficeDTS}" (instead of "${officeJsDTSReference[0]}").`);
+        }
+
         let snippetOfficeReferenceIsOk =
             officeJsReferences[0] === canonicalOfficeJsReference ||
             host.toUpperCase() === 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||

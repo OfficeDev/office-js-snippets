@@ -43,7 +43,7 @@ const defaultApiSets = {
 };
 
 
-(async() => {
+(async () => {
     let processedSnippets = new Dictionary<SnippetProcessedData>();
     await Promise.resolve()
         .then(() => processSnippets(processedSnippets))
@@ -96,7 +96,7 @@ async function processSnippets(processedSnippets) {
             validateId(snippet, file.relativePath, messages);
             validateSnippetHost(snippet, file.host, messages);
             validateAtTypesDeclarations(snippet, messages);
-            validateOfficialOfficeJs(snippet, file.host, messages);
+            validateOfficialOfficeJs(snippet, file.host, file.group, messages);
             validateApiSetNonEmpty(snippet, file.host, file.relativePath, messages);
             validateVersionNumbersOnLibraries(snippet, messages);
             validateTabsInsteadOfSpaces(snippet, messages);
@@ -135,6 +135,14 @@ async function processSnippets(processedSnippets) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
             }
 
+            // Define dictionary of words in file.group that require special casing
+            let dictionary = {
+                'Apis': 'APIs',
+                'Xml': 'XML'
+            };
+
+            let groupName = replaceUsingDictionary(dictionary, startCase(file.group));
+
             return {
                 id: snippet.id,
                 name: snippet.name,
@@ -143,7 +151,7 @@ async function processSnippets(processedSnippets) {
                 description: snippet.description,
                 host: file.host,
                 rawUrl: rawUrl,
-                group: startCase(file.group),
+                group: groupName,
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
                 api_set: snippet.api_set,
                 isPublic: file.isPublic
@@ -153,6 +161,13 @@ async function processSnippets(processedSnippets) {
             status.complete(false /*success*/, `Processing ${file.relativePath}`, messages);
             accumulatedErrors.push(`Failed to process ${file.relativePath}: ${exception.message || exception}`);
             return null;
+        }
+
+
+        function replaceUsingDictionary(dictionary: { [key: string]: string }, originalName: string): string {
+            let text = startCase(file.group);
+            let parts = text.split(' ').map(item => dictionary[item] || item);
+            return parts.join(' ');
         }
     }
 
@@ -206,10 +221,12 @@ async function processSnippets(processedSnippets) {
             });
     }
 
-    function validateOfficialOfficeJs(snippet: ISnippet, host: string, messages: any[]): void {
+    function validateOfficialOfficeJs(snippet: ISnippet, host: string, group: string, messages: any[]): void {
         const isOfficeSnippet = officeHosts.indexOf(host.toUpperCase()) >= 0;
         const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1/hosted/office.js';
+        const betaOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/beta/hosted/office.js';
         const officeDTS = '@types/office-js';
+        const betaOfficeDTS = '@microsoft/office-js@beta/dist/office.d.ts';
 
         const officeJsReferences =
             snippet.libraries.split('\n')
@@ -219,7 +236,7 @@ async function processSnippets(processedSnippets) {
         const officeJsDTSReference =
             snippet.libraries.split('\n')
                 .map(reference => reference.trim())
-                .filter(reference => reference === officeDTS);
+                .filter(reference => reference.match(/^@types\/office-js|@microsoft\/office-js@beta\/dist\/office.d.ts/gi));
 
         if (!isOfficeSnippet) {
             if (officeJsReferences.length > 0 || officeJsDTSReference.length > 0) {
@@ -230,18 +247,30 @@ async function processSnippets(processedSnippets) {
 
         // From here on out, can assume that is an Office snippet;
         if (officeJsReferences.length === 0 || officeJsDTSReference.length === 0) {
-            throw new Error(`Snippet for host "${host}" should have a reference to Office.js and ${officeDTS}`);
+            throw new Error(`Snippet for host "${host}" should have a reference to Office.js and either ${officeDTS} or ${betaOfficeDTS}`);
         }
 
-        if (officeJsReferences.length > 1 || officeJsDTSReference.length === 0) {
-            throw new Error(`Cannot have more than one reference to Office.js or ${officeDTS}`);
+        if (officeJsReferences.length > 1 || officeJsDTSReference.length > 1) {
+            throw new Error(`Cannot have more than one reference to Office.js or to ${officeDTS} and ${betaOfficeDTS}`);
         }
 
-        // for now, outlook does not want to use cannonical Office.js due to bug #65.
-        if (officeJsReferences[0] !== canonicalOfficeJsReference && host.toUpperCase() !== 'OUTLOOK') {
-            messages.push(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}". Fixing it.`);
-            snippet.libraries = snippet.libraries.replace(officeJsReferences[0], canonicalOfficeJsReference);
+        if (officeJsReferences[0] === canonicalOfficeJsReference && officeJsDTSReference[0] !== officeDTS) {
+            throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${officeDTS}" (instead of "${officeJsDTSReference[0]}").`);
         }
+
+        if (officeJsReferences[0] === betaOfficeJsReference && officeJsDTSReference[0] !== betaOfficeDTS) {
+            throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${betaOfficeDTS}" (instead of "${officeJsDTSReference[0]}").`);
+        }
+
+        let snippetOfficeReferenceIsOk =
+            officeJsReferences[0] === canonicalOfficeJsReference ||
+            host.toUpperCase() === 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||
+            (group.indexOf('preview-apis') >= 0 && officeJsReferences[0] === betaOfficeJsReference);
+
+        if (!snippetOfficeReferenceIsOk) {
+            throw new Error(`Office.js reference "${officeJsReferences[0]}" does match the canonical form of "${canonicalOfficeJsReference}" and does match any of the exceptions defined by "snippetOfficeReferenceIsOk".`);
+        }
+
     }
 
     function validateApiSetNonEmpty(snippet: ISnippet, host: string, localPath: string, messages: any[]): void {

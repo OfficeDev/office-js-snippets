@@ -1,7 +1,7 @@
 order: 1
 id: excel-89-preview-apis-range-hyperlink-
 name: Range hyperlink
-description: 'Create, update, and remove a hyperlink for a range.'
+description: 'Create, update, and clear a hyperlink for a range.'
 author: OfficeDev
 host: EXCEL
 api_set:
@@ -13,7 +13,7 @@ script:
         $("#create-url-hyperlink").click(() => tryCatch(createUrlHyperlink));
         $("#create-document-hyperlink").click(() => tryCatch(createDocumentHyperlink));
         $("#update-hyperlink").click(() => tryCatch(updateHyperlink));
-        $("#remove-hyperlink").click(() => tryCatch(removeHyperlink));
+        $("#clear-hyperlink").click(() => tryCatch(clearHyperlink));
 
         async function createUrlHyperlink() {
             await Excel.run(async (context) => {
@@ -67,11 +67,18 @@ script:
             });
         }
 
-        async function removeHyperlink() {
+        async function clearHyperlink() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Sample");
-                const range = sheet.getRange("A1:A5");
+                const range = sheet.getRange("A1:E5");
+
+                // Clear the hyperlink.
+                // This eliminates the hyperlink but does not update text format.
                 range.clear(Excel.ClearApplyTo.hyperlinks);
+
+                // Update text format.
+                range.format.font.underline = Excel.RangeUnderlineStyle.none;
+                range.format.font.color = "#000000";
 
                 await context.sync();
             });
@@ -132,7 +139,7 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to create, update, and remove a hyperlink for a range using the Excel API.</p>
+            <p>This sample shows how to create, update, and clear a hyperlink for a range using the Excel API.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -153,8 +160,8 @@ template:
             <button id="update-hyperlink" class="ms-Button">
                 <span class="ms-Button-label">Update hyperlink</span>
             </button>
-            <button id="remove-hyperlink" class="ms-Button">
-                <span class="ms-Button-label">Remove hyperlink</span>
+            <button id="clear-hyperlink" class="ms-Button">
+                <span class="ms-Button-label">Clear hyperlink</span>
             </button>
         </section>
     language: html

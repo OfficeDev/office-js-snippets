@@ -1,0 +1,61 @@
+name: Conditional Formatting
+description: Apply conditional formatting to ranges
+host: EXCEL
+api_set: {"ExcelApi": 1.6}
+script:
+    content: "$(\"#setup\").click(setup);\n$(\"#list-conditional-formats\").click(listConditionalFormats);\n$(\"#apply-color-scale-format\").click(applyColorScaleFormat);\n$(\"#clear-all-conditional-formats\").click(clearAllConditionalFormats);\n\nasync function listConditionalFormats() {\n    try {\n        await Excel.run(async (context) => {\n\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n            sheet.load(\"name\");\n\n            const conditionalFormats = sheet.getRange().conditionalFormats.load(\"type\")\n\n            await context.sync();\n\n            await context.sync();\n\n            $(\"#conditional-formats li\").remove();\n\n            if (conditionalFormats.items.length > 0) {\n                for (let i = 0; i < conditionalFormats.items.length; i++) {\n                    let $a = $(`<a href=''>${conditionalFormats.items[i].type}</a>`)\n                        .click(\n                            { workbook: context.workbook, worksheet: sheet.name, index: i },\n                            async (e: any) => {\n                                try {\n                                    e.preventDefault();\n                                    await Excel.run(e.data.workbook, async (context) => {\n                                        const sheet = context.workbook.worksheets.getItem(e.data.worksheet);\n                                        const conditionalFormat = sheet.getRange()\n                                            .conditionalFormats.getItemAt(e.data.index);\n                                        const range = conditionalFormat.getRange();\n                                        range.select();\n                                        await context.sync();\n                                    });\n                                }\n                                catch (error) {\n                                    OfficeHelpers.UI.notify(error);\n                                    OfficeHelpers.Utilities.log(error);\n                                }\n                        });\n\n                    let $li = $(`<li></li>`);\n                    $li.append($a);\n\n                    $(\"#conditional-formats\").append($li)\n                }\n            } else {\n                let $li = $(`<li>No conditional formats in the worksheet</li>`);\n                $(\"#conditional-formats\").append($li)\n            }\n            $(\".conditional-formats\").show();\n        });\n    }\n    catch (error) {\n        OfficeHelpers.UI.notify(error);\n        OfficeHelpers.Utilities.log(error);\n    }\n}\n\nasync function applyColorScaleFormat() {\n    try {\n        await Excel.run(async (context) => {\n\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n            const range = sheet.getRange(\"B2:M5\");\n\n            const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.colorScale);\n\n            conditionalFormat.priority = 0;\n\n            conditionalFormat.colorScale.criteria = { \n\t\t\t\tminimum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.lowestValue, color: \"blue\" },\n\t\t\t\tmidpoint: { formula: \"50\", type: Excel.ConditionalFormatColorCriterionType.percent, color: \"yellow\" },\n\t\t\t\tmaximum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.highestValue, color: \"red\" }\n            }; \n\n            await context.sync();\n\n            await listConditionalFormats();\n        });\n    }\n    catch (error) {\n        OfficeHelpers.UI.notify(error);\n        OfficeHelpers.Utilities.log(error);\n    }\n}\n\nasync function clearAllConditionalFormats() {\n    try {\n        await Excel.run(async (context) => {\n\n            const sheet = context.workbook.worksheets.getItem(\"Sample\");\n            const range = sheet.getRange();\n\n            range.conditionalFormats.clearAll();\n            \n            await context.sync();\n\n            await listConditionalFormats();\n        });\n    }\n    catch (error) {\n        OfficeHelpers.UI.notify(error);\n        OfficeHelpers.Utilities.log(error);\n    }\n}\n\nasync function setup() {\n\ttry {\n\t\tawait Excel.run(async (context) => {\n            const sheet = await OfficeHelpers.ExcelUtilities\n                .forceCreateSheet(context.workbook, \"Sample\");\n\n            const data = [\n                [\"\", \"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"],\n                [\"Avg High\", 40, 38, 44, 45, 51, 56, 67, 72, 79, 59, 45, 41],\n                [\"Avg Low\", 34, 33, 38, 41, 45, 48, 51, 55, 54, 45, 41, 38],\n                [\"Record High\", 61, 69, 79, 83, 95, 97, 100, 101, 94, 87, 72, 66],\n                [\"Record Low\", 0, 2, 9, 24, 28, 32, 36,39, 35, 21, 12, 4]\n            ];\n\n            const range = sheet.getRange(\"A1\")\n                .getResizedRange(data.length - 1, data[0].length - 1);\n            range.values = data;\n            \n            const header = sheet.getRange(\"B1:M1\");\n            header.format.font.bold = true;\n\n            range.format.autofitColumns();\n\n            sheet.activate();\n\t\t    await context.sync();\n\t    });\n    }\n\tcatch (error) {\n        OfficeHelpers.UI.notify(error);\n        OfficeHelpers.Utilities.log(error);\n\t}\n}\n"
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to apply conditional formatting to ranges using the Excel JavaScript API.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="list-conditional-formats" class="ms-Button">
+                <span class="ms-Button-label">List conditional formats</span>
+            </button>
+            <button id="apply-color-scale-format" class="ms-Button">
+                <span class="ms-Button-label">Apply color scale format</span>
+            </button>
+            <button id="clear-all-conditional-formats" class="ms-Button">
+                <span class="ms-Button-label">Clear all conditional formats</span>
+            </button>
+            
+        </section>
+
+        <section class="conditional-formats ms-font-m" hidden=true>
+            <h3>Conditional Formats</h3>
+            <ul id="conditional-formats" class="ms-font-m">
+            </ul>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    # Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    # CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    # NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    # IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers/dist/office.helpers.d.ts
+    @types/jquery

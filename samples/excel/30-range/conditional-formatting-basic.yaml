@@ -5,7 +5,7 @@ host: EXCEL
 api_set:
     ExcelApi: 1.6
 script:
-    content: |
+    content: |-
         $("#setup").click(() => tryCatch(setup));
         $("#apply-color-scale-format").click(() => tryCatch(applyColorScaleFormat));
         $("#apply-preset-format").click(() => tryCatch(applyPresetFormat));
@@ -27,9 +27,9 @@ script:
                     minimum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.lowestValue, color: "blue" },
                     midpoint: { formula: "50", type: Excel.ConditionalFormatColorCriterionType.percent, color: "yellow" },
                     maximum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.highestValue, color: "red" }
-                }; 
+                };
                 conditionalFormat.colorScale.criteria = criteria;
-                
+
                 await context.sync();
             });
         }
@@ -70,45 +70,31 @@ script:
 
                 /*
                     The iconSetCF.criteria array is automatically prepopulated with
-                    criterion elements whose properties have been given default settings
-                    based on type passed to the add method above. In this snippet, iconSet.
-                    You cannot directly assign new values to the elements or their properties.
-                    You must first (1) assign the array to a variable, (2) modify the
-                    variable, and then (3) copy the variable back to the original array.
-                    Step #1 requires reading the iconSetCF.criteria, so you have to load it
-                    and sync before you can carry out the process.
-                */
-                iconSetCF.load("criteria");
+                    criterion elements whose properties have been given default settings.
+                    You can't write to each property of a criterion directly. Instead,
+                    replace the whole criteria object.
 
-                await context.sync();
-
-                const criteria = iconSetCF.criteria;
-
-                /*
                     With a "three*" icon set style, such as "threeFlags", the third
                     element in the criteria array (criteria[2]) defines the "top" icon;
                     e.g., a green flag. The second (criteria[1]) defines the "middle"
-                    icon, The first (criteria[0]) defines the "low" icon although it
-                    can often be left implicit as this method does below.
+                    icon, The first (criteria[0]) defines the "low" icon, but it
+                    can often be left empty as this method does below, because every
+                    cell that does not match the other two criteria always gets the low
+                    icon.            
                 */
-
-                // Every cell value above 1000 gets a green flag
-                criteria[2].type = Excel.ConditionalFormatIconRuleType.number;
-                criteria[2].operator = Excel.ConditionalIconCriterionOperator.greaterThan;
-                criteria[2].formula = "=1000";
-
-                // Cell values between 701 and 1000 get a yellow flag
-                criteria[1].type = Excel.ConditionalFormatIconRuleType.number;
-                criteria[1].operator = Excel.ConditionalIconCriterionOperator.greaterThan;
-                criteria[1].formula = "=700";
-
-                /*
-                    Unless you are doing something special with the "low" icon criterion
-                    (criteria[0]), you  do not need to explicitly set its properties. Any cells
-                    that the middle and top criteria do not apply to will get the "low" icon. In
-                    this snippet everything below 700 gets a red flag.
-                */
-                iconSetCF.criteria = criteria;
+                iconSetCF.criteria = [
+                    {} as any,
+                    {
+                        type: Excel.ConditionalFormatIconRuleType.number,
+                        operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
+                        formula: "=700"
+                    },
+                    {
+                        type: Excel.ConditionalFormatIconRuleType.number,
+                        operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
+                        formula: "=1000",
+                    }
+                ];
 
                 await context.sync();
             });
@@ -121,10 +107,7 @@ script:
                 const conditionalFormat = range.conditionalFormats
                     .add(Excel.ConditionalFormatType.containsText);
                 conditionalFormat.textComparison.format.font.color = "red";
-                conditionalFormat.textComparison.rule = {
-                    operator: Excel.ConditionalTextOperator.contains,
-                    text: "Delayed"
-                };
+                conditionalFormat.textComparison.rule = { operator: Excel.ConditionalTextOperator.contains, text: "Delayed" };
 
                 await context.sync();
             });
@@ -158,35 +141,34 @@ script:
         async function listConditionalFormats() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Sample");
-                sheet.load("name");
                 const worksheetRange = sheet.getRange();
-                worksheetRange.load("conditionalFormats/type");
+                worksheetRange.conditionalFormats.load("type");
+
+                await context.sync();
+
+                let cfRangePairs: { cf: Excel.ConditionalFormat, range: Excel.Range }[] = [];
+                worksheetRange.conditionalFormats.items.forEach(item => {
+                    cfRangePairs.push({
+                        cf: item,
+                        range: item.getRange().load("address")
+                    });
+                });
 
                 await context.sync();
 
                 $("#conditional-formats li").remove();
-                if (worksheetRange.conditionalFormats.items.length > 0) {
-                    for (let i = 0; i < worksheetRange.conditionalFormats.items.length; i++) {
-                        let $a = $(`<a href=''>${worksheetRange.conditionalFormats.items[i].type}</a>`)
-                            .click(
-                                async (e: any) => {
-                                    e.preventDefault();
-                                    const sheet = context.workbook.worksheets
-                                        .getItem(e.data.worksheet);
-                                    const conditionalFormat = sheet.getRange()
-                                        .conditionalFormats.getItemAt(e.data.index);
-                                    const range = conditionalFormat.getRange();
-                                    range.select();
-
-                                    await context.sync();
-                            });
+                if (cfRangePairs.length > 0) {
+                    cfRangePairs.forEach(item => {
+                        let $p = $("<p></p>").text(
+                            `${item.cf.type}`)
                         let $li = $(`<li></li>`);
-                        $li.append($a);
+                        $li.append($p);
                         $("#conditional-formats").append($li);
-                        $(".conditional-formats").show();
-                    }
-                } else {
-                    showNotification("No conditional formats in workbook");
+                        $(".conditional-formats").show()[0].scrollIntoView();
+                    })
+                }
+                else {
+                    OfficeHelpers.UI.notify("None to display", "No conditional formats in workbook", "warning");
                 }
             });
         }
@@ -196,7 +178,7 @@ script:
                 const sheet = context.workbook.worksheets.getItem("Sample");
                 const range = sheet.getRange();
                 range.conditionalFormats.clearAll();
-                
+
                 await context.sync();
 
                 $(".conditional-formats").hide();
@@ -211,8 +193,12 @@ script:
                 queueCommandsToCreateSalesTable(sheet);
                 queueCommandsToCreateProjectTable(sheet);
                 queueCommandsToCreateProfitLossTable(sheet);
-                sheet.activate();
 
+                let format = sheet.getRange().format;
+                format.autofitColumns();
+                format.autofitRows();
+
+                sheet.activate();
                 await context.sync();
             });
         }
@@ -227,8 +213,6 @@ script:
                 ["Record High", 61, 69, 79, 83, 95, 97, 100, 101, 94, 87, 72, 66],
                 ["Record Low", 0, 2, 9, 24, 28, 32, 36, 39, 35, 21, 12, 4]
             ]);
-            temperatureTable.getRange().format.autofitColumns();
-            temperatureTable.getRange().format.autofitRows();
         }
 
         function queueCommandsToCreateSalesTable(sheet: Excel.Worksheet) {
@@ -243,8 +227,6 @@ script:
                 ["Euro Team 2", 5001, 2232, 4763, 678],
                 ["Euro Team 3", 130, 776, 104, 789]
             ]);
-            salesTable.getRange().format.autofitColumns();
-            salesTable.getRange().format.autofitRows();
         }
 
         function queueCommandsToCreateProjectTable(sheet: Excel.Worksheet) {
@@ -256,8 +238,6 @@ script:
                 ["Project 2", "Complete", "Complete", "On Schedule"],
                 ["Project 3", "Ongoing", "Not Started", "Delayed"]
             ]);
-            projectTable.getRange().format.autofitColumns();
-            projectTable.getRange().format.autofitRows();
         }
 
         function queueCommandsToCreateProfitLossTable(sheet: Excel.Worksheet) {
@@ -270,8 +250,6 @@ script:
                 ["Northwind", -858.21, 35.33, 49.01, 112.68]
             ]);
             profitLossTable.getDataBodyRange().numberFormat = [["$#,##0.00"]];
-            profitLossTable.getRange().format.autofitColumns();
-            profitLossTable.getRange().format.autofitRows();
         }
 
         /** Default helper for invoking an action and handling errors. */
@@ -283,19 +261,6 @@ script:
                 OfficeHelpers.UI.notify(error);
                 OfficeHelpers.Utilities.log(error);
             }
-        }
-
-        /**
-         * Display the notification having synced the changes.
-         */
-        function showNotification(message: string) {
-            const messageBanner = $('.ms-MessageBanner');
-            $('.ms-MessageBanner-clipper').text(message);
-            $('.ms-MessageBanner-close').click(() => {
-                messageBanner.hide();
-                messageBanner.off('click');
-            });
-            messageBanner.show();
         }
     language: typescript
 template:

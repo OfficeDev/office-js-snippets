@@ -1,30 +1,39 @@
-id: excel-chart-chart-title-set-method
-name: ChartTitle set method example - JS
-description: Create a column clustered chart
+id: excel-20-chart-chart-title-ts-
+name: Chart title - TS
+description: Set and get the title of a chart
+author: OfficeDev
 host: EXCEL
 api_set:
     ExcelApi: 1.1
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
+
         $("#set-title").click(() => tryCatch(setTitle));
+        $("#get-title").click(() => tryCatch(getTitle));
 
         async function setTitle() {
-            Excel.run(function (ctx) {
+            await Excel.run(async (ctx) => {
                 var chart = ctx.workbook.worksheets.getItem("Sample").charts.getItem("Chart1");
 
                 chart.title.text = "My Chart";
                 chart.title.visible = true;
-                chart.title.overlay = true;
+                chart.title.overlay = false;
 
-                return ctx.sync().then(function () {
-                    console.log("Chart title changed");
-                })
-            }).catch(function (error) {
-                console.log("Error: " + error);
-                if (error instanceof OfficeExtension.Error) {
-                    console.log("Debug info: " + JSON.stringify(error.debugInfo));
-                }
+                await ctx.sync();
+
+                console.log("Chart title has been updated");
+            });
+        }
+
+        async function getTitle() {
+            await Excel.run(async (ctx) => {
+                var chart = ctx.workbook.worksheets.getItem("Sample").charts.getItem("Chart1");
+                chart.load('title/text');
+
+                await ctx.sync();
+
+                console.log(`Chart title is "${chart.title.text}"`);
             });
         }
 
@@ -88,7 +97,7 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to set a chart title using the Excel JavaScript API.</p>
+            <p>This sample shows how to set and get the title of a chart using the Excel JavaScript API.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -101,7 +110,10 @@ template:
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
             <button id="set-title" class="ms-Button">
-                <span class="ms-Button-label">Set title</span>
+                <span class="ms-Button-label">Set chart title</span>
+            </button>
+            <button id="get-title" class="ms-Button">
+                <span class="ms-Button-label">Get chart title</span>
             </button>
         </section>
     language: html

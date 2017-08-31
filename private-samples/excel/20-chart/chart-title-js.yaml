@@ -1,0 +1,142 @@
+id: excel-20-chart-chart-title-js-
+name: Chart title - JS
+description: Set and get the title of a chart
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+
+        $("#set-title").click(() => tryCatch(setTitle));
+        $("#get-title").click(() => tryCatch(getTitle));
+
+        function setTitle() {
+            return Excel.run(function (ctx) {
+                var chart = ctx.workbook.worksheets.getItem("Sample").charts.getItem("Chart1");
+
+                chart.title.text = "My Chart";
+                chart.title.visible = true;
+                chart.title.overlay = false;
+
+                return ctx.sync()
+                    .then(function () {
+                        console.log("Chart title has been updated");
+                    })
+            });
+        }
+
+        function getTitle() {
+            return Excel.run(function (ctx) {
+                var chart = ctx.workbook.worksheets.getItem("Sample").charts.getItem("Chart1");
+                chart.load('title/text');
+                
+                return ctx.sync()
+                    .then(function () {
+                        console.log("Chart title is '" + chart.title.text + "'");
+                    })
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let expensesTable = sheet.tables.add('A1:E1', true);
+
+                expensesTable.name = "SalesTable";
+
+                expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                expensesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ]);
+
+                const salesTable = sheet.tables.getItem("SalesTable");
+
+                const dataRange = salesTable.getDataBodyRange();
+
+                let chart = sheet.charts.add("ColumnClustered", dataRange, "auto");
+
+                chart.setPosition("A15", "F30");
+                chart.title.text = "Quarterly sales chart";
+                chart.legend.position = "right"
+                chart.legend.format.fill.setSolidColor("white");
+                chart.dataLabels.format.font.size = 15;
+                chart.dataLabels.format.font.color = "black";
+                let points = chart.series.getItemAt(0).points;
+                points.getItemAt(0).format.fill.setSolidColor("pink");
+                points.getItemAt(1).format.fill.setSolidColor("indigo");
+
+                chart.name = "Chart1";
+
+                await context.sync();
+                sheet.activate();
+            });
+        }
+
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to set and get the title of a chart using the Excel JavaScript API.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create sample chart</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="set-title" class="ms-Button">
+                <span class="ms-Button-label">Set chart title</span>
+            </button>
+            <button id="get-title" class="ms-Button">
+                <span class="ms-Button-label">Get chart title</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+    @types/jquery

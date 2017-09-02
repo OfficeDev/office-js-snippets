@@ -8,10 +8,10 @@ api_set:
     WordApi: 1.1
 script:
     content: |-
-        $("#run").click(run);
+        $("#run").click(() => tryCatch(run));
 
         function run() {
-            Word.run(function (context) {
+            return Word.run(function (context) {
                 var range = context.document.getSelection();
                 range.font.color = "red";
                 range.load("text");
@@ -19,9 +19,15 @@ script:
                 return context.sync()
                     .then(function() {
                         console.log("The selected text was \"" + range.text + "\".");
-                    })
-            })
-                .catch(function(error) {
+                    });
+            });
+        }
+        
+        /** Default helper for invoking an action and handling errors. */
+        function tryCatch(callback) {
+            Promise.resolve()
+                .then(callback)
+                .catch(function (error) {
                     OfficeHelpers.UI.notify(error);
                     OfficeHelpers.Utilities.log(error);
                 });

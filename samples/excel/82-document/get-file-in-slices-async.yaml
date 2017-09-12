@@ -1,6 +1,6 @@
 id: excel-82-document-get-file-in-slices-async-
-name: Get file in slices and recombine
-description: Get current file in slices and recombine the slices afterwards.
+name: Get file (using slicing)
+description: Use slicing to get the byte array and base64-encoded string that represent the current document.
 host: EXCEL
 api_set:
     ExcelApi: 1.1
@@ -13,7 +13,7 @@ script:
         function getCurrentFile() {
             const sliceSize = 4096 /*Bytes*/
 
-            // Note: If you don't specify the slice size, a default will be assumed for you.  In this sample. to demonstrate how the slices work, a small size limit is specified.
+            // This snippet specifies a small slice size to show how the getFileAsync() method uses slices.
             Office.context.document.getFileAsync(Office.FileType.Compressed, { sliceSize: sliceSize },
                 function (result) {
                     if (result.status === Office.AsyncResultStatus.Failed) {
@@ -30,14 +30,14 @@ script:
             }
 
             function onSuccess(byteArray: number[]) {
-                // Now that all the file content is stored in the "data" parameter,
-                // you can do something with it, such as print, store into database, etc.
+                // Now that all of the file content is stored in the "data" parameter,
+                // you can do something with it, such as print the file, store the file in a database, etc.
                 console.log("Received the full contents of the file.");
 
                 let base64string = base64js.fromByteArray(byteArray);
                 $('#file-contents').val(base64string).show();
 
-                OfficeHelpers.UI.notify("You can validate the file contents in the text box using an online tool like https://www.base64decode.org/.  To do this, copy the base64 string and paste it into the tool decoder.  Decode and open the resulting file.");
+                OfficeHelpers.UI.notify("The base64-encoded string that represents the current document has been written to the text box below. To validate the string, use an online tool such as https://www.base64decode.org/ to decode the string, and then open the resulting file.");
             }
         }
 
@@ -62,8 +62,6 @@ script:
                     }
 
                     // Got one slice, store it in a temporary array.
-                    // (Or you can do something else, such as
-                    // send it to a third-party server.)
                     fileSlices.push(result.value.data);
 
                     if (fileSlices.length == expectedSliceCount) {
@@ -107,33 +105,29 @@ script:
                 }
 
                 sheet.activate();
+                createChart(context);
 
-                await context.sync();
-                createChart();
+                await context.sync();                
             });
         } 
 
-        async function createChart() {
-            await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Sample");
-                const salesTable = sheet.tables.getItem("SalesTable");
+        async function createChart(context) {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const salesTable = sheet.tables.getItem("SalesTable");
 
-                const dataRange = salesTable.getDataBodyRange();
+            const dataRange = salesTable.getDataBodyRange();
 
-                let chart = sheet.charts.add("ColumnClustered", dataRange, Excel.ChartSeriesBy.columns);
+            let chart = sheet.charts.add("ColumnClustered", dataRange, Excel.ChartSeriesBy.columns);
 
-                chart.setPosition("A15", "F30");
-                chart.title.text = "Quarterly sales chart";
-                chart.legend.position = "right"
-                chart.legend.format.fill.setSolidColor("white");
-                chart.dataLabels.format.font.size = 15;
-                chart.dataLabels.format.font.color = "black";
-                let points = chart.series.getItemAt(0).points;
-                points.getItemAt(0).format.fill.setSolidColor("pink");
-                points.getItemAt(1).format.fill.setSolidColor("indigo");
-
-                await context.sync();
-            });
+            chart.setPosition("A15", "F30");
+            chart.title.text = "Quarterly sales chart";
+            chart.legend.position = "right"
+            chart.legend.format.fill.setSolidColor("white");
+            chart.dataLabels.format.font.size = 15;
+            chart.dataLabels.format.font.color = "black";
+            let points = chart.series.getItemAt(0).points;
+            points.getItemAt(0).format.fill.setSolidColor("pink");
+            points.getItemAt(1).format.fill.setSolidColor("indigo");          
         }
 
         /** Default helper for invoking an action and handling errors. */
@@ -156,7 +150,7 @@ script:
 template:
     content: |
         <section class="ms-font-m">
-            <p>This sample shows how to get a file in slices, and join the slices back again later.</p>
+            <p>This sample shows how to get the base64-encoded string that represents the current document. It uses the getFileAsync() method to read the file in slices and then joins all slices back together to form the complete file.</p>
         </section>
 
         <section class="setup ms-font-m">

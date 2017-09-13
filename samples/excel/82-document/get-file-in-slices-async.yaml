@@ -1,0 +1,195 @@
+id: excel-82-document-get-file-in-slices-async
+name: Get file (using slicing)
+description: Use slicing to get the byte array and base64-encoded string that represent the current document.
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#get-file").click(() => tryCatch(getCurrentFile));
+
+
+        function getCurrentFile() {
+            const sliceSize = 4096; /*Bytes*/
+
+            // This snippet specifies a small slice size to show how the getFileAsync() method uses slices.
+            Office.context.document.getFileAsync(Office.FileType.Compressed, { sliceSize: sliceSize },
+                function (result) {
+                    if (result.status === Office.AsyncResultStatus.Failed) {
+                        return onError(result.error);
+                    }
+
+                    // Result.value is the File object.
+                    getFileContents(result.value, onSuccess, onError);
+                });
+
+            function onError(error: Office.Error): void {
+                OfficeHelpers.UI.notify('Error', error.message);
+                OfficeHelpers.Utilities.log(error);
+            }
+
+            function onSuccess(byteArray: number[]) {
+                // Now that all of the file content is stored in the "data" parameter,
+                // you can do something with it, such as print the file, store the file in a database, etc.
+                console.log("Received the full contents of the file.");
+
+                let base64string = base64js.fromByteArray(byteArray);
+                $('#file-contents').val(base64string).show();
+
+                OfficeHelpers.UI.notify("The base64-encoded string that represents the current document has been written to the text box below. To validate the string, use an online tool such as https://www.base64decode.org/ to decode the string, and then open the resulting file.");
+            }
+        }
+
+        function getFileContents(
+            file: Office.File,
+            onSuccess: (byteArray: number[]) => void,
+            onError: (error: Office.Error) => void
+        ) {
+            let expectedSliceCount = file.sliceCount;
+            let fileSlices: Array<Array<number>> = [];
+
+            console.log("Current file size in bytes: " + file.size);
+            console.log("Number of file slices: " + file.sliceCount);
+
+            getFileContentsHelper();
+
+            function getFileContentsHelper() {
+                file.getSliceAsync(fileSlices.length, function (result) {
+                    if (result.status === Office.AsyncResultStatus.Failed) {
+                        file.closeAsync();
+                        return onError(result.error);
+                    }
+
+                    // Got one slice, store it in a temporary array.
+                    fileSlices.push(result.value.data);
+
+                    if (fileSlices.length == expectedSliceCount) {
+                        console.log("All slices have been received.");
+                        file.closeAsync();
+
+                        let array = [];
+                        fileSlices.forEach(slice => {
+                            array = array.concat(slice);
+                        });
+
+                        onSuccess(array);
+                    } else {
+                        getFileContentsHelper();
+                    }
+                });
+            }
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                let expensesTable = sheet.tables.add('A1:E1', true);
+                expensesTable.name = "SalesTable";
+
+                expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                expensesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+               
+                createChart(context);
+                sheet.activate();
+
+                await context.sync();                
+            });
+        } 
+
+        async function createChart(context: Excel.RequestContext) {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const salesTable = sheet.tables.getItem("SalesTable");
+
+            const dataRange = salesTable.getDataBodyRange();
+
+            let chart = sheet.charts.add("ColumnClustered", dataRange, Excel.ChartSeriesBy.columns);
+
+            chart.setPosition("A15", "F30");
+            chart.title.text = "Quarterly sales chart";
+            chart.legend.position = "right"
+            chart.legend.format.fill.setSolidColor("white");
+            chart.dataLabels.format.font.size = 15;
+            chart.dataLabels.format.font.color = "black";
+            let points = chart.series.getItemAt(0).points;
+            points.getItemAt(0).format.fill.setSolidColor("pink");
+            points.getItemAt(1).format.fill.setSolidColor("indigo");          
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        declare namespace base64js {
+            /** Takes a byte array and returns a base64 string
+             * Imported from https://www.npmjs.com/package/base64-js package. */
+            function fromByteArray(array: number[]): string;
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to get the base64-encoded string that represents the current document. It uses the getFileAsync() method to read the file in slices and then joins all slices back together to form the complete file.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>   
+            <button id="get-file" class="ms-Button">
+                <span class="ms-Button-label">Get file</span>
+            </button>
+            <br/>
+            <textarea id="file-contents">        
+            </textarea>    
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n\r\n#file-contents {\r\n    display: none;\r\n    width: 100%;\r\n    height: 10em;\r\n}\r\n"
+    language: css
+libraries: |-
+    # Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    # CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    # NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    # IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+    @types/jquery
+
+    https://unpkg.com/base64-js@1.2.1/base64js.min.js

@@ -233,33 +233,38 @@ async function processSnippets(processedSnippets) {
                 .map(reference => reference.trim())
                 .filter(reference => reference.match(/^http.*\/office\.js$/gi));
 
-        const officeJsDTSReference =
+        const officeDtsReferences =
             snippet.libraries.split('\n')
                 .map(reference => reference.trim())
-                .filter(reference => reference.match(/^@types\/office-js|@microsoft\/office-js@beta\/dist\/office.d.ts/gi));
+                .filter(reference => reference.match(/.*((@types\/office-js)|(office\.d\.ts))$/gi));
+            /* Note: regex matches:
+                - @types/office-js
+                - https://unpkg.com/etc/office.d.ts
+               But not:
+                - @types/office-jsfake
+                - https://unpkg.com/etc/office.d.ts.ish
+                - office.d.ts.unrelated
+             */
 
         if (!isOfficeSnippet) {
-            if (officeJsReferences.length > 0 || officeJsDTSReference.length > 0) {
-                throw new Error(`Snippet for host "${host}" should not have a reference to Office.js or ${officeDTS}`);
+            if (officeJsReferences.length > 0 || officeDtsReferences.length > 0) {
+                throw new Error(`Snippet for host "${host}" should not have a reference to either office.js or to office.d.ts`);
             }
             return;
         }
 
-        // From here on out, can assume that is an Office snippet;
-        if (officeJsReferences.length === 0 || officeJsDTSReference.length === 0) {
-            throw new Error(`Snippet for host "${host}" should have a reference to Office.js and either ${officeDTS} or ${betaOfficeDTS}`);
+
+        // From here on out, can assume that is an Office snippet
+
+        if (officeJsReferences.length === 0) {
+            throw new Error(`Snippet for host "${host}" should have a reference to office.js`);
+        }
+        if (officeDtsReferences.length === 0) {
+            throw new Error(`Snippet for host "${host}" should have a reference to office.d.ts`);
         }
 
-        if (officeJsReferences.length > 1 || officeJsDTSReference.length > 1) {
-            throw new Error(`Cannot have more than one reference to Office.js or to ${officeDTS} and ${betaOfficeDTS}`);
-        }
-
-        if (officeJsReferences[0] === canonicalOfficeJsReference && officeJsDTSReference[0] !== officeDTS) {
-            throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${officeDTS}" (instead of "${officeJsDTSReference[0]}").`);
-        }
-
-        if (officeJsReferences[0] === betaOfficeJsReference && officeJsDTSReference[0] !== betaOfficeDTS) {
-            throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${betaOfficeDTS}" (instead of "${officeJsDTSReference[0]}").`);
+        if (officeJsReferences.length > 1 || officeDtsReferences.length > 1) {
+            throw new Error(`Cannot have more than one reference to office.js or to office.d.ts`);
         }
 
         let snippetOfficeReferenceIsOk =
@@ -271,6 +276,25 @@ async function processSnippets(processedSnippets) {
             throw new Error(`Office.js reference "${officeJsReferences[0]}" does match the canonical form of "${canonicalOfficeJsReference}" and does match any of the exceptions defined by "snippetOfficeReferenceIsOk".`);
         }
 
+
+        let officeJsDtsForSameLocation = officeJsReferences[0].substr(0,
+            officeJsReferences[0].length - 'office.js'.length) + 'office.d.ts';
+
+        if (officeJsReferences[0] === canonicalOfficeJsReference) {
+            let isCorrectCorrespondingDts = officeDtsReferences[0] === officeDTS ||
+                officeDtsReferences[0] === officeJsDtsForSameLocation;
+            if (!isCorrectCorrespondingDts) {
+                throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${officeDTS}" or the "office.d.ts" from the same location as "office.js".`);
+            }
+        }
+
+        if (officeJsReferences[0] === betaOfficeJsReference) {
+            let isCorrectCorrespondingDts = officeDtsReferences[0] === betaOfficeDTS ||
+                officeDtsReferences[0] === officeJsDtsForSameLocation;
+            if (!isCorrectCorrespondingDts) {
+                throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${betaOfficeDTS}" or the "office.d.ts" from the same location as "office.js".`);
+            }
+        }
     }
 
     function validateApiSetNonEmpty(snippet: ISnippet, host: string, localPath: string, messages: any[]): void {

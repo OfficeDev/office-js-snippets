@@ -10,18 +10,20 @@ script:
         $("#setup").click(() => tryCatch(setup));
         $("#add-series").click(() => tryCatch(addSeries));
         $("#delete-series").click(() => tryCatch(deleteSeries));
-        $("#add-series-value").click(() => tryCatch(setSeriesValue));
+        $("#set-series-value").click(() => tryCatch(setSeriesValue));
 
         async function addSeries() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Sample");
 
                 let seriesCollection = sheet.charts.getItemAt(0);
-                let rangeSelection = sheet.getRange("B1:B7");
+                let rangeSelection = sheet.getRange("C2:C7");
+                let xRangeSelection = sheet.getRange("A1:A7");
 
                 // Add a series.
-                let newSeries = seriesCollection.series.add("New Series");
+                let newSeries = seriesCollection.series.add("Qtr2");
                 newSeries.setValues(rangeSelection);
+                newSeries.setXAxisValues(xRangeSelection);
 
                 await context.sync();
             });
@@ -33,6 +35,7 @@ script:
 
                 let seriesCollection = sheet.charts.getItemAt(0).series;
                 let series = seriesCollection.getItemAt(0);
+
                 // Delete the first series.
                 series.delete();
 
@@ -48,14 +51,10 @@ script:
 
                 // Add new series.
                 let series = seriesCollection.add("New Product");
-                let xValue = sheet.getRange("C2:C7");
-                // Set the x values for the series.
-                series.setXAxisValues(xValue);
-
                 let values = sheet.getRange("E2:E7");
+
                 // Set the vertical values for the series.
                 series.setValues(values);
-
                 seriesCollection.load("count");
 
                 await context.sync();
@@ -101,7 +100,7 @@ script:
             let dataRange = sheet.getRange("A1:B7");
             let chart = sheet.charts.add("Line", dataRange, "auto");
 
-            chart.setPosition("A15", "F30");
+            chart.setPosition("A15", "E30");
             chart.legend.position = "right"
             chart.legend.format.fill.setSolidColor("white");
             chart.dataLabels.format.font.size = 15;
@@ -146,7 +145,7 @@ template:
         </section>
 
         <section class="samples ms-font-m">
-            <button id="add-series-value" class="ms-Button">
+            <button id="set-series-value" class="ms-Button">
                 <span class="ms-Button-label">Set series value</span>
             </button>
         </section>

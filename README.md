@@ -17,6 +17,7 @@ A collection of code snippets built with [Script Lab](github.com/OfficeDev/scrip
 4. Install `yarn` as a global package `npm install yarn --global`.
 5. Be sure your CLI is in the root of the office-js-snippets repo and run `yarn install`. (It is similar to `npm install`.)
 6. Set up the original \OfficeDev\office-js-snippets as the upstream repo for your local repo by following the steps in [Configuring a remote for a fork](https://help.github.com/articles/configuring-a-remote-for-a-fork/).
+7. If you'll be using Visual Studio Code as your editor, install the [TSLint](https://marketplace.visualstudio.com/items?itemName=eg2.tslint) extension for Visual Studio Code.
 
 ### Adding a new sample
 
@@ -33,7 +34,7 @@ api_set:
 5. Check the name and description property values, also near the top of the file, and edit as needed.
 6. Save the file **somewhere outside of the office-js-snippets project**. (You will move it into the project in a later step.) The file name must have a ".yaml" extension and it must be in [`kebab-case`](http://wiki.c2.com/?KebabCase). For examples, see the existing *.yaml files in the subfolders of the `samples` folder of the project.
 7. Make sure the master branch of your fork is in sync with the master branch of the upstream \OfficeDev\office-js-snippets repo by following the steps in [Syncing a fork](https://help.github.com/articles/syncing-a-fork/).
-8. Create a new branch in your local repo by running the command `git checkout -b {name_of_your_new_branch}`. (This will create and checkout the new branch. *Stay in this branch for all the remaining steps.*) Each snippet should have its own branch. Suggestion: use the name of the yaml file that you created above (without the extension) as the branch name.
+8. Create a new branch at the **office-js-snippets** root folder of your local repo by running the command `git checkout -b {name_of_your_new_branch}`. (This will create and checkout the new branch. *Stay in this branch for all the remaining steps.*) Each snippet should have its own branch. Suggestion: use the name of the yaml file that you created above (without the extension) as the branch name.
 9. Decide the project folder to which your snippet should be added. All snippets must be inside the `samples` folder. The structure of the subfolders is:
  - The base folders such as `Excel`, `Word` etc. are all the various broad-level categories.
  - Inside of each base folder, there are group folders for the group in which a snippet belongs.
@@ -85,16 +86,21 @@ git push --set-upstream origin {name_of_your_new_branch}
 Basic snippet structure is as follows:
 
 ```ts
-$("#run").click(run);
+$("#run").click(() => tryCatch(run));
 
 async function run() {
-    try {
-        await Word.run(async (context) => {
-            const range = context.document.getSelection();
-            range.font.color = "red";
+    await Word.run(async (context) => {
+        const range = context.document.getSelection();
+        range.font.color = "red";
 
-            await context.sync();
-        });
+        await context.sync();
+    });
+}
+
+/** Default helper for invoking an action and handling errors. */
+async function tryCatch(callback) {
+    try {
+        await callback();
     }
     catch (error) {
         OfficeHelpers.UI.notify(error);
@@ -106,8 +112,8 @@ async function run() {
 A few style rules to observe:
 
 * Use standard TypeScript indentation.
-* Each button-click handler should have its own `async` function, called "run" if there is only one button on the page -- otherwise, name it as you will.
-* Inside the function there shall be a try/catch.  In it you will await the `Excel.run` or `Word.run`, and use `async/await` inside of the `.run` as well.
+* For each button, define a corresponding `async` function that is to be executed when the button is clicked. The `async` function can be called "run" if there is only one button on the page -- otherwise, name it as you will.
+* Each button-click handler should invoke the `tryCatch` function, passing in the name of the `async` function to be executed when the button is clicked. 
 * All HTML IDs should be `all-lower-case-and-hyphenated`.
 * Unless you are explicitly showing pretty UI, I wouldn't do the popup notification except for one or two samples.  It's a lot of HTML & JS code, and it's also not strictly Fabric-y (there is a more "correct" way of doing this with components).
 * Strings should be in double-quotes.

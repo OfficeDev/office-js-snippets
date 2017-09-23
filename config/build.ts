@@ -14,14 +14,18 @@ import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
 import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
+import 'rxjs/add/operator/merge';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/filter';
 import escapeStringRegexp = require('escape-string-regexp');
 
 
 const { GH_ACCOUNT, GH_REPO, TRAVIS_BRANCH } = process.env;
+const PRIVATE_SAMPLES = 'private-samples';
+const PUBLIC_SAMPLES = 'samples';
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
+const sortingCriteria = ['group', 'order', 'id'];
 
 const officeHosts = ['ACCESS', 'EXCEL', 'ONENOTE', 'OUTLOOK', 'POWERPOINT', 'PROJECT', 'WORD'];
 const defaultApiSets = {
@@ -39,29 +43,13 @@ const defaultApiSets = {
 };
 
 
-(async() => {
-    let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
+(async () => {
+    let processedSnippets = new Dictionary<SnippetProcessedData>();
     await Promise.resolve()
-        .then(() => processSnippets('samples', processedPublicSnippets))
+        .then(() => processSnippets(processedSnippets))
         .then(updateModifiedFiles)
-        .then(() => checkSnippetsForUniqueIDs(processedPublicSnippets))
-        .then(() => generatePlaylists('playlists', processedPublicSnippets))
-        .then(() => {
-            if (accumulatedErrors.length > 0) {
-                throw accumulatedErrors;
-            }
-        })
-        .then(() => {
-            banner('Done!', null, chalk.bold.green);
-        })
-        .catch(handleError);
-
-    let processedPrivateSnippets = new Dictionary<SnippetProcessedData>();
-    await Promise.resolve()
-        .then(() => processSnippets('private-samples', processedPrivateSnippets))
-        .then(updateModifiedFiles)
-        .then(() => checkSnippetsForUniqueIDs(processedPrivateSnippets))
-        .then(() => generatePlaylists('private-playlists', processedPrivateSnippets))
+        .then(() => checkSnippetsForUniqueIDs(processedSnippets))
+        .then(() => generatePlaylists(processedSnippets))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -76,13 +64,14 @@ const defaultApiSets = {
 })();
 
 
-async function processSnippets(dir, processedSnippets) {
+async function processSnippets(processedSnippets) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve(dir), path.resolve(dir));
+        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES), path.resolve(PRIVATE_SAMPLES));
+        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES), path.resolve(PUBLIC_SAMPLES)));
 
         files$
-            .mergeMap((file) => (processAndValidateSnippet(file, dir)))
+            .mergeMap((file) => (processAndValidateSnippet(file)))
             .filter(file => file !== null)
             .map(file => processedSnippets.add(file.rawUrl, file))
             .subscribe(null, reject, resolve);
@@ -91,10 +80,11 @@ async function processSnippets(dir, processedSnippets) {
 
     // Helpers:
 
-    async function processAndValidateSnippet(file: SnippetFileInput, dir: string): Promise<SnippetProcessedData> {
+    async function processAndValidateSnippet(file: SnippetFileInput): Promise<SnippetProcessedData> {
         const messages: Array<string | Error> = [];
         try {
             status.add(`Processing ${file.relativePath}`);
+            let dir = file.isPublic ? PUBLIC_SAMPLES : PRIVATE_SAMPLES;
 
             const fullPath = path.resolve(dir, file.relativePath);
             const originalFileContents = (await loadFileContents(fullPath)).trim();
@@ -106,7 +96,7 @@ async function processSnippets(dir, processedSnippets) {
             validateId(snippet, file.relativePath, messages);
             validateSnippetHost(snippet, file.host, messages);
             validateAtTypesDeclarations(snippet, messages);
-            validateOfficialOfficeJs(snippet, file.host, messages);
+            validateOfficialOfficeJs(snippet, file.host, file.group, messages);
             validateApiSetNonEmpty(snippet, file.host, file.relativePath, messages);
             validateVersionNumbersOnLibraries(snippet, messages);
             validateTabsInsteadOfSpaces(snippet, messages);
@@ -145,6 +135,14 @@ async function processSnippets(dir, processedSnippets) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
             }
 
+            // Define dictionary of words in file.group that require special casing
+            let dictionary = {
+                'Apis': 'APIs',
+                'Xml': 'XML'
+            };
+
+            let groupName = replaceUsingDictionary(dictionary, startCase(file.group));
+
             return {
                 id: snippet.id,
                 name: snippet.name,
@@ -153,16 +151,23 @@ async function processSnippets(dir, processedSnippets) {
                 description: snippet.description,
                 host: file.host,
                 rawUrl: rawUrl,
-                group: startCase(file.group),
+                group: groupName,
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
-                api_set: snippet.api_set
+                api_set: snippet.api_set,
+                isPublic: file.isPublic
             };
-
         } catch (exception) {
             messages.push(exception);
             status.complete(false /*success*/, `Processing ${file.relativePath}`, messages);
             accumulatedErrors.push(`Failed to process ${file.relativePath}: ${exception.message || exception}`);
             return null;
+        }
+
+
+        function replaceUsingDictionary(dictionary: { [key: string]: string }, originalName: string): string {
+            let text = startCase(file.group);
+            let parts = text.split(' ').map(item => dictionary[item] || item);
+            return parts.join(' ');
         }
     }
 
@@ -216,40 +221,79 @@ async function processSnippets(dir, processedSnippets) {
             });
     }
 
-    function validateOfficialOfficeJs(snippet: ISnippet, host: string, messages: any[]): void {
+    function validateOfficialOfficeJs(snippet: ISnippet, host: string, group: string, messages: any[]): void {
         const isOfficeSnippet = officeHosts.indexOf(host.toUpperCase()) >= 0;
         const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1/hosted/office.js';
+        const betaOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/beta/hosted/office.js';
         const officeDTS = '@types/office-js';
+        const betaOfficeDTS = '@microsoft/office-js@beta/dist/office.d.ts';
 
         const officeJsReferences =
             snippet.libraries.split('\n')
                 .map(reference => reference.trim())
                 .filter(reference => reference.match(/^http.*\/office\.js$/gi));
 
-        const officeJsDTSReference =
+        const officeDtsReferences =
             snippet.libraries.split('\n')
                 .map(reference => reference.trim())
-                .filter(reference => reference === officeDTS);
+                .filter(reference => reference.match(/.*((@types\/office-js)|(office\.d\.ts))$/gi));
+            /* Note: regex matches:
+                - @types/office-js
+                - https://unpkg.com/etc/office.d.ts
+               But not:
+                - @types/office-jsfake
+                - https://unpkg.com/etc/office.d.ts.ish
+                - office.d.ts.unrelated
+             */
 
         if (!isOfficeSnippet) {
-            if (officeJsReferences.length > 0 || officeJsDTSReference.length > 0) {
-                throw new Error(`Snippet for host "${host}" should not have a reference to Office.js or ${officeDTS}`);
+            if (officeJsReferences.length > 0 || officeDtsReferences.length > 0) {
+                throw new Error(`Snippet for host "${host}" should not have a reference to either office.js or to office.d.ts`);
             }
             return;
         }
 
-        // From here on out, can assume that is an Office snippet;
-        if (officeJsReferences.length === 0 || officeJsDTSReference.length === 0) {
-            throw new Error(`Snippet for host "${host}" should have a reference to Office.js and ${officeDTS}`);
+
+        // From here on out, can assume that is an Office snippet
+
+        if (officeJsReferences.length === 0) {
+            throw new Error(`Snippet for host "${host}" should have a reference to office.js`);
+        }
+        if (officeDtsReferences.length === 0) {
+            throw new Error(`Snippet for host "${host}" should have a reference to office.d.ts`);
         }
 
-        if (officeJsReferences.length > 1 || officeJsDTSReference.length === 0) {
-            throw new Error(`Cannot have more than one reference to Office.js or ${officeDTS}`);
+        if (officeJsReferences.length > 1 || officeDtsReferences.length > 1) {
+            throw new Error(`Cannot have more than one reference to office.js or to office.d.ts`);
         }
 
-        if (officeJsReferences[0] !== canonicalOfficeJsReference) {
-            messages.push(`Office.js reference "${officeJsReferences[0]}" is not in the canonical form of "${canonicalOfficeJsReference}". Fixing it.`);
-            snippet.libraries = snippet.libraries.replace(officeJsReferences[0], canonicalOfficeJsReference);
+        let snippetOfficeReferenceIsOk =
+            officeJsReferences[0] === canonicalOfficeJsReference ||
+            host.toUpperCase() === 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||
+            (group.indexOf('preview-apis') >= 0 && officeJsReferences[0] === betaOfficeJsReference);
+
+        if (!snippetOfficeReferenceIsOk) {
+            throw new Error(`Office.js reference "${officeJsReferences[0]}" does match the canonical form of "${canonicalOfficeJsReference}" and does match any of the exceptions defined by "snippetOfficeReferenceIsOk".`);
+        }
+
+
+        let officeJsDtsForSameLocation = officeJsReferences[0].substr(0,
+            officeJsReferences[0].length - 'office.js'.length) + 'office.d.ts';
+
+        if (officeJsReferences[0] === canonicalOfficeJsReference) {
+            let isCorrectCorrespondingDts = officeDtsReferences[0] === officeDTS ||
+                officeDtsReferences[0] === officeJsDtsForSameLocation;
+            if (!isCorrectCorrespondingDts) {
+                throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${officeDTS}" or the "office.d.ts" from the same location as "office.js".`);
+            }
+        }
+
+        if (officeJsReferences[0] === betaOfficeJsReference) {
+            let isCorrectCorrespondingDts = officeDtsReferences[0] === betaOfficeDTS ||
+                officeDtsReferences[0] === officeJsDtsForSameLocation;
+            if (!isCorrectCorrespondingDts) {
+                throw new Error(`Office.js reference is "${officeJsReferences[0]}" so the types reference should be "${betaOfficeDTS}" or the "office.d.ts" from the same location as "office.js".`);
+            }
         }
     }
 
@@ -430,23 +474,30 @@ function checkSnippetsForUniqueIDs(processedSnippets) {
     }
 }
 
-async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProcessedData>) {
+async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedData>) {
     banner('Generating playlists');
 
-    /* Creating playlists directory */
-    status.add(`Creating \'${dir}\' folder`);
-    await rmRf(dir);
-    await mkDir(dir);
-    status.complete(true /*success*/, `Creating \'${dir}\' folder`);
+    let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
+    for (let processedSnippet of processedSnippets.values()) {
+        if (processedSnippet.isPublic) {
+            processedPublicSnippets.add(processedSnippet.rawUrl, processedSnippet);
+        }
+    }
 
-    const groups = groupBy(
-        processedSnippets.values()
+    /* Creating playlists directory */
+    status.add(`Creating \'playlists\' folder`);
+    await rmRf('playlists');
+    await mkDir('playlists');
+    status.complete(true /*success*/, `Creating \'playlists\' folder`);
+
+    const publicGroups = groupBy(
+        processedPublicSnippets.values()
             .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
         'host');
-    let playlistPromises = map(groups, async (items, host) => {
+    let publicPlaylistPromises = map(publicGroups, async (items, host) => {
         const creatingStatusText = `Creating ${host}.yaml`;
         status.add(creatingStatusText);
-        items = sortBy(items, ['group', 'order', 'id']);
+        items = sortBy(items, sortingCriteria);
 
         /*
            Having sorted the items -- which may have included a number in the group name! -- remove the group number if any
@@ -464,23 +515,57 @@ async function generatePlaylists(dir, processedSnippets: Dictionary<SnippetProce
         */
         const groupNumberRegex = /^(\d+\s)?(\w.*)$/;
 
-        items.forEach(item => {
-            item.group = item.group.replace(groupNumberRegex, '$2');
-
-            // Also remove "order", it's no longer needed (the snippets themselves are already in an ordered array in the YAML file)
-            delete item.order;
+        let modifiedItems = items.map(item => {
+            /* Only keep select properties that are needed */
+            return {
+                id: item.id,
+                name: item.name,
+                fileName: item.fileName,
+                description: item.description,
+                rawUrl: item.rawUrl,
+                group: item.group.replace(groupNumberRegex, '$2'),
+                api_set: item.api_set,
+            };
         });
 
-        let contents = jsyaml.safeDump(items, {
+        let contents = jsyaml.safeDump(modifiedItems, {
             skipInvalid: true /* skip "undefined" (e.g., for "order" on some of the snippets) */
         });
 
-        await writeFile(path.resolve(`${dir}/${host}.yaml`), contents);
+        let fileName = `playlists/${host}.yaml`;
+        await writeFile(path.resolve(fileName), contents);
 
         status.complete(true /*success*/, creatingStatusText);
     });
 
-    await Promise.all(playlistPromises);
+    /* Creating view directory */
+    status.add(`Creating \'view\' folder`);
+    await rmRf('view');
+    await mkDir('view');
+    status.complete(true /*success*/, `Creating \'view\' folder`);
+
+    const allGroups = groupBy(
+        processedSnippets.values()
+            .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
+        'host');
+    let allPlaylistPromises = map(allGroups, async (items, host) => {
+        const creatingStatusText = `Creating ${host}.json`;
+        status.add(creatingStatusText);
+        items = sortBy(items, sortingCriteria);
+
+        let hostMapping = {} as { [id: string]: string };
+        items.forEach(item => {
+            hostMapping[item.id] = item.rawUrl;
+        });
+
+        /* Group private samples with public samples in one JSON file */
+        let fileName = `view/${host}.json`;
+        await writeFile(path.resolve(fileName), JSON.stringify(hostMapping, null, 2));
+
+        status.complete(true /*success*/, creatingStatusText);
+    });
+
+    await Promise.all(publicPlaylistPromises.concat(allPlaylistPromises));
 }
 
 function handleError(error: any | any[]) {

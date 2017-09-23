@@ -1,0 +1,81 @@
+order: 1
+id: excel-89-preview-apis-chart-axis-
+name: Chart axis
+description: 'Get, set, and remove axis unit, label and title in a chart.'
+host: EXCEL
+api_set:
+    ExcelAPI: 1.7
+script:
+    content: "$(\"#setup\").click(() => tryCatch(setup));\n$(\"#get-axis-unit\").click(() => tryCatch(getAxisUnit));\n$(\"#change-axis-unit\").click(() => tryCatch(changeAxisUnit));\n$(\"#remove-axis-label\").click(() => tryCatch(removeAxisLabel));\n$(\"#show-axis-label\").click(() => tryCatch(showAxisLabel));\n$(\"#set-axis-title\").click(() => tryCatch(setAxisTitle));\n$(\"#add-trendline-polynomial\").click(() => tryCatch(addTrendlinePolynomial));        \n\nasync function getAxisUnit() {\n    await Excel.run(async (context) => {\n        const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n        let chart = sheet.charts.getItemAt(0);\n        let categoryAxis = chart.axes.categoryAxis;\n        let valueAxis = chart.axes.valueAxis;\n\n        // Load to get display unit.\n        categoryAxis.load(categoryAxis);\n        valueAxis.load(valueAxis);\n       \n        await context.sync();\n\n        OfficeHelpers.UI.notify(\"The vertical axis display unit is: \" +  valueAxis.displayUnit);\n    });\n}\n\nasync function changeAxisUnit() {\n    await Excel.run(async (context) => {\n        const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n        let chart = sheet.charts.getItemAt(0);\n        let axis = chart.axes.valueAxis;\n\n        // Set display unit.\n        axis.displayUnit = \"Hundreds\";\n\n        await context.sync();\n\n        OfficeHelpers.UI.notify(\"The vertical axis display unit has been changed to : \" + axis.displayUnit);\n    });\n}\n\nasync function removeAxisLabel() {\n    await Excel.run(async (context) => {\n        const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\_\n        let chart = sheet.charts.getItemAt(0);\n        let axis = chart.axes.valueAxis;\n\n        // Remove display unit.\n        axis.showDisplayUnitLabel = false;\n\n        await context.sync();\n\n        OfficeHelpers.UI.notify(\"The vertical axis display unit has been changed to : \" + axis.showDisplayUnitLabel);\n    });\n}\n\nasync function showAxisLabel() {\n    await Excel.run(async (context) => {\n        const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n        let chart = sheet.charts.getItemAt(0);\n        let axis = chart.axes.valueAxis;\n\n        // Show display unit.\n        axis.showDisplayUnitLabel = true;\n        await context.sync();\n\n        OfficeHelpers.UI.notify(\"The vertical axis display unit has been changed to : \" + + axis.showDisplayUnitLabel);\n    });\n}\n\nasync function setAxisTitle() {\n    await Excel.run(async (context) => {\n        const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n        let chart = sheet.charts.getItemAt(0);\n        let categoryAxis = chart.axes.categoryAxis;\n\n        // Set horizontal axis title.\n        categoryAxis.title.text = \"Bicycle parts\";\n\n        let valueAxis = chart.axes.valueAxis;\n\n        // Set vertical axis title.\n        valueAxis.title.text = \"Number of items\";\n        valueAxis.hasTitle = true;\n\n        // Show small gridlines.\n        valueAxis.minorGridlines.visible = true;\n\n        categoryAxis.load(categoryAxis);\n        categoryAxis.title.load();\n        valueAxis.load(valueAxis);\n        valueAxis.minorGridlines.load();\n\n        await context.sync();\n\n        console.log(\"The category axis title is: \" + categoryAxis.title.text);\n        console.log(\"The value axis title is: \" + valueAxis.title.text);\n        \n        OfficeHelpers.UI.notify(\"The minor gridlines visibility is set to: \" + valueAxis.minorGridlines.visible);\n    });\n}\n\n async function addTrendlinePolynomial() {\n    await Excel.run(async (context) => {\n        const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n        let seriesCollection = sheet.charts.getItemAt(0).series;\n\n        // Add a trendline.  \n        let trendline = seriesCollection.getItemAt(0).trendlines.add(\"Polynomial\");\n        seriesCollection.getItemAt(0).trendlines.getItem(0);\n        trendline.polynomialOrder = 5;\n\n        await context.sync();\n    });\n}\n\nasync function setup() {\n    await Excel.run(async (context) => {\n        const sheet = await OfficeHelpers.ExcelUtilities\n            .forceCreateSheet(context.workbook, \"Sample\");\n        let expensesTable = sheet.tables.add('A1:E1', true);\n        expensesTable.name = \"SalesTable\";\n\n        expensesTable.getHeaderRowRange().values = [[\"Product\", \"Qtr1\", \"Qtr2\", \"Qtr3\", \"Qtr4\"]];\n\n        expensesTable.rows.add(null, [\n            [\"Frames\", 5000, 7000, 6544, 4377],\n            [\"Saddles\", 400, 323, 276, 651],\n            [\"Brake levers\", 12000, 8766, 8456, 9812],\n            [\"Chains\", 1550, 1088, 692, 853],\n            [\"Mirrors\", 225, 600, 923, 544],\n            [\"Spokes\", 6005, 7634, 4589, 8765]\n        ]);\n\n        if (Office.context.requirements.isSetSupported(\"ExcelApi\", 1.7)) {\n            sheet.getUsedRange().format.autofitColumns();\n            sheet.getUsedRange().format.autofitRows();\n        }\n\n        createChart(context);\n        addVerticalAxisLabel(context);\n        sheet.activate();\n\n        await context.sync();\n    });\n}\n\nasync function createChart(context: Excel.RequestContext) {\n    const sheet = context.workbook.worksheets.getItem(\"Sample\");\n    const salesTable = sheet.tables.getItem(\"SalesTable\");\n\n    const dataRange = salesTable.getRange();\n\n    let chart = sheet.charts.add(\"ColumnClustered\", dataRange, Excel.ChartSeriesBy.columns);\n\n    chart.setPosition(\"A15\", \"F30\");\n    chart.title.text = \"Quarterly sales chart\";\n    chart.legend.position = \"right\"\n    chart.legend.format.fill.setSolidColor(\"white\");\n    chart.dataLabels.format.font.size = 15;\n    chart.dataLabels.format.font.color = \"black\";\n    let points = chart.series.getItemAt(0).points;\n}\n\nasync function addVerticalAxisLabel(context: Excel.RequestContext) {\n\n        const sheet = context.workbook.worksheets.getItem(\"Sample\");\n\n        let chart = sheet.charts.getItemAt(0);\n        let axis = chart.axes.valueAxis;\n        axis.displayUnit = \"Thousands\";\n}\n\n/** Default helper for invoking an action and handling errors. */\nasync function tryCatch(callback) {\n    try {\n        await callback();\n    }\n    catch (error) {\n        OfficeHelpers.UI.notify(error);\n        OfficeHelpers.Utilities.log(error);\n    }\n}\n"
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to get, set, and remove axis unit, label and title in a chart.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-axis-unit" class="ms-Button">
+                <span class="ms-Button-label">Get axis unit</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="change-axis-unit" class="ms-Button">
+                <span class="ms-Button-label">Change axis unit</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="remove-axis-label" class="ms-Button">
+                <span class="ms-Button-label">Remove axis label</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="show-axis-label" class="ms-Button">
+                <span class="ms-Button-label">Show axis label</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="set-axis-title" class="ms-Button">
+                <span class="ms-Button-label">Set axis title</span>
+            </button>
+        </section>
+
+         <section class="samples ms-font-m">
+            <button id="add-trendline-polynomial" class="ms-Button">
+                <span class="ms-Button-label">Add polynomial trendline</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    // Office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+
+    // CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    // NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    // IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @microsoft/office-js@beta/dist/office.d.ts
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+    @types/jquery

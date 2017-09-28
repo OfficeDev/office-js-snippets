@@ -393,22 +393,24 @@ async function processSnippets(processedSnippets) {
     }
 
     function validateId(snippet: ISnippet, localPath: string, messages: any[]): void {
+        let originalId = snippet.id;
+
         // Don't want empty IDs -- or GUID-y IDs either, since they're not particularly memorable...
         if (isNil(snippet.id) || snippet.id.trim().length === 0 || isCUID(snippet.id)) {
-            snippet.id = localPath.trim().toLowerCase()
-                .replace(/[^0-9a-zA-Z]/g, '-') /* replace any non-alphanumeric with a hyphen */
-                .replace(/_+/g, '-') /* and ensure that don't end up with -- or --, just a single hyphen */
-                .replace(/yaml$/i, '') /* remove "yaml" suffix (the ".", now "-", will get removed via hyphen-trimming below) */
-                .replace(/^_+/, '') /* trim any hyphens before */
-                .replace(/_+$/, '') /* and trim any at the end, as well */;
-
-            messages.push('Snippet ID may not be empty or be a machine-generated ID.');
-            messages.push(`... replacing with an ID based on name: "${snippet.id}"`);
+            snippet.id = localPath;
         }
 
-        if (snippet.id.indexOf('_') > 0) {
-            snippet.id = snippet.id.replace(/_/g, '-');
-            messages.push(`Replacing underscores with hyphens in ID "${snippet.id}"`);
+        snippet.id = snippet.id.trim().toLowerCase()
+                .replace(/[^0-9a-zA-Z]/g, '-') /* replace any non-alphanumeric with a hyphen */
+                .replace(/-+/g, '-') /* and ensure that don't end up with -- or --, just a single hyphen */
+                .replace(/yaml$/i, '') /* remove "yaml" suffix (the ".", now "-", will get removed via hyphen-trimming below) */
+                .replace(/^-+/, '') /* trim any hyphens before */
+                .replace(/-+$/, '') /* and trim any at the end, as well */
+                .replace(/-(\d+-)(.*)/, '-$2') /* remove any numeric prefixes like "word\01-basics\foo", replacing with "word\basics\foo" */
+                .replace('-preview-apis-', '-');
+
+        if (snippet.id !== originalId) {
+            messages.push(`Snippet ID needs correcting. Replacing with an ID based on name: "${snippet.id}"`);
         }
 
         if (!followsNamingGuidelines(snippet.id)) {

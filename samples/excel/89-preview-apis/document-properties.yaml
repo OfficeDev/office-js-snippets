@@ -1,33 +1,16 @@
 order: 6
 id: excel-document-properties
 name: Document properties
-description: Get and set document properties.
+description: Set and get document properties.
 host: EXCEL
 api_set:
     ExcelApi: 1.7
 script:
-    content: |+
+    content: |
+        $("#set-get-doc-properties").click(() => tryCatch(setDocProperties));
         $("#get-doc-properties").click(() => tryCatch(getDocProperties));
-        $("#set-get-doc-properties").click(() => tryCatch(setGetDocProperties));
 
-        async function getDocProperties() {
-            await Excel.run(async (context) => {
-                let docProperties = context.workbook.properties;
-
-                // Load the read-only document properties.
-                docProperties.load("author, lastauthor, revisionnumber, creationdate");
-
-                await context.sync();
-
-                console.log("Author  :" + docProperties.author);
-                console.log("Last author  : " + docProperties.lastAuthor);
-                console.log("Revision number : " + docProperties.revisionNumber);
-              
-                OfficeHelpers.UI.notify("Workbook creation date : " + docProperties.creationDate.toDateString());            
-            });
-        }
-
-        async function setGetDocProperties() {
+        async function setDocProperties() {
             await Excel.run(async (context) => {
                 let titleValue = "Excel document properties API";
                 let subjectValue = "Set and get document properties";
@@ -39,7 +22,7 @@ script:
 
                 let docProperties = context.workbook.properties;
 
-                // Set the docoment properties.
+                // Set the writeable docoment properties.
                 docProperties.title = titleValue;
                 docProperties.subject = subjectValue;
                 docProperties.keywords = keywordsValue;
@@ -49,18 +32,33 @@ script:
                 docProperties.company = companyValue;
 
                 await context.sync();
-                
+            });
+        }
+
+        async function getDocProperties() {
+            await Excel.run(async (context) => {
+                let docProperties = context.workbook.properties;
+
+                // Load a combination of read-only 
+                // and writeable document properties.
+                docProperties.load("author, lastAuthor, revisionNumber, title, subject, keywords, comments, category, manager, company, creationDate");
+
+                await context.sync();
+
                 // Get the docoment properties.
                 // To learn how to view document properties in the Ui, 
                 // see https://support.office.com/en-us/article/View-or-change-the-properties-for-an-Office-file-21D604C2-481E-4379-8E54-1DD4622C6B75
-                console.log("Title :" + docProperties.title);  
+                console.log("Author  :" + docProperties.author);
+                console.log("Last author  : " + docProperties.lastAuthor);
+                console.log("Revision number : " + docProperties.revisionNumber);
+                console.log("Title :" + docProperties.title);
+                console.log("Subject :" + docProperties.subject);
                 console.log("Keywords :" + docProperties.keywords);
                 console.log("Comments :" + docProperties.comments);
                 console.log("Category :" + docProperties.category);
                 console.log("Manager :" + docProperties.manager);
-                console.log("Company :" + docProperties.company); 
-                
-                OfficeHelpers.UI.notify(docProperties.subject);            
+                console.log("Company :" + docProperties.company);
+                console.log("Workbook creation date : " + docProperties.creationDate.toDateString());
             });
         }
 
@@ -74,26 +72,23 @@ script:
                 OfficeHelpers.Utilities.log(error);
             }
         }
-
-
-
     language: typescript
 template:
     content: |+
         <section class="ms-font-m">
-            <p>This sample shows how to get and set document properties.</p>
+            <p>This sample shows how to set and get document properties.</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="get-doc-properties" class="ms-Button">
-                <span class="ms-Button-label">Get document properties</span>
+            <button id="set-get-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Set document properties</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
-            <button id="set-get-doc-properties" class="ms-Button">
-                <span class="ms-Button-label">Set and get document properties</span>
+            <button id="get-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Get document properties</span>
             </button>
         </section>
 
@@ -101,18 +96,18 @@ template:
 style:
     content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
     language: css
-libraries: |4
-        https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-        https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @microsoft/office-js@beta/dist/office.d.ts
 
-        office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
-        office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
 
-        core-js@2.4.1/client/core.min.js
-        @types/core-js
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
 
-        @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-        @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
-        jquery@3.1.1
-        @types/jquery
+    jquery@3.1.1
+    @types/jquery

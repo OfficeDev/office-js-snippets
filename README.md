@@ -91,7 +91,7 @@ $("#run").click(() => tryCatch(run));
 async function run() {
     await Word.run(async (context) => {
         const range = context.document.getSelection();
-        range.font.color = "red";
+        range.font.color = "blue";
 
         await context.sync();
     });

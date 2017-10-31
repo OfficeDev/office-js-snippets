@@ -23,12 +23,12 @@ script:
                 // Add a new style to the style collection.
                 // Styles is in the Home tab ribbon.
                 styles.add("Diagonal Orientation Style");
-                styles.getItem("Diagonal Orientation Style").orientation = 38;
-                styles.getItem("Diagonal Orientation Style").addIndent = true;
-               
+                      
                 let newStyle = styles.getItem("Diagonal Orientation Style");
-                context.load(newStyle);
-
+                
+                // The "Diagonal Orientation Style" properties.
+                newStyle.orientation = 38;
+                newStyle.addIndent = true;
                 newStyle.includeProtection = true;
                 newStyle.shrinkToFit = true;
                 newStyle.locked = false;
@@ -42,15 +42,12 @@ script:
         async function applyNewStyle() {
             await Excel.run(async (context) => {
                 let worksheet = context.workbook.worksheets.getItem("Sample");
-                context.load(worksheet);
 
                 // Apply new style.
                 worksheet.getRange("A1:E1").style = ("Diagonal Orientation Style");
                 worksheet.getRange("A1:E1").format.verticalAlignment = "Justify";
 
                 let range = worksheet.getRange("A1:E1");
-                context.load(range);
-                context.load(range.format);
 
                 await context.sync();
             });
@@ -59,7 +56,6 @@ script:
         async function applyBuiltInStyle() {
             await Excel.run(async (context) => {
                 let worksheet = context.workbook.worksheets.getItem("Sample");
-                context.load(worksheet);
 
                 // Apply built-in style. 
                 // Styles are in the Home tab ribbon.
@@ -67,8 +63,6 @@ script:
                 worksheet.getRange("A1:E1").format.horizontalAlignment = "Right";
 
                 let range = worksheet.getRange("A1:E1");
-                context.load(range);
-                context.load(range.format);
 
                 await context.sync();
             });
@@ -77,7 +71,6 @@ script:
         async function getStyleFontProperties() {
             await Excel.run(async (context) => {
                 let style = context.workbook.styles.getItem("Normal");
-                context.load(style);
                 style.font.load("bold, color, italic, name, size");
                 style.fill.load("color");
 
@@ -95,7 +88,7 @@ script:
         async function getStyleAlignmentProperties() {
             await Excel.run(async (context) => {
                 let style = context.workbook.styles.getItem("Diagonal Orientation Style");            
-                context.load(style);
+                style.load("orientation, horizontalAlignment, addIndent, readingOrder, wrapText, includeProtection, shrinkToFit, locked");
 
                 await context.sync();
 
@@ -113,7 +106,6 @@ script:
         async function deleteNewStyle() {
             await Excel.run(async (context) => {
                 let style = context.workbook.styles.getItem("Diagonal Orientation Style");
-                context.load(style);
 
                 // Delete the diagonal orientation style from the style collection.
                 // Styles are in the Home tab ribbon.
@@ -171,19 +163,20 @@ script:
     language: typescript
 template:
     content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to add, apply, get and delete styles.</p>
+        </section>
+
         <section class="setup ms-font-m">
             <h3>Set up</h3>
             <button id="setup" class="ms-Button">
                 <span class="ms-Button-label">Add sample data</span>
             </button>
-
-        </section>
-        <section class="ms-font-m">
-            <p>This sample shows how to add, apply, get and delete styles.</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
+            <p><b>Add new style</b> will throw an error if the style has already been added and <b>Delete new style</b> will error if the style doesn't exist (that is, hasn't been added).</p>
             <button id="add-new-style" class="ms-Button">
                 <span class="ms-Button-label">Add new style</span>
             </button>
@@ -203,13 +196,13 @@ template:
 
         <section class="samples ms-font-m">
             <button id="get-style-font" class="ms-Button">
-                <span class="ms-Button-label">Get style font</span>
+                <span class="ms-Button-label">Get style font properties</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
             <button id="get-style-alignment" class="ms-Button">
-                <span class="ms-Button-label">Get style alignment</span>
+                <span class="ms-Button-label">Get style alignment properties</span>
             </button>
         </section>
 

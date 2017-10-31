@@ -1,0 +1,106 @@
+order: 4
+id: excel-chart-create-xyscatter-chart
+name: XY scatter chart
+description: Draws a basic XY scatter chart
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#create-xy-scatter-chart").click(() => tryCatch(createXYScatterChart));
+
+
+        async function createXYScatterChart() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                let salesTable = sheet.tables.getItem("SalesTable");
+
+                let dataRange = sheet.getRange("A1:E7");
+
+                // Create an XY scatter chart.
+                let chart = sheet.charts.add("XYScatter", dataRange, "auto");
+                chart.title.text = "Bicycle Parts Quarterly Sales";   
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                let sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                let salesTable = sheet.tables.add('A1:E1', true);
+                salesTable.name = "SalesTable";
+
+                salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                salesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to draw a basic XY scatter chart.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="create-xy-scatter-chart" class="ms-Button">
+                <span class="ms-Button-label">Create xy scatter chart</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

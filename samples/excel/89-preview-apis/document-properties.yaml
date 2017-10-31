@@ -7,8 +7,11 @@ api_set:
     ExcelApi: 1.7
 script:
     content: |
-        $("#set-get-doc-properties").click(() => tryCatch(setDocProperties));
+        $("#set-doc-properties").click(() => tryCatch(setDocProperties));
         $("#get-doc-properties").click(() => tryCatch(getDocProperties));
+        $("#set-custom-doc-properties").click(() => tryCatch(setCustomDocProperties));
+        $("#get-custom-doc-properties").click(() => tryCatch(getCustomDocProperties));
+        $("#get-count-custom-doc-properties").click(() => tryCatch(getCountCustomDocProperties));
 
         async function setDocProperties() {
             await Excel.run(async (context) => {
@@ -64,6 +67,60 @@ script:
             });
         }
 
+        async function setCustomDocProperties() {
+            await Excel.run(async (context) => {
+                let introKey = "Introduction"
+                let introValue = "Hello";
+                let numberKey = "Integer";
+                let numberValue = "12";
+
+                let customDocProperties = context.workbook.properties.custom;
+
+                // Add custom document properties.
+                customDocProperties.add(introKey, introValue);
+                customDocProperties.add(numberKey, numberValue);
+
+                await context.sync();
+
+                OfficeHelpers.UI.notify("Successfully set custom document properties.");
+            });
+        }
+
+        async function getCustomDocProperties() {
+            await Excel.run(async (context) => {
+                let newCustomKey = "Quick Start";
+                let newCustomValue = "Hello World";
+
+                let customDocProperties = context.workbook.properties.custom;
+
+                customDocProperties.add(newCustomKey, newCustomValue);
+
+                let customProperty = customDocProperties.getItemOrNullObject(newCustomKey);
+                context.load(customProperty);
+
+                await context.sync();
+
+                // Write the custom document properties to the console.
+                // To learn how to view document properties in the UI, 
+                // see https://support.office.com/en-us/article/View-or-change-the-properties-for-an-Office-file-21D604C2-481E-4379-8E54-1DD4622C6B75
+                console.log("Custom key  : " + customProperty.key);  
+                console.log("Custom value : " + customProperty.value); 
+
+            });
+        }
+
+        async function getCountCustomDocProperties() {
+            await Excel.run(async (context) => {
+
+                let customDocProperties = context.workbook.properties.custom;
+
+                let count = customDocProperties.getCount();
+                await context.sync();
+
+                OfficeHelpers.UI.notify("Count of custom document properties  :" + count.value);
+            });
+        }
+
         /** Default helper for invoking an action and handling errors. */
         async function tryCatch(callback) {
             try {
@@ -83,7 +140,7 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="set-get-doc-properties" class="ms-Button">
+            <button id="set-doc-properties" class="ms-Button">
                 <span class="ms-Button-label">Set document properties</span>
             </button>
         </section>
@@ -91,6 +148,24 @@ template:
         <section class="samples ms-font-m">
             <button id="get-doc-properties" class="ms-Button">
                 <span class="ms-Button-label">Get document properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="set-custom-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Set custom document properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="get-custom-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Get custom document properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="get-count-custom-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Get count of custom document properties</span>
             </button>
         </section>
 

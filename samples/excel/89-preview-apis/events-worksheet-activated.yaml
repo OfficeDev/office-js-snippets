@@ -8,49 +8,53 @@ api_set:
 script:
     content: |+
         $("#setup").click(() => tryCatch(setup));
-        $("#activate-event-handler").click(() => tryCatch(onActivateEventHandler));
-        $("#deactivate-event-handler").click(() => tryCatch(onDeactivateEventHandler));
+        $("#register-on-activate-handler").click(() => tryCatch(registerOnActivateHandler));
+        $("#register-on-deactivate-handler").click(() => tryCatch(registerOnDeactivateHandler));
         $("#delete-worksheet").click(() => tryCatch(deleteWorksheet));
 
-        async function onActivateEventHandler() {
+        async function registerOnActivateHandler() {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets;
                 sheet.onActivated.add(onActivate);
 
                 await context.sync();
 
-                OfficeHelpers.UI.notify("Registered worksheet on activated event handler.");   
+                OfficeHelpers.UI.notify("A handler has been registered for the OnActivate event.");   
             });
         }
 
-        function onActivate(args) {
-            console.log("The activated worksheet Id : " + args.worksheetId);
+        async function onActivate(args) {
+            await Excel.run(async (context) => {
+                console.log("The activated worksheet Id : " + args.worksheetId);
+            });
         }
 
-        async function onDeactivateEventHandler() {
+        async function registerOnDeactivateHandler() {
             await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets;
-                sheet.onDeactivated.add(onDeactivate);
+                let sheets = context.workbook.worksheets;
+                sheets.onDeactivated.add(onDeactivate);
 
                 await context.sync();
 
-                OfficeHelpers.UI.notify("Registered worksheet on activated event handler.");
+                OfficeHelpers.UI.notify("A handler has been registered for the OnDeactivate event.");
             });
         }
 
-        function onDeactivate(args) {
-            console.log("The deactivated worksheet Id : " + args.worksheetId);
+        async function onDeactivate(args) {
+            await Excel.run(async (context) => {
+                console.log("The deactivated worksheet Id : " + args.worksheetId);
+            });
         }
 
         async function deleteWorksheet() {
             await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets;
-                sheet.load("items/name");
+                let sheets = context.workbook.worksheets;
+                sheets.load("items/name");
 
                 await context.sync();
 
-                if (sheet.items.length > 1) {
-                    let lastSheet = sheet.items[sheet.items.length - 1];
+                if (sheets.items.length > 1) {
+                    let lastSheet = sheets.items[sheets.items.length - 1];
                     lastSheet.delete();
 
                     console.log(`Deleted worksheet named "${lastSheet.name}"`);
@@ -119,18 +123,19 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="activate-event-handler" class="ms-Button">
+            <button id="register-on-activate-handler" class="ms-Button">
                 <span class="ms-Button-label">Register on activated event handler</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
-            <button id="deactivate-event-handler" class="ms-Button">
+            <button id="register-on-deactivate-handler" class="ms-Button">
                 <span class="ms-Button-label">Register on deactivated event handler</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
+            <p>Deleting the current worksheet triggers the deactivate event and the activate event for the preceding worksheet.</p>
             <button id="delete-worksheet" class="ms-Button">
                 <span class="ms-Button-label">Delete worksheet</span>
             </button>

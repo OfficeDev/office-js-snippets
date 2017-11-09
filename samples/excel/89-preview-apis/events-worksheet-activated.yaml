@@ -1,0 +1,161 @@
+order: 8
+id: excel-events-worksheet-activated
+name: Events - Worksheet activated
+description: Add an event handler on the worksheet activated and deactivated events
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |+
+        $("#setup").click(() => tryCatch(setup));
+        $("#register-on-activate-handler").click(() => tryCatch(registerOnActivateHandler));
+        $("#register-on-deactivate-handler").click(() => tryCatch(registerOnDeactivateHandler));
+        $("#delete-worksheet").click(() => tryCatch(deleteWorksheet));
+
+        async function registerOnActivateHandler() {
+            await Excel.run(async (context) => {
+                let sheets = context.workbook.worksheets;
+                sheets.onActivated.add(onActivate);
+
+                await context.sync();
+
+                OfficeHelpers.UI.notify("A handler has been registered for the OnActivate event.");   
+            });
+        }
+
+        async function onActivate(args) {
+            await Excel.run(async (context) => {
+                console.log("The activated worksheet Id : " + args.worksheetId);
+            });
+        }
+
+        async function registerOnDeactivateHandler() {
+            await Excel.run(async (context) => {
+                let sheets = context.workbook.worksheets;
+                sheets.onDeactivated.add(onDeactivate);
+
+                await context.sync();
+
+                OfficeHelpers.UI.notify("A handler has been registered for the OnDeactivate event.");
+            });
+        }
+
+        async function onDeactivate(args) {
+            await Excel.run(async (context) => {
+                console.log("The deactivated worksheet Id : " + args.worksheetId);
+            });
+        }
+
+        async function deleteWorksheet() {
+            await Excel.run(async (context) => {
+                let sheets = context.workbook.worksheets;
+                sheets.load("items/name");
+
+                await context.sync();
+
+                if (sheets.items.length > 1) {
+                    let lastSheet = sheets.items[sheets.items.length - 1];
+                    lastSheet.delete();
+
+                    console.log(`Deleted worksheet named "${lastSheet.name}"`);
+                }
+                else {
+                    console.log("Unable to delete worksheet.");
+                }
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                let sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                let salesTable = sheet.tables.add('A1:E1', true);
+                salesTable.name = "SalesTable";
+
+                salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                salesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+
+
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to add the worksheet activated and deactivated event handlers.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="register-on-activate-handler" class="ms-Button">
+                <span class="ms-Button-label">Register on activated event handler</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="register-on-deactivate-handler" class="ms-Button">
+                <span class="ms-Button-label">Register on deactivated event handler</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <p>Deleting the current worksheet triggers the deactivate event and the activate event for the preceding worksheet.</p>
+            <button id="delete-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Delete worksheet</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: "section.samples {\r\n    margin-top: 20px;\r\n}\r\n\r\nsection.samples .ms-Button, section.setup .ms-Button {\r\n    display: block;\r\n    margin-bottom: 5px;\r\n    margin-left: 20px;\r\n    min-width: 80px;\r\n}\r\n"
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

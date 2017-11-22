@@ -13,8 +13,8 @@ script:
 
         async function registerOnDataChangedHandler() {
             await Excel.run(async (context) => {
-                let table = context.workbook.tables;
-                table.onDataChanged.add(onDataChange);
+                let tables = context.workbook.tables;
+                tables.onDataChanged.add(onDataChange);
 
                 await context.sync();
 
@@ -26,6 +26,9 @@ script:
         async function changeData() {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets.getItem("Sample");
+
+                // Change two values to trigger two table onDataChanged events for demonstration purposes.
+                // You can also change only one value by commenting out one of the ranges.
                 let range1 = sheet.getRange("B7");
                 let range2 = sheet.getRange("C15");
                 range1.values = [[900]];
@@ -34,8 +37,6 @@ script:
                 range2.format.autofitColumns();
 
                 await context.sync();
-
-                console.log("B7 value has been changed.");
             });
         }
 
@@ -43,8 +44,7 @@ script:
             await Excel.run(async (context) => {
                 let table = context.workbook.tables.getItem(event.tableId);
                 let worksheet = context.workbook.worksheets.getItem(event.worksheetId);
-                table.load("*");
-                worksheet.load("*");
+                worksheet.load("name");
 
                 await context.sync();
 

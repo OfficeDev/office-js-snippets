@@ -136,18 +136,20 @@ function getExtractedDataFromSnippet(
             if (arrayIndex < 0) {
                 throw new Error(`Could not find the text "${targetText}" within snippet "${filename}"`);
             }
+            const functionDeclarationLine = fullSnippetTextArray[arrayIndex];
+            const functionHasNoParams = functionDeclarationLine.indexOf(targetText + ')') >= 0;
 
             const spaceFollowedByWordsRegex = /^(\s*)(.*)$/;
-            const preWhitespaceCount = spaceFollowedByWordsRegex.exec(fullSnippetTextArray[arrayIndex])[1].length;
+            const preWhitespaceCount = spaceFollowedByWordsRegex.exec(functionDeclarationLine)[1].length;
             const targetClosingText = ' '.repeat(preWhitespaceCount) + '}';
-            fullSnippetTextArray.splice(0, arrayIndex);
+            fullSnippetTextArray.splice(0, arrayIndex + (functionHasNoParams ? 1 : 0));
 
             const closingIndex = fullSnippetTextArray.findIndex(text => text.indexOf(targetClosingText) === 0);
             if (closingIndex < 0) {
                 throw new Error(`Could not find a closing bracket at same level of indent as the original function declaration ("${targetText}")`);
             }
 
-            const indented = fullSnippetTextArray.slice(0, closingIndex + 1);
+            const indented = fullSnippetTextArray.slice(0, closingIndex + (functionHasNoParams ? 0 : 1));
             const whitespaceCountOnFirstLine = spaceFollowedByWordsRegex.exec(fullSnippetTextArray[0])[1].length;
 
             text = indented

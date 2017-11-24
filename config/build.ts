@@ -9,6 +9,7 @@ import {
     getDestinationBranch, followsNamingGuidelines, isCUID,
     rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails
 } from './helpers';
+import { buildReferenceDocSnippetExtracts } from './build.documentation';
 import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
@@ -55,6 +56,7 @@ const defaultApiSets = {
                 throw accumulatedErrors;
             }
         })
+        .then(() => buildReferenceDocSnippetExtracts(processedSnippets))
         .then(() => {
             banner('Done!', null, chalk.bold.green);
         })
@@ -67,8 +69,8 @@ const defaultApiSets = {
 async function processSnippets(processedSnippets) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES), path.resolve(PRIVATE_SAMPLES));
-        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES), path.resolve(PUBLIC_SAMPLES)));
+        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES));
+        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES)));
 
         files$
             .mergeMap((file) => (processAndValidateSnippet(file)))

@@ -1,6 +1,4 @@
 import * as path from 'path';
-import * as fs from 'fs';
-import * as csv from 'csv-parser';
 
 import { Dictionary } from '@microsoft/office-js-helpers';
 import { SnippetProcessedData, banner, readDir, officeHostsToAppNames } from './helpers';
@@ -20,53 +18,76 @@ export async function buildReferenceDocSnippetExtracts(snippets: Dictionary<Snip
 }
 
 async function buildSnippetExtractsPerHost(filename: string) {
-    if (!filename.endsWith('.csv')) {
-        throw new Error(`Expecting ${filename} to end in ".csv"`);
+    if (!filename.endsWith('.xlsx')) {
+        throw new Error(`Expecting ${filename} to end in ".xlsx"`);
     }
 
     const hostName = officeHostsToAppNames[
-        filename.substr(0, filename.length - '.csv'.length).toUpperCase()];
+        filename.substr(0, filename.length - '.xlsx'.length).toUpperCase()];
 
     banner(`Extracting reference-doc snippet bits for ${hostName}`);
 
     const lines: MappingFileRowData[] =
         await new Promise((resolve: (data: MappingFileRowData[]) => void, reject) => {
-            const parser = csv(headerNames);
+            const parseXlsx = require('excel');
+
             const fullFilePath = path.join(
                 path.resolve(SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME),
                 filename
             );
+            parseXlsx(fullFilePath, (err, rows: any[][]) => {
+                if (err) {
+                    reject(err);
+                }
 
-            const lines: MappingFileRowData[] = [];
-            fs.createReadStream(fullFilePath)
-                .pipe(parser)
-                .on('data', (data: MappingFileRowData) => lines.push(data))
-                .on('error', reject)
-                .on('end', () => {
-                    // Remove the first line, since it's the header line
-                    lines.splice(0, 1);
+                if (rows.length < 2) {
+                    reject(new Error('No data rows found'));
+                }
 
-                    resolve(lines);
-                });
+                if (rows[0].length !== headerNames.length) {
+                    reject(
+                        new Error('Unexpected number of columns. Expecting the following ' +
+                            headerNames.length + ' columns: ' +
+                            headerNames.map(name => `"${name}"`).join(', ')
+                        )
+                    );
+                }
+
+                // Remove the first line, since it's the header line
+                rows.splice(0, 1);
+
+                resolve(
+                    rows.map(row => {
+                        let result: MappingFileRowData = {} as any;
+                        row.forEach((column, index) => {
+                            result[headerNames[index]] = column;
+                        });
+                        return result;
+                    })
+                );
+
+                resolve(lines);
+            });
         });
 
-    const allSnippetData: { [key: string]: string[] } = {};
+    lines.forEach(item => console.log(JSON.stringify(item)));
+    // const allSnippetData: { [key: string]: string[] } = {};
 
-    (await Promise.all(lines.map(row => getExtractedDataFromSnippet(row))))
-        .forEach(data => {
-            const { text } = data;
-            const fullName = hostName + '.' + data.name;
-            if (!allSnippetData[fullName]) {
-                allSnippetData[fullName] = [];
-            }
-            allSnippetData[fullName].push(text);
-        });
+    // (await Promise.all(lines.map(row => getExtractedDataFromSnippet(row))))
+    //     .forEach(data => {
+    //         const { text } = data;
+    //         const fullName = hostName + '.' + data.name;
+    //         if (!allSnippetData[fullName]) {
+    //             allSnippetData[fullName] = [];
+    //         }
+    //         allSnippetData[fullName].push(text);
+    //     });
 
-    return allSnippetData;
+    // return allSnippetData;
 }
 
-async function getExtractedDataFromSnippet(
-    row: MappingFileRowData
-): Promise<{ name: string, text: string }> {
-    return Promise.resolve(null);
-}
+// async function getExtractedDataFromSnippet(
+//     row: MappingFileRowData
+// ): Promise<{ name: string, text: string }> {
+//     return Promise.resolve(null);
+// }

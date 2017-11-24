@@ -25,6 +25,7 @@ export const officeHostsToAppNames = {
 export interface SnippetFileInput {
     file_name: string;
     relativePath: string;
+    fullPath: string;
     host: string;
     group: string;
     isPublic: boolean;
@@ -35,6 +36,7 @@ export interface SnippetProcessedData {
     name: string;
     fileName: string;
     relativePath: string;
+    fullPath: string;
     description: string;
     host: string;
     rawUrl: string;
@@ -190,15 +192,15 @@ export const loadFileContents = (path: string) =>
 
 /**
  * Check the file path against validations and return a 'File' object.
- * @param file An absolute path to the file.
+ * @param fullPath An absolute path to the file.
   * @param root An absolute path to the root directory.
  */
-export const getFileMetadata = (file: string, root: string) => {
+export const getFileMetadata = (fullPath: string, root: string) => {
     /* Determine the platform as windows uses '\' where as linux uses '/' */
     const delimiter = os.platform() === 'win32' ? '\\' : '/';
 
     /* Get the relative path to the file from the root directory '/' */
-    const relativePath = path.relative(root, file);
+    const relativePath = path.relative(root, fullPath);
 
     /* Extract the required properties */
     let [file_name, group, host, ...additional] = relativePath.split(delimiter).reverse();
@@ -216,6 +218,7 @@ export const getFileMetadata = (file: string, root: string) => {
 
     return Observable.of<SnippetFileInput>({
         relativePath: relativePath,
+        fullPath,
         isPublic: !(/[\\/]private-samples$/.test(root)),
         host,
         group,

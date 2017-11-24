@@ -51,12 +51,12 @@ const defaultApiSets = {
         .then(updateModifiedFiles)
         .then(() => checkSnippetsForUniqueIDs(processedSnippets))
         .then(() => generatePlaylists(processedSnippets))
+        .then(() => buildReferenceDocSnippetExtracts(processedSnippets, accumulatedErrors))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
             }
         })
-        .then(() => buildReferenceDocSnippetExtracts(processedSnippets))
         .then(() => {
             banner('Done!', null, chalk.bold.green);
         })
@@ -150,6 +150,7 @@ async function processSnippets(processedSnippets) {
                 name: snippet.name,
                 fileName: file.file_name,
                 relativePath: file.relativePath,
+                fullPath: file.fullPath,
                 description: snippet.description,
                 host: file.host,
                 rawUrl: rawUrl,

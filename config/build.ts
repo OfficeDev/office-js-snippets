@@ -9,6 +9,7 @@ import {
     getDestinationBranch, followsNamingGuidelines, isCUID,
     rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails
 } from './helpers';
+import { buildReferenceDocSnippetExtracts } from './build.documentation';
 import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
@@ -50,6 +51,7 @@ const defaultApiSets = {
         .then(updateModifiedFiles)
         .then(() => checkSnippetsForUniqueIDs(processedSnippets))
         .then(() => generatePlaylists(processedSnippets))
+        .then(() => buildReferenceDocSnippetExtracts(processedSnippets, accumulatedErrors))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -67,8 +69,8 @@ const defaultApiSets = {
 async function processSnippets(processedSnippets) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES), path.resolve(PRIVATE_SAMPLES));
-        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES), path.resolve(PUBLIC_SAMPLES)));
+        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES));
+        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES)));
 
         files$
             .mergeMap((file) => (processAndValidateSnippet(file)))
@@ -148,6 +150,7 @@ async function processSnippets(processedSnippets) {
                 name: snippet.name,
                 fileName: file.file_name,
                 relativePath: file.relativePath,
+                fullPath: file.fullPath,
                 description: snippet.description,
                 host: file.host,
                 rawUrl: rawUrl,

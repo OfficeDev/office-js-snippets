@@ -12,9 +12,20 @@ import 'rxjs/add/observable/throw';
 import { console } from './status';
 import * as rimraf from 'rimraf';
 
+export const officeHostsToAppNames = {
+    'ACCESS': 'Access',
+    'EXCEL': 'Excel',
+    'ONENOTE': 'OneNote',
+    'OUTLOOK': 'Outlook',
+    'POWERPOINT': 'PowerPoint',
+    'PROJECT': 'Project',
+    'WORD': 'Word'
+};
+
 export interface SnippetFileInput {
     file_name: string;
     relativePath: string;
+    fullPath: string;
     host: string;
     group: string;
     isPublic: boolean;
@@ -25,6 +36,7 @@ export interface SnippetProcessedData {
     name: string;
     fileName: string;
     relativePath: string;
+    fullPath: string;
     description: string;
     host: string;
     rawUrl: string;
@@ -180,15 +192,15 @@ export const loadFileContents = (path: string) =>
 
 /**
  * Check the file path against validations and return a 'File' object.
- * @param file An absolute path to the file.
+ * @param fullPath An absolute path to the file.
   * @param root An absolute path to the root directory.
  */
-export const getFileMetadata = (file: string, root: string) => {
+export const getFileMetadata = (fullPath: string, root: string) => {
     /* Determine the platform as windows uses '\' where as linux uses '/' */
     const delimiter = os.platform() === 'win32' ? '\\' : '/';
 
     /* Get the relative path to the file from the root directory '/' */
-    const relativePath = path.relative(root, file);
+    const relativePath = path.relative(root, fullPath);
 
     /* Extract the required properties */
     let [file_name, group, host, ...additional] = relativePath.split(delimiter).reverse();
@@ -206,6 +218,7 @@ export const getFileMetadata = (file: string, root: string) => {
 
     return Observable.of<SnippetFileInput>({
         relativePath: relativePath,
+        fullPath,
         isPublic: !(/[\\/]private-samples$/.test(root)),
         host,
         group,
@@ -215,43 +228,50 @@ export const getFileMetadata = (file: string, root: string) => {
 
 /**
  * Recurrsively crawl through a folder and return all the files in it.
- * @param dir An absolute path to the directory.
- * @param root An absolute path to the root directory.
+ * @param root An absolute path to the directory.
  */
-export const getFiles = (dir: string, root: string): Observable<SnippetFileInput> =>
-    /*
-    * Convert all the files into an Observable stream of files.
-    * This allows us to focus the remainder of the operations
-    * on a PER FILE basis.
-    */
-    Observable
-        .from(readDir(dir))
-        .mergeMap(files => Observable.from(files))
-        .mergeMap((file) => {
-            const filePath = path.join(dir, file);
-            const withoutExt = file.replace('.yaml', '');
+export function getFiles(root: string): Observable<SnippetFileInput> {
+    return getFilesHelper(root, root);
 
-            /* Check for file/folder naming guidelines */
-            if (!followsNamingGuidelines(withoutExt)) {
-                throw new Error(`Invalid name at ${chalk.bold.red(filePath)}. Name must only contain lowercase letters, numbers, and hyphens.`);
-            }
+    /** A recursive helper:
+     * @param dir An absolute path to the directory.
+     * @param root An absolute path to the root directory.
+     */
+    function getFilesHelper(dir: string, root: string): Observable<SnippetFileInput> {
+        /*
+        * Convert all the files into an Observable stream of files.
+        * This allows us to focus the remainder of the operations
+        * on a PER FILE basis.
+        */
+        return Observable
+            .from(readDir(dir))
+            .mergeMap(files => Observable.from(files))
+            .mergeMap((file) => {
+                const filePath = path.join(dir, file);
+                const withoutExt = file.replace('.yaml', '');
 
-            /*
-            * Check if the file is a folder and either return
-            * an Observable to the recurrsive walk operation or
-            * return an Observable of the file object itself.
-            */
-            return Observable
-                .from(isDir(filePath))
-                .mergeMap(pathIsDirectory => {
-                    const files$ = pathIsDirectory ?
-                        getFiles(filePath, root) :
-                        getFileMetadata(filePath, root);
-                    return files$.catch(error => Observable.throw(error));
-                })
-                .catch(error => Observable.throw(error));
-        });
+                /* Check for file/folder naming guidelines */
+                if (!followsNamingGuidelines(withoutExt)) {
+                    throw new Error(`Invalid name at ${chalk.bold.red(filePath)}. Name must only contain lowercase letters, numbers, and hyphens.`);
+                }
 
+                /*
+                * Check if the file is a folder and either return
+                * an Observable to the recurrsive walk operation or
+                * return an Observable of the file object itself.
+                */
+                return Observable
+                    .from(isDir(filePath))
+                    .mergeMap(pathIsDirectory => {
+                        const files$ = pathIsDirectory ?
+                            getFilesHelper(filePath, root) :
+                            getFileMetadata(filePath, root);
+                        return files$.catch(error => Observable.throw(error));
+                    })
+                    .catch(error => Observable.throw(error));
+            });
+    }
+}
 
 /**
     Naming guidelines:  only allow lowercase letters, numbers, and hyphens
@@ -284,4 +304,8 @@ export function isCUID(id: string) {
     }
 
     return false;
+}
+
+export function pause(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }

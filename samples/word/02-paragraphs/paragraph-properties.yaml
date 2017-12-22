@@ -4,70 +4,80 @@ description: 'Shows how to set indentation, space between paragraphs and other p
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: 1.1
+    WordApi: 1.2
 script:
     content: |-
-        $("#indent").click(indent);
-        $("#spacing").click(spacing);
-        $("#space-after").click(spaceAfter);
-        $("#align").click(align);
-        $("#setup").click(setup);
+        $("#indent").click(() => tryCatch(indent));
+        $("#spacing").click(() => tryCatch(spacing));
+        $("#space-after").click(() => tryCatch(spaceAfter));
+        $("#align").click(() => tryCatch(align));
+        $("#setup").click(() => tryCatch(setup));
 
-        function indent() {
-            Word.run(function (context) {
+        async function indent() {
+            await Word.run(async (context) => {
                 // Indents the first paragraph
                 context.document.body.paragraphs.
                     getFirst().leftIndent = 75; //units = points
+
                 return context.sync();
-            })
-                .catch(OfficeHelpers.Utilities.log);
+            });
         }
 
-        function spacing() {
-            Word.run(function (context) {
+        async function spacing() {
+            await Word.run(async (context) => {
                 // Adjusts line spacing 
                 context.document.body.paragraphs
                     .getFirst().lineSpacing = 20;
-                return context.sync();
-            })
-                .catch(OfficeHelpers.Utilities.log);
+
+                await context.sync();
+            });
         }
 
-        function spaceAfter() {
-            Word.run(function (context) {
+        async function spaceAfter() {
+            await Word.run(async (context) => {
                 //Adjust space between paragraphs
                 context.document.body.paragraphs
                     .getFirst().spaceAfter = 20;
-                return context.sync();
-            })
-                .catch(OfficeHelpers.Utilities.log);
+
+                await context.sync();
+            });
         }
 
-        function align() {
-            Word.run(function (context) {
+        async function align() {
+            await Word.run(async (context) => {
                 // Centers last paragraph alignment
                 context.document.body.paragraphs
                     .getLast().alignment = "centered";
-                return context.sync();
-            })
-                .catch(OfficeHelpers.Utilities.log);
 
+                await context.sync();
+            });
         }
 
-        function setup() {
-            Word.run(function (context) {
+        async function setup() {
+            await Word.run(async (context) => {
                 // lets insert a couple of paragraphs to illustrate the point..
                 context.document.body.clear();
                 context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
                 context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.", "replace");
-                return context.sync()
-                    .then(function () {
-                        context.document.body.paragraphs.getFirst().alignment = "left";
-                        context.document.body.paragraphs.getLast().alignment = "left";
-                        return context.sync();
-                    })
+
+                await context.sync();
+
+                context.document.body.paragraphs.getFirst().alignment = "left";
+                context.document.body.paragraphs.getLast().alignment = "left";
+
+                await context.sync();
             })
-                .catch(OfficeHelpers.Utilities.log);
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:

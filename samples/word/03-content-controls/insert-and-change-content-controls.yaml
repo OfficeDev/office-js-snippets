@@ -7,82 +7,92 @@ api_set:
     WordApi: 1.1
 script:
     content: |-
-        $("#insert-controls").click(insertContentControls);
-        $("#change-controls").click(modifyContentControls);
-        $("#setup").click(setup);
+        $("#insert-controls").click(() => tryCatch(insertContentControls));
+        $("#change-controls").click(() => tryCatch(modifyContentControls));
+        $("#setup").click(() => tryCatch(setup));
 
 
-        function insertContentControls() {
+        async function insertContentControls() {
             //traverses each paragraph of the document and wraps a content control on each with either a even or odd tags
-            Word.run(function (context) {
-                var paragraphs = context.document.body.paragraphs;
-                context.load(paragraphs);
-                return context.sync()
-                    .then(function () {
-                        for (var i = 0; i < paragraphs.items.length; i++) {
-                            console.log(paragraphs.items.length);
-                            var contentControl = paragraphs.items[i].insertContentControl();
-                            //for even we tag "even"
-                            if (i % 2 == 0)
-                                contentControl.tag = "even";
+            await Word.run(async (context) => {
+                let paragraphs = context.document.body.paragraphs;
+                paragraphs.load();
 
-                            else
-                                contentControl.tag = "odd";
-                        }
-                        return context.sync();
-                    })
-            })
-                .catch(OfficeHelpers.Utilities.log);
+                await context.sync();
+
+                for (let i = 0; i < paragraphs.items.length; i++) {
+                    let contentControl = paragraphs.items[i].insertContentControl();
+                    //for even we tag "even"
+                    if (i % 2 == 0)
+                        contentControl.tag = "even";
+
+                    else
+                        contentControl.tag = "odd";
+                }
+                console.log("Content controls inserted: " + paragraphs.items.length)
+
+                await context.sync();
+            });
+
         }
 
-        function modifyContentControls() {
+        async function modifyContentControls() {
             // I'll add title and colors to odd and even content controls! and change appearance of all.
-            Word.run(function (context) {
+            await Word.run(async (context) => {
                 // gets the complete sentence  (as range) associated with the insertion point.
-                var evenContentControls = context.document.contentControls.getByTag("even");
-                var oddContentControls = context.document.contentControls.getByTag("odd");
-                context.load(evenContentControls);
-                context.load(oddContentControls);
-                return context.sync()
-                    .then(function () {
-                        for (var i = 0; i < evenContentControls.items.length; i++) {
-                            //change a few properties and append a paragraph
-                            evenContentControls.items[i].color = "red";
-                            evenContentControls.items[i].title = "Odd ContentControl #" + (i+1);
-                            evenContentControls.items[i].appearance = "tags";
-                            evenContentControls.items[i].insertParagraph("This is an odd content control", "end");
-                        }
+                let evenContentControls = context.document.contentControls.getByTag("even");
+                let oddContentControls = context.document.contentControls.getByTag("odd");
+                evenContentControls.load("color,title,appearance");
+                oddContentControls.load("color,title,appearance");
 
-                        for (var j = 0; j < oddContentControls.items.length; j++) {
-                            //change a few properties and append a paragraph
-                            oddContentControls.items[j].color = "green";
-                            oddContentControls.items[j].title = "Even ContentControl #" + (j+1);
-                            oddContentControls.items[j].appearance = "tags";
-                            oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "end");
-                        }
-                        return context.sync();
+                await context.sync();
 
-                    });
-            })
-                .catch(OfficeHelpers.Utilities.log);
+                for (let i = 0; i < evenContentControls.items.length; i++) {
+                    //change a few properties and append a paragraph
+                    evenContentControls.items[i].color = "red";
+                    evenContentControls.items[i].title = "Odd ContentControl #" + (i + 1);
+                    evenContentControls.items[i].appearance = "tags";
+                    evenContentControls.items[i].insertParagraph("This is an odd content control", "end");
+                }
+
+                for (let j = 0; j < oddContentControls.items.length; j++) {
+                    //change a few properties and append a paragraph
+                    oddContentControls.items[j].color = "green";
+                    oddContentControls.items[j].title = "Even ContentControl #" + (j + 1);
+                    oddContentControls.items[j].appearance = "tags";
+                    oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "end");
+                }
+
+                await context.sync();
+            });
         }
 
-        function setup() {
-            Word.run(function (context) {
+        async function setup() {
+            await Word.run(async (context) => {
                 // lets insert a couple of paragraphs to illustrate the point..
                 context.document.body.clear();
                 context.document.body.insertParagraph("One more paragraph. ", "start");
                 context.document.body.insertParagraph("Inserting another paragraph. ", "start");
                 context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
                 context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ", "replace");
-                return context.sync()
-                    .then(function () {
-                        context.document.body.paragraphs.getFirst().alignment = "left";
-                        context.document.body.paragraphs.getLast().alignment = "left";
-                        return context.sync();
-                    })
-            })
-                .catch(OfficeHelpers.Utilities.log);
+
+                await context.sync()
+
+                context.document.body.paragraphs.getFirst().alignment = "left";
+                context.document.body.paragraphs.getLast().alignment = "left";
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:
@@ -117,6 +127,7 @@ style:
         .ms-Button, .ms-Button:focus {
             background: #217346;
             border: #217346;
+            height: 70px;
         }
 
             .ms-Button > .ms-Button-label,

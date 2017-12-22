@@ -4,44 +4,51 @@ description: Shows how to insert page and line breaks in a document.
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: 1.1
+    WordApi: 1.2
 script:
     content: |-
-        $("#setup").click(setup);
-        $("#line").click(insertLineBreak);
-        $("#page").click(insertPageBreak);
+        $("#setup").click(() => tryCatch(setup));
+        $("#line").click(() => tryCatch(insertLineBreak));
+        $("#page").click(() => tryCatch(insertPageBreak));
 
-        function insertLineBreak() {
-            Word.run(function (context) {
-                var paragraph = context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "after");
-                return context.sync()
-                    .then(function () {
-                        console.log("success");
-                    })
-            })
-                .catch(OfficeHelpers.Utilities.log);
+        async function insertLineBreak() {
+            Word.run(async (context) => {
+                context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "after");
+
+                await context.sync();
+                console.log("success");
+            });
         }
 
-        function insertPageBreak() {
-            Word.run(function (context) {
-                var picture = context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "after");
-                return context.sync()
-                    .then(function () {
-                        console.log("success");
-                    })
-            })
-                .catch(OfficeHelpers.Utilities.log);
+        async function insertPageBreak() {
+            await Word.run(async (context) => {
+                context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "after");
+
+                await context.sync();
+                console.log("success");
+            });
         }
 
-        function setup() {
-            Word.run(function (context) {
+        async function setup() {
+            await Word.run(async (context) => {
                 // lets insert a couple of paragraphs to illustrate the point..
                 context.document.body.clear();
                 context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
                 context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the elements you want from the different Online galleries.", "replace");
-                return context.sync();
-            })
-                .catch(OfficeHelpers.Utilities.log);
+
+                await context.sync();
+                console.log("success");
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:

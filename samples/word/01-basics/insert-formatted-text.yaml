@@ -6,39 +6,46 @@ host: WORD
 api_set:
     WordApi: 1.1
 script:
-    content: |
-        $("#run").click(run);
+    content: |-
+        $("#run").click(() => tryCatch(run));
 
         async function run() {
+            await Word.run(async (context) => {
+                // Insert first sentence. Then we adjust the formatting.
+                // Note that replace affects the calling object, in this case the entire document body.
+                // A similar method can also be used at the range level.
+                let firstSentence = context.document.body.insertText("This is some formatted text!", "replace");
+                firstSentence.font.name = "Courier New";
+                firstSentence.font.bold = true;
+                firstSentence.font.size = 18;
+
+                // Second sentence, let's insert it as a paragraph after the previously inserted one.
+                let secondSentence = context.document.body.insertParagraph("This is other formatted text.", "end");
+                secondSentence.font.bold = false;
+                secondSentence.font.italic = true;
+                secondSentence.font.name = "Berlin Sans FB";
+                secondSentence.font.size = 30;
+                secondSentence.font.color = "blue";
+
+                // You can also use pre-exsiting styles.
+                let lastSentence = context.document.body.insertParagraph("To be or not to be", "end");
+
+                // Use styleBuiltIn to use an enumeration of existing styles. If your style is custom make sure to use range.style = "name of your style";
+                lastSentence.styleBuiltIn = Word.Style.intenseReference;
+
+                await context.sync();
+                console.log("success");
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                await Word.run(async (context) => {
-                    // Here we go to insert first sentence. Then we adjust the formatting.
-                    // Note that replace affects the calling object, in this case the entire document body.
-                    // A similar method can also be used at the range level.
-                    var firstSentence = context.document.body.insertText("This is some formatted text!", "replace");
-                    firstSentence.font.name = "Courier New";
-                    firstSentence.font.bold = true;
-                    firstSentence.font.size = 18;
-
-                    // Second sentence, let's insert it after the previously inserted one.
-                    var secondSentence = context.document.body.insertText("This is other formatted text.", "end");
-                    secondSentence.font.bold = false;
-                    secondSentence.font.italic = true;
-                    secondSentence.font.name = "Berlin Sans FB";
-                    secondSentence.font.size = 30;
-                    secondSentence.font.color = "blue";
-
-                    // You can also use pre-exsiting styles.
-                    var lastSentence = context.document.body.insertParagraph("To be or not to be", "end");
-
-                    // Use styleBuiltIn to use an enumeration of existing styles. If your style is custom make sure to use range.style = "name of your style";
-                    lastSentence.styleBuiltIn = Word.Style.intenseReference;
-
-                    await context.sync()
-                    console.log("success");
-                })
-            } catch (e) {
-                OfficeHelpers.Utilities.log(e);
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
             }
         }
     language: typescript

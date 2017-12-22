@@ -7,62 +7,60 @@ api_set:
     WordApi: 1.1
 script:
     content: |
-        $("#setup").click(setup);
-        $("#insert").click(insertImage);
-        $("#get").click(getImage);
+        $("#setup").click(() => tryCatch(setup));
+        $("#insert").click(() => tryCatch(insertImage));
+        $("#get").click(() => tryCatch(getImage));
 
         /**
-         * Setup by adding a dummy paragraph.
-         */
-        async function setup() {
-            try {
-                await Word.run(async (context) => {
-                    context.document.body.clear();
-                    context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add.You can also type a keyword to search online for the video that best fits your document.", "start");
-                    context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the elements you want from the different Online galleries.", "replace");
-                    await context.sync();
-                });
-            }
-            catch (exception) {
-                OfficeHelpers.Utilities.log(exception);
-            }
-        }
-
-        /**
-         * Inserts a blank paragraph at the end of the document
-         * and then an image anchored to it.
+         * Inserts an image anchored to the last paragraph.
          */
         async function insertImage() {
-            try {
-                await Word.run(async (context) => {
-                    context.document.body.paragraphs.getLast().insertParagraph("", "after").insertInlinePictureFromBase64(base64Image, "end");
-                    await context.sync();
-                    console.log("success");
-                });
-            }
-            catch (exception) {
-                OfficeHelpers.Utilities.log(exception);
-            }
+            await Word.run(async (context) => {
+                context.document.body.paragraphs.getLast().insertParagraph("", "after").insertInlinePictureFromBase64(base64Image, "end");
+
+                await context.sync();
+            });
         }
 
         /**
          * Get the first image in the document
          */
         async function getImage() {
+            await Word.run(async (context) => {
+                const firstPicture = context.document.body.inlinePictures.getFirst();
+                firstPicture.load("width,height");
+
+                await context.sync();
+
+                console.log("Image dimension:" + firstPicture.width + "x" + firstPicture.height);
+                //to get the image encoded as base64:
+                const base64 = firstPicture.getBase64ImageSrc();
+
+                await context.sync();
+                console.log(base64.value);
+            });
+        }
+
+        /**
+         * Setup by adding a dummy paragraph.
+         */
+        async function setup() {
+            await Word.run(async (context) => {
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add.You can also type a keyword to search online for the video that best fits your document.", "end");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the elements you want from the different Online galleries.", "end");
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                Word.run(async (context) => {
-                    const firstPicture = context.document.body.inlinePictures.getFirst();
-                    context.load(firstPicture);
-                    await context.sync();
-
-                    const base64 = firstPicture.getBase64ImageSrc();
-                    await context.sync();
-
-                    console.log(base64.value);
-                })
+                await callback();
             }
-            catch (exception) {
-                OfficeHelpers.Utilities.log(exception);
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
             }
         }
 

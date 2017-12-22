@@ -7,15 +7,27 @@ api_set:
     WordApi: 1.1
 script:
     content: |-
-        $("#run").click(run);
+        $("#run").click(() => tryCatch(run));
 
-        function run() {
-            Word.run(function (context) {
-                var myHeader = context.document.sections.getFirst()
+        async function run() {
+            await Word.run(async (context) => {
+                context.document.sections.getFirst()
                     .getHeader("primary").insertText("This is a header", "start");
-                return context.sync();
-            })
-                .catch(OfficeHelpers.Utilities.log);
+
+                await context.sync();
+            });
+        }
+
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:

@@ -7,63 +7,69 @@ api_set:
     WordApi: 1.1
 script:
     content: |-
-        $("#get-paragraph").click(getParagraph);
-        $("#get-sentences").click(getSentences);
-        $("#setup").click(setup);
+        $("#get-paragraph").click(() => tryCatch(getParagraph));
+        $("#get-sentences").click(() => tryCatch(getSentences));
+        $("#setup").click(() => tryCatch(setup));
 
 
-        function getParagraph() {
-            Word.run(function (context) {
-                // the collection of paragraphs of the current selection returns the full paragraphs contanied on it. 
-                var paragraph = context.document.getSelection().paragraphs.getFirst();
-                context.load(paragraph);
-                return context.sync()
-                    .then(function () {
-                        console.log(paragraph.text);
-                    })
-            })
-                .catch(OfficeHelpers.Utilities.log);
+        async function getParagraph() {
+            await Word.run(async (context) => {
+                // The collection of paragraphs of the current selection returns the full paragraphs contanied on it. 
+                let paragraph = context.document.getSelection().paragraphs.getFirst();
+                paragraph.load("text");
+
+                await context.sync();
+                console.log(paragraph.text);
+            });
         }
 
-        function getSentences() {
-            Word.run(function (context) {
-                // gets the complete sentence  (as range) associated with the insertion point.
-                var sentences = context.document
+        async function getSentences() {
+            await Word.run(async (context) => {
+                // Gets the complete sentence  (as range) associated with the insertion point.
+                let sentences = context.document
                     .getSelection().getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
-                context.load(sentences);
-                return context.sync()
-                    .then(function () {
-                        //  expands the range to the end of the paragraph to get all the complete sentences.
-                        var sentecesToTheEndOfParagraph = sentences.items[0].getRange()
-                            .expandTo(context.document.getSelection().paragraphs
-                                .getFirst().getRange("end") /* Expanding the range all the way to the end of the paragraph */).getTextRanges(["."], false);
-                        context.load(sentecesToTheEndOfParagraph);
-                        return context.sync()
-                            .then(function () {
-                                for (var i = 0; i < sentecesToTheEndOfParagraph.items.length; i++) {
-                                    console.log("Sentence " + (i + 1) + ":"
-                                        + sentecesToTheEndOfParagraph.items[i].text);
-                                }
-                            });
-                    });
-            })
-                .catch(OfficeHelpers.Utilities.log);
+                sentences.load("$none");
+
+                await context.sync();
+
+                //  Expands the range to the end of the paragraph to get all the complete sentences.
+                let sentencesToTheEndOfParagraph = sentences.items[0].getRange()
+                    .expandTo(context.document.getSelection().paragraphs
+                        .getFirst().getRange("end")).getTextRanges(["."], false /* Don't trim spaces*/);
+                sentencesToTheEndOfParagraph.load("text");
+
+                await context.sync();
+                for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
+                    console.log(sentencesToTheEndOfParagraph.items[i].text);
+                }
+            });
         }
 
-        function setup() {
-            Word.run(function (context) {
-                // lets insert a couple of paragraphs to illustrate the point..
+        async function setup() {
+            await Word.run(async (context) => {
+                // Let's insert a couple of paragraphs to illustrate the point..
                 context.document.body.clear();
                 context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
                 context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.", "replace");
-                return context.sync()
-                    .then(function () {
-                        context.document.body.paragraphs.getFirst().alignment = "left";
-                        context.document.body.paragraphs.getLast().alignment = "left";
-                        return context.sync();
-                    })
+
+                await context.sync();
+
+                context.document.body.paragraphs.getFirst().alignment = "left";
+                context.document.body.paragraphs.getLast().alignment = "left";
+
+                await context.sync();
             })
-                .catch(OfficeHelpers.Utilities.log);
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:
@@ -98,6 +104,7 @@ style:
         .ms-Button, .ms-Button:focus {
             background: #217346;
             border: #217346;
+            height: 70px;
         }
 
             .ms-Button > .ms-Button-label,

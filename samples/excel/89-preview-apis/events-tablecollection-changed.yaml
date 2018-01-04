@@ -1,0 +1,174 @@
+order: 9
+id: excel-events-tablecollection-changed
+name: Events - Table collection changed
+description: Add event handlers for table collection onDataChanged event
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |+
+        $("#setup").click(() => tryCatch(setup));
+        $("#register-on-data-changed-handler").click(() => tryCatch(registerOnDataChangedHandler));
+        $("#change-data").click(() => tryCatch(changeData));
+
+        async function registerOnDataChangedHandler() {
+            await Excel.run(async (context) => {
+                let tables = context.workbook.tables;
+                tables.onDataChanged.add(onDataChange);
+
+                await context.sync();
+
+                OfficeHelpers.UI.notify("A handler has been registered for the table collection onDataChanged event",
+                    "Try changing cell values in the tables, and watch the console output.");
+            });
+        }
+
+        async function changeData() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+
+                // Change two values to trigger two table onDataChanged events for demonstration purposes.
+                // You can also change only one value by commenting out one of the ranges.
+                let range1 = sheet.getRange("B7");
+                let range2 = sheet.getRange("C15");
+                range1.values = [[900]];
+                range2.values = [[20]];
+                range1.format.autofitColumns();
+                range2.format.autofitColumns();
+
+                await context.sync();
+            });
+        }
+
+        async function onDataChange(event) {
+            await Excel.run(async (context) => {
+                let table = context.workbook.tables.getItem(event.tableId);
+                let worksheet = context.workbook.worksheets.getItem(event.worksheetId);
+                worksheet.load("name");
+
+                await context.sync();
+
+                console.log("Handler for table collection onDataChanged event has been triggered.  Data changed address : " + event.address);
+                console.log("Table Id : " + event.tableId);
+                console.log("Worksheet Id : " + worksheet.name);
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                createSalesTable(sheet);
+                createReturnsTable(sheet);
+
+                let format = sheet.getRange().format;
+                format.autofitColumns();
+                format.autofitRows();
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        function createSalesTable(sheet: Excel.Worksheet) {
+            let salesTable = sheet.tables.add('A1:E1', true);
+            salesTable.name = "SalesTable";
+
+            salesTable.getHeaderRowRange().values = [["Sales", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+            salesTable.rows.add(null, [
+                ["Frames", 5000, 7000, 6544, 4377],
+                ["Saddles", 400, 323, 276, 651],
+                ["Brake levers", 12000, 8766, 8456, 9812],
+                ["Chains", 1550, 1088, 692, 853],
+                ["Mirrors", 225, 600, 923, 544],
+                ["Spokes", 6005, 7634, 4589, 8765]
+            ]);
+        }
+
+        function createReturnsTable(sheet: Excel.Worksheet) {
+            let returnsTable = sheet.tables.add('A10:E10', true);
+            returnsTable.name = "ReturnsTable";
+
+            returnsTable.getHeaderRowRange().values = [["Returns", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+            returnsTable.rows.add(null, [
+                ["Frames", 50, 70, 65, 77],
+                ["Saddles", 20, 23, 16, 31],
+                ["Brake levers", 20, 87, 56, 81],
+                ["Chains", 15, 18, 32, 33],
+                ["Mirrors", 15, 60, 23, 54],
+                ["Spokes", 25, 35, 45, 65]
+            ]);
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+
+
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to add an event handler for table collection onDataChanged event.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="register-on-data-changed-handler" class="ms-Button">
+                <span class="ms-Button-label">Register onDataChanged event handler</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <p>Changing data in tables triggers the data changed event. You can change the data manually or programmatically.</p>
+            <button id="change-data" class="ms-Button">
+                <span class="ms-Button-label">Change data</span>
+            </button>
+        </section>
+
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

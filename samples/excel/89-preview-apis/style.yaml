@@ -1,0 +1,241 @@
+order: 15
+id: excel-style
+name: Style
+description: 'Add, apply, get and delete styles.'
+author: siewmoi
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |+
+        $("#setup").click(() => tryCatch(setup));
+        $("#add-new-style").click(() => tryCatch(addNewStyle));
+        $("#apply-new-style").click(() => tryCatch(applyNewStyle));
+        $("#apply-built-in-style").click(() => tryCatch(applyBuiltInStyle));
+        $("#get-style-font").click(() => tryCatch(getStyleFontProperties));
+        $("#get-style-alignment").click(() => tryCatch(getStyleAlignmentProperties));
+        $("#delete-new-style").click(() => tryCatch(deleteNewStyle));
+
+        async function addNewStyle() {
+            await Excel.run(async (context) => {
+                let styles = context.workbook.styles;
+
+                // Add a new style to the style collection.
+                // Styles is in the Home tab ribbon.
+                styles.add("Diagonal Orientation Style");
+                      
+                let newStyle = styles.getItem("Diagonal Orientation Style");
+                
+                // The "Diagonal Orientation Style" properties.
+                newStyle.orientation = 38;
+                newStyle.addIndent = true;
+                newStyle.includeProtection = true;
+                newStyle.shrinkToFit = true;
+                newStyle.locked = false;
+                
+                await context.sync();
+
+                OfficeHelpers.UI.notify("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
+            });
+        }
+
+        async function applyNewStyle() {
+            await Excel.run(async (context) => {
+                let worksheet = context.workbook.worksheets.getItem("Sample");
+                let range = worksheet.getRange("A1:E1");
+                // Apply new style.
+                range.style = ("Diagonal Orientation Style");
+                range.format.verticalAlignment = "Justify";
+
+                await context.sync();
+            });
+        }
+
+        async function applyBuiltInStyle() {
+            await Excel.run(async (context) => {
+                let worksheet = context.workbook.worksheets.getItem("Sample");
+                let range = worksheet.getRange("A1:E1");
+
+                // Apply built-in style. 
+                // Styles are in the Home tab ribbon.
+                range.style = Excel.BuiltInStyle.neutral;
+                range.format.horizontalAlignment = "Right";
+
+                await context.sync();
+            });
+        }
+
+        async function getStyleFontProperties() {
+            await Excel.run(async (context) => {
+                let style = context.workbook.styles.getItem("Normal");
+                style.font.load("bold, color, italic, name, size");
+                style.fill.load("color");
+
+                await context.sync();
+
+                console.log("Bold: " + style.font.bold);
+                console.log("Font color: " + style.font.color);
+                console.log("Italic: " + style.font.italic);
+                console.log("Name: " + style.font.name);
+                console.log("Size: " + style.font.size);
+                console.log("Fill color: " + style.fill.color);
+            });
+        }
+
+        async function getStyleAlignmentProperties() {
+            await Excel.run(async (context) => {
+                let style = context.workbook.styles.getItem("Diagonal Orientation Style");            
+                style.load("orientation, horizontalAlignment, addIndent, readingOrder, wrapText, includeProtection, shrinkToFit, locked");
+
+                await context.sync();
+
+                console.log("Orientation: " + style.orientation);
+                console.log("Horizontal alignment: " + style.horizontalAlignment);
+                console.log("Add indent: " + style.addIndent);
+                console.log("Reading order: " + style.readingOrder);
+                console.log("Wrap text: " + style.wrapText);
+                console.log("Include protection: " + style.includeProtection);
+                console.log("Shrink to fit: " + style.shrinkToFit);
+                console.log("Style locked: " + style.locked);
+            });
+        }
+
+        async function deleteNewStyle() {
+            await Excel.run(async (context) => {
+                let style = context.workbook.styles.getItem("Diagonal Orientation Style");
+
+                // Delete the diagonal orientation style from the style collection.
+                // Styles are in the Home tab ribbon.
+                style.delete();
+
+                await context.sync();
+
+                OfficeHelpers.UI.notify("Successfully deleted the diagonal orientation style from the Home tab ribbon.");
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                let salesTable = sheet.tables.add('A1:E1', true);
+                salesTable.name = "SalesTable";
+
+                salesTable.getHeaderRowRange().values = [["Bicycle Parts Product", "Quarter 1", "Quarter 2", "Quarter 3", "Quarter 4"]];
+
+                salesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ]);
+
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+
+
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to add, apply, get and delete styles.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p><b>Add new style</b> will throw an error if the style has already been added and <b>Delete new style</b> will error if the style doesn't exist (that is, hasn't been added).</p>
+            <button id="add-new-style" class="ms-Button">
+                <span class="ms-Button-label">Add new style</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="apply-new-style" class="ms-Button">
+                <span class="ms-Button-label">Apply new style</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="apply-built-in-style" class="ms-Button">
+                <span class="ms-Button-label">Apply built-in style</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="get-style-font" class="ms-Button">
+                <span class="ms-Button-label">Get style font properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="get-style-alignment" class="ms-Button">
+                <span class="ms-Button-label">Get style alignment properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="delete-new-style" class="ms-Button">
+                <span class="ms-Button-label">Delete new style</span>
+            </button>
+        </section>
+
+
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

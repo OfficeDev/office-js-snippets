@@ -4,47 +4,53 @@ description: Shows how to scroll to a range with and without selection.
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: 1.1
+    WordApi: 1.2
 script:
-    content: |
-        $("#setup").click(setup);
-        $("#scroll").click(scroll);
-        $("#scroll-end").click(scrollEnd);
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#scroll").click(() => tryCatch(scroll));
+        $("#scroll-end").click(() => tryCatch(scrollEnd));
 
-        function scroll() {
-            Word.run(function (context) {
-                //if select is called with no parameters it selects the object.
-                var paragraph = context.document.body.paragraphs.getLast().select();
-                return context.sync()
-                    .then(function () {
-                        console.log("success");
-                    });
-            })
-                .catch(OfficeHelpers.Utilities.log);
+
+        async function scroll() {
+            await Word.run(async (context) => {
+                // If select is called, with no parameters it selects the object.
+                context.document.body.paragraphs.getLast().select();
+
+                await context.sync();
+            });
         }
 
-        function scrollEnd() {
-            Word.run(function (context) {
-                // select can be at the start or end of a range, this by definition moves the insertion point without selecting the range. 
-                var paragraph = context.document.body.paragraphs.getLast().select("end");
-                return context.sync()
-                    .then(function () {
-                        console.log("success");
-                    });
-            })
-                .catch(OfficeHelpers.Utilities.log);
+        async function scrollEnd() {
+            await Word.run(async (context) => {
+                //Select can be at the start or end of a range, this by definition moves the insertion point without selecting the range. 
+                context.document.body.paragraphs.getLast().select("end");
+
+                await context.sync();
+            });
         }
 
-        function setup() {
-            Word.run(function (context) {
-                // lets insert a couple of paragraphs to illustrate the point..
+        async function setup() {
+            await Word.run(async (context) => {
+                //Let's insert a couple of paragraphs to illustrate the point..
                 context.document.body.clear();
-                var firstSentence = context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
+                let firstSentence = context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
                 firstSentence.insertBreak(Word.BreakType.page, "after");
                 context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.", "replace");
-                return context.sync();
+
+                await context.sync();
             })
-                .catch(OfficeHelpers.Utilities.log);
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:

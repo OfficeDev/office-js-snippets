@@ -13,21 +13,23 @@ script:
 
 
         async function insertContentControls() {
-            //traverses each paragraph of the document and wraps a content control on each with either a even or odd tags
+            // Traverses each paragraph of the document and wraps a content control on each with either a even or odd tags
             await Word.run(async (context) => {
                 let paragraphs = context.document.body.paragraphs;
-                paragraphs.load();
+                paragraphs.load("$none"); //Don't need any properties, we'll just wrap each paragraph with a content control
 
                 await context.sync();
 
                 for (let i = 0; i < paragraphs.items.length; i++) {
                     let contentControl = paragraphs.items[i].insertContentControl();
-                    //for even we tag "even"
-                    if (i % 2 == 0)
+                    // For even we tag "even"
+                    if (i % 2 === 0) {
                         contentControl.tag = "even";
+                    }
 
-                    else
+                    else {
                         contentControl.tag = "odd";
+                    }
                 }
                 console.log("Content controls inserted: " + paragraphs.items.length)
 
@@ -39,7 +41,7 @@ script:
         async function modifyContentControls() {
             // I'll add title and colors to odd and even content controls! and change appearance of all.
             await Word.run(async (context) => {
-                // gets the complete sentence  (as range) associated with the insertion point.
+                // Gets the complete sentence  (as range) associated with the insertion point.
                 let evenContentControls = context.document.contentControls.getByTag("even");
                 let oddContentControls = context.document.contentControls.getByTag("odd");
                 evenContentControls.load("color,title,appearance");
@@ -48,18 +50,22 @@ script:
                 await context.sync();
 
                 for (let i = 0; i < evenContentControls.items.length; i++) {
-                    //change a few properties and append a paragraph
-                    evenContentControls.items[i].color = "red";
-                    evenContentControls.items[i].title = "Odd ContentControl #" + (i + 1);
-                    evenContentControls.items[i].appearance = "tags";
+                    // Change a few properties and append a paragraph
+                    evenContentControls.items[i].set({
+                        color: 'red',
+                        title: 'Odd ContentControl #' + (i + 1),
+                        appearance: 'tags'
+                    });
                     evenContentControls.items[i].insertParagraph("This is an odd content control", "end");
                 }
 
                 for (let j = 0; j < oddContentControls.items.length; j++) {
-                    //change a few properties and append a paragraph
-                    oddContentControls.items[j].color = "green";
-                    oddContentControls.items[j].title = "Even ContentControl #" + (j + 1);
-                    oddContentControls.items[j].appearance = "tags";
+                    // Change a few properties and append a paragraph
+                    oddContentControls.items[j].set({
+                        color: 'green',
+                        title: 'Even ContentControl #' + (j + 1),
+                        appearance: 'tags'
+                    });
                     oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "end");
                 }
 
@@ -69,17 +75,13 @@ script:
 
         async function setup() {
             await Word.run(async (context) => {
-                // lets insert a couple of paragraphs to illustrate the point..
+                // Let's insert a couple of paragraphs to illustrate the point..
                 context.document.body.clear();
                 context.document.body.insertParagraph("One more paragraph. ", "start");
                 context.document.body.insertParagraph("Inserting another paragraph. ", "start");
                 context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
                 context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ", "replace");
 
-                await context.sync()
-
-                context.document.body.paragraphs.getFirst().alignment = "left";
-                context.document.body.paragraphs.getLast().alignment = "left";
                 await context.sync();
             });
         }

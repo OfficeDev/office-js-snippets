@@ -7,54 +7,62 @@ api_set:
     WordApi: 1.1
 script:
     content: |-
-        $("#setup").click(setup);
-        $("#basic").click(basicSearch);
-        $("#wildcard").click(wildcardSearch);
+        $("#setup").click(() => tryCatch(setup));
+        $("#basic-search").click(() => tryCatch(basicSearch));
+        $("#wildcard-search").click(() => tryCatch(wildcardSearch));
 
+        async function basicSearch() {
+            await Word.run(async (context) => {
+                let results = context.document.body.search("Online");
+                results.load("font/highlightColor");
 
-        function basicSearch() {
-            Word.run(function (context) {
-                var results = context.document.body.search("Online");
-                context.load(results);
-                return context.sync()
-                    .then(function () {
-                        //lets traverse the search results... and highlight..
-                        for (var i = 0; i < results.items.length; i++) {
-                            results.items[i].font.highlightColor = "yellow";
-                        }
-                        return context.sync();
-                    })
-            })
-                .catch(OfficeHelpers.Utilities.log);
+                await context.sync();
+
+                // Let's traverse the search results... and highlight...
+                for (let i = 0; i < results.items.length; i++) {
+                    results.items[i].font.highlightColor = "yellow";
+                }
+
+                await context.sync();
+            });
         }
 
-        function wildcardSearch() {
-            Word.run(function (context) {
-                // check out how wildcard expression are built, also use the second parameter of the search method to include search modes (i.e. we are using wildcards).
-                var results = context.document.body.search("$*.[0-9][0-9]", { matchWildcards: true });
-                context.load(results);
-                return context.sync()
-                    .then(function () {
-                        //lets traverse the search results... and highlight..
-                        for (var i = 0; i < results.items.length; i++) {
-                            results.items[i].font.highlightColor = "red";
-                            results.items[i].font.color = "white";
-                        }
-                        return context.sync();
-                    })
-            })
-                .catch(OfficeHelpers.Utilities.log);
+        async function wildcardSearch() {
+            await Word.run(async (context) => {
+                // Check out how wildcard expression are built, also use the second parameter of the search method to include search modes (i.e. we are using wildcards).
+                let results = context.document.body.search("$*.[0-9][0-9]", { matchWildcards: true });
+                results.load("font/highlightColor, font/color");
+
+                await context.sync();
+
+                // Let's traverse the search results... and highlight...
+                for (let i = 0; i < results.items.length; i++) {
+                    results.items[i].font.highlightColor = "red";
+                    results.items[i].font.color = "white";
+                }
+
+                await context.sync();
+            });
         }
 
-        function setup() {
-            Word.run(function (context) {
-                // lets insert a couple of paragraphs to illustrate the point..
-                context.document.body.clear();
+        async function setup() {
+            await Word.run(async (context) => {
+                // Let's insert a couple of paragraphs to illustrate the point..
                 context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video ($10,000.00), you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "start");
                 context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.", "replace");
-                return context.sync();
-            })
-                .catch(OfficeHelpers.Utilities.log);
+
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:
@@ -74,10 +82,10 @@ template:
             <div id="samples-container">
                 <p class="ms-font-m">Sample snippets to try:</p>
 
-                <button id="basic" class="ms-Button">
+                <button id="basic-search" class="ms-Button">
                     <span class="ms-Button-label">Basic search</span>
                 </button>   
-                <button id="wildcard" class="ms-Button">
+                <button id="wildcard-search" class="ms-Button">
                     <span class="ms-Button-label">Wildcard search</span>
                 </button>
                 

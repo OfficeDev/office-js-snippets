@@ -6,152 +6,185 @@ host: WORD
 api_set:
     WordApi: 1.1
 script:
-    content: |
-        $("#insert-header").click(insertHeader);
-        $("#add-paragraphs").click(addParagraphs);
-        $("#add-content-controls").click(addContentControls);
-        $("#change-customer").click(changeCustomer);
-        $("#add-footer").click(addFooter);
+    content: |-
+        $("#insert-header").click(() => tryCatch(insertHeader));
+        $("#add-paragraphs").click(() => tryCatch(addParagraphs));
+        $("#add-content-controls").click(() => tryCatch(addContentControls));
+        $("#change-customer").click(() => tryCatch(changeCustomer));
+        $("#add-footer").click(() => tryCatch(addFooter));
 
-        // Inserts a heading 1 Title.
-        function insertHeader() {
-            Word.run(function (context) {
-                var header = context.document.body.insertText("This is a sample Heading 1 Title!!", "start");
+        async function insertHeader() {
+            await Word.run(async (context) => {
+                let header = context.document.body.insertText("This is a sample Heading 1 Title!!\n",
+                    "start" /*this means at the beginning of the body */);
                 header.styleBuiltIn = Word.Style.heading1;
-                return context.sync();
-            })
-                .catch(OfficeHelpers.Utilities.log);
+
+                await context.sync();
+            });
         }
-        // Insert a set of paragraphs, a content control and a page break.
-        function addParagraphs() {
-            Word.run(function (context) {
-                var paragraph = context.document.body.insertParagraph("Timeline", "end");
+
+        async function addParagraphs() {
+            await Word.run(async (context) => {
+                let paragraph = context.document.body.insertParagraph("Timeline", "end");
                 paragraph.style = "Heading 2";
-                var paragraph2 = context.document.body.insertParagraph("The Services shall commence on July 31, 2015, and shall continue through July 29, 2015.", "end");
+                let paragraph2 = context.document.body.insertParagraph("The Services shall commence on July 31, 2015, and shall continue through July 29, 2015.", "end");
                 paragraph2.style = "Normal";
-                var paragraph3 = context.document.body.insertParagraph("Project Costs by Phase", "end");
+                let paragraph3 = context.document.body.insertParagraph("Project Costs by Phase", "end");
                 paragraph3.style = "Heading 2";
                 // Note a content control with the title of "ProjectCosts" is added. Content will be replaced later.
-                var paragraph4 = context.document.body.insertParagraph("<Add Project Costs Here>", "end");
+                let paragraph4 = context.document.body.insertParagraph("<Add Project Costs Here>", "end");
                 paragraph4.style = "Normal";
                 paragraph4.font.highlightColor = "#FFFF00";
-                var contentControl = paragraph4.insertContentControl();
+                let contentControl = paragraph4.insertContentControl();
                 contentControl.title = "ProjectCosts";
-
-                var paragraph5 = context.document.body.insertParagraph("Project Team", "end");
+                let paragraph5 = context.document.body.insertParagraph("Project Team", "end");
                 paragraph5.style = "Heading 2";
                 paragraph5.font.highlightColor = "#FFFFFF";
-
-                var paragraph6 = context.document.body.insertParagraph("Terms of Work", "end");
+                let paragraph6 = context.document.body.insertParagraph("Terms of Work", "end");
                 paragraph6.style = "Heading 1";
-
-                var paragraph7 = context.document.body.insertParagraph("Contractor shall provide the Services and Deliverable(s) as follows:", "end");
+                let paragraph7 = context.document.body.insertParagraph("Contractor shall provide the Services and Deliverable(s) as follows:", "end");
                 paragraph7.style = "Normal";
-
-                var paragraph8 = context.document.body.insertParagraph("Out-of-Pocket Expenses / Invoice Procedures", "end");
+                let paragraph8 = context.document.body.insertParagraph("Out-of-Pocket Expenses / Invoice Procedures", "end");
                 paragraph8.style = "Heading 2";
-
-                var paragraph9 = context.document.body.insertParagraph("Client will be invoiced monthly for the consulting services and T&L expenses. Standard Contractor invoicing is assumed to be acceptable. Invoices are due upon receipt. client will be invoiced all costs associated with out-of-pocket expenses (including, without limitation, costs and expenses associated with meals, lodging, local transportation and any other applicable business expenses) listed on the invoice as a separate line item. Reimbursement for out-of-pocket expenses in connection with performance of this SOW, when authorized and up to the limits set forth in this SOW, shall be in accordance with Client's then-current published policies governing travel and associated business expenses, which information shall be provided by the Client Project Manager.", "end");
+                let paragraph9 = context.document.body.insertParagraph("Client will be invoiced monthly for the consulting services and T&L expenses. Standard Contractor invoicing is assumed to be acceptable. Invoices are due upon receipt. client will be invoiced all costs associated with out-of-pocket expenses (including, without limitation, costs and expenses associated with meals, lodging, local transportation and any other applicable business expenses) listed on the invoice as a separate line item. Reimbursement for out-of-pocket expenses in connection with performance of this SOW, when authorized and up to the limits set forth in this SOW, shall be in accordance with Client's then-current published policies governing travel and associated business expenses, which information shall be provided by the Client Project Manager.", "end");
                 paragraph9.style = "Normal";
                 // Insert a page break at the end of the document.
                 context.document.body.insertBreak("page", "End");
-                return context.sync()
-                    .catch(OfficeHelpers.Utilities.log);
+
+                await context.sync();
             });
         }
 
-        // Search the document for instances of the string "Contractor". Change the format  of
-        // each search result, and wrap each search result in a content control. Set the tag and title property on each content control.
-        function addContentControls() {
-            Word.run(function (context) {
-                //we first search for the "Contractor string"
-                var results = context.document.body.search("Contractor");
-                context.load(results);
-                return context.sync().then(function () {
-                    // Once we have the results, we iterate  
-                    for (var i = 0; i < results.items.length; i++) {
-                        results.items[i].font.highlightColor = "#FFFF00";
-                        results.items[i].font.bold = true;
-                        var cc = results.items[i].insertContentControl();
-                        cc.tag = "customer";  // This value is used in another part of this sample.
-                        cc.title = "Customer Name";
-                    }
-                    return context.sync();
-                })
-                    .catch(OfficeHelpers.Utilities.log);
+        //Simulates creation of a template. First searches the document for instances of the string "Contractor",
+        //then changes the format  of each search result,
+        //then wraps each search result within a content control,
+        //finally sets a tag and title property on each content control.
+        async function addContentControls() {
+            await Word.run(async (context) => {
+                let results = context.document.body.search("Contractor");
+                results.load("font/bold");
+
+                await context.sync();
+
+                for (var i = 0; i < results.items.length; i++) { 
+                    results.items[i].font.bold = true;
+                    var cc = results.items[i].insertContentControl();
+                    cc.tag = "customer";  // This value is used in the next step of this sample.
+                    cc.title = "Customer Name";
+                }
+
+                await context.sync();
             });
         }
 
-        function changeCustomer() {
-            Word.run(function (context) {
-                // Get all the tagged content controls.
-                var contentControls = context.document.contentControls.getByTag("customer");
-                context.load(contentControls, { select: 'text', expand: 'font' });
-                return context.sync()
-                    .then(function () {
-                        for (var i = 0; i < contentControls.items.length; i++) {
-                            contentControls.items[i].insertText("Fabrikam", "replace");
-                        }
-                        return context.sync();
-                    })
-                    .catch(OfficeHelpers.Utilities.log);
+        async function changeCustomer() {
+            await Word.run(async (context) => {
+                let contentControls = context.document.contentControls.getByTag("customer");
+                contentControls.load("text");
+
+                await context.sync();
+
+                for (let i = 0; i < contentControls.items.length; i++) {
+                    contentControls.items[i].insertText("Fabrikam", "replace");
+                }
+
+                await context.sync();
             });
         }
 
-        function addFooter() {
-            Word.run(function (context) {
-                // Headers and footers live in the section of the document, we need to retrieve them.
-                var sections = context.document.sections;
-                context.load(sections, 'body/style');
-                return context.sync().then(function () {
-                    // Get the primary footer of the first section and get its body.
-                    var footer = sections.items[0].getFooter("primary");
-                    footer.insertParagraph("Confidential", "end");
-                    footer.insertBreak("line", "end");
-                    return context.sync();
-                })
-                    .catch(OfficeHelpers.Utilities.log);
+        async function addFooter() {
+            await Word.run(async (context) => {
+                context.document.sections.getFirst()
+                    .getFooter("primary").insertParagraph("Confidential", "end");
+
+                await context.sync();
             });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:
-    content: |4
-             <h2 class="ms-font-m">This sample demonstrates how to use the basic document assembly objects by creating sample document, search, create a template, add paragraphs and footers. Just click the buttons in top-down order.</h2>
-              <button class="ms-Button ms-Button--compound" id="insert-header">
-                    <span class="ms-Button-label">1. Add H1 Title </span><span class="ms-Button-description">Adds a Title at the beginning of the document.</span>
-                </button>
-                <button class="ms-Button ms-Button--compound" id="add-paragraphs">
-                    <span class="ms-Button-label">2. Add Paragraphs</span><span class="ms-Button-description">Add  paragraphs with different styles, content controls, page break.</span>
-                </button>
-
-                <button class="ms-Button ms-Button--compound" id="add-content-controls">
-                    <span class="ms-Button-label">3. Search & Templetize</span><span class="ms-Button-description">Search for "Contractor" and insert content controls to hold the customer name</span>
-                </button>
-                <button class="ms-Button ms-Button--compound" id="change-customer">
-                    <span class="ms-Button-label">4. Change Customer</span><span class="ms-Button-description">Set the customer name to 'Fabrikam' using the added content controls</span>
-                </button>
-
-                <button class="ms-Button ms-Button--compound" id="add-footer">
-                    <span class="ms-Button-label">5. Insert Footer</span><span class="ms-Button-description">Add a "Confidential "footer to the document </span>
-                </button>
+    content: "<h2 class=\"ms-font-m\">\n\tThis sample demonstrates how to use the basic document assembly objects by creating sample document, search, create a template,\n\tadd paragraphs and footers. Just click the buttons in top-down order.</h2>\n\n<div id=\"samples-container\">\n\t<p class=\"ms-font-m\">\n\t\t<h3>Try it out:</h3>\n\t</p>\n\t<label class=\"ms-font-s\">    Insert text with \"Heading 1\" style.</label>\n\t<button id=\"insert-header\" class=\"ms-Button\">\n            <span class=\"ms-Button-label\">Add Title</span>\n        </button>\n\t<label class=\"ms-font-s\">  Add paragraphs with different styles, content controls, page break.</label>\n\t<button id=\"add-paragraphs\" class=\"ms-Button\">\n            <span class=\"ms-Button-label\">Add Paragraphs</span>\n        </button>\n\t<label class=\"ms-font-s\">  Search for \"Contractor\" and insert content controls to hold the customer name.</label>\n\t<button id=\"add-content-controls\" class=\"ms-Button\">\n            <span class=\"ms-Button-label\">Search & Templetize</span>\n        </button>\n\t<label class=\"ms-font-s\">  Set the customer name to 'Fabrikam' using the added content controls.</label>\n\t<button id=\"change-customer\" class=\"ms-Button\">\n            <span class=\"ms-Button-label\">Change Customer</span>\n        </button>\n\t<label class=\"ms-font-s\">  Add a \"Confidential\" footer to the document.</label>\n\t<button id=\"add-footer\" class=\"ms-Button\">\n            <span class=\"ms-Button-label\">Insert Footer</span>\n        </button>\n</div>"
     language: html
 style:
-    content: ''
-    language: css
-libraries: |-
-    // Office.js
-    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    content: |4
+            body {
+                margin: 0;
+                padding: 10px;
+            }
 
-    // NPM libraries
-    jquery@3.1.1
-    office-ui-fabric-js@1.4.0/dist/js/fabric.min.js
+
+            /* Button customization, including overwriting some Fabric defaults */
+
+            .ms-Button, .ms-Button:focus {
+                background: #217346;
+                border: #217346;
+            }
+
+                .ms-Button > .ms-Button-label,
+                .ms-Button:focus > .ms-Button-label,
+                .ms-Button:hover > .ms-Button-label {
+                    color: white;
+                }
+
+                .ms-Button:hover, .ms-Button:active {
+                    background: #164b2e;
+                }
+
+                .ms-Button.is-disabled, .ms-Button:disabled {
+                    background-color: #f4f4f4;
+                    border-color: #f4f4f4;
+                }
+
+                .ms-Button.is-disabled .ms-Button-label,
+                .ms-Button:disabled .ms-Button-label {
+                    color: #a6a6a6;
+                }
+
+            #setup.ms-Button, #setup.ms-Button:focus {
+                background: darkred;
+                border: darkred;
+            }
+
+                #setup.ms-Button:hover, #setup.ms-Button:active {
+                    background: red;
+                }
+
+            #samples-container {
+                margin-top: 20px;
+            }
+
+            #samples-container .ms-Button {
+                display: block;
+                margin-bottom: 5px;
+            }
+
+            #samples-container .ms-Button, #setup-container .ms-Button {
+                margin-left: 20px;
+                min-width: 80px;
+            }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    core-js@2.4.1/client/core.min.js
 
-    // IntelliSense: Use dt~library_name for DefinitelyTyped or URLs to d.ts files
-    @types/office-js
-    @types/jquery
+    core-js@2.4.1/client/core.min.js
     @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
     @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

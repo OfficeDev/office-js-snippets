@@ -4,34 +4,42 @@ description: Shows how to access a specific cell in a table.
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: 1.1
+    WordApi: 1.3
 script:
-    content: |
-        $("#run").click(getTableCell);
-        $("#setup").click(insertTable);
+    content: |-
+        $("#run").click(() => tryCatch(getTableCell));
+        $("#setup").click(() => tryCatch(insertTable));
 
+        async function getTableCell() {
+            await Word.run(async (context) => {
+                let firstCell = context.document.body.tables.getFirst().getCell(0, 0).body;
+                firstCell.load("text");
 
-        function getTableCell() {
-            Word.run(function (context) {
-                var firstCell = context.document.body.tables.getFirst().getCell(0, 0).body;
-                context.load(firstCell);
-                return context.sync()
-                    .then(function () {
-                        console.log("First cell text is " + firstCell.text);
-                    });
-            })
-                .catch(OfficeHelpers.Utilities.log);
+                await context.sync();
+                console.log("First cell text is " + firstCell.text);
+            });
         }
 
-        function insertTable() {
-            Word.run(function (context) {
+        async function insertTable() {
+            await Word.run(async (context) => {
                 // We need a 2D array to hold the initial table values
-                var data = [["Apple", "Orange", "Pineapple"], ["Tokyo", "Beijing", "Seattle"]];
-                var table = context.document.body.insertTable(3, 3, "start", data);
+                let data = [["Apple", "Orange", "Pineapple"], ["Tokyo", "Beijing", "Seattle"]];
+                let table = context.document.body.insertTable(3, 3, "start", data);
                 table.styleBuiltIn = Word.Style.gridTable5Dark_Accent2;
-                return context.sync();
-            })
-                .catch(OfficeHelpers.Utilities.log);
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:

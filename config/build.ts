@@ -9,6 +9,7 @@ import {
     getDestinationBranch, followsNamingGuidelines, isCUID,
     rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails
 } from './helpers';
+import { buildReferenceDocSnippetExtracts } from './build.documentation';
 import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
@@ -50,6 +51,7 @@ const defaultApiSets = {
         .then(updateModifiedFiles)
         .then(() => checkSnippetsForUniqueIDs(processedSnippets))
         .then(() => generatePlaylists(processedSnippets))
+        .then(() => buildReferenceDocSnippetExtracts(processedSnippets, accumulatedErrors))
         .then(() => {
             if (accumulatedErrors.length > 0) {
                 throw accumulatedErrors;
@@ -67,8 +69,8 @@ const defaultApiSets = {
 async function processSnippets(processedSnippets) {
     return new Promise((resolve, reject) => {
         banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES), path.resolve(PRIVATE_SAMPLES));
-        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES), path.resolve(PUBLIC_SAMPLES)));
+        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES));
+        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES)));
 
         files$
             .mergeMap((file) => (processAndValidateSnippet(file)))
@@ -148,6 +150,7 @@ async function processSnippets(processedSnippets) {
                 name: snippet.name,
                 fileName: file.file_name,
                 relativePath: file.relativePath,
+                fullPath: file.fullPath,
                 description: snippet.description,
                 host: file.host,
                 rawUrl: rawUrl,
@@ -237,14 +240,14 @@ async function processSnippets(processedSnippets) {
             snippet.libraries.split('\n')
                 .map(reference => reference.trim())
                 .filter(reference => reference.match(/.*((@types\/office-js)|(office\.d\.ts))$/gi));
-            /* Note: regex matches:
-                - @types/office-js
-                - https://unpkg.com/etc/office.d.ts
-               But not:
-                - @types/office-jsfake
-                - https://unpkg.com/etc/office.d.ts.ish
-                - office.d.ts.unrelated
-             */
+        /* Note: regex matches:
+            - @types/office-js
+            - https://unpkg.com/etc/office.d.ts
+           But not:
+            - @types/office-jsfake
+            - https://unpkg.com/etc/office.d.ts.ish
+            - office.d.ts.unrelated
+         */
 
         if (!isOfficeSnippet) {
             if (officeJsReferences.length > 0 || officeDtsReferences.length > 0) {
@@ -401,13 +404,13 @@ async function processSnippets(processedSnippets) {
         }
 
         snippet.id = snippet.id.trim().toLowerCase()
-                .replace(/[^0-9a-zA-Z]/g, '-') /* replace any non-alphanumeric with a hyphen */
-                .replace(/-+/g, '-') /* and ensure that don't end up with -- or --, just a single hyphen */
-                .replace(/yaml$/i, '') /* remove "yaml" suffix (the ".", now "-", will get removed via hyphen-trimming below) */
-                .replace(/^-+/, '') /* trim any hyphens before */
-                .replace(/-+$/, '') /* and trim any at the end, as well */
-                .replace(/-(\d+-)(.*)/, '-$2') /* remove any numeric prefixes like "word\01-basics\foo", replacing with "word\basics\foo" */
-                .replace('-preview-apis-', '-');
+            .replace(/[^0-9a-zA-Z]/g, '-') /* replace any non-alphanumeric with a hyphen */
+            .replace(/-+/g, '-') /* and ensure that don't end up with -- or --, just a single hyphen */
+            .replace(/yaml$/i, '') /* remove "yaml" suffix (the ".", now "-", will get removed via hyphen-trimming below) */
+            .replace(/^-+/, '') /* trim any hyphens before */
+            .replace(/-+$/, '') /* and trim any at the end, as well */
+            .replace(/-(\d+-)(.*)/, '-$2') /* remove any numeric prefixes like "word\01-basics\foo", replacing with "word\basics\foo" */
+            .replace('-preview-apis-', '-');
 
         if (snippet.id !== originalId) {
             messages.push(`Snippet ID needs correcting. Replacing with an ID based on name: "${snippet.id}"`);

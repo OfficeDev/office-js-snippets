@@ -6,22 +6,29 @@ host: WORD
 api_set:
     WordApi: 1.1
 script:
-    content: |+
-        $("#run").click(getProperties);
+    content: |-
+        $("#run").click(() => tryCatch(getProperties));
 
-        function getProperties() {
-            Word.run(function (context) {
-                var builtInProperties = context.document.properties;
-                context.load(builtInProperties);
-                return context.sync()
-                    .then(function () {
-                        console.log(JSON.stringify(builtInProperties, null, 4));
-                    });
-            })
-                .catch(OfficeHelpers.Utilities.log);
+        async function getProperties() {
+            await Word.run(async (context) => {
+                let builtInProperties = context.document.properties;
+                builtInProperties.load("*"); // Let's get all!
 
+                await context.sync();
+                console.log(JSON.stringify(builtInProperties, null, 4));
+            });
         }
 
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
     language: typescript
 template:
     content: |4

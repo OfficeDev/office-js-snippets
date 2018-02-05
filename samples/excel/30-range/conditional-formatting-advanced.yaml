@@ -1,0 +1,281 @@
+id: excel-range-conditional-formatting-advanced
+name: Conditional Formatting for Ranges - Advanced
+description: Work with more than one conditional format on the same range.
+host: EXCEL
+api_set:
+    ExcelApi: 1.6
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#apply-conditional-formats-default-priority").click(() => tryCatch(applyConditionalFormatsWithDefaultPriority));
+        $("#apply-conditional-formats-explicit-priority").click(() => tryCatch(applyPrioritizedConditionalFormats));
+        $("#apply-conditional-formats-stop-if-true").click(() => tryCatch(applyPrioritizedConditionalFormatsWithStopOnTrue));
+        $("#remove-conditional-format").click(() => tryCatch(removeConditionalFormat));
+
+
+        async function applyConditionalFormatsWithDefaultPriority() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                queueCommandsToClearAllConditionalFormats(sheet);
+
+                const temperatureDataRange = sheet.tables.getItem("TemperatureTable").getDataBodyRange();
+
+                /* When the priority property of ConditionalFormat objects 
+                   is not explicitly set, they are prioritized in the order
+                   that they are added, with zero-based numbering: 0, 1, ...
+                   Contradictions are resolved in favor of the format with
+                   the lower priority number. In the example below, negative
+                   numbers will get a green background, but NOT a blue font,
+                   because priority goes to the format that gives them a red font.
+                */
+
+                // Set low numbers to bold, dark red font. This format will
+                // get priority 0.
+                const presetFormat = temperatureDataRange.conditionalFormats
+                    .add(Excel.ConditionalFormatType.presetCriteria);
+                presetFormat.preset.format.font.color = "red";
+                presetFormat.preset.format.font.bold = true;
+                presetFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
+
+                 // Set negative numbers to blue font with green background. 
+                 // This format will get priority 1.
+                const cellValueFormat = temperatureDataRange.conditionalFormats
+                    .add(Excel.ConditionalFormatType.cellValue);
+                cellValueFormat.cellValue.format.font.color = "blue";
+                cellValueFormat.cellValue.format.fill.color = "lightgreen";
+                cellValueFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+
+                await context.sync();
+            });
+        }
+
+        async function applyPrioritizedConditionalFormats() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                queueCommandsToClearAllConditionalFormats(sheet);
+
+                const temperatureDataRange = sheet.tables.getItem("TemperatureTable").getDataBodyRange();
+
+                /* Contradictions are resolved in favor of the format with
+                   the lower priority number. In the example below, negative
+                   numbers will get a bold font, but NOT a red font, because
+                   priority goes to the format that gives them a blue font.
+                */
+
+                // Set low numbers to bold, dark red font and assign priority 1.
+                const presetFormat = temperatureDataRange.conditionalFormats
+                    .add(Excel.ConditionalFormatType.presetCriteria);
+                presetFormat.preset.format.font.color = "red";
+                presetFormat.preset.format.font.bold = true;
+                presetFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
+                presetFormat.priority = 1;
+
+                // Set negative numbers to blue font with green background and 
+                // set priority 0.
+                const cellValueFormat = temperatureDataRange.conditionalFormats
+                    .add(Excel.ConditionalFormatType.cellValue);
+                cellValueFormat.cellValue.format.font.color = "blue";
+                cellValueFormat.cellValue.format.fill.color = "lightgreen";
+                cellValueFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+                cellValueFormat.priority = 0;
+
+                await context.sync();
+            });
+        }
+
+        async function applyPrioritizedConditionalFormatsWithStopOnTrue() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                queueCommandsToClearAllConditionalFormats(sheet);
+
+                const temperatureDataRange = sheet.tables.getItem("TemperatureTable").getDataBodyRange();
+
+                /* Contradictions are resolved in favor of the format with
+                   the lower priority number. In the example below, negative
+                   numbers will get a bold font, but NOT a red font, because
+                   priority goes to the format that gives them a blue font.
+                   And the font will not be bolded because setting stopIfTrue
+                   to true on the conditional format with priority 0 blocks
+                   all formatting for any conditional formats with a higher
+                   priority value.
+                */
+
+                // Set low numbers to bold, dark red font and assign priority 1.
+                const presetFormat = temperatureDataRange.conditionalFormats
+                    .add(Excel.ConditionalFormatType.presetCriteria);
+                presetFormat.preset.format.font.color = "red";
+                presetFormat.preset.format.font.bold = true;
+                presetFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
+                presetFormat.priority = 1;
+
+                // Set negative numbers to blue font with green background and 
+                // set priority 0, but set stopIfTrue to true, so none of the 
+                // formatting of the conditional format with the higher priority
+                // value will apply, not even the bolding of the font.
+                const cellValueFormat = temperatureDataRange.conditionalFormats
+                    .add(Excel.ConditionalFormatType.cellValue);
+                cellValueFormat.cellValue.format.font.color = "blue";
+                cellValueFormat.cellValue.format.fill.color = "lightgreen";
+                cellValueFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+                cellValueFormat.priority = 0;
+                cellValueFormat.stopIfTrue = true;
+
+                await context.sync();
+            });
+        }
+
+        async function removeConditionalFormat() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const temperatureDataRange = sheet.tables.getItem("TemperatureTable").getDataBodyRange();
+                temperatureDataRange.conditionalFormats.getItemAt(0).delete();
+
+                await context.sync();
+            });
+        }
+
+        function queueCommandsToClearAllConditionalFormats(sheet: Excel.Worksheet) {
+                const range = sheet.getRange();
+                range.conditionalFormats.clearAll();
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                queueCommandsToCreateTemperatureTable(sheet);
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        function queueCommandsToCreateTemperatureTable(sheet: Excel.Worksheet) {
+            let temperatureTable = sheet.tables.add('A1:M1', true);
+            temperatureTable.name = "TemperatureTable";
+            temperatureTable.getHeaderRowRange().values = [["Category", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]];
+            temperatureTable.rows.add(null, [
+                ["Avg High", 40, 38, 44, 45, 51, 56, 67, 72, 79, 59, 45, 41],
+                ["Avg Low", 34, 33, 38, 41, 45, 48, 51, 55, 54, 45, 41, 38],
+                ["Record High", 61, 69, 79, 83, 95, 97, 100, 101, 94, 87, 72, 66],
+                ["Record Low", -1, 2, 9, 24, 28, 32, 36, 39, 35, 21, 12, 4]
+            ]);
+            temperatureTable.getRange().format.autofitColumns();
+            temperatureTable.getRange().format.autofitRows();
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+        /**
+         * Display the notification having synced the changes.
+         */
+        function showNotification(message: string) {
+            const messageBanner = $('.ms-MessageBanner');
+            $('.ms-MessageBanner-clipper').text(message);
+            $('.ms-MessageBanner-close').click(() => {
+                messageBanner.hide();
+                messageBanner.off('click');
+            });
+            messageBanner.show();
+        }
+    language: typescript
+template:
+    content: |+
+        <!-- Fabric Message Banner template -->
+        <!-- https://dev.office.com/fabric-js/Components/MessageBanner/MessageBanner.html -->
+        <div class="ms-MessageBanner">
+            <div class="ms-MessageBanner-content">
+                <div class="ms-MessageBanner-text">
+                    <div class="ms-MessageBanner-clipper"></div>
+                </div>
+            </div>
+            <button class="ms-MessageBanner-close">
+            <i class="ms-Icon ms-Icon--Clear"></i>
+          </button>
+        </div>
+
+        <section id="main" class="ms-font-m">
+            <p>This sample shows how to use priorities to work with conditional formatting of ranges when more than one conditional format applies to some cells.</p>
+        </section>
+
+        <section id="main" class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section id="main" class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <label class="ms-font-s">Apply two conditional formats which both affect negative numbers (among others) and assign conflicting font colors. The color specified by the format that is applied first will take effect. Negative numbers will be bold red with a green background.</label>
+            <button id="apply-conditional-formats-default-priority" class="ms-Button">
+                <span class="ms-Button-label">Format with default priority</span>
+            </button>
+            <label class="ms-font-s">Apply the same two conditional formats but assign priority to the one that one that assigns blue font. Negative numbers will be bold blue with a green background.</label>
+            <button id="apply-conditional-formats-explicit-priority" class="ms-Button">
+                <span class="ms-Button-label">Format with explicit priority</span>
+            </button>
+            <label class="ms-font-s">Apply the same two conditional formats with the same priorities but block ALL formatting, even bold font, that is part of the conditional format with lesser priority. Negative numbers will be unbolded, blue with a green background.</label>
+            <button id="apply-conditional-formats-stop-if-true" class="ms-Button">
+                <span class="ms-Button-label">Format with "stop if true"</span>
+            </button>
+            <label class="ms-font-s">Delete the highest priority format. If the last button clicked was the one just above, then negative numbers will be bold, red, with white background.</label>
+            <button id="remove-conditional-format" class="ms-Button">
+                <span class="ms-Button-label">Remove conditional format</span>
+            </button>
+        </section>
+
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #main {
+            margin: 10px;
+        }
+
+        .ms-MessageBanner {
+            display: none;
+        }
+    language: css
+libraries: |
+    # Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+
+    # CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    # NPM libraries
+    core-js@2.4.1/client/core.min.js
+    @microsoft/office-js-helpers@0.6.0/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    # IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/office-js
+    @types/core-js
+    @microsoft/office-js-helpers/dist/office.helpers.d.ts
+    @types/jquery

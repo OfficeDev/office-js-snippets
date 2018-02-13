@@ -3,8 +3,7 @@ Excel.Binding.onDataChanged:
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");    
         const salesTable = sheet.tables.getItem("SalesTable");
-        const dataRange = salesTable.getDataBodyRange();
-        const salesByQuarterBinding = context.workbook.bindings.add(dataRange, "range", "SalesByQuarter");
+        const salesByQuarterBinding = context.workbook.bindings.add(salesTable.getRange(), "Table", "SalesByQuarter");
         salesByQuarterBinding.onDataChanged.add(onSalesDataChanged);
 
         OfficeHelpers.UI.notify("The handler is registered.", "Change the value in one of the data cells and watch this message banner. (Be sure to complete the edit by pressing Enter or clicking in another cell.)");
@@ -181,10 +180,10 @@ Excel.Range.getUsedRangeOrNullObject:
         if (usedDataRange.isNullObject) {
             OfficeHelpers.UI.notify("Need Data to Make Chart", "To create a meaningful chart, add names to the Product column and numbers to some of the other cells. Then press 'Try to create chart' again.");            
         } else {            
-            const chart = sheet.charts.add(Excel.ChartType.columnClustered, dataRange, "columns");
+            const chart = sheet.charts.add(Excel.ChartType.columnClustered, dataRange, "Columns");
             chart.setPosition("A15", "F30");
             chart.title.text = "Quarterly sales chart";
-            chart.legend.position = "right";
+            chart.legend.position = "Right";
             chart.legend.format.fill.setSolidColor("white");
             chart.dataLabels.format.font.size = 15;
             chart.dataLabels.format.font.color = "black";
@@ -1819,15 +1818,15 @@ Excel.TableSelectionChangedEvent.address:
             console.log("Handler for table onSelectionChanged event has been triggered.  The new selection is : " + args.address);
         });
     }
-Excel.WorksheetAddedEvent.onDataChanged:
+Excel.WorksheetAddedEvent.onChanged:
   - |-
     await Excel.run(async (context) => {
         let table = context.workbook.tables.getItemAt(0);
-        table.onDataChanged.add(onDataChange);
+        table.onChanged.add(onChange);
 
         await context.sync();
 
-        OfficeHelpers.UI.notify("A handler has been registered for the onDataChanged event",
+        OfficeHelpers.UI.notify("A handler has been registered for the onChanged event",
             "Try changing a cell value in the table, and watch the console output.");
     });
 Excel.WorksheetDataChangedEvent.onSelectionChanged:
@@ -1852,15 +1851,15 @@ Excel.WorksheetAddedEvent.onAdded:
         OfficeHelpers.UI.notify("A handler has been registered for the OnAdded event",
             "Try adding a worksheet, and watch the console output.");
     });
-Excel.WorksheetDeactivatedEvent.onDataChanged:
+Excel.WorksheetDeactivatedEvent.onChanged:
   - |-
     await Excel.run(async (context) => {
         let sheet = context.workbook.worksheets.getItem("Sample");
-        sheet.onDataChanged.add(onDataChange);
+        sheet.onChanged.add(onChange);
 
         await context.sync();
 
-        OfficeHelpers.UI.notify("A handler has been registered for the onDataChanged event.");
+        OfficeHelpers.UI.notify("A handler has been registered for the onChanged event.");
     });
 Excel.WorksheetActivatedEvent.worksheetId:
   - |-
@@ -1899,7 +1898,7 @@ Excel.ChartSeries.markerStyle:
         let dataRange = sheet.getRange("A1:E7");
 
         // Create an XY scatter chart.
-        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "auto");
+        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
         chart.title.text = "Bicycle Parts Quarterly Sales"; 
       
         let series = chart.series;
@@ -1928,7 +1927,7 @@ Excel.ChartSeries.markerSize:
         let dataRange = sheet.getRange("A1:E7");
 
         // Create an XY scatter chart.
-        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "auto");
+        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
         chart.title.text = "Bicycle Parts Quarterly Sales"; 
       
         let series = chart.series;
@@ -1957,7 +1956,7 @@ Excel.TableSelectionChangedEvent.markerForegroundColor:
         let dataRange = sheet.getRange("A1:E7");
 
         // Create an XY scatter chart.
-        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "auto");
+        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
         chart.title.text = "Bicycle Parts Quarterly Sales"; 
       
         let series = chart.series;
@@ -1986,7 +1985,7 @@ Excel.TableSelectionChangedEvent.markerBackgroundColor:
         let dataRange = sheet.getRange("A1:E7");
 
         // Create an XY scatter chart.
-        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "auto");
+        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
         chart.title.text = "Bicycle Parts Quarterly Sales"; 
       
         let series = chart.series;
@@ -2007,20 +2006,20 @@ Excel.TableSelectionChangedEvent.markerBackgroundColor:
 
         await context.sync();
     });
-Excel.TableSelectionChangedEvent.onDataChanged:
+Excel.TableSelectionChangedEvent.onChanged:
   - |-
     await Excel.run(async (context) => {
         let tables = context.workbook.tables;
-        tables.onDataChanged.add(onDataChange);
+        tables.onChanged.add(onChange);
 
         await context.sync();
 
-        OfficeHelpers.UI.notify("A handler has been registered for the table collection onDataChanged event",
+        OfficeHelpers.UI.notify("A handler has been registered for the table collection onChanged event",
             "Try changing cell values in the tables, and watch the console output.");
     });
 Excel.TableSelectionChangedEvent.worksheetId:
   - |-
-    async function onDataChange(event) {
+    async function onChange(event) {
         await Excel.run(async (context) => {
             let table = context.workbook.tables.getItem(event.tableId);
             let worksheet = context.workbook.worksheets.getItem(event.worksheetId);
@@ -2028,14 +2027,14 @@ Excel.TableSelectionChangedEvent.worksheetId:
 
             await context.sync();
 
-            console.log("Handler for table collection onDataChanged event has been triggered.  Data changed address : " + event.address);
+            console.log("Handler for table collection onChanged event has been triggered.  Data changed address : " + event.address);
             console.log("Table Id : " + event.tableId);
             console.log("Worksheet Id : " + worksheet.name);
         });
     }
 Excel.TableSelectionChangedEvent.tableId:
   - |-
-    async function onDataChange(event) {
+    async function onChange(event) {
         await Excel.run(async (context) => {
             let table = context.workbook.tables.getItem(event.tableId);
             let worksheet = context.workbook.worksheets.getItem(event.worksheetId);
@@ -2043,7 +2042,7 @@ Excel.TableSelectionChangedEvent.tableId:
 
             await context.sync();
 
-            console.log("Handler for table collection onDataChanged event has been triggered.  Data changed address : " + event.address);
+            console.log("Handler for table collection onChanged event has been triggered.  Data changed address : " + event.address);
             console.log("Table Id : " + event.tableId);
             console.log("Worksheet Id : " + worksheet.name);
         });

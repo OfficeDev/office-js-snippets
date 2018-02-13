@@ -1,28 +1,27 @@
-order: 3
-id: excel-chart-point
-name: Chart point
-description: Set chart point color.
+id: excel-worksheet-copy
+name: Copy worksheet
+description: Copies the active worksheet to the specified location.
 host: EXCEL
 api_set:
-    ExcelAPI: 1.7
+    ExcelApi: 1.7
 script:
-    content: |+
+    content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#set-chart-point-color").click(() => tryCatch(setChartPointColor));
+        $("#copy-worksheet").click(() => tryCatch(run));
 
-        async function setChartPointColor() {
+        async function run() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Sample");
 
-                let pointsCollection = sheet.charts.getItemAt(0).series.getItemAt(0).points;
-                let point = pointsCollection.getItemAt(2);
+                let myWorkbook = context.workbook;
+                let sampleSheet = myWorkbook.worksheets.getActiveWorksheet();
+                let copiedSheet = sampleSheet.copy("End")
 
-                // Set color for chart point.
-                point.format.fill.setSolidColor('red');
+                sampleSheet.load("name");
+                copiedSheet.load("name");
 
                 await context.sync();
 
-                OfficeHelpers.UI.notify("Successfully set chart point color to red (for the third item in series 1).");            
+                console.log("'" + sampleSheet.name + "' was copied to '" + copiedSheet.name + "'")
             });
         }
 
@@ -49,27 +48,10 @@ script:
                     sheet.getUsedRange().format.autofitRows();
                 }
 
-                createChart(context);
                 sheet.activate();
 
                 await context.sync();
             });
-        }
-
-        function createChart(context: Excel.RequestContext) {
-            const sheet = context.workbook.worksheets.getItem("Sample");
-            const salesTable = sheet.tables.getItem("SalesTable");
-
-            const dataRange = salesTable.getDataBodyRange();
-
-            let chart = sheet.charts.add("ColumnClustered", dataRange, Excel.ChartSeriesBy.columns);
-
-            chart.setPosition("A15", "F30");
-            chart.title.text = "Quarterly sales chart";
-            chart.legend.position = "Right"
-            chart.legend.format.fill.setSolidColor("white");
-            chart.dataLabels.format.font.size = 15;
-            chart.dataLabels.format.font.color = "black";
         }
 
         /** Default helper for invoking an action and handling errors. */
@@ -82,43 +64,30 @@ script:
                 OfficeHelpers.Utilities.log(error);
             }
         }
-
-
-
     language: typescript
 template:
-    content: |+
+    content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to set chart point color.</p>
+            <p>This sample shows how to copy a worksheet.</p>
         </section>
 
         <section class="setup ms-font-m">
             <h3>Set up</h3>
             <button id="setup" class="ms-Button">
-                <span class="ms-Button-label">Add sample data</span>
-            </button>
+                        <span class="ms-Button-label">Add sample data</span>
+                    </button>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="set-chart-point-color" class="ms-Button">
-                <span class="ms-Button-label">Set chart point color</span>
+            <button id="copy-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Copy worksheet</span>
             </button>
         </section>
-
     language: html
 style:
     content: |
-        section.samples {
-            margin-top: 20px;
-        }
-
-        section.samples .ms-Button, section.setup .ms-Button {
-            display: block;
-            margin-bottom: 5px;
-            margin-left: 20px;
-            min-width: 80px;
-        }
+        /* Your style goes here */
     language: css
 libraries: |
     https://appsforoffice.microsoft.com/lib/beta/hosted/office.js

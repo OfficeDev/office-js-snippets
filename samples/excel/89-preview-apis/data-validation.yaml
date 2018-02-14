@@ -1,0 +1,178 @@
+id: excel-data-validation
+name: Data Validation
+description: 'This snippet shows how to programmatically set a variety of data validation rules on ranges, how to prompt users to enter valid data, and how to popup a warning or informational message when invalid data is entered.'
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#positive-number").click(() => tryCatch(addPositiveNumberRequirement));
+        $("#require-approved-location").click(() => tryCatch(requireApprovedName));
+        $("#comment-redundancy").click(() => tryCatch(warnAboutCommentRedundancy));
+
+        async function addPositiveNumberRequirement() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const rankingRange = sheet.tables.getItem("NameOptionsTable").columns.getItem("Ranking").getDataBodyRange();
+
+                // When you are developing, it is a good practice to
+                // clear the dataValidation object with each run of your code.
+                rankingRange.dataValidation.clear();
+
+                let greaterThanZeroRule = {
+                    wholeNumber: {
+                        formula1: 0,
+                        operator: Excel.DataValidationOperator.greaterThan
+                    }
+                };
+                rankingRange.dataValidation.rule = greaterThanZeroRule;
+
+                rankingRange.dataValidation.prompt = {
+                    message: "Please enter a positive number.",
+                    showPrompt: true,
+                    title: "Positive numbers only."
+                };
+
+                rankingRange.dataValidation.errorAlert = {
+                    message: "Sorry, only positive numbers are allowed",
+                    showAlert: true,
+                    style: "Stop",
+                    title: "Negative Number Entered"
+                };
+
+                await context.sync();
+            });
+        }
+
+        async function requireApprovedName() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const nameRange = sheet.tables.getItem("NameOptionsTable").columns .getItem("Baby Name").getDataBodyRange();
+
+                // When you are developing, it is a good practice to
+                // clear the dataValidation object with each run of your code.
+                nameRange.dataValidation.clear();
+                // A bug in the preview version of the Excel 1.7 API makes the
+                // next line necessary. It can be deleted when the 1.7 API releases.
+                nameRange.dataValidation.load();
+
+                const nameSourceRange = context.workbook.worksheets.getItem("Names").getRange("A1:A3");
+
+                let approvedListRule = {
+                    list: {
+                        inCellDropDown: true,
+                        // When bug is fixed, replace hardcoded list with
+                        // the range object.
+                        source: '=Names!$A$1:$A$3'
+                    }
+                };
+                nameRange.dataValidation.rule = approvedListRule;
+
+                await context.sync();
+            });
+        }
+
+        async function warnAboutCommentRedundancy() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const commentsRange = sheet.tables.getItem("NameOptionsTable").columns.getItem("Comments").getDataBodyRange();
+
+                // When you are developing, it is a good practice to
+                // clear the dataValidation object with each run of your code.
+                commentsRange.dataValidation.clear();   
+
+                // If the value of A2 is contained in the value of C2, then 
+                // SEARCH(A2,C2) returns the number where it begins. Otherwise,
+                // it does not return a number.
+                let redundantStringRule = {
+                    custom: {
+                        formula: "=NOT(ISNUMBER(SEARCH(A2,C2)))"
+                    }
+                };
+                commentsRange.dataValidation.rule = redundantStringRule;
+                commentsRange.dataValidation.errorAlert = {
+                    message: "It is redundant to include the baby name in the comment.",
+                    showAlert: true,
+                    style: "Information",
+                    title: "Baby Name in Comment"
+                };
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const wrbk = context.workbook;
+                const decisionSheet = wrbk.worksheets.getActiveWorksheet();
+                decisionSheet.name = "Decision";
+                const optionsTable = decisionSheet.tables.add("A1:C4", true /*hasHeaders*/);
+                optionsTable.name = "NameOptionsTable";
+                optionsTable.showBandedRows = false;
+
+                optionsTable.getHeaderRowRange().values = [["Baby Name", "Ranking", "Comments"]];
+
+                decisionSheet.getUsedRange().format.autofitColumns();
+                decisionSheet.getUsedRange().format.autofitRows();
+                decisionSheet.activate();
+
+                // The names that will be allowed in the Baby Name column are 
+                // listed in a range on the Names sheet. 
+                const namesSheet = wrbk.worksheets.add("Names");
+                namesSheet.getRange("A1:A3").values = [["Sue"], ["Ricky"], ["Liz"]];
+
+                await context.sync();
+            });
+        }
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |+
+        <p class="ms-font-m">Click this first and only once.</p>
+        <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Setup</span>
+        </button>
+        <p class="ms-font-m">Press <b>Require approved name</b> and then click on a cell in the <b>Baby Name</b> column and use the drop down to enter an approved value.</p>
+        <button id="require-approved-location" class="ms-Button">
+            <span class="ms-Button-label">Require approved name</span>
+        </button>
+        <p class="ms-font-m">Press <b>Require positive numbers</b> and then click on a cell in the <b>Ranking</b> column. Note the prompt. Try to set the value to a negative number and note the error message.</p>
+        <button id="positive-number" class="ms-Button">
+            <span class="ms-Button-label">Require positive numbers</span>
+        </button>
+        <p class="ms-font-m">Press <b>Warn about comment redundancy</b> and then click on a cell in the <b>Comments</b> column and enter a comment that includes the baby name for the same row. Note the informational message that pops up.</p>
+        <button id="comment-redundancy" class="ms-Button">
+            <span class="ms-Button-label">Warn about comment redundancy</span>
+        </button>
+
+
+    language: html
+style:
+    content: |
+        /* Your style goes here */
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

@@ -66,18 +66,15 @@ const defaultApiSets = {
 })();
 
 
-async function processSnippets(processedSnippets) {
-    return new Promise((resolve, reject) => {
-        banner('Loading & processing snippets');
-        let files$ = getFiles(path.resolve(PRIVATE_SAMPLES));
-        files$ = files$.merge(getFiles(path.resolve(PUBLIC_SAMPLES)));
+async function processSnippets(processedSnippets: Dictionary<SnippetProcessedData>) {
+    banner('Loading & processing snippets');
+    let files: SnippetFileInput[] = []
+        .concat(getFiles(path.resolve(PRIVATE_SAMPLES)))
+        .concat(getFiles(path.resolve(PUBLIC_SAMPLES)));
 
-        files$
-            .mergeMap((file) => (processAndValidateSnippet(file)))
-            .filter(file => file !== null)
-            .map(file => processedSnippets.add(file.rawUrl, file))
-            .subscribe(null, reject, resolve);
-    });
+    (await Promise.all(files.map(file => processAndValidateSnippet(file))))
+        .filter(file => file !== null)
+        .map(file => processedSnippets.add(file.rawUrl, file));
 
 
     // Helpers:

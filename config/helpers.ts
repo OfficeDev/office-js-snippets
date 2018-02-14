@@ -3,12 +3,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as chalk from 'chalk';
 import * as jsyaml from 'js-yaml';
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/operator/mergeMap';
-import 'rxjs/add/operator/catch';
-import 'rxjs/add/observable/from';
-import 'rxjs/add/observable/of';
-import 'rxjs/add/observable/throw';
 import { console } from './status';
 import * as rimraf from 'rimraf';
 
@@ -195,7 +189,7 @@ export const loadFileContents = (path: string) =>
  * @param fullPath An absolute path to the file.
   * @param root An absolute path to the root directory.
  */
-export const getFileMetadata = (fullPath: string, root: string) => {
+export function getFileMetadata(fullPath: string, root: string): SnippetFileInput {
     /* Determine the platform as windows uses '\' where as linux uses '/' */
     const delimiter = os.platform() === 'win32' ? '\\' : '/';
 
@@ -216,59 +210,43 @@ export const getFileMetadata = (fullPath: string, root: string) => {
 
     host = host.toLowerCase();
 
-    return Observable.of<SnippetFileInput>({
+    return {
         relativePath: relativePath,
         fullPath,
         isPublic: !(/[\\/]private-samples$/.test(root)),
         host,
         group,
         file_name
-    });
-};
+    };
+}
 
 /**
  * Recurrsively crawl through a folder and return all the files in it.
  * @param root An absolute path to the directory.
  */
-export function getFiles(root: string): Observable<SnippetFileInput> {
-    return getFilesHelper(root, root);
+export function getFiles(root: string): SnippetFileInput[] {
+    let files: SnippetFileInput[] = [];
+    syncRecurseThroughDirectory(root);
+    return files;
 
-    /** A recursive helper:
-     * @param dir An absolute path to the directory.
-     * @param root An absolute path to the root directory.
-     */
-    function getFilesHelper(dir: string, root: string): Observable<SnippetFileInput> {
-        /*
-        * Convert all the files into an Observable stream of files.
-        * This allows us to focus the remainder of the operations
-        * on a PER FILE basis.
-        */
-        return Observable
-            .from(readDir(dir))
-            .mergeMap(files => Observable.from(files))
-            .mergeMap((file) => {
-                const filePath = path.join(dir, file);
+
+    // Helper
+    function syncRecurseThroughDirectory(dir: string) {
+        fs.readdirSync(dir)
+            .forEach(file => {
+                const fullPath = path.join(dir, file);
                 const withoutExt = file.replace('.yaml', '');
 
                 /* Check for file/folder naming guidelines */
                 if (!followsNamingGuidelines(withoutExt)) {
-                    throw new Error(`Invalid name at ${chalk.bold.red(filePath)}. Name must only contain lowercase letters, numbers, and hyphens.`);
+                    throw new Error(`Invalid name at ${chalk.bold.red(fullPath)}. Name must only contain lowercase letters, numbers, and hyphens.`);
                 }
 
-                /*
-                * Check if the file is a folder and either return
-                * an Observable to the recurrsive walk operation or
-                * return an Observable of the file object itself.
-                */
-                return Observable
-                    .from(isDir(filePath))
-                    .mergeMap(pathIsDirectory => {
-                        const files$ = pathIsDirectory ?
-                            getFilesHelper(filePath, root) :
-                            getFileMetadata(filePath, root);
-                        return files$.catch(error => Observable.throw(error));
-                    })
-                    .catch(error => Observable.throw(error));
+                if (fs.statSync(fullPath).isDirectory()) {
+                    syncRecurseThroughDirectory(fullPath);
+                } else {
+                    files.push(getFileMetadata(fullPath, root));
+                }
             });
     }
 }

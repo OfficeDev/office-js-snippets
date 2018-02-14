@@ -134,7 +134,7 @@ function getExtractedDataFromSnippet(
 
             let arrayIndex = fullSnippetTextArray.findIndex(text => text.indexOf(targetText) >= 0);
             if (arrayIndex < 0) {
-                throw new Error(`Could not find the text "${targetText}" within snippet "${filename}"`);
+                throw new Error(`Invalid entry in the metadata mapping file -- snippet function "${row.snippetFunction}" does not exist within snippet "${filename}"`);
             }
             const functionDeclarationLine = fullSnippetTextArray[arrayIndex];
             const functionHasNoParams = functionDeclarationLine.indexOf(targetText + ')') >= 0;

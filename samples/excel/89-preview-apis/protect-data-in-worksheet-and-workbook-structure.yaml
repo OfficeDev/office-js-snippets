@@ -18,65 +18,13 @@ script:
 
         async function protectDataInWorksheet() {
             await Excel.run(async (context) => {
-                await worksheetHelper(context, true, false);
-            });
-        }
-
-        async function unprotectDataInWorksheet() {
-            await Excel.run(async (context) => {
-                await worksheetHelper(context, false, false);
-            });
-        }
-
-        async function protectWorkbookStructure() {
-            await Excel.run(async (context) => {
-                await workbookHelper(context, true, false);
-            });
-        }
-
-        async function unprotectWorkbookStructure() {
-            await Excel.run(async (context) => {
-                await workbookHelper(context, false, false);
-            });
-        }
-
-        async function passwordProtectDataInWorksheet() {
-            await Excel.run(async (context) => {
-                await worksheetHelper(context, true, true, await passwordHandler());
-            });
-        }
-
-        async function passwordUnprotectDataInWorksheet() {
-            await Excel.run(async (context) => {
-                await worksheetHelper(context, false, true, await passwordHandler());
-            });
-        }
-
-        async function passwordProtectWorkbookStructure() {
-            await Excel.run(async (context) => {
-                await workbookHelper(context, true, true, await passwordHandler());
-            });
-        }
-
-        async function passwordUnprotectWorkbookStructure() {
-            await Excel.run(async (context) => {
-                await workbookHelper(context, false, true, await passwordHandler());
-            });
-        }
-
-        async function worksheetHelper(context: Excel.RequestContext, expectProtection: boolean, expectPassword: boolean, password?: string) {
-
-            await passwordHelper(expectPassword, password);
-            await Excel.run(async (context) => {
                 let activeSheet = context.workbook.worksheets.getActiveWorksheet();
                 activeSheet.load("protection/protected");
 
                 await context.sync();
 
-                if (expectProtection && !activeSheet.protection.protected) {
-                    activeSheet.protection.protect(null, password);
-                } else if (!expectProtection) {
-                    activeSheet.protection.unprotect(password);
+                if (!activeSheet.protection.protected) {
+                    activeSheet.protection.protect();
                 }
 
                 activeSheet.load("name");
@@ -84,34 +32,131 @@ script:
 
                 await context.sync();
 
-                console.log("Expected: Worksheet '" + activeSheet.name + "' should " + await messageHelper(expectProtection) + ". Protected? " + activeSheet.protection.protected);
+                console.log("Expected: Worksheet '" + activeSheet.name + "' should " + messageHelper(true) + ". Protected? " + activeSheet.protection.protected);
             });
         }
 
-        async function workbookHelper(context: Excel.RequestContext, expectProtection: boolean, expectPassword: boolean, password?: string) {
+        async function unprotectDataInWorksheet() {
+            await Excel.run(async (context) => {
+                let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.protection.unprotect();
 
-            await passwordHelper(expectPassword, password);
+                activeSheet.load("name");
+                activeSheet.load("protection/protected");
+
+                await context.sync();
+
+                console.log("Expected: Worksheet '" + activeSheet.name + "' should " + messageHelper(false) + ". Protected? " + activeSheet.protection.protected);
+            });
+        }
+
+        async function protectWorkbookStructure() {
             await Excel.run(async (context) => {
                 let workbook = context.workbook;
                 workbook.load("protection/protected");
 
                 await context.sync();
 
-                if (expectProtection && !workbook.protection.protected) {
-                    workbook.protection.protect(password);
-                } else if (!expectProtection) {
-                    workbook.protection.unprotect(password);
+                if (!workbook.protection.protected) {
+                    workbook.protection.protect();
                 }
 
                 workbook.load("protection/protected");
 
                 await context.sync();
 
-                console.log("Expected: This workbook should " + await messageHelper(expectProtection) + ". Protected? " + workbook.protection.protected);
+                console.log("Expected: This workbook should " + messageHelper(true) + ". Protected? " + workbook.protection.protected);
             });
         }
 
-        async function messageHelper(expectProtection: boolean): Promise<string> {
+        async function unprotectWorkbookStructure() {
+            await Excel.run(async (context) => {
+                let workbook = context.workbook;
+                workbook.protection.unprotect();
+
+                workbook.load("protection/protected");
+
+                await context.sync();
+
+                console.log("Expected: This workbook should " + messageHelper(false) + ". Protected? " + workbook.protection.protected);
+            });
+        }
+
+        async function passwordProtectDataInWorksheet() {
+            let password = await passwordHandler();
+            passwordHelper(password);
+            await Excel.run(async (context) => {
+                let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.load("protection/protected");
+
+                await context.sync();
+
+                if (!activeSheet.protection.protected) {
+                    activeSheet.protection.protect(null, password);
+                }
+
+                activeSheet.load("name");
+                activeSheet.load("protection/protected");
+
+                await context.sync();
+
+                console.log("Expected: Worksheet '" + activeSheet.name + "' should " + messageHelper(true) + ". Protected? " + activeSheet.protection.protected);
+            });
+        }
+
+        async function passwordUnprotectDataInWorksheet() {
+            let password = await passwordHandler();
+            passwordHelper(password);
+            await Excel.run(async (context) => {
+                let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.protection.unprotect(password);
+
+                activeSheet.load("name");
+                activeSheet.load("protection/protected");
+
+                await context.sync();
+
+                console.log("Expected: Worksheet '" + activeSheet.name + "' should " + messageHelper(false) + ". Protected? " + activeSheet.protection.protected);
+            });
+        }
+
+        async function passwordProtectWorkbookStructure() {
+            let password = await passwordHandler();
+            passwordHelper(password);
+            await Excel.run(async (context) => {
+                let workbook = context.workbook;
+                workbook.load("protection/protected");
+
+                await context.sync();
+
+                if (!workbook.protection.protected) {
+                    workbook.protection.protect(password);
+                }
+
+                workbook.load("protection/protected");
+
+                await context.sync();
+
+                console.log("Expected: This workbook should " + messageHelper(true) + ". Protected? " + workbook.protection.protected);
+            });
+        }
+
+        async function passwordUnprotectWorkbookStructure() {
+            let password = await passwordHandler();
+            passwordHelper(password);
+            await Excel.run(async (context) => {
+                let workbook = context.workbook;
+                workbook.protection.unprotect(password);
+
+                workbook.load("protection/protected");
+
+                await context.sync();
+
+                console.log("Expected: This workbook should " + messageHelper(false) + ". Protected? " + workbook.protection.protected);
+            });
+        }
+
+        function messageHelper(expectProtection: boolean): string {
             
             let message = "not be protected";
             if (expectProtection) {
@@ -121,9 +166,9 @@ script:
             return message;
         }
 
-        async function passwordHelper(expectPassword: boolean, password?: string) {
+        function passwordHelper(password: string) {
 
-            if (expectPassword && (null == password || password.trim() == "")) {
+            if (null == password || password.trim() == "") {
                 let errorMessage = "Password is expected but not provided";
                 OfficeHelpers.UI.notify(errorMessage);
                 OfficeHelpers.Utilities.log(errorMessage);

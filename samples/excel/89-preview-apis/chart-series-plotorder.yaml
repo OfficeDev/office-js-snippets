@@ -1,0 +1,140 @@
+id: excel-chart-series-plotorder
+name: Chart - series plot order
+description: Order the plotting of series in a chart.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.7
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#order-series-plot").click(() => tryCatch(addSeries));
+
+        async function addSeries() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+
+                let seriesCollection = sheet.charts.getItemAt(0);
+                let rangeSelection = sheet.getRange("C2:C7");
+                let xRangeSelection = sheet.getRange("A1:A7");
+
+                // Add series.
+                let newSeries = seriesCollection.series.add("Qtr2");
+                newSeries.setValues(rangeSelection);
+                newSeries.setXAxisValues(xRangeSelection);
+                let newSeries2 = seriesCollection.series.add("Qtr3");
+                newSeries2.setValues(rangeSelection);
+                newSeries2.setXAxisValues(xRangeSelection);
+
+                // Order the plotting of the series.
+                // In this case, Qtr 3 appears first,
+                // followed by Qtr 2, then Qtr 1.
+                newSeries2.plotOrder = 0;
+                newSeries.plotOrder = 1;
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                let sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                let salesTable = sheet.tables.add('A1:E1', true);
+                salesTable.name = "SalesTable";
+
+                salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                salesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                createChart(context);
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        async function createChart(context: Excel.RequestContext) {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const salesTable = sheet.tables.getItem("SalesTable");
+
+            let dataRange = sheet.getRange("A1:B7");
+            let chart = sheet.charts.add("ColumnClustered", dataRange, "auto");
+
+            chart.setPosition("A15", "E30");
+            chart.legend.position = "right"
+            chart.legend.format.fill.setSolidColor("white");
+            chart.dataLabels.format.font.size = 15;
+            chart.dataLabels.format.font.color = "black";
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to change the plot order of series in a chart.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="order-series-plot" class="ms-Button">
+                <span class="ms-Button-label">Order series plot</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

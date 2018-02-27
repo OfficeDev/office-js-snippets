@@ -1,0 +1,261 @@
+id: excel-protect-data-in-worksheet-and-workbook-structure
+name: Protect data in worksheet and the workbook structure
+description: Shows how to protect data in a worksheet and the workbook structure.
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#protect-data-in-worksheet").click(() => tryCatch(protectDataInWorksheet));
+        $("#unprotect-data-in-worksheet").click(() => tryCatch(unprotectDataInWorksheet));
+        $("#protect-workbook-structure").click(() => tryCatch(protectWorkbookStructure));
+        $("#unprotect-workbook-structure").click(() => tryCatch(unprotectWorkbookStructure));
+        $("#password-protect-data-in-worksheet").click(() => tryCatch(passwordProtectDataInWorksheet));
+        $("#password-unprotect-data-in-worksheet").click(() => tryCatch(passwordUnprotectDataInWorksheet));
+        $("#password-protect-workbook-structure").click(() => tryCatch(passwordProtectWorkbookStructure));
+        $("#password-unprotect-workbook-structure").click(() => tryCatch(passwordUnprotectWorkbookStructure));
+
+        async function protectDataInWorksheet() {
+            await Excel.run(async (context) => {
+                let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.load("protection/protected");
+
+                await context.sync();
+
+                if (!activeSheet.protection.protected) {
+                    activeSheet.protection.protect();
+                }
+            });
+        }
+
+        async function unprotectDataInWorksheet() {
+            await Excel.run(async (context) => {
+                let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.protection.unprotect();
+            });
+        }
+
+        async function protectWorkbookStructure() {
+            await Excel.run(async (context) => {
+                let workbook = context.workbook;
+                workbook.load("protection/protected");
+
+                await context.sync();
+
+                if (!workbook.protection.protected) {
+                    workbook.protection.protect();
+                }
+            });
+        }
+
+        async function unprotectWorkbookStructure() {
+            await Excel.run(async (context) => {
+                let workbook = context.workbook;
+                workbook.protection.unprotect();
+            });
+        }
+
+        async function passwordProtectDataInWorksheet() {
+            let password = await passwordHandler();
+            passwordHelper(password);
+            await Excel.run(async (context) => {
+                let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.load("protection/protected");
+
+                await context.sync();
+
+                if (!activeSheet.protection.protected) {
+                    activeSheet.protection.protect(null, password);
+                }
+            });
+        }
+
+        async function passwordUnprotectDataInWorksheet() {
+            let password = await passwordHandler();
+            passwordHelper(password);
+            await Excel.run(async (context) => {
+                let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.protection.unprotect(password);
+            });
+        }
+
+        async function passwordProtectWorkbookStructure() {
+            let password = await passwordHandler();
+            passwordHelper(password);
+            await Excel.run(async (context) => {
+                let workbook = context.workbook;
+                workbook.load("protection/protected");
+
+                await context.sync();
+
+                if (!workbook.protection.protected) {
+                    workbook.protection.protect(password);
+                }
+            });
+        }
+
+        async function passwordUnprotectWorkbookStructure() {
+            let password = await passwordHandler();
+            passwordHelper(password);
+            await Excel.run(async (context) => {
+                let workbook = context.workbook;
+                workbook.protection.unprotect(password);
+            });
+        }
+
+        function passwordHelper(password: string) {
+
+            if (null == password || password.trim() == "") {
+                let errorMessage = "Password is expected but not provided";
+                OfficeHelpers.UI.notify(errorMessage);
+                OfficeHelpers.Utilities.log(errorMessage);
+            }
+        }
+
+        async function passwordHandler(): Promise<string> {
+            let settingName = "TheTestPasswordUsedByThisSnippet";
+            let savedPassword = Office.context.document.settings.get(settingName);
+            if (null == savedPassword || savedPassword.trim() == "") {
+                let item = document.getElementById("test-password");
+                let testPassword = item.hasAttribute("value") ? item.getAttribute("value") : null;
+                if (null != testPassword && testPassword.trim() != "") {
+                    // store test password for retrieval upon re-opening this workbook
+                    Office.context.document.settings.set(settingName, testPassword);
+                    await Office.context.document.settings.saveAsync();
+
+                    savedPassword = testPassword;
+                }
+            } else {
+                document.getElementById("test-password").setAttribute("value", savedPassword);
+            }
+
+            console.log("Test password is " + savedPassword);
+
+            return savedPassword;
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                let expensesTable = sheet.tables.add('A1:E1', true);
+                expensesTable.name = "SalesTable";
+
+                expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                expensesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to protect 1. data in a worksheet and 2. the workbook's structure.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                        <span class="ms-Button-label">Add sample data</span>
+                    </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <h4>Protect without password</h4>
+            <p>
+                <p>Click the next button and then notice that you cannot edit data in the worksheet.</p>
+                <button id="protect-data-in-worksheet" class="ms-Button">
+                    <span class="ms-Button-label">Protect data in worksheet</span>
+                </button>
+            </p>
+            <p>
+                <button id="unprotect-data-in-worksheet" class="ms-Button">
+                    <span class="ms-Button-label">Unprotect data in worksheet</span>
+                </button>
+            </p>
+            <p>
+                <p>Click the next button and then notice that you cannot add or delete a worksheet.</p>
+                <button id="protect-workbook-structure" class="ms-Button">
+                    <span class="ms-Button-label">Protect workbook structure</span>
+                </button>
+            </p>
+            <p>
+                <button id="unprotect-workbook-structure" class="ms-Button">
+                    <span class="ms-Button-label">Unprotect workbook structure</span>
+                </button>
+            </p>
+            <h4>Protect with password</h4>
+            <label>The following password will be used for the scenarios in this section:</label>
+            <input id="test-password" type="text" value="pass@word1" disabled="disabled" name="test-password">
+            <p>
+                <p>Click the next button and then notice that you cannot edit data in the worksheet.</p>
+                <button id="password-protect-data-in-worksheet" class="ms-Button">
+                    <span class="ms-Button-label">Password protect data in worksheet</span>
+                </button>
+            </p>
+            <p>
+                <button id="password-unprotect-data-in-worksheet" class="ms-Button">
+                    <span class="ms-Button-label">Password unprotect data in worksheet</span>
+                </button>
+            </p>
+            <p>
+                <p>Click the next button and then notice that you cannot add or delete a worksheet.</p>
+                <button id="password-protect-workbook-structure" class="ms-Button">
+                    <span class="ms-Button-label">Password protect workbook structure</span>
+                </button>
+            </p>
+            <p>
+                <button id="password-unprotect-workbook-structure" class="ms-Button">
+                    <span class="ms-Button-label">Password unprotect workbook structure</span>
+                </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |
+        /* Your style goes here */
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

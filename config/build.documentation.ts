@@ -34,11 +34,9 @@ export async function buildReferenceDocSnippetExtracts(
 
     await rmRf('snippet-extractor-output');
     await mkDir('snippet-extractor-output');
-    await Promise.all(snippetExtractsPerHost.map((extracts, index) => {
-        let contents = jsyaml.safeDump(extracts);
-        let fileName = `snippet-extractor-output/${files[index].substr(0, '.xlsx'.length)}.yaml`;
-        return writeFile(path.resolve(fileName), contents);
-    }));
+
+    const contents = snippetExtractsPerHost.map(extracts => jsyaml.safeDump(extracts)).join('');
+    await writeFile(path.resolve(`snippet-extractor-output/snippets.yaml`), contents);
 }
 
 async function buildSnippetExtractsPerHost(

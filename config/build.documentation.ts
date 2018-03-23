@@ -35,10 +35,7 @@ export async function buildReferenceDocSnippetExtracts(
     await rmRf('snippet-extractor-output');
     await mkDir('snippet-extractor-output');
 
-    let contents = '';
-    snippetExtractsPerHost.map((extracts, index) => {
-        contents += jsyaml.safeDump(extracts);
-    });
+    const contents = snippetExtractsPerHost.map(extracts => jsyaml.safeDump(extracts)).join('');
     await writeFile(path.resolve(`snippet-extractor-output/snippets.yaml`), contents);
 }
 

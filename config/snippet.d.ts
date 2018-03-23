@@ -8,6 +8,7 @@ interface ITemplate {
     name?: string;
     description?: string;
     author?: string;
+    endpoints?: string[];
     host: string;
     api_set: {
         [index: string]: number

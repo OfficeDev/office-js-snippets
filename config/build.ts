@@ -42,7 +42,7 @@ const defaultApiSets = {
 
     /* any other hosts is allowed to have no API sets specified*/
 };
-
+const outlookEndpoints = ['messageread', 'messagecompose', 'appointmentread', 'appointmentcompose'];
 
 (async () => {
     let processedSnippets = new Dictionary<SnippetProcessedData>();
@@ -154,7 +154,8 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
                 group: groupName,
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
                 api_set: snippet.api_set,
-                isPublic: file.isPublic
+                isPublic: file.isPublic,
+                endpoints: snippet.endpoints
             };
         } catch (exception) {
             messages.push(exception);
@@ -527,6 +528,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
                 rawUrl: item.rawUrl,
                 group: item.group.replace(groupNumberRegex, '$2'),
                 api_set: item.api_set,
+                endpoints: item.endpoints,
             };
         });
 
@@ -538,6 +540,21 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
         await writeFile(path.resolve(fileName), contents);
 
         status.complete(true /*success*/, creatingStatusText);
+
+        if (host === 'outlook') {
+            await outlookEndpoints.map(async (endpoint) => {
+                const creatingStatusText = `Creating ${host}-${endpoint}.yaml`;
+                status.add(creatingStatusText);
+                let endpointItems = modifiedItems.filter((item) => item.endpoints.indexOf(endpoint) !== -1);
+                contents = jsyaml.safeDump(endpointItems, {
+                    skipInvalid: true
+                });
+                fileName = `playlists/${host}-${endpoint}.yaml`;
+                await writeFile(path.resolve(fileName), contents);
+                status.complete(true /*success*/, creatingStatusText);
+            });
+        }
+
     });
 
     /* Creating view directory */

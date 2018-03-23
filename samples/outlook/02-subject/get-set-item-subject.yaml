@@ -1,0 +1,72 @@
+id: outlook-subject-get-set-item-subject
+name: Get/Set Item Subject
+description: Gets and Sets the subject of a compose item
+endpoints:
+    - messagecompose
+    - appointmentcompose
+author: OfficeDev
+host: OUTLOOK
+api_set: {}
+script:
+    content: |
+        $("#get").click(get);
+        $("#set").click(set);
+
+        function get() {
+            let item = Office.context.mailbox.item as Office.ItemCompose;
+            item.subject.getAsync((result: Office.AsyncResult) => {
+                if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                    OfficeHelpers.UI.notify(`Action failed with message ${result.error.message}`);
+                    return;
+                }
+                $("#text").val(result.value)
+                OfficeHelpers.UI.notify(`Get completed!`);
+            })
+        }
+
+        function set() {
+            let item = Office.context.mailbox.item as Office.ItemCompose;
+            item.subject.setAsync($("#text").val(), (result: Office.AsyncResult) => {
+                if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                    OfficeHelpers.UI.notify(`Action failed with message ${result.error.message}`);
+                    return;
+                }
+                OfficeHelpers.UI.notify(`Set completed!`);
+            })
+        }
+    language: typescript
+template:
+    content: |
+        <div classs="ms-TextField">
+            <label class="ms-Label">Subject</label>
+            <input class="ms-TextField-field" type="text" value="" placeholder="Subject Goes Here" id="text">
+        </div>
+        <br/>
+        <button id="get" class="ms-Button">
+            <span class="ms-Button-label">Get</span>
+        </button>
+        <button id="set" class="ms-Button">
+            <span class="ms-Button-label">Set</span>
+        </button>
+    language: html
+style:
+    content: |
+        /* Your style goes here */
+    language: css
+libraries: |
+    # Office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    # CSS Libraries
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    # NPM libraries
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    jquery@3.1.1
+
+    # IntelliSense: @types/library or node_modules paths or URL to d.ts files
+    @types/core-js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+    @types/jquery

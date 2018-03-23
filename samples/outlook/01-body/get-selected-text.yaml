@@ -1,6 +1,10 @@
-id: outlook-compose-basics-set-selected-text
-name: Set Selected Text
-description: Changes the value of selected text in body or subject.
+id: outlook-body-get-selected-text
+name: Get Selected Text
+description: Outputs the text selected from either the body or subject.
+endpoints:
+    - messageread
+    - appointmentread
+author: OfficeDev
 host: OUTLOOK
 api_set: {}
 script:
@@ -9,16 +13,18 @@ script:
 
         function run() {
             let item = Office.context.mailbox.item as Office.ItemCompose;
-            item.setSelectedDataAsync("Hello World!", (result: Office.AsyncResult) => {
+            item.getSelectedDataAsync(Office.CoercionType.Text, (result: Office.AsyncResult) => {
                 if (result.status === Office.AsyncResultStatus.Failed) {
-                    OfficeHelpers.UI.notify(`Action failed with error: ${result.error.message}`)
+                    OfficeHelpers.UI.notify(`Action failed with error: ${result.error.message}`);
+                    return;
                 }
+                OfficeHelpers.UI.notify(`Selected Text: ${result.value.data}`);
             })
         }
     language: typescript
 template:
     content: |
-        <label class="ms-Label">Select some text in either the body or the subject of the email and click run to replace it with "Hello World!"</label>
+        <label class="ms-Label">Select some text in either the body or the subject of the email and click run to retrieve it</label>
         <button id="run" class="ms-Button">
             <span class="ms-Button-label">Run</span>
         </button>
@@ -28,8 +34,8 @@ style:
         /* Your style goes here */
     language: css
 libraries: |
-    https://unpkg.com/@microsoft/office-js@1.1.1-private.1/dist/office.js
-    https://unpkg.com/@microsoft/office-js@1.1.1-private.1/dist/office.d.ts
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
 
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css

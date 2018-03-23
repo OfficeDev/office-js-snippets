@@ -40,6 +40,7 @@ export interface SnippetProcessedData {
         [index: string]: number
     };
     isPublic: boolean;
+    endpoints?: string[];
 }
 
 /**

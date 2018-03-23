@@ -31,6 +31,7 @@ const snippetFields: { [key: string]: SnippetFieldType } = {
     origin: SnippetFieldType.TRANSIENT,
     created_at: SnippetFieldType.INTERNAL,
     modified_at: SnippetFieldType.INTERNAL,
+    endpoints: SnippetFieldType.PUBLIC,
 
     /* ISnippet */
     script: SnippetFieldType.PUBLIC,

@@ -1,0 +1,103 @@
+id: excel-range-areas
+name: Using Areas (Discontiguous Ranges)
+description: 'Work with Areas, which are sets of ranges that need not be contiguous with each other.'
+host: EXCEL
+api_set:
+    ExcelApi: 1.8
+script:
+    content: |
+        $("#create-sales-range").click(() => tryCatch(createSalesRange));
+        $("#color-all-formula-cells").click(() => tryCatch(colorAllFormulaCells));
+
+        async function colorAllFormulaCells() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // To create a Range with multiple child areas, pass a 
+                // comma-delimited string of range addresses to 
+                // Worksheet.getRange.
+                const range = sheet.getRange("F3:F5, H3:H5");
+                range.format.fill.color = "pink";
+
+                await context.sync();
+            });
+        }
+
+        async function createSalesRange() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+
+                const data = [
+                    ["Product", "Qty", "Category", "Unit Price", "Base Price", "Tax", "Total Charge"],
+                    ["Almonds", 2, "Nuts", 7.50, "=C3 * E3", 0.1, "=SUM(F3,F3 * G3)"],
+                    ["Coffee", 1, "Beverage", 34.50, "=C4 * E4", 0.0, "=SUM(F4,F4 * G4)"],
+                    ["Chocolate", 5, "Candy", 9.56, "=C5 * E5", 0.2, "=SUM(F5,F5 * G5)"]
+                ];
+
+                const range = sheet.getRange("B2:H5");
+                range.values = data;
+                range.format.autofitColumns();
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to use areas, which are sets of Ranges that are not necessarily contiguous with each other.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Set up</h3>
+            <button id="create-sales-range" class="ms-Button">
+                <span class="ms-Button-label">Populate range</span>
+            </button>
+            <h3>Try it out</h3>
+            <button id="color-all-formula-cells" class="ms-Button">
+                <span class="ms-Button-label">Color formula cells</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

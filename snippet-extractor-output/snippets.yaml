@@ -2047,3 +2047,119 @@ Excel.TableSelectionChangedEvent.tableId:
             console.log("Worksheet Id : " + worksheet.name);
         });
     }
+Excel.Worksheet.getRange:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        // To create a Range with multiple child areas, pass a 
+        // comma-delimited string of range addresses to 
+        // Worksheet.getRange.
+        const range = sheet.getRange("F3:F5, H3:H5");
+        range.format.fill.color = "pink";
+
+        await context.sync();
+    });
+Excel.Workbook.getActiveCell:
+  - |-
+    await Excel.run(async (context) => {
+
+        let myWorkbook = context.workbook;
+        let activeCell = myWorkbook.getActiveCell();
+        activeCell.load("address");
+
+        await context.sync();
+        
+        console.log("The active cell is " + activeCell.address);
+    });
+Excel.Worksheet.copy:
+  - |-
+    await Excel.run(async (context) => {
+
+        let myWorkbook = context.workbook;
+        let sampleSheet = myWorkbook.worksheets.getActiveWorksheet();
+        let copiedSheet = sampleSheet.copy("End")
+
+        sampleSheet.load("name");
+        copiedSheet.load("name");
+
+        await context.sync();
+
+        console.log("'" + sampleSheet.name + "' was copied to '" + copiedSheet.name + "'")
+    });
+Excel.Worksheet.protect:
+  - |-
+    await Excel.run(async (context) => {
+        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+        activeSheet.load("protection/protected");
+
+        await context.sync();
+
+        if (!activeSheet.protection.protected) {
+            activeSheet.protection.protect();
+        }
+    });
+  - |-
+    let password = await passwordHandler();
+    passwordHelper(password);
+    await Excel.run(async (context) => {
+        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+        activeSheet.load("protection/protected");
+
+        await context.sync();
+
+        if (!activeSheet.protection.protected) {
+            activeSheet.protection.protect(null, password);
+        }
+    });
+Excel.Worksheet.unprotect:
+  - |-
+    await Excel.run(async (context) => {
+        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+        activeSheet.protection.unprotect();
+    });
+  - |-
+    let password = await passwordHandler();
+    passwordHelper(password);
+    await Excel.run(async (context) => {
+        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+        activeSheet.protection.unprotect(password);
+    });
+Excel.Workbook.protect:
+  - |-
+    await Excel.run(async (context) => {
+        let workbook = context.workbook;
+        workbook.load("protection/protected");
+
+        await context.sync();
+
+        if (!workbook.protection.protected) {
+            workbook.protection.protect();
+        }
+    });
+  - |-
+    let password = await passwordHandler();
+    passwordHelper(password);
+    await Excel.run(async (context) => {
+        let workbook = context.workbook;
+        workbook.load("protection/protected");
+
+        await context.sync();
+
+        if (!workbook.protection.protected) {
+            workbook.protection.protect(password);
+        }
+    });
+Excel.Workbook.unprotect:
+  - |-
+    await Excel.run(async (context) => {
+        let workbook = context.workbook;
+        workbook.protection.unprotect();
+    });
+  - |-
+    let password = await passwordHandler();
+    passwordHelper(password);
+    await Excel.run(async (context) => {
+        let workbook = context.workbook;
+        workbook.protection.unprotect(password);
+    });

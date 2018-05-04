@@ -1,0 +1,159 @@
+id: excel-events-worksheetcollection-calculated
+name: Events - WorksheetCollection onCalculated
+description: Add an event handler for the WorksheetCollection onCalculated event
+host: EXCEL
+api_set:
+    ExcelApi: 1.8
+script:
+    content: |+
+        $("#setup").click(() => tryCatch(setup));
+        $("#register-onCalculated-handler").click(() => tryCatch(registerOnCalculatedHandler));
+        $("#recalculate").click(() => tryCatch(recalculate));
+
+        async function registerOnCalculatedHandler() {
+            await Excel.run(async (context) => {
+
+                context.workbook.worksheets.onCalculated.add(onAllSheetsCalculated);
+
+                await context.sync();
+
+                console.log("Added WorksheetCollection.onCalculated event handler.");
+            });
+        }
+
+        async function recalculate() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Fruit Sales");
+                sheet.calculate(true);
+
+                await context.sync();
+            });
+        }
+          
+        async function onAllSheetsCalculated(event) {
+            await Excel.run(async (context) => {
+                console.log("All worksheets have recalculated.");
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                let currentSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Fruit Sales");
+                let fruitTable = currentSheet.tables.add('A1:F1', true);
+                fruitTable.name = "FruitTable";
+
+                fruitTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4", "Total"]];
+
+                fruitTable.rows.add(null, [
+                    ["Apples", 135, 700, 654, 437, "=SUM(B2:E2)"],
+                    ["Oranges", 40, 32, 27, 51, "=SUM(B3:E3)"],
+                    ["Mangoes", 2000, 766, 456, 812, "=SUM(B4:E4)"],
+                    ["Limes", 550, 088, 92, 53, "=SUM(B5:E5)"],
+                    ["Lemons", 25, 60, 23, 54, "=SUM(B6:E6)"],
+                    ["Melons", 600, 763, 589, 765, "=SUM(B7:E7)"]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
+                    currentSheet.getUsedRange().format.autofitColumns();
+                    currentSheet.getUsedRange().format.autofitRows();
+                }
+
+                let sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Bicycle Sales");
+                let salesTable = sheet.tables.add('A1:F1', true);
+                salesTable.name = "SalesTable";
+
+                salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4", "Total"]];
+
+                salesTable.rows.add(null, [
+                   ["Frames", 5000, 7000, 6544, 4377, "=SUM(B2:E2)"],
+                   ["Saddles", 400, 323, 276, 651, "=SUM(B3:E3)"],
+                   ["Brake levers", 12000, 8766, 8456, 9812, "=SUM(B4:E4)"],
+                   ["Chains", 1550, 1088, 692, 853, "=SUM(B5:E5)"],
+                   ["Mirrors", 225, 600, 923, 544, "=SUM(B6:E6)"],
+                   ["Spokes", 6005, 7634, 4589, 8765, "=SUM(B7:E7)"]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+               }
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+
+
+
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to add an event handler for the WorksheetCollection.onCalculated event.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+
+        <section class="samples ms-font-m">
+            <p>Press the <b>Register onCalculated handler</b> button, and then manually trigger a recalculation by, for example, changing data in a data cell. Watch the console.<br/><br/> Next, manually trigger recalculation on the other sheet. <br/><br/>Finally, with the <b>Bicycle Sales</b> sheet selected, press the <b>Recalculate Fruit Sales</b> button to force a recalculation of the <b>Fruit Sales</b> sheet programmatically.</p>
+            <button id="register-onCalculated-handler" class="ms-Button">
+                <span class="ms-Button-label">Register onCalculated handler</span>
+            </button>
+        </section>
+
+
+        <section class="samples ms-font-m">
+            <button id="recalculate" class="ms-Button">
+                <span class="ms-Button-label">Recalculate Fruit Sales</span>
+            </button>
+        </section>
+
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

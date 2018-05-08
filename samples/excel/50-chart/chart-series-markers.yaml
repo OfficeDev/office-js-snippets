@@ -1,40 +1,42 @@
-id: excel-events-worksheet-selectionchanged
-name: Events - Worksheet onSelectionChanged
-description: Add an event handler for the worksheet onSelectionChanged event
+order: 11
+id: excel-chart-series-markers
+name: Chart series markers
+description: Set chart series marker properties
 host: EXCEL
 api_set:
-    ExcelApi: 1.7
+    ExcelAPI: 1.7
 script:
-    content: |+
+    content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#register-on-selection-changed-handler").click(() => tryCatch(registerSelectionChangedHandler));
-        $("#select-range").click(() => tryCatch(selectRange));
+        $("#set-markers").click(() => tryCatch(setMarkers));
 
-        async function registerSelectionChangedHandler() {
-            await Excel.run(async (context) => {
-
-                let sheet = context.workbook.worksheets.getItem("Sample");
-                sheet.onSelectionChanged.add(onSelectionChange);
-
-                await context.sync();
-
-                console.log("Added worksheet selection changed event handler.");
-            });
-        }
-
-        async function selectRange() {
+        async function setMarkers() {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets.getItem("Sample");
-                let range = sheet.getRange("B7:C7");
-                range.select();
+                let salesTable = sheet.tables.getItem("SalesTable");
+                let dataRange = sheet.getRange("A1:E7");
+
+                // Create an XY scatter chart.
+                let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
+                chart.title.text = "Bicycle Parts Quarterly Sales"; 
+              
+                let series = chart.series;
+                let series0 = series.getItemAt(0);
+                let series1 = series.getItemAt(1);
+                let series2 = series.getItemAt(2);
+                let series3 = series.getItemAt(3);
+
+                // Set markers.
+                series0.markerStyle = "Dash";
+                series0.markerForegroundColor = "black";
+                series1.markerStyle = "Star";
+                series1.markerForegroundColor = "black";
+                series2.markerStyle = "X";
+                series2.markerSize = 12;
+                series3.markerStyle = "Triangle";
+                series3.markerBackgroundColor = "purple";
 
                 await context.sync();
-            });
-        }
-          
-        async function onSelectionChange(event) {
-            await Excel.run(async (context) => {
-                console.log("The selected range has changed to: " + event.address);
             });
         }
 
@@ -48,18 +50,18 @@ script:
                 salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
 
                 salesTable.rows.add(null, [
-                   ["Frames", 5000, 7000, 6544, 4377],
-                    ["Saddles", 400, 323, 276, 651],
-                    ["Brake levers", 12000, 8766, 8456, 9812],
-                    ["Chains", 1550, 1088, 692, 853],
+                    ["Frames", 5000, 3000, 544, 1377],
+                    ["Saddles", 400, 1323, 876, 251],
+                    ["Brake levers", 1200, 5766, 2456, 812],
+                    ["Chains", 1550, 1088, 692, 253],
                     ["Mirrors", 225, 600, 923, 544],
-                    ["Spokes", 6005, 7634, 4589, 8765]
+                    ["Spokes", 6005, 7634, 4589, 765]
                 ]);
 
                 if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
                     sheet.getUsedRange().format.autofitColumns();
                     sheet.getUsedRange().format.autofitRows();
-               }
+                }
 
                 sheet.activate();
 
@@ -77,14 +79,11 @@ script:
                 OfficeHelpers.Utilities.log(error);
             }
         }
-
-
-
     language: typescript
 template:
-    content: |+
+    content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to add an event handler for the worksheet onSelectionChanged event.</p>
+            <p>This sample shows how to set chart series marker properties.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -94,21 +93,12 @@ template:
             </button>
         </section>
 
-
         <section class="samples ms-font-m">
-            <p>Press the button and select a range manually. Watch the console. Next press the second button to select a range programmatically.</p>
-            <button id="register-on-selection-changed-handler" class="ms-Button">
-                <span class="ms-Button-label">Register onSelectionChanged handler</span>
+            <h3>Try it out</h3>
+            <button id="set-markers" class="ms-Button">
+                <span class="ms-Button-label">Set marker properties</span>
             </button>
         </section>
-
-
-        <section class="samples ms-font-m">
-            <button id="select-range" class="ms-Button">
-                <span class="ms-Button-label">Select range</span>
-            </button>
-        </section>
-
     language: html
 style:
     content: |
@@ -123,7 +113,7 @@ style:
             min-width: 80px;
         }
     language: css
-libraries: |
+libraries: |-
     https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
     https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
 

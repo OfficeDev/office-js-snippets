@@ -1,33 +1,25 @@
-id: excel-chart-series-doughnutholesize
-name: Chart series - doughnutHoleSize
-description: Set the doughnutHoleSize property in a series for a dough nut chart.
+order: 13
+id: excel-chart-title-substring
+name: Chart - Title substring
+description: Get and set title substring for a chart.
 host: EXCEL
 api_set:
     ExcelApi: 1.7
 script:
-    content: |
+    content: |+
         $("#setup").click(() => tryCatch(setup));
-        $("#add-series").click(() => tryCatch(addSeries));
+        $("#change-title-substring").click(() => tryCatch(changeTitleSubstring));
 
-        async function addSeries() {
+        async function changeTitleSubstring() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Sample");
-
-                let seriesCollection = sheet.charts.getItemAt(0);
-                let rangeSelection = sheet.getRange("C2:C7");
-                let xRangeSelection = sheet.getRange("A1:A7");
-
-                // Add a series.
-                let newSeries = seriesCollection.series.add("Qtr2");
-                newSeries.setValues(rangeSelection);
-                newSeries.setXAxisValues(xRangeSelection);
-
-               // Set the size of the dough nut hole.
-               // The hole size is expressed as a percentage 
-               // of the chart size. 
-               newSeries.doughnutHoleSize = 80;
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                let chart = sheet.charts.getItemAt(0);
              
-                await context.sync();
+                // Get first seven characters of the title and highlight them to green.
+                let font = chart.title.getSubstring(0, 7).font;
+                font.color = "Green"; 
+
+                await context.sync();                
             });
         }
 
@@ -54,22 +46,21 @@ script:
                     sheet.getUsedRange().format.autofitRows();
                 }
 
-                createDoughnutExplodedChart(context);
+                createChart(context);
                 sheet.activate();
 
                 await context.sync();
             });
         }
 
-        async function createDoughnutExplodedChart(context: Excel.RequestContext) {
-            const sheet = context.workbook.worksheets.getItem("Sample");
-            const salesTable = sheet.tables.getItem("SalesTable");
+        function createChart(context: Excel.RequestContext) {
+            let sheet = context.workbook.worksheets.getItem("Sample");
 
-            let dataRange = sheet.getRange("A1:B7");
-            let chart = sheet.charts.add("doughnutExploded", dataRange, "auto");
-
-            chart.setPosition("A15", "E30");
-            chart.legend.position = "right"
+            let dataRange = sheet.getRange("A3:E7");
+            let chart = sheet.charts.add("columnStacked", dataRange, "auto");
+            chart.title.text = "Bicycle parts sales";
+            chart.setPosition("A10", "H33");
+            chart.legend.position = "right";
             chart.legend.format.fill.setSolidColor("white");
             chart.dataLabels.format.font.size = 15;
             chart.dataLabels.format.font.color = "black";
@@ -85,11 +76,12 @@ script:
                 OfficeHelpers.Utilities.log(error);
             }
         }
+
     language: typescript
 template:
     content: |+
         <section class="ms-font-m">
-            <p>This sample shows how to use the doughnutHoleSize property in a series for an exploded dough nut chart.</p>
+            <p>This sample shows how to get and set title substring for a chart.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -101,11 +93,10 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="add-series" class="ms-Button">
-                <span class="ms-Button-label">Add series</span>
+            <button id="change-title-substring" class="ms-Button">
+                <span class="ms-Button-label">Change title substring</span>
             </button>
         </section>
-
 
     language: html
 style:

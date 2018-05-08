@@ -1,74 +1,69 @@
-order: 11
-id: excel-events-worksheet-changed
-name: Events - Worksheet changed
-description: Add event handlers for worksheet onChanged and onAdded events
+order: 6
+id: excel-events-worksheet-activated
+name: Events - Worksheet activated
+description: Add event handlers for worksheet onActivated and onDeactivated events
 host: EXCEL
 api_set:
     ExcelApi: 1.7
 script:
     content: |+
         $("#setup").click(() => tryCatch(setup));
-        $("#register-on-changed-handler").click(() => tryCatch(registerOnChangedHandler));
-        $("#data-changed").click(() => tryCatch(changeData));
-        $("#register-on-add-handler").click(() => tryCatch(registerOnAddHandler));
-        $("#add-worksheet").click(() => tryCatch(addWorksheet));
+        $("#register-on-activate-handler").click(() => tryCatch(registerOnActivateHandler));
+        $("#register-on-deactivate-handler").click(() => tryCatch(registerOnDeactivateHandler));
+        $("#delete-worksheet").click(() => tryCatch(deleteWorksheet));
 
-        async function registerOnChangedHandler() {
+        async function registerOnActivateHandler() {
             await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getItem("Sample");
-                sheet.onChanged.add(onChange);
+                let sheets = context.workbook.worksheets;
+                sheets.onActivated.add(onActivate);
 
                 await context.sync();
 
-                OfficeHelpers.UI.notify("A handler has been registered for the onChanged event.");
+                OfficeHelpers.UI.notify("A handler has been registered for the OnActivate event",
+                    "Try selecting a different worksheet, and watch the console output.");   
             });
         }
 
-        async function changeData() {
+        async function onActivate(args) {
             await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getItem("Sample");
-                let range = sheet.getRange("B5");
-                range.values = [[800]];
-                range.format.autofitColumns();
+                console.log("The activated worksheet Id : " + args.worksheetId);
+            });
+        }
+
+        async function registerOnDeactivateHandler() {
+            await Excel.run(async (context) => {
+                let sheets = context.workbook.worksheets;
+                sheets.onDeactivated.add(onDeactivate);
 
                 await context.sync();
 
-                console.log("B5 value has been changed.");
+                OfficeHelpers.UI.notify("A handler has been registered for the OnDeactivate event",
+                    "Try selecting a different worksheet, and watch the console output.");   
             });
         }
 
-        async function onChange(event) {
+        async function onDeactivate(args) {
             await Excel.run(async (context) => {
-                console.log("Handler for worksheet onChanged event has been triggered.  Data changed address : " + event.address);
+                console.log("The deactivated worksheet Id : " + args.worksheetId);
             });
         }
 
-        async function registerOnAddHandler() {
+        async function deleteWorksheet() {
             await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets;
-                sheet.onAdded.add(onWorksheetAdd);
+                let sheets = context.workbook.worksheets;
+                sheets.load("items/name");
 
                 await context.sync();
 
-                OfficeHelpers.UI.notify("A handler has been registered for the OnAdded event",
-                    "Try adding a worksheet, and watch the console output.");
-            });
-        }
+                if (sheets.items.length > 1) {
+                    let lastSheet = sheets.items[sheets.items.length - 1];
+                    lastSheet.delete();
 
-        async function addWorksheet() {
-            await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.add();
-                sheet.load("name, position");
-
-                await context.sync();
-
-                console.log(`Added worksheet named "${sheet.name}" in position ${sheet.position}`);
-            });
-        }
-
-        async function onWorksheetAdd(event) {
-            await Excel.run(async (context) => {
-                console.log("Handler for worksheet onAdded event has been triggered.  Newly added worksheet Id : " + event.worksheetId);
+                    console.log(`Deleted worksheet named "${lastSheet.name}"`);
+                }
+                else {
+                    console.log("Unable to delete worksheet.");
+                }
             });
         }
 
@@ -82,7 +77,7 @@ script:
                 salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
 
                 salesTable.rows.add(null, [
-                   ["Frames", 5000, 7000, 6544, 4377],
+                    ["Frames", 5000, 7000, 6544, 4377],
                     ["Saddles", 400, 323, 276, 651],
                     ["Brake levers", 12000, 8766, 8456, 9812],
                     ["Chains", 1550, 1088, 692, 853],
@@ -95,7 +90,7 @@ script:
                     sheet.getUsedRange().format.autofitRows();
                 }
 
-               sheet.activate();
+                sheet.activate();
 
                 await context.sync();
             });
@@ -116,9 +111,9 @@ script:
 
     language: typescript
 template:
-    content: |+
+    content: |
         <section class="ms-font-m">
-            <p>This sample shows how to add event handlers for worksheet onChanged and onAdded events.</p>
+            <p>This sample shows how to add event handlers for worksheet onActivated and onDeactivated events.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -130,32 +125,23 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="register-on-changed-handler" class="ms-Button">
-                <span class="ms-Button-label">Register onChanged event handler</span>
+            <button id="register-on-activate-handler" class="ms-Button">
+                <span class="ms-Button-label">Register onActivated event handler</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
-            <p>Changing data in a worksheet triggers the data changed event. You can change the data manually or programmatically.</p>
-            <button id="data-changed" class="ms-Button">
-                <span class="ms-Button-label">Change data</span>
+            <button id="register-on-deactivate-handler" class="ms-Button">
+                <span class="ms-Button-label">Register onDeactivated event handler</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
-            <button id="register-on-add-handler" class="ms-Button">
-                <span class="ms-Button-label">Register onAdded event handler</span>
+            <p>Deleting the current worksheet triggers the deactivate event and the activate event for the preceding worksheet.</p>
+            <button id="delete-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Delete worksheet</span>
             </button>
         </section>
-
-        <section class="samples ms-font-m">
-                <p>Adding a worksheet triggers the on added event. You can add a worksheet manually or programmatically.</p>
-            <button id="add-worksheet" class="ms-Button">
-                <span class="ms-Button-label">Add worksheet</span>
-            </button>
-        </section>
-
-
     language: html
 style:
     content: |

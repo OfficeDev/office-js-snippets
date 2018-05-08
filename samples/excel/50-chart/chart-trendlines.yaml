@@ -1,28 +1,79 @@
-order: 3
-id: excel-chart-point
-name: Chart point
-description: Set chart point color.
+order: 14
+id: excel-chart-trendlines
+name: Chart trendlines
+description: 'Add, get, and format trendlines in a chart.'
 host: EXCEL
 api_set:
     ExcelAPI: 1.7
 script:
     content: |+
         $("#setup").click(() => tryCatch(setup));
-        $("#set-chart-point-color").click(() => tryCatch(setChartPointColor));
+        $("#add-trendline").click(() => tryCatch(addTrendline));
+        $("#get-trendline").click(() => tryCatch(getTrendline));
+        $("#get-trendline-color").click(() => tryCatch(getTrendlineColor));
+        $("#set-trendline-color").click(() => tryCatch(setTrendlineColor));
 
-        async function setChartPointColor() {
+        async function addTrendline() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Sample");
 
-                let pointsCollection = sheet.charts.getItemAt(0).series.getItemAt(0).points;
-                let point = pointsCollection.getItemAt(2);
+                let seriesCollection = sheet.charts.getItemAt(0).series;
 
-                // Set color for chart point.
-                point.format.fill.setSolidColor('red');
+                 // Add a trendline.  
+                seriesCollection.getItemAt(0).trendlines.add("Linear");
+
+                await context.sync();
+            });
+        }
+
+        async function getTrendline() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let seriesCollection = sheet.charts.getItemAt(0).series;
+
+                // Get the trendline for series 1 and load its type property.  
+                let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
+                trendline.load("type");
 
                 await context.sync();
 
-                OfficeHelpers.UI.notify("Successfully set chart point color to red (for the third item in series 1).");            
+                console.log("The trendline type is:" + trendline.type);  
+            });
+        }
+
+        async function getTrendlineColor() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let seriesCollection = sheet.charts.getItemAt(0).series; 
+
+                // Get the color of the chart trendline. 
+                // In this example, it's #4472c4 which is blue.
+                let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
+                let line = trendline.format.line;
+                line.load("color");
+
+                await context.sync();
+
+                console.log("The trendline color is:" + line.color);
+            });
+        }
+
+        async function setTrendlineColor() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let seriesCollection = sheet.charts.getItemAt(0).series; 
+                let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
+
+                // Set format of the trendline to a solid, red line.
+                let line = trendline.format.line;
+                line.color = '#FF0000';
+
+                await context.sync();
+
+                console.log("The trendline color has been set to:" + line.color);
             });
         }
 
@@ -56,7 +107,7 @@ script:
             });
         }
 
-        function createChart(context: Excel.RequestContext) {
+        async function createChart(context: Excel.RequestContext) {
             const sheet = context.workbook.worksheets.getItem("Sample");
             const salesTable = sheet.tables.getItem("SalesTable");
 
@@ -70,6 +121,9 @@ script:
             chart.legend.format.fill.setSolidColor("white");
             chart.dataLabels.format.font.size = 15;
             chart.dataLabels.format.font.color = "black";
+            let points = chart.series.getItemAt(0).points;
+            points.getItemAt(0).format.fill.setSolidColor("pink");
+            points.getItemAt(1).format.fill.setSolidColor("indigo");
         }
 
         /** Default helper for invoking an action and handling errors. */
@@ -87,9 +141,9 @@ script:
 
     language: typescript
 template:
-    content: |+
+    content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to set chart point color.</p>
+            <p>This sample shows how to add, get, and format trendlines in a chart.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -101,11 +155,27 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="set-chart-point-color" class="ms-Button">
-                <span class="ms-Button-label">Set chart point color</span>
+            <button id="add-trendline" class="ms-Button">
+                <span class="ms-Button-label">Add trendline</span>
             </button>
         </section>
 
+        <section class="samples ms-font-m">
+            <button id="get-trendline" class="ms-Button">
+                <span class="ms-Button-label">Get trendline</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="get-trendline-color" class="ms-Button">
+                <span class="ms-Button-label">Get trendline color</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <button id="set-trendline-color" class="ms-Button">
+                <span class="ms-Button-label">Set trendline color</span>
+            </button>
+        </section>
     language: html
 style:
     content: |

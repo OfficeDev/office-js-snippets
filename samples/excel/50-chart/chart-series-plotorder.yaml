@@ -1,37 +1,51 @@
-id: excel-chart-title-substring
-name: Chart - Title substring
-description: Get and set title substring for a chart.
+order: 12
+id: excel-chart-series-plotorder
+name: Chart - series plot order
+description: Order the plotting of series in a chart.
 host: EXCEL
 api_set:
-    ExcelApi: 1.7
+    ExcelAPI: 1.7
 script:
-    content: |+
+    content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#change-title-substring").click(() => tryCatch(changeTitleSubstring));
+        $("#order-series-plot").click(() => tryCatch(addSeries));
 
-        async function changeTitleSubstring() {
+        async function addSeries() {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets.getItem("Sample");
-                let chart = sheet.charts.getItemAt(0);
-             
-                // Get first seven characters of the title and highlight them to green.
-                let font = chart.title.getSubstring(0, 7).font;
-                font.color = "Green"; 
 
-                await context.sync();                
+                let seriesCollection = sheet.charts.getItemAt(0);
+                let rangeSelection = sheet.getRange("C2:C7");
+                let xRangeSelection = sheet.getRange("A1:A7");
+
+                // Add series.
+                let newSeries = seriesCollection.series.add("Qtr2");
+                newSeries.setValues(rangeSelection);
+                newSeries.setXAxisValues(xRangeSelection);
+                let newSeries2 = seriesCollection.series.add("Qtr3");
+                newSeries2.setValues(rangeSelection);
+                newSeries2.setXAxisValues(xRangeSelection);
+
+                // Order the plotting of the series.
+                // In this case, Qtr 3 appears first,
+                // followed by Qtr 2, then Qtr 1.
+                newSeries2.plotOrder = 0;
+                newSeries.plotOrder = 1;
+
+                await context.sync();
             });
         }
 
         async function setup() {
             await Excel.run(async (context) => {
-                const sheet = await OfficeHelpers.ExcelUtilities
+                let sheet = await OfficeHelpers.ExcelUtilities
                     .forceCreateSheet(context.workbook, "Sample");
-                let expensesTable = sheet.tables.add('A1:E1', true);
-                expensesTable.name = "SalesTable";
+                let salesTable = sheet.tables.add('A1:E1', true);
+                salesTable.name = "SalesTable";
 
-                expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+                salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
 
-                expensesTable.rows.add(null, [
+                salesTable.rows.add(null, [
                     ["Frames", 5000, 7000, 6544, 4377],
                     ["Saddles", 400, 323, 276, 651],
                     ["Brake levers", 12000, 8766, 8456, 9812],
@@ -52,14 +66,15 @@ script:
             });
         }
 
-        function createChart(context: Excel.RequestContext) {
-            let sheet = context.workbook.worksheets.getItem("Sample");
+        async function createChart(context: Excel.RequestContext) {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const salesTable = sheet.tables.getItem("SalesTable");
 
-            let dataRange = sheet.getRange("A3:E7");
-            let chart = sheet.charts.add("columnStacked", dataRange, "auto");
-            chart.title.text = "Bicycle parts sales";
-            chart.setPosition("A10", "H33");
-            chart.legend.position = "right";
+            let dataRange = sheet.getRange("A1:B7");
+            let chart = sheet.charts.add("ColumnClustered", dataRange, "auto");
+
+            chart.setPosition("A15", "E30");
+            chart.legend.position = "right"
             chart.legend.format.fill.setSolidColor("white");
             chart.dataLabels.format.font.size = 15;
             chart.dataLabels.format.font.color = "black";
@@ -75,12 +90,11 @@ script:
                 OfficeHelpers.Utilities.log(error);
             }
         }
-
     language: typescript
 template:
-    content: |+
+    content: |
         <section class="ms-font-m">
-            <p>This sample shows how to get and set title substring for a chart.</p>
+            <p>This sample shows how to change the plot order of series in a chart.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -92,11 +106,10 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="change-title-substring" class="ms-Button">
-                <span class="ms-Button-label">Change title substring</span>
+            <button id="order-series-plot" class="ms-Button">
+                <span class="ms-Button-label">Order series plot</span>
             </button>
         </section>
-
     language: html
 style:
     content: |

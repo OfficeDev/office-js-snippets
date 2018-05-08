@@ -1,79 +1,65 @@
-order: 6
-id: excel-chart-trendlines
-name: Chart trendlines
-description: 'Add, get, and format trendlines in a chart.'
+order: 9
+id: excel-chart-series
+name: Chart series
+description: 'Add, set, and delete a series in a chart.'
 host: EXCEL
 api_set:
     ExcelAPI: 1.7
 script:
-    content: |+
+    content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#add-trendline").click(() => tryCatch(addTrendline));
-        $("#get-trendline").click(() => tryCatch(getTrendline));
-        $("#get-trendline-color").click(() => tryCatch(getTrendlineColor));
-        $("#set-trendline-color").click(() => tryCatch(setTrendlineColor));
+        $("#add-series").click(() => tryCatch(addSeries));
+        $("#delete-series").click(() => tryCatch(deleteSeries));
+        $("#set-series-value").click(() => tryCatch(setSeriesValue));
 
-        async function addTrendline() {
+        async function addSeries() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let seriesCollection = sheet.charts.getItemAt(0);
+                let rangeSelection = sheet.getRange("C2:C7");
+                let xRangeSelection = sheet.getRange("A1:A7");
+
+                // Add a series.
+                let newSeries = seriesCollection.series.add("Qtr2");
+                newSeries.setValues(rangeSelection);
+                newSeries.setXAxisValues(xRangeSelection);
+
+                await context.sync();
+            });
+        }
+
+        async function deleteSeries() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let seriesCollection = sheet.charts.getItemAt(0).series;
+                let series = seriesCollection.getItemAt(0);
+
+                // Delete the first series.
+                series.delete();
+
+                await context.sync();
+            });
+        }
+
+        async function setSeriesValue() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Sample");
 
                 let seriesCollection = sheet.charts.getItemAt(0).series;
 
-                 // Add a trendline.  
-                seriesCollection.getItemAt(0).trendlines.add("Linear");
+                // Add new series.
+                let series = seriesCollection.add("New Product");
+                let values = sheet.getRange("E2:E7");
 
-                await context.sync();
-            });
-        }
-
-        async function getTrendline() {
-            await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Sample");
-
-                let seriesCollection = sheet.charts.getItemAt(0).series;
-
-                // Get the trendline for series 1 and load its type property.  
-                let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
-                trendline.load("type");
+                // Set the vertical values for the series.
+                series.setValues(values);
+                seriesCollection.load("count");
 
                 await context.sync();
 
-                console.log("The trendline type is:" + trendline.type);  
-            });
-        }
-
-        async function getTrendlineColor() {
-            await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Sample");
-
-                let seriesCollection = sheet.charts.getItemAt(0).series; 
-
-                // Get the color of the chart trendline. 
-                // In this example, it's #4472c4 which is blue.
-                let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
-                let line = trendline.format.line;
-                line.load("color");
-
-                await context.sync();
-
-                console.log("The trendline color is:" + line.color);
-            });
-        }
-
-        async function setTrendlineColor() {
-            await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Sample");
-
-                let seriesCollection = sheet.charts.getItemAt(0).series; 
-                let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
-
-                // Set format of the trendline to a solid, red line.
-                let line = trendline.format.line;
-                line.color = '#FF0000';
-
-                await context.sync();
-
-                console.log("The trendline color has been set to:" + line.color);
+                OfficeHelpers.UI.notify("Number of series  = " + seriesCollection.count);
             });
         }
 
@@ -100,30 +86,25 @@ script:
                     sheet.getUsedRange().format.autofitRows();
                 }
 
-                createChart(context);
+                createLineChart(context);
                 sheet.activate();
 
                 await context.sync();
             });
         }
 
-        async function createChart(context: Excel.RequestContext) {
+        async function createLineChart(context: Excel.RequestContext) {
             const sheet = context.workbook.worksheets.getItem("Sample");
             const salesTable = sheet.tables.getItem("SalesTable");
 
-            const dataRange = salesTable.getDataBodyRange();
+            let dataRange = sheet.getRange("A1:B7");
+            let chart = sheet.charts.add("Line", dataRange, "Auto");
 
-            let chart = sheet.charts.add("ColumnClustered", dataRange, Excel.ChartSeriesBy.columns);
-
-            chart.setPosition("A15", "F30");
-            chart.title.text = "Quarterly sales chart";
+            chart.setPosition("A15", "E30");
             chart.legend.position = "Right"
             chart.legend.format.fill.setSolidColor("white");
             chart.dataLabels.format.font.size = 15;
             chart.dataLabels.format.font.color = "black";
-            let points = chart.series.getItemAt(0).points;
-            points.getItemAt(0).format.fill.setSolidColor("pink");
-            points.getItemAt(1).format.fill.setSolidColor("indigo");
         }
 
         /** Default helper for invoking an action and handling errors. */
@@ -136,14 +117,11 @@ script:
                 OfficeHelpers.Utilities.log(error);
             }
         }
-
-
-
     language: typescript
 template:
-    content: |-
+    content: |
         <section class="ms-font-m">
-            <p>This sample shows how to add, get, and format trendlines in a chart.</p>
+            <p>This sample shows how to add, set, and delete a series in a chart.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -155,25 +133,20 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="add-trendline" class="ms-Button">
-                <span class="ms-Button-label">Add trendline</span>
+            <button id="add-series" class="ms-Button">
+                <span class="ms-Button-label">Add series</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
-            <button id="get-trendline" class="ms-Button">
-                <span class="ms-Button-label">Get trendline</span>
+            <button id="delete-series" class="ms-Button">
+                <span class="ms-Button-label">Delete series</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
-            <button id="get-trendline-color" class="ms-Button">
-                <span class="ms-Button-label">Get trendline color</span>
-            </button>
-        </section>
-        <section class="samples ms-font-m">
-            <button id="set-trendline-color" class="ms-Button">
-                <span class="ms-Button-label">Set trendline color</span>
+            <button id="set-series-value" class="ms-Button">
+                <span class="ms-Button-label">Set series value</span>
             </button>
         </section>
     language: html

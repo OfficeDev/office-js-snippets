@@ -11,7 +11,7 @@ script:
         $("#wheel").click(wheelGo);
         $("#stop").click(wheelStop);
 
-        let stop: boolean
+        let isStopped: boolean
 
         const pauseLength = 50;
         const numberOfSlices = 32;
@@ -19,7 +19,7 @@ script:
         async function wheelGo() {
             try {
                 Excel.run(async (context) => {
-                    stop = false
+                    isStopped = false;
 
                     // Create a hidden sheet which will contain data for the color wheel chart:
                     const sheetSettings = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Color Wheel Settings", true /*clearOnly*/);
@@ -60,7 +60,7 @@ script:
                     await pause(700);
 
                     // Draw pretty colors, ad infinitum
-                    while (!stop) {
+                    while (!isStopped) {
                         const colorMultiplier = 256 / numberOfSlices;
                         await loopThroughColors(points, numberOfSlices * 2, i =>
                             rgb(255, colorMultiplier / 2 * i, 0)); /* red to orange to yellow*/
@@ -85,7 +85,7 @@ script:
 
         async function loopThroughColors(points: Excel.ChartPointsCollection, max, colorGenerator: (i: number) => string) {
             for (var i = 0; i < max; i++) {
-                if (stop) {
+                if (isStopped) {
                     return;
                 }
                 var X = i % numberOfSlices;
@@ -97,7 +97,7 @@ script:
         }
 
         function wheelStop() {
-            stop = true
+            isStopped = true;
         }
 
         function pause(milliseconds) {

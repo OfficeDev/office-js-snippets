@@ -1,7 +1,7 @@
-order: 11
-id: excel-events-worksheet-changed
-name: Events - Worksheet changed
-description: Add event handlers for worksheet onChanged and onAdded events
+order: 4
+id: excel-events-table-changed
+name: Events - Table changed
+description: Add event handlers for table onChanged and onSelectionChanged events
 host: EXCEL
 api_set:
     ExcelApi: 1.7
@@ -9,66 +9,66 @@ script:
     content: |+
         $("#setup").click(() => tryCatch(setup));
         $("#register-on-changed-handler").click(() => tryCatch(registerOnChangedHandler));
-        $("#data-changed").click(() => tryCatch(changeData));
-        $("#register-on-add-handler").click(() => tryCatch(registerOnAddHandler));
-        $("#add-worksheet").click(() => tryCatch(addWorksheet));
+        $("#change-data").click(() => tryCatch(changeData));
+        $("#register-on-selection-changed-handler").click(() => tryCatch(registerOnSelectionChangedHandler));
+        $("#change-selection").click(() => tryCatch(changeSelection));
 
         async function registerOnChangedHandler() {
             await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.getItem("Sample");
-                sheet.onChanged.add(onChange);
+                let table = context.workbook.tables.getItemAt(0);
+                table.onChanged.add(onChange);
 
                 await context.sync();
 
-                OfficeHelpers.UI.notify("A handler has been registered for the onChanged event.");
+                OfficeHelpers.UI.notify("A handler has been registered for the onChanged event",
+                    "Try changing a cell value in the table, and watch the console output.");
             });
         }
 
         async function changeData() {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets.getItem("Sample");
-                let range = sheet.getRange("B5");
-                range.values = [[800]];
+                let range = sheet.getRange("B7");
+                range.values = [[900]];
                 range.format.autofitColumns();
 
                 await context.sync();
 
-                console.log("B5 value has been changed.");
+                console.log("B7 value has been changed.");
             });
         }
 
         async function onChange(event) {
             await Excel.run(async (context) => {
-                console.log("Handler for worksheet onChanged event has been triggered.  Data changed address : " + event.address);
+                console.log("Handler for table onChanged event has been triggered.  Data changed address : " + event.address);
             });
         }
 
-        async function registerOnAddHandler() {
+        async function registerOnSelectionChangedHandler() {
             await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets;
-                sheet.onAdded.add(onWorksheetAdd);
+                let table = context.workbook.tables.getItemAt(0);
+                table.onSelectionChanged.add(onSelectionChange);
 
                 await context.sync();
 
-                OfficeHelpers.UI.notify("A handler has been registered for the OnAdded event",
-                    "Try adding a worksheet, and watch the console output.");
+                OfficeHelpers.UI.notify("A handler has been registered for table onSelectionChanged event",
+                    "Try changing a range selection in the table, and watch the console output.");
             });
         }
 
-        async function addWorksheet() {
+        async function changeSelection() {
             await Excel.run(async (context) => {
-                let sheet = context.workbook.worksheets.add();
-                sheet.load("name, position");
+                let sheet = context.workbook.worksheets.getActiveWorksheet();
+                let range = sheet.getRange("B3:C3");
+                range.select();
 
                 await context.sync();
-
-                console.log(`Added worksheet named "${sheet.name}" in position ${sheet.position}`);
             });
         }
 
-        async function onWorksheetAdd(event) {
+        async function onSelectionChange(args) {
             await Excel.run(async (context) => {
-                console.log("Handler for worksheet onAdded event has been triggered.  Newly added worksheet Id : " + event.worksheetId);
+                console.log("Handler for table onSelectionChanged event has been triggered.  The new selection is : " + args.address);
             });
         }
 
@@ -118,7 +118,7 @@ script:
 template:
     content: |+
         <section class="ms-font-m">
-            <p>This sample shows how to add event handlers for worksheet onChanged and onAdded events.</p>
+            <p>This sample shows how to add event handlers for table onChanged and onSelectionChanged events.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -136,22 +136,22 @@ template:
         </section>
 
         <section class="samples ms-font-m">
-            <p>Changing data in a worksheet triggers the data changed event. You can change the data manually or programmatically.</p>
-            <button id="data-changed" class="ms-Button">
+            <p>Changing data in a table triggers the data changed event. You can change the data manually or programmatically.</p>
+            <button id="change-data" class="ms-Button">
                 <span class="ms-Button-label">Change data</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
-            <button id="register-on-add-handler" class="ms-Button">
-                <span class="ms-Button-label">Register onAdded event handler</span>
+            <button id="register-on-selection-changed-handler" class="ms-Button">
+                <span class="ms-Button-label">Register onSelectionChanged event handler</span>
             </button>
         </section>
 
         <section class="samples ms-font-m">
-                <p>Adding a worksheet triggers the on added event. You can add a worksheet manually or programmatically.</p>
-            <button id="add-worksheet" class="ms-Button">
-                <span class="ms-Button-label">Add worksheet</span>
+                <p>Changing a range selection in a table triggers the table onSelectionChanged event. You can change selection manually or programmatically.</p>
+            <button id="change-selection" class="ms-Button">
+                <span class="ms-Button-label">Change range selection</span>
             </button>
         </section>
 
@@ -171,8 +171,8 @@ style:
         }
     language: css
 libraries: |
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
 
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css

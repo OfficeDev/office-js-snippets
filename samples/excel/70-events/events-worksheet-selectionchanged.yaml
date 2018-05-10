@@ -1,38 +1,55 @@
-id: excel-chart-title-substring
-name: Chart - Title substring
-description: Get and set title substring for a chart.
+order: 8
+id: excel-events-worksheet-selectionchanged
+name: Events - Worksheet onSelectionChanged
+description: Add an event handler for the worksheet onSelectionChanged event
 host: EXCEL
 api_set:
     ExcelApi: 1.7
 script:
     content: |+
         $("#setup").click(() => tryCatch(setup));
-        $("#change-title-substring").click(() => tryCatch(changeTitleSubstring));
+        $("#register-on-selection-changed-handler").click(() => tryCatch(registerSelectionChangedHandler));
+        $("#select-range").click(() => tryCatch(selectRange));
 
-        async function changeTitleSubstring() {
+        async function registerSelectionChangedHandler() {
+            await Excel.run(async (context) => {
+
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.onSelectionChanged.add(onSelectionChange);
+
+                await context.sync();
+
+                console.log("Added worksheet selection changed event handler.");
+            });
+        }
+
+        async function selectRange() {
             await Excel.run(async (context) => {
                 let sheet = context.workbook.worksheets.getItem("Sample");
-                let chart = sheet.charts.getItemAt(0);
-             
-                // Get first seven characters of the title and highlight them to green.
-                let font = chart.title.getSubstring(0, 7).font;
-                font.color = "Green"; 
+                let range = sheet.getRange("B7:C7");
+                range.select();
 
-                await context.sync();                
+                await context.sync();
+            });
+        }
+          
+        async function onSelectionChange(event) {
+            await Excel.run(async (context) => {
+                console.log("The selected range has changed to: " + event.address);
             });
         }
 
         async function setup() {
             await Excel.run(async (context) => {
-                const sheet = await OfficeHelpers.ExcelUtilities
+                let sheet = await OfficeHelpers.ExcelUtilities
                     .forceCreateSheet(context.workbook, "Sample");
-                let expensesTable = sheet.tables.add('A1:E1', true);
-                expensesTable.name = "SalesTable";
+                let salesTable = sheet.tables.add('A1:E1', true);
+                salesTable.name = "SalesTable";
 
-                expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+                salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
 
-                expensesTable.rows.add(null, [
-                    ["Frames", 5000, 7000, 6544, 4377],
+                salesTable.rows.add(null, [
+                   ["Frames", 5000, 7000, 6544, 4377],
                     ["Saddles", 400, 323, 276, 651],
                     ["Brake levers", 12000, 8766, 8456, 9812],
                     ["Chains", 1550, 1088, 692, 853],
@@ -43,26 +60,12 @@ script:
                 if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
                     sheet.getUsedRange().format.autofitColumns();
                     sheet.getUsedRange().format.autofitRows();
-                }
+               }
 
-                createChart(context);
                 sheet.activate();
 
                 await context.sync();
             });
-        }
-
-        function createChart(context: Excel.RequestContext) {
-            let sheet = context.workbook.worksheets.getItem("Sample");
-
-            let dataRange = sheet.getRange("A3:E7");
-            let chart = sheet.charts.add("ColumnStacked", dataRange, "Auto");
-            chart.title.text = "Bicycle parts sales";
-            chart.setPosition("A10", "H33");
-            chart.legend.position = "Right";
-            chart.legend.format.fill.setSolidColor("white");
-            chart.dataLabels.format.font.size = 15;
-            chart.dataLabels.format.font.color = "black";
         }
 
         /** Default helper for invoking an action and handling errors. */
@@ -76,11 +79,13 @@ script:
             }
         }
 
+
+
     language: typescript
 template:
     content: |+
         <section class="ms-font-m">
-            <p>This sample shows how to get and set title substring for a chart.</p>
+            <p>This sample shows how to add an event handler for the worksheet onSelectionChanged event.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -90,10 +95,18 @@ template:
             </button>
         </section>
 
+
         <section class="samples ms-font-m">
-            <h3>Try it out</h3>
-            <button id="change-title-substring" class="ms-Button">
-                <span class="ms-Button-label">Change title substring</span>
+            <p>Press the button and select a range manually. Watch the console. Next press the second button to select a range programmatically.</p>
+            <button id="register-on-selection-changed-handler" class="ms-Button">
+                <span class="ms-Button-label">Register onSelectionChanged handler</span>
+            </button>
+        </section>
+
+
+        <section class="samples ms-font-m">
+            <button id="select-range" class="ms-Button">
+                <span class="ms-Button-label">Select range</span>
             </button>
         </section>
 
@@ -112,8 +125,8 @@ style:
         }
     language: css
 libraries: |
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
 
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css

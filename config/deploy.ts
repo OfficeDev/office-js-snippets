@@ -33,10 +33,10 @@ const environmentVariables: IEnvironmentVariables = process.env;
             shell.exec('git reset');
 
             execCommand('git add -f samples private-samples playlists view snippet-extractor-output README.md');
-            execCommand(`git commit -m "Travis auto-deploy of ${environmentVariables.TRAVIS_COMMIT_MESSAGE.replace(/\W/g, '_')}"`);
+            execCommand(`git commit -m "Travis auto-deploy of ${environmentVariables.TRAVIS_COMMIT_MESSAGE.replace(/\W/g, '_')} [skip ci]"`);
 
             const tokenizedGitHubGitUrl = `https://<<<token>>>@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`;
-            execCommand(`git push ${tokenizedGitHubGitUrl} -q -f -u HEAD:refs/heads/${destinationBranch}`, {
+            execCommand(`git push ${tokenizedGitHubGitUrl} -u HEAD:refs/heads/${destinationBranch}`, {
                 token: environmentVariables.GH_TOKEN
             });
 

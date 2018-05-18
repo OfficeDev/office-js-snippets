@@ -33,10 +33,10 @@ const environmentVariables: IEnvironmentVariables = process.env;
             shell.exec('git reset');
 
             execCommand('git add -f samples private-samples playlists view snippet-extractor-output README.md');
-            execCommand(`git commit -m "Travis auto-deploy of ${environmentVariables.TRAVIS_COMMIT_MESSAGE.replace(/\W/g, '_')}"`);
+            execCommand(`git commit -m "Travis auto-deploy of ${environmentVariables.TRAVIS_COMMIT_MESSAGE.replace(/\W/g, '_')} [skip ci]"`);
 
             const tokenizedGitHubGitUrl = `https://<<<token>>>@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`;
-            execCommand(`git push ${tokenizedGitHubGitUrl} -q -f -u HEAD:refs/heads/${destinationBranch}`, {
+            execCommand(`git push ${tokenizedGitHubGitUrl} -f -u HEAD:refs/heads/${destinationBranch}`, {
                 token: environmentVariables.GH_TOKEN
             });
 
@@ -49,10 +49,9 @@ const environmentVariables: IEnvironmentVariables = process.env;
         banner('An error has occurred', error.message || error, chalk.bold.red);
         banner('DEPLOYMENT DID NOT GET TRIGGERED', error.message || error, chalk.bold.red);
 
-        // Note: Don't exit the process with "process.exit(1);", since deployment
-        // failure does not imply dev failure, so don't want to "break the build".
-        // But do want to make it very obvious that deployment went wrong when
-        // looking at the logs.
+        // Even though deployment failure does not imply dev failure, we want to break the build
+        // to make it obvious that the deployment went wrong
+        process.exit(1);
     }
 
     process.exit(0);

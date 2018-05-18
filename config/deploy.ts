@@ -49,10 +49,9 @@ const environmentVariables: IEnvironmentVariables = process.env;
         banner('An error has occurred', error.message || error, chalk.bold.red);
         banner('DEPLOYMENT DID NOT GET TRIGGERED', error.message || error, chalk.bold.red);
 
-        // Note: Don't exit the process with "process.exit(1);", since deployment
-        // failure does not imply dev failure, so don't want to "break the build".
-        // But do want to make it very obvious that deployment went wrong when
-        // looking at the logs.
+        // Even though deployment failure does not imply dev failure, we want to break the build
+        // to make it obvious that the deployment went wrong
+        process.exit(1);
     }
 
     process.exit(0);

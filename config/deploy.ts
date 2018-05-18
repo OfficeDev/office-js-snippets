@@ -36,7 +36,7 @@ const environmentVariables: IEnvironmentVariables = process.env;
             execCommand(`git commit -m "Travis auto-deploy of ${environmentVariables.TRAVIS_COMMIT_MESSAGE.replace(/\W/g, '_')} [skip ci]"`);
 
             const tokenizedGitHubGitUrl = `https://<<<token>>>@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`;
-            execCommand(`git push ${tokenizedGitHubGitUrl} -u HEAD:refs/heads/${destinationBranch}`, {
+            execCommand(`git push ${tokenizedGitHubGitUrl} -f -u HEAD:refs/heads/${destinationBranch}`, {
                 token: environmentVariables.GH_TOKEN
             });
 

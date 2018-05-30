@@ -1,0 +1,158 @@
+id: excel-events-chartcollection-added-activated
+name: Events - ChartCollection
+description: 'Shows how to handle the ChartCollection onActivated, onDeactivated, onAdded, and onDeleted events.'
+host: EXCEL
+api_set:
+    ExcelApi: 1.8
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#register-chartcollection-handlers").click(() => tryCatch(registerChartCollectionHandlers));
+        $("#add-chart").click(() => tryCatch(createPieChart));
+
+        async function registerChartCollectionHandlers() {
+            await Excel.run(async (context) => {
+
+                context.workbook.worksheets.getActiveWorksheet().charts.onAdded.add(chartAdded);
+                context.workbook.worksheets.getActiveWorksheet().charts.onActivated.add(chartActivated);
+                context.workbook.worksheets.getActiveWorksheet().charts.onDeactivated.add(chartDeactivated);
+                context.workbook.worksheets.getActiveWorksheet().charts.onDeleted.add(chartDeleted);
+              
+                await context.sync();
+
+                console.log("Added handlers for ChartCollection onActivated,onAdded, onDeleted, and onDeactivated events.");
+            });
+        }
+
+        async function chartAdded(event) {
+            await Excel.run(async (context) => {
+                console.log("A chart has been added with ID: " + event.chartId);
+            });
+        }
+
+        async function chartActivated(event) {
+            await Excel.run(async (context) => {
+                console.log("The ID of the active chart is: " + event.chartId);
+            });
+        }
+
+        async function chartDeactivated(event) {
+            await Excel.run(async (context) => {
+                console.log("The chart with this ID was deactivated: " + event.chartId);
+            });
+        }
+
+        async function chartDeleted(event) {
+            await Excel.run(async (context) => {
+                console.log("The chart with this ID was deleted: " + event.chartId);
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let expensesTable = sheet.tables.add('A1:E1', true);
+                expensesTable.name = "SalesTable";
+
+                expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                expensesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        async function createPieChart() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const salesTable = sheet.tables.getItem("SalesTable");
+                const dataRange = salesTable.getDataBodyRange();
+
+                let chart = sheet.charts.add("Pie", dataRange, "Auto");
+
+                chart.name = "Pie";
+                chart.setPosition("A10", "F25");
+                chart.title.text = "1st Quarter sales chart";
+                chart.legend.position = "Bottom"
+                chart.legend.format.fill.setSolidColor("white");
+                chart.dataLabels.format.font.size = 15;
+                chart.dataLabels.format.font.color = "black";
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create handlers for the ChartCollection onAdded, onDeleted, onActivated, and onDeactivated events.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Click the button to register handlers for the worksheet's ChartCollection events. </p>
+            <button id="register-chartcollection-handlers" class="ms-Button">
+                <span class="ms-Button-label">Register ChartCollection handlers</span>
+            </button>
+            <p>Click the second button to programmatically add a chart and see the onAdded event fire. Watch the console.</p>
+            <button id="add-chart" class="ms-Button">
+                <span class="ms-Button-label">Add chart</span>
+            </button>
+            <p>Manually add another chart. You can use the same the table as a source. Watch the console.</p>
+            <p>Select one of the charts to see the onActivated event fire. Then select the other chart to see the onDeactivated event fire on one chart and onActivated for the other.</p>
+            <p>Delete one of the charts to see the onDeleted event fire.</p>
+        </section>
+    language: html
+style:
+    content: |
+        /* Your style goes here */
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

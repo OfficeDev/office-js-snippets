@@ -10,12 +10,12 @@ script:
         $("#setup").click(() => tryCatch(setup));
         $("#deletePivot").click(() => tryCatch(deletePivot));
         $("#filter").click(() => tryCatch(filter));
+        $("#getCrateTotal").click(() => tryCatch(getCrateTotal));
         $("#minFunc").click(() => tryCatch(minFunc));
         $("#maxFunc").click(() => tryCatch(maxFunc));
         $("#countFunc").click(() => tryCatch(countFunc));
         $("#avgFunc").click(() => tryCatch(avgFunc));
         $("#sumFunc").click(() => tryCatch(sumFunc));
-        $("#test").click(() => tryCatch(test));
 
         async function filter(functionType: Excel.AggregationFunction) {
             await Excel.run(async (context) => {
@@ -55,6 +55,22 @@ script:
 
                 pivotTable.dataHierarchies.items[0].summarizeBy = functionType;
                 pivotTable.dataHierarchies.items[1].summarizeBy = functionType;
+                await context.sync();
+            });
+        }
+
+        async function getCrateTotal() {
+            await Excel.run(async (context) => {
+                let pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                pivotTable.layout.load();
+                let range = pivotTable.layout.getDataBodyRange();
+                range.load();
+                let grandTotalRange = range.getLastRow();
+                grandTotalRange.load();
+                await context.sync();
+                
+                let masterTotalRange = context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27");
+                masterTotalRange.formulas = [["All Crates", "=SUM(" + grandTotalRange.address + ")"]];
                 await context.sync();
             });
         }
@@ -108,7 +124,7 @@ script:
         async function deletePivot() {
             await Excel.run(async (context) => {
                 context.workbook.worksheets.getItem("Pivot").pivotTables.getItem("Farm Sales").delete();
-
+                context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27").delete(Excel.DeleteShiftDirection.up);
                 await context.sync();
             });
         }
@@ -123,12 +139,12 @@ script:
                 OfficeHelpers.UI.notify(error);
                 OfficeHelpers.Utilities.log(error);
             }
-        }
+        }        
     language: typescript
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to creatre pivot tables and show their hierarchy.</p>
+            <p>This sample shows how to filter pivot tables and manipulate their data.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -142,16 +158,16 @@ template:
             <h3>Change functions</h3>
             <button id="minFunc" class="ms-Button">
                 <span class="ms-Button-label">Switch to minimums</span>
-            </button><br>
+            </button><p />
             <button id="maxFunc" class="ms-Button">
                 <span class="ms-Button-label">Switch to maximums</span>
-            </button><br>
+            </button><p />
             <button id="countFunc" class="ms-Button">
                 <span class="ms-Button-label">Switch to counts</span>
-            </button><br>
+            </button><p />
             <button id="avgFunc" class="ms-Button">
                 <span class="ms-Button-label">Switch to averages</span>
-            </button><br>
+            </button><p />
             <button id="sumFunc" class="ms-Button">
                 <span class="ms-Button-label">Switch to sums</span>
             </button>
@@ -161,21 +177,20 @@ template:
             <h3>Filtering</h3>
             <button id="filter" class="ms-Button">
                 <span class="ms-Button-label">Enable filter</span>
-            </button><br>
+            </button><p />
             <span>After pressing the "Enable filter" button, manually select the classification filter for the pivot table</span>
+
+        <section class="setup ms-font-m">
+            <h3>Data Manipulation</h3>
+            <button id="getCrateTotal" class="ms-Button">
+                <span class="ms-Button-label">Get or refresh crate total</span>
+            </button>
+        </section>
 
         <section class="setup ms-font-m">
             <h3>Clean up</h3>
             <button id="deletePivot" class="ms-Button">
-                <span class="ms-Button-label">Delete Pivot</span>
-            </button>
-        </section>
-
-
-        <section class="setup ms-font-m">
-            <h3>Test</h3>
-            <button id="test" class="ms-Button">
-                <span class="ms-Button-label">Test</span>
+                <span class="ms-Button-label">Delete pivot</span>
             </button>
         </section>
     language: html

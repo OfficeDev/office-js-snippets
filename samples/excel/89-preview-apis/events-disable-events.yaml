@@ -28,7 +28,7 @@ script:
 
         async function registerSumChangedHandlers() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const sheet = context.workbook.worksheets.getItem("Sample");
                 const sumRange = sheet.getRange("B20:P20");
                 sumRange.load("columnCount");
                 await context.sync();
@@ -43,31 +43,34 @@ script:
 
         async function onSumChanged(eventArgs: Excel.BindingDataChangedEventArgs) {
             await Excel.run(async (context) => {
-                // Log the address of the sum that changed
-                const range = context.workbook.bindings.getItem(eventArgs.binding.id).getRange();
-                const currentDate = new Date();
-                const cell = range.getCell(1, 0);
-                cell.formulas = [["=TIME(" + currentDate.getHours() + "," + currentDate.getMinutes() + "," + currentDate.getSeconds() + ")"]];
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const cell = sheet.getRange("P21");
+                let x = context.workbook.functions.sum(sheet.getRange("B20:P20"));
+                x.load("value");
+                await context.sync();
+                cell.values = [[x.value]];
                 await context.sync();
             });
         }
 
         async function setup() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
                 let infoRange = sheet.getRange("A20:A21");
-                infoRange.values = [["Sums"], ["Last updated"]]
+                infoRange.values = [["Sums"], ["Grand Total"]]
                 infoRange.format.autofitColumns();
                 infoRange.format.font.bold = true;
                 addOrRefreshData();
                 addSumRow();
+                sheet.activate();
                 await context.sync();
             });
         }
 
         async function addOrRefreshData() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const sheet = context.workbook.worksheets.getItem("Sample");
                 const dataRange = sheet.getRange("B1:P19");
                 dataRange.load(["rowCount", "columnCount"]);
                 await context.sync();
@@ -85,7 +88,7 @@ script:
 
         async function addSumRow() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const sheet = context.workbook.worksheets.getItem("Sample");
                 const dataRange = sheet.getRange("B1:P19");
                 dataRange.load("rowCount");
 
@@ -123,7 +126,7 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to turn on and off events.</p>
+            <p>This sample shows how to turn events on and off.</p>
         </section>
         <section class="setup ms-font-m">
             <h3>Setup</h3>

@@ -15,6 +15,8 @@ script:
             await Excel.run(async (context) => {
                 context.runtime.load("enableEvents");
                 await context.sync();
+
+                // check if events are enabled and toggle accordingly
                 const eventBoolean = !context.runtime.enableEvents
                 context.runtime.enableEvents = eventBoolean;
                 if (eventBoolean) {
@@ -33,6 +35,7 @@ script:
                 sumRange.load("columnCount");
                 await context.sync();
 
+                // add an event handler to each cell in the sum range
                 for (var i = 0; i < sumRange.columnCount; i++) {
                     let sumBinding = context.workbook.bindings.add(sumRange.getCell(0,i), Excel.BindingType.range, "SumBinding" + i);
                     sumBinding.onDataChanged.add(onSumChanged);
@@ -45,9 +48,14 @@ script:
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Sample");
                 const cell = sheet.getRange("P21");
+                 
+                // get the grand total of the whole sum range
+                // note that we are using having this program perform the sum instead of giving the Excel cell a function,
+                // this gives us updating control
                 let x = context.workbook.functions.sum(sheet.getRange("B20:P20"));
                 x.load("value");
                 await context.sync();
+
                 cell.values = [[x.value]];
                 await context.sync();
             });

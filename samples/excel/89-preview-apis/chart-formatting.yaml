@@ -1,0 +1,310 @@
+id: excel-chart-formatting
+name: Chart - Formatting
+description: Format labels and lines of a slope chart.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.8
+script:
+    content: |
+        $("#addSampleData").click(() => tryCatch(addSampleData));
+        $("#create-chart").click(() => tryCatch(createChart));
+        $("#format-chart").click(() => tryCatch(formatChart));
+        $("#show-datalabels").click(() => tryCatch(dataLabels));
+        $("#change-color").click(() => tryCatch(changeColor));
+        $("#clear").click(() => tryCatch(clearChart));
+
+        async function createChart() {
+            await Excel.run(async (context) => {
+                const worksheet = context.workbook.worksheets.getActiveWorksheet();
+                const chart = worksheet.charts.add(Excel.ChartType.lineMarkers, worksheet.getRange("B6:G15"), Excel.ChartSeriesBy.rows);
+                chart.axes.categoryAxis.setCategoryNames(worksheet.getRange("C5:G5"));
+                chart.name = "SlopeChart";
+
+                // place chart below sample data
+                chart.top = 275;
+                chart.left = 50;
+                chart.height = 600;
+                chart.width = 850;
+                
+                chart.title.text = "GDP Per Capita , 1980 to 2017";
+                chart.legend.position = "Bottom";
+
+                await context.sync();
+            });
+        }
+
+        async function formatChart() {
+            await Excel.run(async (context) => {
+                const worksheet = context.workbook.worksheets.getActiveWorksheet();
+                const chart = worksheet.charts.getItem("SlopeChart");
+
+                chart.axes.valueAxis.tickLabelPosition = "None";
+                chart.plotArea.width = 800;
+                chart.plotArea.left = 80;
+
+                chart.title.format.font.size = 14.4;
+                chart.title.text = "GDP PER CAPITA , 1980 TO 2017"
+                chart.title.format.font.name = "Times New Roman";
+                chart.title.format.font.color = "#D9D9D9";
+
+                chart.legend.format.font.name = "Times New Roman";
+                chart.legend.format.font.color = "#D9D9D9";
+
+                chart.axes.categoryAxis.format.font.name = "Times New Roman";
+                chart.axes.categoryAxis.format.font.color = "#D9D9D9";
+                chart.axes.valueAxis.majorGridlines.format.line.color = "#585858";
+                chart.format.fill.setSolidColor("#404040");
+                await context.sync();
+            });
+        }
+
+        async function dataLabels() {
+            await Excel.run(async (context) => {
+                const worksheet = context.workbook.worksheets.getActiveWorksheet();
+                const chart = worksheet.charts.getItem("SlopeChart");
+                chart.series.load("count");
+                await context.sync();
+                var pointsLoaded = -1;
+                for (var i = 0; i < chart.series.count; i++){
+                    const series = chart.series.getItemAt(i);
+                    series.hasDataLabels = true;
+                    series.markerSize = 20;
+
+                    series.markerBackgroundColor = "#404040";
+                    series.markerForegroundColor = "#404040";
+
+                    // there are an equal number of points in each series, so we only want to load and sync once
+                    if (pointsLoaded < 0) {
+                        series.points.load("count");
+                        await context.sync();
+                        pointsLoaded = series.points.count;
+                    }
+
+                    for (var j = 0; j < pointsLoaded; j++) {
+                        // the colors assume "Format chart" has been pressed
+                        series.points.getItemAt(j).markerBackgroundColor = "#404040";
+                        series.points.getItemAt(j).markerForegroundColor = "#404040";
+                    }
+
+                    series.points.getItemAt(4).dataLabel.showSeriesName = true;
+                }
+
+                chart.dataLabels.position = "Center";
+                chart.dataLabels.separator = "\n";
+                chart.dataLabels.format.font.color = "#D9D9D9";
+                await context.sync();
+            });
+        }
+
+        async function changeColor() {
+            await Excel.run(async (context) => {
+
+                const worksheet = context.workbook.worksheets.getActiveWorksheet();
+                const chart = worksheet.charts.getItem("SlopeChart");
+                const increase = worksheet.getRange("I6:I15");
+                const increaseRate = worksheet.getRange("J6:J15");
+                increase.load("values");
+                increaseRate.load("values");
+                chart.series.load("count");
+                await context.sync();
+
+                // find the countries with the highest GDP and the fasting GDP growth
+                var max = increase.values[0][0];
+                var maxIndex = 0;
+                var fast = increaseRate.values[0][0];
+                var fastIndex = 0;
+                
+                for (var i = 1; i < 10; i++){
+                    if (increase.values[i][0] > max) {
+                        max = increase.values[i][0];
+                        maxIndex = i;
+                    }
+                    if (increaseRate.values[i][0] > fast) {
+                        fast = increaseRate.values[i][0];
+                        fastIndex = i;
+                    }
+                }
+
+                // color everything grey before highlighting results
+                for (var i = 0; i < chart.series.count; i++){
+                    chart.series.getItemAt(i).format.line.color = "#636363";
+                    chart.series.getItemAt(i).dataLabels.format.font.color = "#636363";
+                }
+
+                const maxSeries = chart.series.getItemAt(maxIndex);
+                maxSeries.format.line.color = "#4472C4";
+                maxSeries.dataLabels.format.font.color = "#D9D9D9";
+                const fastSeries = chart.series.getItemAt(fastIndex);
+                fastSeries.format.line.color = "#75AB3B";
+                fastSeries.dataLabels.format.font.color = "#D9D9D9";
+
+                maxSeries.load();
+                fastSeries.load();
+                await context.sync();
+                maxSeries.name += " (Greatest Growth)";
+                fastSeries.name += " (Greatest Relative Growth)";
+                await context.sync();
+            });
+        }
+
+        async function clearChart() {
+            await Excel.run(async (context) => {
+                const charts = context.workbook.worksheets.getActiveWorksheet().charts;
+                charts.load("count");
+                await context.sync();
+                
+                for (var i = 0; i < charts.count; i++) {
+                    charts.getItemAt(0).delete();
+                }
+                await context.sync();
+            });
+        }
+
+        async function addSampleData() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("B5:G5").values = [["Country", "1980", "1990", "2000", "2010", "2017"]];
+                const range = sheet.getRange("B6:G15");
+                range.values = [
+                    ["Luxembourg", 17739, 33204, 49183, 106185, 107708],
+                    ["Switzerland", 18870, 38666, 38007, 74908, 80837],
+                    ["Norway", 15748, 28189, 38067, 87309, 73615],
+                    ["Iceland", 15033, 25581, 31571, 41623, 73092],
+                    ["Ireland", 6250, 13642, 26154, 48674, 68604],
+                    ["Qatar", 31999, 15446, 29914, 72953, 50812],
+                    ["United States", 12576, 23914, 36433, 48310, 59495],
+                    ["Denmark", 13889, 26922, 30804, 58177, 56335],
+                    ["Australia", 11018, 18866, 20860, 56360, 56135],
+                    ["Singapore", 5004, 12766, 23793, 46569, 53880]
+                ];
+                range.format.autofitColumns();
+
+                const range3 = sheet.getRange("I5:J5");
+                range3.values = [["Increase", "% Increase"]];
+
+                const increaseRange = sheet.getRange("I6:I15");
+                let data = [];
+                for (let i = 6; i < 16; i++) {
+                    let item = [];
+                    item.push("=G" + i.toString() + "-D" + i.toString());
+                    data.push(item);
+                }
+                increaseRange.formulas = data;
+                increaseRange.format.autofitColumns();
+
+                const increasePerRange = sheet.getRange("J6:J15");
+                let data2 = [];
+                for (let i = 6; i < 16; i++) {
+                    let item = [];
+                    item.push("=G" + i.toString() + "/D" + i.toString());
+                    data2.push(item);
+                }
+                increasePerRange.formulas = data2;
+                increasePerRange.format.autofitColumns();
+                
+                let formatnumber = [];
+                const formatnumberitem = ["###,0"];
+                for (let i = 6; i < 16; i++) {
+                    formatnumber.push(formatnumberitem);
+                }
+                sheet.getRange("C6:C15").numberFormat = formatnumber;
+                sheet.getRange("D6:D15").numberFormat = formatnumber;
+                sheet.getRange("E6:E15").numberFormat = formatnumber;
+                sheet.getRange("F6:F15").numberFormat = formatnumber;
+                sheet.getRange("G6:G15").numberFormat = formatnumber;
+                sheet.getRange("I6:I15").numberFormat = formatnumber;
+
+                let formatnumber2 = [];
+                const formatnumberitem2 = ["#%"];
+                for (let i = 6; i < 16; i++) {
+                    formatnumber2.push(formatnumberitem2);
+                }
+                sheet.getRange("J6:J15").numberFormat = formatnumber2;
+
+                sheet.getRange("B5:J5").format.font.bold = true;
+                sheet.getRange("B6:B15").format.font.bold = true;
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+                sheet.activate();
+                sheet.showGridlines = false;
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <h3>
+            Setup GDP data
+        </h3>
+        <button id="addSampleData" class="ms-Button">
+            <span class="ms-Button-label">Setup data</span>
+        </button>
+        <p></p>
+        <button id="create-chart" class="ms-Button">
+            <span class="ms-Button-label">Create chart</span>
+        </button>
+        <p></p>
+        <h3>
+            Chart formatting
+        </h3>
+        <button id="format-chart" class="ms-Button">
+            <span class="ms-Button-label">Format chart</span>
+        </button>
+        <p></p>
+        <button id="show-datalabels" class="ms-Button">
+            <span class="ms-Button-label">Show data labels</span>
+        </button>
+        <p></p>
+        <button id="change-color" class="ms-Button">
+            <span class="ms-Button-label">Change color</span>
+        </button>
+        <h3>
+            Clean up
+        </h3>
+        <button id="clear" class="ms-Button">
+            <span class="ms-Button-label">Clear chart</span>
+        </button>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

@@ -1,0 +1,200 @@
+id: excel-range-copyfrom
+name: Copy and paste ranges
+description: Use the Range.copyFrom method to copy data and formatting.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.8
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#copyAll").click(() => tryCatch(copyAll));
+        $("#copyFormula").click(() => tryCatch(copyFormula));
+        $("#copyFormulaResult").click(() => tryCatch(copyFormulaResult));
+        $("#copySingleAcrossRange").click(() => tryCatch(copySingleAcrossRange));
+        $("#copyOnlyFormat").click(() => tryCatch(copyOnlyFormat));
+        $("#transpose").click(() => tryCatch(transpose));
+        $("#skipBlanks").click(() => tryCatch(skipBlanks));
+
+        async function copyAll() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("F1").values = [["Copied Range"]];
+                sheet.getRange("F1").format.autofitColumns();
+
+                // copy a range starting at a single cell destination
+                sheet.getRange("G1").copyFrom("A1:E1");
+                await context.sync();
+            });
+        }
+
+        async function copyFormula() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("F2").values = [["Copied Formula"]];
+                sheet.getRange("F2").format.autofitColumns();
+
+                // copy a range preserving the formulas
+                // note: non-formula values are copied over as is
+                sheet.getRange("G2").copyFrom("A1:E1", Excel.RangeCopyType.formulas);
+                await context.sync();
+            });
+        }
+
+        async function copyFormulaResult() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("F3").values = [["Copied Formula Result"]];
+                sheet.getRange("F3").format.autofitColumns();
+
+                // copy the resulting value of a formula
+                sheet.getRange("G3").copyFrom("E1", Excel.RangeCopyType.values);
+                await context.sync();
+            });
+        }
+
+        async function copySingleAcrossRange() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("F4").values = [["Single Source"]];
+                sheet.getRange("F4").format.autofitColumns();
+
+                // copy a single cell across an entire range
+                sheet.getRange("G4:K4").copyFrom("A1", Excel.RangeCopyType.values);
+                await context.sync();
+            });
+        }
+
+        async function copyOnlyFormat() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("F5").values = [["Copied Formatting"]];
+                sheet.getRange("F5").format.autofitColumns();
+
+                // copy only the formatting of the cells
+                sheet.getRange("G5").copyFrom("A1:E1", Excel.RangeCopyType.formats);
+                await context.sync();
+            });
+        }
+
+        async function skipBlanks() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("F6").values = [["Copied Without Blanks"]];
+                sheet.getRange("F6").format.autofitColumns();
+
+                // fill the destination range so we can see the blank being skipped
+                sheet.getRange("G6:K6").values = [["Old Data", "Old Data", "Old Data", "Old Data", "Old Data"]]
+
+                // copy a range, omitting the blank cells so existing data is not overwritten in those cells
+                sheet.getRange("G6").copyFrom("A1:E1",
+                    Excel.RangeCopyType.all,
+                    true, // skipBlanks
+                    false); // transpose
+                await context.sync();
+            });
+        }
+
+        async function transpose() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("F7").values = [["Transpose"]];
+                sheet.getRange("F7").format.autofitColumns();
+
+                // transpose a horizontal range of data into a vertical range
+                sheet.getRange("G7").copyFrom("A1:E1",
+                    Excel.RangeCopyType.all,
+                    false, // skipBlanks
+                    true); // transpose
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("A1:D1").values = [["3", "5", "7", ""]];
+                sheet.getRange("A1:D1").format.font.italic = true;
+                sheet.getRange("A1:D1").format.font.color = "DarkMagenta";
+                sheet.getRange("E1").formulas = [["=SUM(A1:D1)"]];
+                sheet.getRange("E1").format.font.bold = true;
+                sheet.getRange("E1").format.fill.color = "LightGreen";
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows the copy and paste functionality.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create sample data</span>
+            </button>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Try it out</h3>
+            <button id="copyAll" class="ms-Button">
+                <span class="ms-Button-label">Copy numbers</span>
+            </button>
+            <p/>
+            <button id="copyFormula" class="ms-Button">
+                <span class="ms-Button-label">Copy formula</span>
+            </button>
+            <p/>
+            <button id="copyFormulaResult" class="ms-Button">
+                <span class="ms-Button-label">Copy formula result</span>
+            </button>
+            <p/>
+            <button id="copySingleAcrossRange" class="ms-Button">
+                <span class="ms-Button-label">Copy a single cell across a range</span>
+            </button>
+            <p/>
+            <button id="copyOnlyFormat" class="ms-Button">
+                <span class="ms-Button-label">Copy only format</span>
+            </button>
+            <p/>
+            <button id="skipBlanks" class="ms-Button">
+                <span class="ms-Button-label">Skip blanks</span>
+            </button>
+            <p/>
+            <button id="transpose" class="ms-Button">
+                <span class="ms-Button-label">Transpose copy range</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        /* Your style goes here */
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery

@@ -1,6 +1,6 @@
-id: excel-pivottable-filters-and-summaries
-name: PivotTable filters and summaries
-description: Filter PivotTable data and show different summarizations.
+id: excel-pivottable-calculations
+name: PivotTable Calculations
+description: Change the calculations the PivotTable performs.
 author: OfficeDev
 host: EXCEL
 api_set:
@@ -9,73 +9,79 @@ script:
     content: |-
         $("#setup").click(() => tryCatch(setup));
         $("#deletePivot").click(() => tryCatch(deletePivot));
-        $("#filter").click(() => tryCatch(filter));
-        $("#getCrateTotal").click(() => tryCatch(getCrateTotal));
-        $("#minFunc").click(() => tryCatch(minFunc));
-        $("#maxFunc").click(() => tryCatch(maxFunc));
-        $("#countFunc").click(() => tryCatch(countFunc));
-        $("#avgFunc").click(() => tryCatch(avgFunc));
-        $("#sumFunc").click(() => tryCatch(sumFunc));
+        $("#showPercentages").click(() => tryCatch(showPercentages));
+        $("#showDifferenceFrom").click(() => tryCatch(showDifferenceFrom));
+        $("#showSums").click(() => tryCatch(showSums));
 
-        async function filter(functionType: Excel.AggregationFunction) {
+        async function showPercentages() {
             await Excel.run(async (context) => {
                 const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
-                const filters = pivotTable.filterHierarchies;
-                const filter = filters.getItemOrNullObject("Classification");
-                filter.load();
+                const farmDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold at Farm");        
+                const wholesaleDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold Wholesale");
+
+                farmDataHierarchy.load("showAs");
+                wholesaleDataHierarchy.load("showAs");
                 await context.sync();
 
-                // add the Classification hierarchy to the filter, if it's not already there
-                if (filter.isNullObject) {
-                    filters.add(pivotTable.hierarchies.getItem("Classification"));
-                    await context.sync();
-                }
-            });
-        }
+                // show the crates of each fruit type sold at the farm as a percentage of the column's total
+                let farmShowAs = farmDataHierarchy.showAs;
+                farmShowAs.calculation = Excel.ShowAsCalculation.percentOfColumnTotal;
+                farmShowAs.baseField = pivotTable.rowHierarchies.getItem("Type").fields.getItem("Type");
+                farmDataHierarchy.showAs = farmShowAs;
 
-        async function minFunc() {
-            genericFunctionSwitch(Excel.AggregationFunction.min);
-        }
-        async function maxFunc() {
-            genericFunctionSwitch(Excel.AggregationFunction.max);
-        }
-        async function countFunc() {
-            genericFunctionSwitch(Excel.AggregationFunction.count);
-        }
-        async function avgFunc() {
-            genericFunctionSwitch(Excel.AggregationFunction.average);
-        }
-        async function sumFunc() {
-            genericFunctionSwitch(Excel.AggregationFunction.sum);
-        }
-
-        async function genericFunctionSwitch(functionType: Excel.AggregationFunction) {
-            await Excel.run(async (context) => {
-                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
-                pivotTable.dataHierarchies.load("no-properties-needed");
-                await context.sync();
-
-                pivotTable.dataHierarchies.items[0].summarizeBy = functionType;
-                pivotTable.dataHierarchies.items[1].summarizeBy = functionType;
+                let wholesaleShowAs = wholesaleDataHierarchy.showAs;
+                wholesaleShowAs.calculation = Excel.ShowAsCalculation.percentOfColumnTotal;
+                wholesaleShowAs.baseField = pivotTable.rowHierarchies.getItem("Type").fields.getItem("Type");
+                wholesaleDataHierarchy.showAs = wholesaleShowAs;
                 await context.sync();
             });
         }
 
-        async function getCrateTotal() {
+        async function showDifferenceFrom() {
             await Excel.run(async (context) => {
                 const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                const farmDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold at Farm");
+                const wholesaleDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold Wholesale");
 
-                // the layout controls the ranges used by the PivotTable
-                const range = pivotTable.layout.getDataBodyRange();
-
-                // get all the data hierarchy totals
-                const grandTotalRange = range.getLastRow();
-                grandTotalRange.load("address");
+                farmDataHierarchy.load("showAs");
+                wholesaleDataHierarchy.load("showAs");
                 await context.sync();
-                
-                // use the wholesale and farm sale totals to make a final sum
-                const masterTotalRange = context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27");
-                masterTotalRange.formulas = [["All Crates", "=SUM(" + grandTotalRange.address + ")"]];
+
+                // show the difference between crate sales of the "A Farms" and the other farms
+                // this difference is both aggregated and shown for individual fruit types (where applicable)
+                let farmShowAs = farmDataHierarchy.showAs;
+                farmShowAs.calculation = Excel.ShowAsCalculation.differenceFrom;
+                farmShowAs.baseField = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm");
+                farmShowAs.baseItem = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm").items.getItem("A Farms");
+                farmDataHierarchy.showAs = farmShowAs;
+
+                let wholesaleShowAs = wholesaleDataHierarchy.showAs;
+                wholesaleShowAs.calculation = Excel.ShowAsCalculation.differenceFrom;
+                wholesaleShowAs.baseField = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm");
+                wholesaleShowAs.baseItem = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm").items.getItem("A Farms");
+                wholesaleDataHierarchy.showAs = wholesaleShowAs;
+                await context.sync();
+            });
+        }
+
+        async function showSums() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                const farmDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold at Farm");
+                const wholesaleDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold Wholesale");
+
+                farmDataHierarchy.load("showAs");
+                wholesaleDataHierarchy.load("showAs");
+                await context.sync();
+
+                // show the sum totals crates of each fruit type sold at the farm (the default behavior)
+                let farmShowAs = farmDataHierarchy.showAs;
+                farmShowAs.calculation = Excel.ShowAsCalculation.none;
+                farmDataHierarchy.showAs = farmShowAs;
+
+                let wholesaleShowAs = wholesaleDataHierarchy.showAs;
+                wholesaleShowAs.calculation = Excel.ShowAsCalculation.none;
+                wholesaleDataHierarchy.showAs = wholesaleShowAs;
                 await context.sync();
             });
         }
@@ -132,13 +138,9 @@ script:
         async function deletePivot() {
             await Excel.run(async (context) => {
                 context.workbook.worksheets.getItem("Pivot").pivotTables.getItem("Farm Sales").delete();
-                
-                // also clean up the extra data from getCrateTotal()
-                context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27").delete(Excel.DeleteShiftDirection.up);
                 await context.sync();
             });
         }
-
 
         /** Default helper for invoking an action and handling errors. */
         async function tryCatch(callback) {
@@ -154,7 +156,7 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to filter PivotTables and manipulate their data.</p>
+            <p>This sample shows how to change the calculations of PivotTable data hierarchies.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -165,35 +167,15 @@ template:
         </section>
 
         <section class="setup ms-font-m">
-            <h3>Change functions</h3>
-            <button id="minFunc" class="ms-Button">
-                <span class="ms-Button-label">Switch to minimums</span>
+            <h3>Change calculations</h3>
+            <button id="showPercentages" class="ms-Button">
+                <span class="ms-Button-label">Show percentages</span>
             </button><p />
-            <button id="maxFunc" class="ms-Button">
-                <span class="ms-Button-label">Switch to maximums</span>
+            <button id="showDifferenceFrom" class="ms-Button">
+                <span class="ms-Button-label">Show difference from A Farms</span>
             </button><p />
-            <button id="countFunc" class="ms-Button">
-                <span class="ms-Button-label">Switch to counts</span>
-            </button><p />
-            <button id="avgFunc" class="ms-Button">
-                <span class="ms-Button-label">Switch to averages</span>
-            </button><p />
-            <button id="sumFunc" class="ms-Button">
-                <span class="ms-Button-label">Switch to sums</span>
-            </button>
-        </section>
-
-        <section class="setup ms-font-m">
-            <h3>Filtering</h3>
-            <button id="filter" class="ms-Button">
-                <span class="ms-Button-label">Enable filter</span>
-            </button><p />
-            <span>After pressing the "Enable filter" button, manually select the classification filter for the PivotTable</span>
-
-        <section class="setup ms-font-m">
-            <h3>Data Manipulation</h3>
-            <button id="getCrateTotal" class="ms-Button">
-                <span class="ms-Button-label">Get or refresh crate total</span>
+            <button id="showSums" class="ms-Button">
+                <span class="ms-Button-label">Show sums</span>
             </button>
         </section>
 

@@ -137,6 +137,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
             // Define dictionary of words in file.group that require special casing
             let dictionary = {
                 'Apis': 'APIs',
+                'Pivottable': 'PivotTable',
                 'Xml': 'XML'
             };
 

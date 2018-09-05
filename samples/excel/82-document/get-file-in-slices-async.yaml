@@ -9,6 +9,7 @@ script:
     content: |-
         $("#setup").click(() => tryCatch(setup));
         $("#get-file").click(() => tryCatch(getCurrentFile));
+        $("#new-workbook-from-file").click(() => tryCatch(newWorkbookFromFile));
 
 
         function getCurrentFile() {
@@ -38,7 +39,7 @@ script:
                 let base64string = base64js.fromByteArray(byteArray);
                 $('#file-contents').val(base64string).show();
 
-                OfficeHelpers.UI.notify("The base64-encoded string that represents the current document has been written to the text box below. To validate the string, use an online tool such as https://www.base64decode.org/ to decode the string, and then open the resulting file.");
+                OfficeHelpers.UI.notify("The base64-encoded string that represents the current document has been written to the text box below. To validate the string, load the preview API libraries and use the \"Create workbook from string\" button.");
             }
         }
 
@@ -82,6 +83,14 @@ script:
             }
         }
 
+        // Note: this function uses preview APIs. Switch to the beta libraries to use Application.createWorkbook().
+        async function newWorkbookFromFile() {
+            await Excel.run(async (context) => {
+                // create a new workbook from the TextArea and open it
+                context.application.createWorkbook($('#file-contents').text()).open();
+            });
+        }
+
         async function setup() {
             await Excel.run(async (context) => {
                 const sheet = await OfficeHelpers.ExcelUtilities
@@ -104,7 +113,7 @@ script:
                     sheet.getUsedRange().format.autofitColumns();
                     sheet.getUsedRange().format.autofitRows();
                 }
-               
+            
                 createChart(context);
                 sheet.activate();
 
@@ -144,7 +153,7 @@ script:
 
         declare namespace base64js {
             /** Takes a byte array and returns a base64 string
-             * Imported from https://www.npmjs.com/package/base64-js package. */
+            * Imported from https://www.npmjs.com/package/base64-js package. */
             function fromByteArray(array: number[]): string;
         }
     language: typescript
@@ -170,6 +179,18 @@ template:
             <textarea id="file-contents">        
             </textarea>    
         </section>
+
+        <section class="ms-font-m">
+            <p>Note: Application.createWorkbook() is in preview and needs the beta libraries. Follow the comment instructions under "Libraries " to switch from production to beta.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Create a new workbook (requires preview APIs)</h3>
+            <button id="new-workbook-from-file" class="ms-Button">
+                <span class="ms-Button-label">Create workbook from string</span>
+            </button>
+            <br/>
+        </section
     language: html
 style:
     content: |
@@ -191,8 +212,9 @@ style:
         }
     language: css
 libraries: |-
+    // replace the "1" with "beta" in both lines when switching to the preview API
     https://appsforoffice.microsoft.com/lib/1/hosted/office.js
-    @types/office-js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
 
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css

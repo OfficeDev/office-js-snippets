@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.com/OfficeDev/office-js-snippets.svg?token=paK2s5RGiCpVHK6bYoFs&amp;branch=master)](https://travis-ci.org/OfficeDev/office-js-snippets)
 
 # Office JS Snippets
-A collection of code snippets built with [Script Lab](github.com/OfficeDev/script-lab)
+A collection of code snippets built with [Script Lab](//github.com/OfficeDev/script-lab)
 
 ![Script Lab import gallery screenshot](.github/images/addin-samples-gallery-screenshot.jpg)
 

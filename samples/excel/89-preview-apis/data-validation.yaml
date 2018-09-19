@@ -13,7 +13,7 @@ script:
 
         async function addPositiveNumberRequirement() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const sheet = context.workbook.worksheets.getItem("Decision");
                 const rankingRange = sheet.tables.getItem("NameOptionsTable").columns.getItem("Ranking").getDataBodyRange();
 
                 // When you are developing, it is a good practice to
@@ -47,7 +47,7 @@ script:
 
         async function requireApprovedName() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const sheet = context.workbook.worksheets.getItem("Decision");
                 const nameRange = sheet.tables.getItem("NameOptionsTable").columns .getItem("Baby Name").getDataBodyRange();
 
                 // When you are developing, it is a good practice to
@@ -75,7 +75,7 @@ script:
 
         async function warnAboutCommentRedundancy() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const sheet = context.workbook.worksheets.getItem("Decision");
                 const commentsRange = sheet.tables.getItem("NameOptionsTable").columns.getItem("Comments").getDataBodyRange();
 
                 // When you are developing, it is a good practice to
@@ -104,9 +104,8 @@ script:
 
         async function setup() {
             await Excel.run(async (context) => {
-                const wrbk = context.workbook;
-                const decisionSheet = wrbk.worksheets.getActiveWorksheet();
-                decisionSheet.name = "Decision";
+                const decisionSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Decision");
                 const optionsTable = decisionSheet.tables.add("A1:C4", true /*hasHeaders*/);
                 optionsTable.name = "NameOptionsTable";
                 optionsTable.showBandedRows = false;
@@ -115,12 +114,14 @@ script:
 
                 decisionSheet.getUsedRange().format.autofitColumns();
                 decisionSheet.getUsedRange().format.autofitRows();
-                decisionSheet.activate();
 
                 // The names that will be allowed in the Baby Name column are 
                 // listed in a range on the Names sheet. 
-                const namesSheet = wrbk.worksheets.add("Names");
+                const namesSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Names");
                 namesSheet.getRange("A1:A3").values = [["Sue"], ["Ricky"], ["Liz"]];
+
+                decisionSheet.activate();
 
                 await context.sync();
             });

@@ -1,50 +1,39 @@
-id: excel-events-chartcollection-added-activated
-name: Events - ChartCollection
-description: 'Shows how to handle the ChartCollection onActivated, onDeactivated, onAdded, and onDeleted events.'
+id: excel-events-chart-activated
+name: Events - Chart Activate
+description: Create handlers for the Chart.onActivated and Chart.onDeactivated events.
 host: EXCEL
 api_set:
     ExcelApi: 1.8
 script:
     content: |-
         $("#setup").click(() => tryCatch(setup));
-        $("#register-chartcollection-handlers").click(() => tryCatch(registerChartCollectionHandlers));
-        $("#add-chart").click(() => tryCatch(createPieChart));
+        $("#register-onactivated-deactivated-handlers").click(() => tryCatch(registerActivatonHandlers));
+        $("#create-pie-chart").click(() => tryCatch(createPieChart));
+        $("#create-cylinder-chart").click(() => tryCatch(createCylinderChart));
 
-        async function registerChartCollectionHandlers() {
+        async function registerActivatonHandlers() {
             await Excel.run(async (context) => {
 
-                context.workbook.worksheets.getActiveWorksheet().charts.onAdded.add(chartAdded);
-                context.workbook.worksheets.getActiveWorksheet().charts.onActivated.add(chartActivated);
-                context.workbook.worksheets.getActiveWorksheet().charts.onDeactivated.add(chartDeactivated);
-                context.workbook.worksheets.getActiveWorksheet().charts.onDeleted.add(chartDeleted);
-              
+                const pieChart = context.workbook.worksheets.getActiveWorksheet().charts.getItem("Pie");
+
+                pieChart.onActivated.add(chartActivated);
+                pieChart.onDeactivated.add(chartDeactivated);
+
                 await context.sync();
 
-                console.log("Added handlers for ChartCollection onActivated,onAdded, onDeleted, and onDeactivated events.");
-            });
-        }
-
-        async function chartAdded(event) {
-            await Excel.run(async (context) => {
-                console.log("A chart has been added with ID: " + event.chartId);
+                console.log("Added handlers for Chart onActivated and onDeactivated events.");
             });
         }
 
         async function chartActivated(event) {
             await Excel.run(async (context) => {
-                console.log("The ID of the active chart is: " + event.chartId);
+                console.log("The pie chart is the active chart. ID: " + event.chartId);
             });
         }
 
         async function chartDeactivated(event) {
             await Excel.run(async (context) => {
-                console.log("The chart with this ID was deactivated: " + event.chartId);
-            });
-        }
-
-        async function chartDeleted(event) {
-            await Excel.run(async (context) => {
-                console.log("The chart with this ID was deleted: " + event.chartId);
+                console.log("The pie chart is NOT active.");
             });
         }
 
@@ -72,7 +61,33 @@ script:
                     sheet.getUsedRange().format.autofitRows();
                 }
 
+                createPieChart();
+                createCylinderChart();
                 sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        async function createCylinderChart() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const salesTable = sheet.tables.getItem("SalesTable");
+                const dataRange = salesTable.getDataBodyRange();
+
+                let chart = sheet.charts.add("CylinderCol", dataRange, "Auto");
+
+                chart.name = "Cylinder";
+                chart.setPosition("A27", "F40");
+                chart.title.text = "Quarterly sales chart";
+                chart.legend.position = "Bottom"
+                chart.legend.format.fill.setSolidColor("white");
+                chart.dataLabels.format.font.size = 15;
+                chart.dataLabels.format.font.color = "black";
+                chart.series.getItemAt(0).name = "Q1";
+                chart.series.getItemAt(1).name = "Q2";
+                chart.series.getItemAt(2).name = "Q3";
+                chart.series.getItemAt(3).name = "Q4";
 
                 await context.sync();
             });
@@ -112,7 +127,7 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to create handlers for the ChartCollection onAdded, onDeleted, onActivated, and onDeactivated events.</p>
+            <p>This sample shows how to create handlers for the Chart onActivated and onDeactivated events.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -124,17 +139,10 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <p>Click the button to register handlers for the worksheet's ChartCollection events. </p>
-            <button id="register-chartcollection-handlers" class="ms-Button">
-                <span class="ms-Button-label">Register ChartCollection handlers</span>
+            <p>Click the button to register handlers for the pie chart's activated and deactivated events. Then click the chart to activate it. Watch the console. Finally, click the cylinder chart to deactivate the pie chart.</p>
+            <button id="register-onactivated-deactivated-handlers" class="ms-Button">
+                <span class="ms-Button-label">Register Activated/Deactivated handlers</span>
             </button>
-            <p>Click the second button to programmatically add a chart and see the onAdded event fire. Watch the console.</p>
-            <button id="add-chart" class="ms-Button">
-                <span class="ms-Button-label">Add chart</span>
-            </button>
-            <p>Manually add another chart. You can use the same the table as a source. Watch the console.</p>
-            <p>Select one of the charts to see the onActivated event fire. Then select the other chart to see the onDeactivated event fire on one chart and onActivated for the other.</p>
-            <p>Delete one of the charts to see the onDeleted event fire.</p>
         </section>
     language: html
 style:
@@ -142,8 +150,8 @@ style:
         /* Your style goes here */
     language: css
 libraries: |
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
 
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css

@@ -1,14 +1,272 @@
-Excel.Binding.onDataChanged:
+Excel.ChartAxis.displayUnit:
   - |-
     await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");    
-        const salesTable = sheet.tables.getItem("SalesTable");
-        const salesByQuarterBinding = context.workbook.bindings.add(salesTable.getRange(), "Table", "SalesByQuarter");
-        salesByQuarterBinding.onDataChanged.add(onSalesDataChanged);
+        const sheet = context.workbook.worksheets.getItem("Sample");
 
-        OfficeHelpers.UI.notify("The handler is registered.", "Change the value in one of the data cells and watch this message banner. (Be sure to complete the edit by pressing Enter or clicking in another cell.)");
+        let chart = sheet.charts.getItemAt(0);
+        let categoryAxis = chart.axes.categoryAxis;
+        let valueAxis = chart.axes.valueAxis;
+
+        // Load to get display unit.
+        valueAxis.load("displayUnit");
+       
+        await context.sync();
+
+        OfficeHelpers.UI.notify("The vertical axis display unit is: " +  valueAxis.displayUnit);
+    });
+Excel.ChartAxis.showDisplayUnitLabel:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let chart = sheet.charts.getItemAt(0);
+        let axis = chart.axes.valueAxis;
+
+        // Remove display unit.
+        axis.showDisplayUnitLabel = false;
 
         await context.sync();
+    });
+Excel.ChartLegendFormat.font:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let chart = sheet.charts.getItemAt(0);
+        chart.legend.visible = true;
+
+        // Format the legend font.
+        let font = chart.legend.format.font;
+        font.bold = true;
+        font.color = "red";
+        font.italic = true;
+        font.size = 15;
+        font.name = "Calibri";
+        font.underline = "Single";
+
+        await context.sync();
+    });
+Excel.ChartFill.setSolidColor:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let pointsCollection = sheet.charts.getItemAt(0).series.getItemAt(0).points;
+        let point = pointsCollection.getItemAt(2);
+
+        // Set color for chart point.
+        point.format.fill.setSolidColor('red');
+
+        await context.sync();
+
+        OfficeHelpers.UI.notify("Successfully set chart point color to red (for the third item in series 1).");            
+    });
+Excel.ChartSeries.delete:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series;
+        let series = seriesCollection.getItemAt(0);
+
+        // Delete the first series.
+        series.delete();
+
+        await context.sync();
+    });
+Excel.ChartSeries.setValues:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series;
+
+        // Add new series.
+        let series = seriesCollection.add("New Product");
+        let values = sheet.getRange("E2:E7");
+
+        // Set the vertical values for the series.
+        series.setValues(values);
+        seriesCollection.load("count");
+
+        await context.sync();
+
+        OfficeHelpers.UI.notify("Number of series  = " + seriesCollection.count);
+    });
+Excel.ChartSeries.markerStyle:
+  - |-
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let salesTable = sheet.tables.getItem("SalesTable");
+        let dataRange = sheet.getRange("A1:E7");
+
+        // Create an XY scatter chart.
+        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
+        chart.title.text = "Bicycle Parts Quarterly Sales"; 
+      
+        let series = chart.series;
+        let series0 = series.getItemAt(0);
+        let series1 = series.getItemAt(1);
+        let series2 = series.getItemAt(2);
+        let series3 = series.getItemAt(3);
+
+        // Set markers.
+        series0.markerStyle = "Dash";
+        series0.markerForegroundColor = "black";
+        series1.markerStyle = "Star";
+        series1.markerForegroundColor = "black";
+        series2.markerStyle = "X";
+        series2.markerSize = 12;
+        series3.markerStyle = "Triangle";
+        series3.markerBackgroundColor = "purple";
+
+        await context.sync();
+    });
+Excel.ChartSeries.markerSize:
+  - |-
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let salesTable = sheet.tables.getItem("SalesTable");
+        let dataRange = sheet.getRange("A1:E7");
+
+        // Create an XY scatter chart.
+        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
+        chart.title.text = "Bicycle Parts Quarterly Sales"; 
+      
+        let series = chart.series;
+        let series0 = series.getItemAt(0);
+        let series1 = series.getItemAt(1);
+        let series2 = series.getItemAt(2);
+        let series3 = series.getItemAt(3);
+
+        // Set markers.
+        series0.markerStyle = "Dash";
+        series0.markerForegroundColor = "black";
+        series1.markerStyle = "Star";
+        series1.markerForegroundColor = "black";
+        series2.markerStyle = "X";
+        series2.markerSize = 12;
+        series3.markerStyle = "Triangle";
+        series3.markerBackgroundColor = "purple";
+
+        await context.sync();
+    });
+Excel.ChartSeries.markerForegroundColor:
+  - |-
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let salesTable = sheet.tables.getItem("SalesTable");
+        let dataRange = sheet.getRange("A1:E7");
+
+        // Create an XY scatter chart.
+        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
+        chart.title.text = "Bicycle Parts Quarterly Sales"; 
+      
+        let series = chart.series;
+        let series0 = series.getItemAt(0);
+        let series1 = series.getItemAt(1);
+        let series2 = series.getItemAt(2);
+        let series3 = series.getItemAt(3);
+
+        // Set markers.
+        series0.markerStyle = "Dash";
+        series0.markerForegroundColor = "black";
+        series1.markerStyle = "Star";
+        series1.markerForegroundColor = "black";
+        series2.markerStyle = "X";
+        series2.markerSize = 12;
+        series3.markerStyle = "Triangle";
+        series3.markerBackgroundColor = "purple";
+
+        await context.sync();
+    });
+Excel.ChartSeries.markerBackgroundColor:
+  - |-
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let salesTable = sheet.tables.getItem("SalesTable");
+        let dataRange = sheet.getRange("A1:E7");
+
+        // Create an XY scatter chart.
+        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
+        chart.title.text = "Bicycle Parts Quarterly Sales"; 
+      
+        let series = chart.series;
+        let series0 = series.getItemAt(0);
+        let series1 = series.getItemAt(1);
+        let series2 = series.getItemAt(2);
+        let series3 = series.getItemAt(3);
+
+        // Set markers.
+        series0.markerStyle = "Dash";
+        series0.markerForegroundColor = "black";
+        series1.markerStyle = "Star";
+        series1.markerForegroundColor = "black";
+        series2.markerStyle = "X";
+        series2.markerSize = 12;
+        series3.markerStyle = "Triangle";
+        series3.markerBackgroundColor = "purple";
+
+        await context.sync();
+    });
+Excel.ChartTrendline.type:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series;
+
+        // Get the trendline for series 1 and load its type property.  
+        let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
+        trendline.load("type");
+
+        await context.sync();
+
+        console.log("The trendline type is:" + trendline.type);  
+    });
+Excel.ChartTrendlineCollection.add:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series;
+
+         // Add a trendline.  
+        seriesCollection.getItemAt(0).trendlines.add("Linear");
+
+        await context.sync();
+    });
+Excel.ChartTrendlineFormat.line:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series; 
+
+        // Get the color of the chart trendline. 
+        // In this example, it's #4472c4 which is blue.
+        let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
+        let line = trendline.format.line;
+        line.load("color");
+
+        await context.sync();
+
+        console.log("The trendline color is:" + line.color);
+    });
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series; 
+        let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
+
+        // Set format of the trendline to a solid, red line.
+        let line = trendline.format.line;
+        line.color = '#FF0000';
+
+        await context.sync();
+
+        console.log("The trendline color has been set to:" + line.color);
     });
 Excel.NamedItemCollection.add:
   - |-
@@ -64,302 +322,6 @@ Excel.NamedItemCollection.add:
         OfficeHelpers.UI.notify(error);
         OfficeHelpers.Utilities.log(error);
     }
-Excel.NamedItem.delete:
-  - |-
-    try {
-        await Excel.run(async (context) => {
-
-            const sheet = context.workbook.worksheets.getItem("Sample");
-
-            sheet.names.getItem("TotalAmount").delete();
-
-            // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
-            sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
-
-            await context.sync();
-
-        });
-    }
-    catch (error) {
-        OfficeHelpers.UI.notify(error);
-        OfficeHelpers.Utilities.log(error);
-    }
-Excel.NamedItem.formula:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        // Get the named item
-        const myNamedItem = sheet.names.getItemOrNullObject("MyRange");
-        myNamedItem.load("name, formula");
-
-        await context.sync();
-
-        if (myNamedItem.isNullObject) {
-            OfficeHelpers.UI.notify(`There is no named item with the name "MyRange".`);
-        } else {
-            
-            // Update named item to point to the second range
-            myNamedItem.formula = "=Sample!$B$10:$D$14";
-
-            sheet.getRange("B10:D14").select();
-
-            await context.sync();
-
-            OfficeHelpers.UI.notify(`Just updated the named item "${myNamedItem.name}" -- it's now located here: ${myNamedItem.formula}`);
-        }
-    });
-Excel.SettingCollection.onSettingsChanged:
-  - |-
-    await Excel.run(async (context) => {
-        const settings = context.workbook.settings; 
-        settings.onSettingsChanged.add(onChangedSetting);
-        OfficeHelpers.UI.notify("Handler registered", "");
-
-        await context.sync();
-    });
-Excel.SettingCollection.add:
-  - |-
-    await Excel.run(async (context) => {
-        const settings = context.workbook.settings; 
-        settings.onSettingsChanged.add(onChangedSetting);
-        OfficeHelpers.UI.notify("Handler registered", "");
-
-        await context.sync();
-    });
-Excel.Setting.delete:
-  - |-
-    await Excel.run(async (context) => {
-        const settings = context.workbook.settings;
-        let needsReview = settings.getItem("NeedsReview");
-        needsReview.delete();
-        needsReview = settings.getItemOrNullObject("NeedsReview");
-
-        await context.sync();
-
-        if (needsReview.isNullObject) {
-            OfficeHelpers.UI.notify("The setting has been deleted");
-        } else {
-            OfficeHelpers.UI.notify("The setting was not deleted");
-        }
-
-        await context.sync();
-    });
-Excel.SettingCollection.getItemOrNullObject:
-  - |-
-    await Excel.run(async (context) => {
-        const settings = context.workbook.settings;
-        let needsReview = settings.getItem("NeedsReview");
-        needsReview.delete();
-        needsReview = settings.getItemOrNullObject("NeedsReview");
-
-        await context.sync();
-
-        if (needsReview.isNullObject) {
-            OfficeHelpers.UI.notify("The setting has been deleted");
-        } else {
-            OfficeHelpers.UI.notify("The setting was not deleted");
-        }
-
-        await context.sync();
-    });
-Excel.Range.getUsedRangeOrNullObject:
-  - |-
-    await Excel.run(async (context) => {
-
-        const sheet = context.workbook.worksheets.getItem("Sample");    
-        const salesTable = sheet.tables.getItem("SalesTable");
-        const dataRange = salesTable.getDataBodyRange();
-
-        // Pass true so only cells with values count as used 
-        const usedDataRange = dataRange.getUsedRangeOrNullObject(true /* valuesOnly */);
-
-        //Must sync before reading value returned from *OrNullObject method/property.
-        await context.sync();
-
-        if (usedDataRange.isNullObject) {
-            OfficeHelpers.UI.notify("Need Data to Make Chart", "To create a meaningful chart, add names to the Product column and numbers to some of the other cells. Then press 'Try to create chart' again.");            
-        } else {            
-            const chart = sheet.charts.add(Excel.ChartType.columnClustered, dataRange, "Columns");
-            chart.setPosition("A15", "F30");
-            chart.title.text = "Quarterly sales chart";
-            chart.legend.position = "Right";
-            chart.legend.format.fill.setSolidColor("white");
-            chart.dataLabels.format.font.size = 15;
-            chart.dataLabels.format.font.color = "black";
-        }
-
-        await context.sync();
-    });
-Excel.Range.getIntersectionOrNullObject:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");    
-        const salesTable = sheet.tables.getItem("SalesTable");
-        const dataRange = salesTable.getDataBodyRange();
-
-        // We want the most recent quarter that has data, so 
-        // exclude quarters without data and get the last of 
-        // the remaining columns.
-        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
-        const currentQuarterRange = usedDataRange.getLastColumn();
-
-        // Asian and European teams have separate contests.
-        const asianSalesRange = sheet.getRange("A2:E4");
-        const europeanSalesRange = sheet.getRange("A5:E7");
-
-        // The data for each chart is the intersection of 
-        // the current quarter column and the rows for the 
-        // continent.
-        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-
-        // Must sync before you can test the output of *OrNullObject 
-        // method/property.
-        await context.sync();
-
-        if (asianContestRange.isNullObject) {
-            // See the declaration of this method for how to 
-            // test this code path.
-            reportMissingData("Asian");
-        } else {
-            createContinentChart(sheet, "Asian", asianContestRange, "A9", "F24");
-        }
-
-        if (europeanContestRange.isNullObject) {
-            // See the declaration of this method for how to 
-            // test this code path.
-            reportMissingData("European");
-        } else {
-            createContinentChart(sheet, "European", europeanContestRange, "A25", "F40");
-        }
-
-        await context.sync();
-    });
-Excel.Range.getUsedRange:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");    
-        const salesTable = sheet.tables.getItem("SalesTable");
-        const dataRange = salesTable.getDataBodyRange();
-
-        // We want the most recent quarter that has data, so 
-        // exclude quarters without data and get the last of 
-        // the remaining columns.
-        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
-        const currentQuarterRange = usedDataRange.getLastColumn();
-
-        // Asian and European teams have separate contests.
-        const asianSalesRange = sheet.getRange("A2:E4");
-        const europeanSalesRange = sheet.getRange("A5:E7");
-
-        // The data for each chart is the intersection of 
-        // the current quarter column and the rows for the 
-        // continent.
-        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-
-        // Must sync before you can test the output of *OrNullObject 
-        // method/property.
-        await context.sync();
-
-        if (asianContestRange.isNullObject) {
-            // See the declaration of this method for how to 
-            // test this code path.
-            reportMissingData("Asian");
-        } else {
-            createContinentChart(sheet, "Asian", asianContestRange, "A9", "F24");
-        }
-
-        if (europeanContestRange.isNullObject) {
-            // See the declaration of this method for how to 
-            // test this code path.
-            reportMissingData("European");
-        } else {
-            createContinentChart(sheet, "European", europeanContestRange, "A25", "F40");
-        }
-
-        await context.sync();
-    });
-Excel.Range.set:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        const range = sheet.getRange("B2:E2");
-        range.set({
-            format: {
-                fill: {
-                    color: "#4472C4"
-                },
-                font: {
-                    name: "Verdana",
-                    color: "white"
-                }
-            }
-        })
-        range.format.autofitColumns();
-        await context.sync();
-    });
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        const sourceRange = sheet.getRange("B2:E2");
-        sourceRange.load("format/fill/color, format/font/name, format/font/color");
-        await context.sync();
-
-        // Set properties based on the loaded and synced 
-        // source range.
-        const targetRange = sheet.getRange("B7:E7");
-        targetRange.set(sourceRange); 
-        targetRange.format.autofitColumns();
-        await context.sync();
-    });
-Excel.CustomXmlPartCollection.add:
-  - |-
-    await Excel.run(async (context) => {
-
-        // You must have the xmlns attribute to populate the 
-        // CustomXml.namespaceUri property.
-        const originalXml = "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
-        const customXmlPart = context.workbook.customXmlParts.add(originalXml);
-        customXmlPart.load("id");
-        const xmlBlob = customXmlPart.getXml();
-
-        await context.sync();
-
-        const readableXml = addLineBreaksToXML(xmlBlob.value);
-        $("#display-xml").text(readableXml);
-
-        // Store the XML part's ID in a setting.
-        const settings = context.workbook.settings;
-        settings.add("ContosoReviewXmlPartId", customXmlPart.id);
-
-        await context.sync();
-    });
-Excel.CustomXmlPartCollection.getItem:
-  - |-
-    await Excel.run(async (context) => {
-        const settings = context.workbook.settings;
-        const xmlPartIDSetting = settings.getItem("ContosoReviewXmlPartId").load("value");
-
-        await context.sync();
-        
-        const customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
-
-        // The setXml method does a whole-for-whole replacement 
-        // of the entire XML.
-        customXmlPart.setXml("<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>John</Reviewer><Reviewer>Hitomi</Reviewer></Reviewers>");
-        const xmlBlob = customXmlPart.getXml();
-
-        await context.sync();
-
-        const readableXml = addLineBreaksToXML(xmlBlob.value);
-        $("#display-xml").text(readableXml);
-
-        await context.sync();
-    });
 Excel.CustomXmlPart.getXml:
   - |-
     await Excel.run(async (context) => {
@@ -451,6 +413,50 @@ Excel.CustomXmlPart.delete:
             const strangeMessage = `This is strange. The XML part with the id ${xmlPartIDSetting.value} has not been deleted:\n${readableXml}`
             $("#display-xml").text(strangeMessage);
         }
+
+        await context.sync();
+    });
+Excel.CustomXmlPartCollection.add:
+  - |-
+    await Excel.run(async (context) => {
+
+        // You must have the xmlns attribute to populate the 
+        // CustomXml.namespaceUri property.
+        const originalXml = "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
+        const customXmlPart = context.workbook.customXmlParts.add(originalXml);
+        customXmlPart.load("id");
+        const xmlBlob = customXmlPart.getXml();
+
+        await context.sync();
+
+        const readableXml = addLineBreaksToXML(xmlBlob.value);
+        $("#display-xml").text(readableXml);
+
+        // Store the XML part's ID in a setting.
+        const settings = context.workbook.settings;
+        settings.add("ContosoReviewXmlPartId", customXmlPart.id);
+
+        await context.sync();
+    });
+Excel.CustomXmlPartCollection.getItem:
+  - |-
+    await Excel.run(async (context) => {
+        const settings = context.workbook.settings;
+        const xmlPartIDSetting = settings.getItem("ContosoReviewXmlPartId").load("value");
+
+        await context.sync();
+        
+        const customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
+
+        // The setXml method does a whole-for-whole replacement 
+        // of the entire XML.
+        customXmlPart.setXml("<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>John</Reviewer><Reviewer>Hitomi</Reviewer></Reviewers>");
+        const xmlBlob = customXmlPart.getXml();
+
+        await context.sync();
+
+        const readableXml = addLineBreaksToXML(xmlBlob.value);
+        $("#display-xml").text(readableXml);
 
         await context.sync();
     });
@@ -572,139 +578,644 @@ Excel.CustomXmlPartScopedCollection.getOnlyItem:
 
         await context.sync();
     });
-Excel.Worksheet.getPrevious:
+Excel.DataValidation.errorAlert:
   - |-
     await Excel.run(async (context) => {
-        const sheets = context.workbook.worksheets;
-        const currentSheet = sheets.getActiveWorksheet();
-        const previousYearSheet = currentSheet.getPrevious();
-        const currentTaxDueRange = currentSheet.getRange("C2");
-        const previousTaxDueRange = previousYearSheet.getRange("C2");
+        const sheet = context.workbook.worksheets.getItem("Decision");
+        const commentsRange = 
+            sheet.tables.getItem("NameOptionsTable").columns.getItem("Comments").getDataBodyRange();
 
-        currentSheet.load("name");
-        previousYearSheet.load("name");
-        currentTaxDueRange.load("text");
-        previousTaxDueRange.load("text");
+        // When you are developing, it is a good practice to
+        // clear the dataValidation object with each run of your code.
+        commentsRange.dataValidation.clear();   
 
-        await context.sync();
-
-        let currentYear = currentSheet.name.substr(5, 4);
-        let previousYear = previousYearSheet.name.substr(5, 4);
-        OfficeHelpers.UI.notify("Two Year Tax Due Comparison", `Tax due for ${currentYear} was ${currentTaxDueRange.text[0][0]}\nTax due for ${previousYear} was ${previousTaxDueRange.text[0][0]}`)
+        // If the value of A2 is contained in the value of C2, then 
+        // SEARCH(A2,C2) returns the number where it begins. Otherwise,
+        // it does not return a number.
+        let redundantStringRule = {
+            custom: {
+                formula: "=NOT(ISNUMBER(SEARCH(A2,C2)))"
+            }
+        };
+        commentsRange.dataValidation.rule = redundantStringRule;
+        commentsRange.dataValidation.errorAlert = {
+            message: "It is redundant to include the baby name in the comment.",
+            showAlert: true,
+            style: "Information",
+            title: "Baby Name in Comment"
+        };
 
         await context.sync();
     });
-Excel.Worksheet.getNext:
+Excel.DataValidationRule .wholeNumber:
   - |-
     await Excel.run(async (context) => {
-        const sheets = context.workbook.worksheets;
+        const sheet = context.workbook.worksheets.getItem("Decision");
+        const rankingRange = sheet.tables.getItem("NameOptionsTable").columns.getItem("Ranking").getDataBodyRange();
 
-        // We don't want to include the default worksheet that was created
-        // when the workbook was created, so our "firstSheet" will be the one
-        // after the literal first. Note chaining of navigation methods.
-        const firstSheet = sheets.getFirst().getNext();
-        const lastSheet = sheets.getLast();
-        const firstTaxRateRange = firstSheet.getRange("B2");
-        const lastTaxRateRange = lastSheet.getRange("B2");
+        // When you are developing, it is a good practice to
+        // clear the dataValidation object with each run of your code.
+        rankingRange.dataValidation.clear();
 
-        firstSheet.load("name");
-        lastSheet.load("name");
-        firstTaxRateRange.load("text");
-        lastTaxRateRange.load("text");
+        let greaterThanZeroRule = {
+            wholeNumber: {
+                formula1: 0,
+                operator: Excel.DataValidationOperator.greaterThan
+            }
+        };
+        rankingRange.dataValidation.rule = greaterThanZeroRule;
 
-        await context.sync();
+        rankingRange.dataValidation.prompt = {
+            message: "Please enter a positive number.",
+            showPrompt: true,
+            title: "Positive numbers only."
+        };
 
-        let firstYear = firstSheet.name.substr(5, 4);
-        let lastYear = lastSheet.name.substr(5, 4);
-        OfficeHelpers.UI.notify(`Tax Rate change from ${firstYear} to ${lastYear}`, `Tax rate for ${firstYear}: ${firstTaxRateRange.text[0][0]}\nTax rate for ${lastYear}: ${lastTaxRateRange.text[0][0]}`)
+        rankingRange.dataValidation.errorAlert = {
+            message: "Sorry, only positive numbers are allowed",
+            showAlert: true,
+            style: "Stop",
+            title: "Negative Number Entered"
+        };
 
         await context.sync();
     });
-Excel.WorksheetCollection.getFirst:
+Excel.DataValidationRule .list:
   - |-
     await Excel.run(async (context) => {
-        const sheets = context.workbook.worksheets;
+        const sheet = context.workbook.worksheets.getItem("Decision");
+        const nameRange = 
+            sheet.tables.getItem("NameOptionsTable").columns.getItem("Baby Name").getDataBodyRange();
 
-        // We don't want to include the default worksheet that was created
-        // when the workbook was created, so our "firstSheet" will be the one
-        // after the literal first. Note chaining of navigation methods.
-        const firstSheet = sheets.getFirst().getNext();
-        const lastSheet = sheets.getLast();
-        const firstTaxRateRange = firstSheet.getRange("B2");
-        const lastTaxRateRange = lastSheet.getRange("B2");
+        // When you are developing, it is a good practice to
+        // clear the dataValidation object with each run of your code.
+        nameRange.dataValidation.clear();
 
-        firstSheet.load("name");
-        lastSheet.load("name");
-        firstTaxRateRange.load("text");
-        lastTaxRateRange.load("text");
+        const nameSourceRange = context.workbook.worksheets.getItem("Names").getRange("A1:A3");
 
-        await context.sync();
-
-        let firstYear = firstSheet.name.substr(5, 4);
-        let lastYear = lastSheet.name.substr(5, 4);
-        OfficeHelpers.UI.notify(`Tax Rate change from ${firstYear} to ${lastYear}`, `Tax rate for ${firstYear}: ${firstTaxRateRange.text[0][0]}\nTax rate for ${lastYear}: ${lastTaxRateRange.text[0][0]}`)
+        let approvedListRule = {
+            list: {
+                inCellDropDown: true,
+                source: '=Names!$A$1:$A$3'
+            }
+        };
+        nameRange.dataValidation.rule = approvedListRule;
 
         await context.sync();
     });
-Excel.WorksheetCollection.getLast:
+Excel.Workbook.properties:
   - |-
     await Excel.run(async (context) => {
-        const sheets = context.workbook.worksheets;
+        let titleValue = "Excel document properties API";
+        let subjectValue = "Set and get document properties";
+        let keywordsValue = "Set and get operations";
+        let commentsValue = "This is an Excel document properties API code sample";
+        let categoryValue = "Office Add-ins";
+        let managerValue = "John";
+        let companyValue = "Microsoft";
 
-        // We don't want to include the default worksheet that was created
-        // when the workbook was created, so our "firstSheet" will be the one
-        // after the literal first. Note chaining of navigation methods.
-        const firstSheet = sheets.getFirst().getNext();
-        const lastSheet = sheets.getLast();
-        const firstTaxRateRange = firstSheet.getRange("B2");
-        const lastTaxRateRange = lastSheet.getRange("B2");
+        let docProperties = context.workbook.properties;
 
-        firstSheet.load("name");
-        lastSheet.load("name");
-        firstTaxRateRange.load("text");
-        lastTaxRateRange.load("text");
+        // Set the writeable document properties.
+        docProperties.title = titleValue;
+        docProperties.subject = subjectValue;
+        docProperties.keywords = keywordsValue;
+        docProperties.comments = commentsValue;
+        docProperties.category = categoryValue;
+        docProperties.manager = managerValue;
+        docProperties.company = companyValue;
 
         await context.sync();
 
-        let firstYear = firstSheet.name.substr(5, 4);
-        let lastYear = lastSheet.name.substr(5, 4);
-        OfficeHelpers.UI.notify(`Tax Rate change from ${firstYear} to ${lastYear}`, `Tax rate for ${firstYear}: ${firstTaxRateRange.text[0][0]}\nTax rate for ${lastYear}: ${lastTaxRateRange.text[0][0]}`)
+        OfficeHelpers.UI.notify("Set the following document properties: title, subject, keywords, comments, category, manager, company.");
+    });
+Excel.Binding.onDataChanged:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");    
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const salesByQuarterBinding = context.workbook.bindings.add(salesTable.getRange(), "Table", "SalesByQuarter");
+        salesByQuarterBinding.onDataChanged.add(onSalesDataChanged);
+
+        OfficeHelpers.UI.notify("The handler is registered.", "Change the value in one of the data cells and watch this message banner. (Be sure to complete the edit by pressing Enter or clicking in another cell.)");
 
         await context.sync();
     });
-Excel.ConditionalFormatCollection.add:
+Excel.Runtime.enableEvents:
+  - |-
+    await Excel.run(async (context) => {
+        context.runtime.load("enableEvents");
+        await context.sync();
+
+        // check if events are enabled and toggle accordingly
+        const eventBoolean = !context.runtime.enableEvents
+        context.runtime.enableEvents = eventBoolean;
+        if (eventBoolean) {
+            console.log("Events are currently on.");
+        } else {
+            console.log("Events are currently off.");
+        }
+        await context.sync();
+    });
+Excel.SettingCollection.onSettingsChanged:
+  - |-
+    await Excel.run(async (context) => {
+        const settings = context.workbook.settings; 
+        settings.onSettingsChanged.add(onChangedSetting);
+        OfficeHelpers.UI.notify("Handler registered", "");
+
+        await context.sync();
+    });
+Excel.SettingCollection.add:
+  - |-
+    await Excel.run(async (context) => {
+        const settings = context.workbook.settings; 
+        settings.onSettingsChanged.add(onChangedSetting);
+        OfficeHelpers.UI.notify("Handler registered", "");
+
+        await context.sync();
+    });
+Excel.Table.onChanged:
+  - |-
+    await Excel.run(async (context) => {
+        let table = context.workbook.tables.getItemAt(0);
+        table.onChanged.add(onChange);
+
+        await context.sync();
+
+        OfficeHelpers.UI.notify("A handler has been registered for the onChanged event",
+            "Try changing a cell value in the table, and watch the console output.");
+    });
+Excel.Table.onSelectionChanged:
+  - |-
+    await Excel.run(async (context) => {
+        let table = context.workbook.tables.getItemAt(0);
+        table.onSelectionChanged.add(onSelectionChange);
+
+        await context.sync();
+
+        OfficeHelpers.UI.notify("A handler has been registered for table onSelectionChanged event",
+            "Try changing a range selection in the table, and watch the console output.");
+    });
+Excel.TableSelectionChangedEventArgs.address:
+  - |-
+    async function onSelectionChange(args) {
+        await Excel.run(async (context) => {
+            console.log("Handler for table onSelectionChanged event has been triggered.  The new selection is : " + args.address);
+        });
+    }
+Excel.TableChangedEventArgs.worksheetId:
+  - |-
+    async function onChange(event) {
+        await Excel.run(async (context) => {
+            let table = context.workbook.tables.getItem(event.tableId);
+            let worksheet = context.workbook.worksheets.getItem(event.worksheetId);
+            worksheet.load("name");
+
+            await context.sync();
+
+            console.log("Handler for table collection onChanged event has been triggered.  Data changed address : " + event.address);
+            console.log("Table Id : " + event.tableId);
+            console.log("Worksheet Id : " + worksheet.name);
+        });
+    }
+Excel.TableChangedEventArgs.tableId:
+  - |-
+    async function onChange(event) {
+        await Excel.run(async (context) => {
+            let table = context.workbook.tables.getItem(event.tableId);
+            let worksheet = context.workbook.worksheets.getItem(event.worksheetId);
+            worksheet.load("name");
+
+            await context.sync();
+
+            console.log("Handler for table collection onChanged event has been triggered.  Data changed address : " + event.address);
+            console.log("Table Id : " + event.tableId);
+            console.log("Worksheet Id : " + worksheet.name);
+        });
+    }
+Excel.TableCollection.onChanged:
+  - |-
+    await Excel.run(async (context) => {
+        let tables = context.workbook.tables;
+        tables.onChanged.add(onChange);
+
+        await context.sync();
+
+        OfficeHelpers.UI.notify("A handler has been registered for the table collection onChanged event",
+            "Try changing cell values in the tables, and watch the console output.");
+    });
+Excel.WorksheetCollection.onDeactivated:
+  - |-
+    await Excel.run(async (context) => {
+        let sheets = context.workbook.worksheets;
+        sheets.onDeactivated.add(onDeactivate);
+
+        await context.sync();
+
+        OfficeHelpers.UI.notify("A handler has been registered for the OnDeactivate event",
+            "Try selecting a different worksheet, and watch the console output.");   
+    });
+Excel.WorksheetCollection.onActivated:
+  - |-
+    await Excel.run(async (context) => {
+        let sheets = context.workbook.worksheets;
+        sheets.onActivated.add(onActivate);
+
+        await context.sync();
+
+        OfficeHelpers.UI.notify("A handler has been registered for the OnActivate event",
+            "Try selecting a different worksheet, and watch the console output.");   
+    });
+Excel.Worksheet.onChanged:
+  - |-
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        sheet.onChanged.add(onChange);
+
+        await context.sync();
+
+        OfficeHelpers.UI.notify("A handler has been registered for the onChanged event.");
+    });
+Excel.WorksheetAddedEventArgs.worksheetId:
+  - |-
+    async function onWorksheetAdd(event) {
+        await Excel.run(async (context) => {
+            console.log("Handler for worksheet onAdded event has been triggered.  Newly added worksheet Id : " + event.worksheetId);
+        });
+    }
+Excel.WorksheetCollection.onAdded:
+  - |-
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets;
+        sheet.onAdded.add(onWorksheetAdd);
+
+        await context.sync();
+
+        OfficeHelpers.UI.notify("A handler has been registered for the OnAdded event",
+            "Try adding a worksheet, and watch the console output.");
+    });
+Excel.Worksheet.showGridlines:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        sheet.showGridlines = true;
+
+        await context.sync();
+    });
+Excel.Range.set:
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B2:M5");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.colorScale);
-        const criteria = {
-            minimum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.lowestValue, color: "blue" },
-            midpoint: { formula: "50", type: Excel.ConditionalFormatColorCriterionType.percent, color: "yellow" },
-            maximum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.highestValue, color: "red" }
-        };
-        conditionalFormat.colorScale.criteria = criteria;
 
+        const range = sheet.getRange("B2:E2");
+        range.set({
+            format: {
+                fill: {
+                    color: "#4472C4"
+                },
+                font: {
+                    name: "Verdana",
+                    color: "white"
+                }
+            }
+        })
+        range.format.autofitColumns();
         await context.sync();
     });
-Excel.ConditionalFormat.colorScale:
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B2:M5");
+
+        const sourceRange = sheet.getRange("B2:E2");
+        sourceRange.load("format/fill/color, format/font/name, format/font/color");
+        await context.sync();
+
+        // Set properties based on the loaded and synced 
+        // source range.
+        const targetRange = sheet.getRange("B7:E7");
+        targetRange.set(sourceRange); 
+        targetRange.format.autofitColumns();
+        await context.sync();
+    });
+Excel.NamedItem.delete:
+  - |-
+    try {
+        await Excel.run(async (context) => {
+
+            const sheet = context.workbook.worksheets.getItem("Sample");
+
+            sheet.names.getItem("TotalAmount").delete();
+
+            // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
+            sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
+
+            await context.sync();
+
+        });
+    }
+    catch (error) {
+        OfficeHelpers.UI.notify(error);
+        OfficeHelpers.Utilities.log(error);
+    }
+Excel.DataPivotHierarchy.showAs:
+  - |-
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+        const farmDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold at Farm");        
+        const wholesaleDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold Wholesale");
+
+        farmDataHierarchy.load("showAs");
+        wholesaleDataHierarchy.load("showAs");
+        await context.sync();
+
+        // show the crates of each fruit type sold at the farm as a percentage of the column's total
+        let farmShowAs = farmDataHierarchy.showAs;
+        farmShowAs.calculation = Excel.ShowAsCalculation.percentOfColumnTotal;
+        farmShowAs.baseField = pivotTable.rowHierarchies.getItem("Type").fields.getItem("Type");
+        farmDataHierarchy.showAs = farmShowAs;
+
+        let wholesaleShowAs = wholesaleDataHierarchy.showAs;
+        wholesaleShowAs.calculation = Excel.ShowAsCalculation.percentOfColumnTotal;
+        wholesaleShowAs.baseField = pivotTable.rowHierarchies.getItem("Type").fields.getItem("Type");
+        wholesaleDataHierarchy.showAs = wholesaleShowAs;
+        await context.sync();
+    });
+Excel.ShowAsRule.baseItem:
+  - |-
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+        const farmDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold at Farm");
+        const wholesaleDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold Wholesale");
+
+        farmDataHierarchy.load("showAs");
+        wholesaleDataHierarchy.load("showAs");
+        await context.sync();
+
+        // show the difference between crate sales of the "A Farms" and the other farms
+        // this difference is both aggregated and shown for individual fruit types (where applicable)
+        let farmShowAs = farmDataHierarchy.showAs;
+        farmShowAs.calculation = Excel.ShowAsCalculation.differenceFrom;
+        farmShowAs.baseField = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm");
+        farmShowAs.baseItem = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm").items.getItem("A Farms");
+        farmDataHierarchy.showAs = farmShowAs;
+
+        let wholesaleShowAs = wholesaleDataHierarchy.showAs;
+        wholesaleShowAs.calculation = Excel.ShowAsCalculation.differenceFrom;
+        wholesaleShowAs.baseField = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm");
+        wholesaleShowAs.baseItem = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm").items.getItem("A Farms");
+        wholesaleDataHierarchy.showAs = wholesaleShowAs;
+        await context.sync();
+    });
+Excel.DataPivotHierarchy.name:
+  - |-
+    await Excel.run(async (context) => {
+        const dataHierarchies = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales").dataHierarchies
+        dataHierarchies.load("no-properties-needed");
+        await context.sync();
+
+        dataHierarchies.items[0].name = "Farm Sales";
+        dataHierarchies.items[1].name = "Wholesale";
+        await context.sync();
+    });
+Excel.PivotTable.delete:
+  - |-
+    await Excel.run(async (context) => {
+        context.workbook.worksheets.getItem("Pivot").pivotTables.getItem("Farm Sales").delete();
+
+        await context.sync();
+    });
+Excel.PivotTable.columnHierarchies:
+  - |-
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");       
+
+        // check if the PivotTable already has a column
+        const column = pivotTable.columnHierarchies.getItemOrNullObject("Farm");
+        column.load("id");
+        await context.sync();
+
+        if (column.isNullObject) {
+            // ading the farm column to the column hierarchy automatically removes it from the row hierarchy
+            pivotTable.columnHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+        } else {
+            pivotTable.columnHierarchies.remove(column);
+        }
+
+        await context.sync();
+    });
+Excel.PivotTable.dataHierarchies:
+  - |-
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
+        await context.sync();
+    });
+Excel.PivotTable.layout:
+  - |-
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+        pivotTable.layout.load("layoutType");
+        await context.sync();
+
+        // cycle between the three layout types
+        if (pivotTable.layout.layoutType === "Compact") {
+            pivotTable.layout.layoutType = "Outline";
+        } else if (pivotTable.layout.layoutType === "Outline") {
+            pivotTable.layout.layoutType = "Tabular";
+        } else {
+            pivotTable.layout.layoutType = "Compact";
+        }
+        await context.sync();
+        console.log("Pivot layout is now " + pivotTable.layout.layoutType);
+    });
+Excel.PivotTableCollection.add:
+  - |-
+    await Excel.run(async (context) => {
+        const rangeToAnalyze = context.workbook.worksheets.getItem("Data").getRange("A1:E21");
+        const rangeToPlacePivot = context.workbook.worksheets.getItem("Pivot").getRange("A2");
+        context.workbook.worksheets.getItem("Pivot").pivotTables.add("Farm Sales", rangeToAnalyze, rangeToPlacePivot);
+
+        await context.sync();
+    });
+Excel.PivotLayout.getDataBodyRange:
+  - |-
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+        // the layout controls the ranges used by the PivotTable
+        const range = pivotTable.layout.getDataBodyRange();
+
+        // get all the data hierarchy totals
+        const grandTotalRange = range.getLastRow();
+        grandTotalRange.load("address");
+        await context.sync();
+        
+        // use the wholesale and farm sale totals to make a final sum
+        const masterTotalRange = context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27");
+        masterTotalRange.formulas = [["All Crates", "=SUM(" + grandTotalRange.address + ")"]];
+        await context.sync();
+    });
+Excel.PivotTable.filterHierarchies:
+  - |-
+    async function filter(functionType: Excel.AggregationFunction) {
+        await Excel.run(async (context) => {
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+            const filters = pivotTable.filterHierarchies;
+            const filter = filters.getItemOrNullObject("Classification");
+            filter.load();
+            await context.sync();
+
+            // add the Classification hierarchy to the filter, if it's not already there
+            if (filter.isNullObject) {
+                filters.add(pivotTable.hierarchies.getItem("Classification"));
+                await context.sync();
+            }
+        });
+    }
+Excel.WorkbookProtection.protect:
+  - |-
+    await Excel.run(async (context) => {
+        let workbook = context.workbook;
+        workbook.load("protection/protected");
+
+        await context.sync();
+
+        if (!workbook.protection.protected) {
+            workbook.protection.protect();
+        }
+    });
+  - |-
+    let password = await passwordHandler();
+    passwordHelper(password);
+    await Excel.run(async (context) => {
+        let workbook = context.workbook;
+        workbook.load("protection/protected");
+
+        await context.sync();
+
+        if (!workbook.protection.protected) {
+            workbook.protection.protect(password);
+        }
+    });
+Excel.WorkbookProtection.unprotect:
+  - |-
+    await Excel.run(async (context) => {
+        let workbook = context.workbook;
+        workbook.protection.unprotect();
+    });
+  - |-
+    let password = await passwordHandler();
+    passwordHelper(password);
+    await Excel.run(async (context) => {
+        let workbook = context.workbook;
+        workbook.protection.unprotect(password);
+    });
+Excel.WorksheetProtection.protect:
+  - |-
+    await Excel.run(async (context) => {
+        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+        activeSheet.load("protection/protected");
+
+        await context.sync();
+
+        if (!activeSheet.protection.protected) {
+            activeSheet.protection.protect();
+        }
+    });
+  - |-
+    let password = await passwordHandler();
+    passwordHelper(password);
+    await Excel.run(async (context) => {
+        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+        activeSheet.load("protection/protected");
+
+        await context.sync();
+
+        if (!activeSheet.protection.protected) {
+            activeSheet.protection.protect(null, password);
+        }
+    });
+Excel.WorksheetProtection.unprotect:
+  - |-
+    await Excel.run(async (context) => {
+        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+        activeSheet.protection.unprotect();
+    });
+  - |-
+    let password = await passwordHandler();
+    passwordHelper(password);
+    await Excel.run(async (context) => {
+        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
+        activeSheet.protection.unprotect(password);
+    });
+Excel.CellValueConditionalFormat.format:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
         const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.colorScale);
-        const criteria = {
-            minimum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.lowestValue, color: "blue" },
-            midpoint: { formula: "50", type: Excel.ConditionalFormatColorCriterionType.percent, color: "yellow" },
-            maximum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.highestValue, color: "red" }
-        };
-        conditionalFormat.colorScale.criteria = criteria;
+            .add(Excel.ConditionalFormatType.cellValue);
+        conditionalFormat.cellValue.format.font.color = "red";
+        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+
+        await context.sync();
+    });
+Excel.CellValueConditionalFormat.rule:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.cellValue);
+        conditionalFormat.cellValue.format.font.color = "red";
+        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
 
         await context.sync();
     });
 Excel.ColorScaleConditionalFormat.criteria:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B2:M5");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.colorScale);
+        const criteria = {
+            minimum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.lowestValue, color: "blue" },
+            midpoint: { formula: "50", type: Excel.ConditionalFormatColorCriterionType.percent, color: "yellow" },
+            maximum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.highestValue, color: "red" }
+        };
+        conditionalFormat.colorScale.criteria = criteria;
+
+        await context.sync();
+    });
+Excel.ConditionalCellValueRule.formula1:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.cellValue);
+        conditionalFormat.cellValue.format.font.color = "red";
+        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+
+        await context.sync();
+    });
+Excel.ConditionalCellValueRule.operator:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.cellValue);
+        conditionalFormat.cellValue.format.font.color = "red";
+        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+
+        await context.sync();
+    });
+Excel.ConditionalFormat.colorScale:
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
@@ -732,52 +1243,7 @@ Excel.ConditionalFormat.preset:
 
         await context.sync();
     });
-Excel.PresetCriteriaConditionalFormat.rule:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B2:M5");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.presetCriteria);
-        conditionalFormat.preset.format.font.color = "white";
-        conditionalFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevAboveAverage };
-
-        await context.sync();
-    });
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B8:E13");
-        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
-        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
-        conditionalFormat.custom.format.font.color = "green";
-
-        await context.sync();
-    });
-Excel.ConditionalPresetCriteriaRule.criterion:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B2:M5");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.presetCriteria);
-        conditionalFormat.preset.format.font.color = "white";
-        conditionalFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevAboveAverage };
-
-        await context.sync();
-    });
 Excel.ConditionalFormat.dataBar:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B8:E13");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.dataBar);
-        conditionalFormat.dataBar.barDirection = Excel.ConditionalDataBarDirection.leftToRight;
-
-        await context.sync();
-    });
-Excel.DataBarConditionalFormat.barDirection:
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
@@ -828,83 +1294,178 @@ Excel.ConditionalFormat.iconSet:
 
         await context.sync();
     });
-Excel.IconSetConditionalFormat.style:
+Excel.ConditionalFormat.textComparison:
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B8:E13");
+        const range = sheet.getRange("B16:D18");
         const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.iconSet);
-        const iconSetCF = conditionalFormat.iconSet;
-        iconSetCF.style = Excel.IconSet.threeTriangles;
-
-        /*
-            The iconSetCF.criteria array is automatically prepopulated with
-            criterion elements whose properties have been given default settings.
-            You can't write to each property of a criterion directly. Instead,
-            replace the whole criteria object.
-
-            With a "three*" icon set style, such as "threeTriangles", the third
-            element in the criteria array (criteria[2]) defines the "top" icon;
-            e.g., a green triangle. The second (criteria[1]) defines the "middle"
-            icon, The first (criteria[0]) defines the "low" icon, but it
-            can often be left empty as this method does below, because every
-            cell that does not match the other two criteria always gets the low
-            icon.            
-        */
-        iconSetCF.criteria = [
-            {} as any,
-            {
-                type: Excel.ConditionalFormatIconRuleType.number,
-                operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
-                formula: "=700"
-            },
-            {
-                type: Excel.ConditionalFormatIconRuleType.number,
-                operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
-                formula: "=1000",
-            }
-        ];
+            .add(Excel.ConditionalFormatType.containsText);
+        conditionalFormat.textComparison.format.font.color = "red";
+        conditionalFormat.textComparison.rule = { operator: Excel.ConditionalTextOperator.contains, text: "Delayed" };
 
         await context.sync();
     });
-Excel.IconSetConditionalFormat.criteria:
+Excel.ConditionalFormat.cellValue:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.cellValue);
+        conditionalFormat.cellValue.format.font.color = "red";
+        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+
+        await context.sync();
+    });
+Excel.ConditionalFormat.custom:
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
         const range = sheet.getRange("B8:E13");
+        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
+        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
+        conditionalFormat.custom.format.font.color = "green";
+
+        await context.sync();
+    });
+Excel.ConditionalFormat.type:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const worksheetRange = sheet.getRange();
+        worksheetRange.conditionalFormats.load("type");
+
+        await context.sync();
+
+        let cfRangePairs: { cf: Excel.ConditionalFormat, range: Excel.Range }[] = [];
+        worksheetRange.conditionalFormats.items.forEach(item => {
+            cfRangePairs.push({
+                cf: item,
+                range: item.getRange().load("address")
+            });
+        });
+
+        await context.sync();
+
+        $("#conditional-formats li").remove();
+        if (cfRangePairs.length > 0) {
+            cfRangePairs.forEach(item => {
+                let $p = $("<p></p>").text(
+                    `${item.cf.type}`)
+                let $li = $(`<li></li>`);
+                $li.append($p);
+                $("#conditional-formats").append($li);
+                $(".conditional-formats").show()[0].scrollIntoView();
+            })
+        }
+        else {
+            OfficeHelpers.UI.notify("None to display", "No conditional formats in workbook", "warning");
+        }
+    });
+Excel.ConditionalFormat.getRange:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const worksheetRange = sheet.getRange();
+        worksheetRange.conditionalFormats.load("type");
+
+        await context.sync();
+
+        let cfRangePairs: { cf: Excel.ConditionalFormat, range: Excel.Range }[] = [];
+        worksheetRange.conditionalFormats.items.forEach(item => {
+            cfRangePairs.push({
+                cf: item,
+                range: item.getRange().load("address")
+            });
+        });
+
+        await context.sync();
+
+        $("#conditional-formats li").remove();
+        if (cfRangePairs.length > 0) {
+            cfRangePairs.forEach(item => {
+                let $p = $("<p></p>").text(
+                    `${item.cf.type}`)
+                let $li = $(`<li></li>`);
+                $li.append($p);
+                $("#conditional-formats").append($li);
+                $(".conditional-formats").show()[0].scrollIntoView();
+            })
+        }
+        else {
+            OfficeHelpers.UI.notify("None to display", "No conditional formats in workbook", "warning");
+        }
+    });
+Excel.ConditionalFormatCollection.add:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B2:M5");
         const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.iconSet);
-        const iconSetCF = conditionalFormat.iconSet;
-        iconSetCF.style = Excel.IconSet.threeTriangles;
+            .add(Excel.ConditionalFormatType.colorScale);
+        const criteria = {
+            minimum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.lowestValue, color: "blue" },
+            midpoint: { formula: "50", type: Excel.ConditionalFormatColorCriterionType.percent, color: "yellow" },
+            maximum: { formula: null, type: Excel.ConditionalFormatColorCriterionType.highestValue, color: "red" }
+        };
+        conditionalFormat.colorScale.criteria = criteria;
 
-        /*
-            The iconSetCF.criteria array is automatically prepopulated with
-            criterion elements whose properties have been given default settings.
-            You can't write to each property of a criterion directly. Instead,
-            replace the whole criteria object.
+        await context.sync();
+    });
+Excel.ConditionalFormatCollection.getItemAt:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const worksheetRange = sheet.getRange();
+        worksheetRange.conditionalFormats.load("type");
 
-            With a "three*" icon set style, such as "threeTriangles", the third
-            element in the criteria array (criteria[2]) defines the "top" icon;
-            e.g., a green triangle. The second (criteria[1]) defines the "middle"
-            icon, The first (criteria[0]) defines the "low" icon, but it
-            can often be left empty as this method does below, because every
-            cell that does not match the other two criteria always gets the low
-            icon.            
-        */
-        iconSetCF.criteria = [
-            {} as any,
-            {
-                type: Excel.ConditionalFormatIconRuleType.number,
-                operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
-                formula: "=700"
-            },
-            {
-                type: Excel.ConditionalFormatIconRuleType.number,
-                operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
-                formula: "=1000",
-            }
-        ];
+        await context.sync();
+
+        let cfRangePairs: { cf: Excel.ConditionalFormat, range: Excel.Range }[] = [];
+        worksheetRange.conditionalFormats.items.forEach(item => {
+            cfRangePairs.push({
+                cf: item,
+                range: item.getRange().load("address")
+            });
+        });
+
+        await context.sync();
+
+        $("#conditional-formats li").remove();
+        if (cfRangePairs.length > 0) {
+            cfRangePairs.forEach(item => {
+                let $p = $("<p></p>").text(
+                    `${item.cf.type}`)
+                let $li = $(`<li></li>`);
+                $li.append($p);
+                $("#conditional-formats").append($li);
+                $(".conditional-formats").show()[0].scrollIntoView();
+            })
+        }
+        else {
+            OfficeHelpers.UI.notify("None to display", "No conditional formats in workbook", "warning");
+        }
+    });
+Excel.ConditionalFormatCollection.clearAll:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange();
+        range.conditionalFormats.clearAll();
+
+        await context.sync();
+
+        $(".conditional-formats").hide();
+    });
+Excel.ConditionalFormatRule.formula:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B8:E13");
+        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
+        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
+        conditionalFormat.custom.format.font.color = "green";
 
         await context.sync();
     });
@@ -1039,7 +1600,19 @@ Excel.ConditionalIconCriterion.formula:
 
         await context.sync();
     });
-Excel.ConditionalFormat.textComparison:
+Excel.ConditionalPresetCriteriaRule.criterion:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B2:M5");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.presetCriteria);
+        conditionalFormat.preset.format.font.color = "white";
+        conditionalFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevAboveAverage };
+
+        await context.sync();
+    });
+Excel.ConditionalTextComparisonRule.text:
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
@@ -1048,6 +1621,130 @@ Excel.ConditionalFormat.textComparison:
             .add(Excel.ConditionalFormatType.containsText);
         conditionalFormat.textComparison.format.font.color = "red";
         conditionalFormat.textComparison.rule = { operator: Excel.ConditionalTextOperator.contains, text: "Delayed" };
+
+        await context.sync();
+    });
+Excel.CustomConditionalFormat.format:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B8:E13");
+        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
+        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
+        conditionalFormat.custom.format.font.color = "green";
+
+        await context.sync();
+    });
+Excel.DataBarConditionalFormat.barDirection:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B8:E13");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.dataBar);
+        conditionalFormat.dataBar.barDirection = Excel.ConditionalDataBarDirection.leftToRight;
+
+        await context.sync();
+    });
+Excel.IconSetConditionalFormat.style:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B8:E13");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.iconSet);
+        const iconSetCF = conditionalFormat.iconSet;
+        iconSetCF.style = Excel.IconSet.threeTriangles;
+
+        /*
+            The iconSetCF.criteria array is automatically prepopulated with
+            criterion elements whose properties have been given default settings.
+            You can't write to each property of a criterion directly. Instead,
+            replace the whole criteria object.
+
+            With a "three*" icon set style, such as "threeTriangles", the third
+            element in the criteria array (criteria[2]) defines the "top" icon;
+            e.g., a green triangle. The second (criteria[1]) defines the "middle"
+            icon, The first (criteria[0]) defines the "low" icon, but it
+            can often be left empty as this method does below, because every
+            cell that does not match the other two criteria always gets the low
+            icon.            
+        */
+        iconSetCF.criteria = [
+            {} as any,
+            {
+                type: Excel.ConditionalFormatIconRuleType.number,
+                operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
+                formula: "=700"
+            },
+            {
+                type: Excel.ConditionalFormatIconRuleType.number,
+                operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
+                formula: "=1000",
+            }
+        ];
+
+        await context.sync();
+    });
+Excel.IconSetConditionalFormat.criteria:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B8:E13");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.iconSet);
+        const iconSetCF = conditionalFormat.iconSet;
+        iconSetCF.style = Excel.IconSet.threeTriangles;
+
+        /*
+            The iconSetCF.criteria array is automatically prepopulated with
+            criterion elements whose properties have been given default settings.
+            You can't write to each property of a criterion directly. Instead,
+            replace the whole criteria object.
+
+            With a "three*" icon set style, such as "threeTriangles", the third
+            element in the criteria array (criteria[2]) defines the "top" icon;
+            e.g., a green triangle. The second (criteria[1]) defines the "middle"
+            icon, The first (criteria[0]) defines the "low" icon, but it
+            can often be left empty as this method does below, because every
+            cell that does not match the other two criteria always gets the low
+            icon.            
+        */
+        iconSetCF.criteria = [
+            {} as any,
+            {
+                type: Excel.ConditionalFormatIconRuleType.number,
+                operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
+                formula: "=700"
+            },
+            {
+                type: Excel.ConditionalFormatIconRuleType.number,
+                operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
+                formula: "=1000",
+            }
+        ];
+
+        await context.sync();
+    });
+Excel.PresetCriteriaConditionalFormat.rule:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B2:M5");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.presetCriteria);
+        conditionalFormat.preset.format.font.color = "white";
+        conditionalFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevAboveAverage };
+
+        await context.sync();
+    });
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B8:E13");
+        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
+        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
+        conditionalFormat.custom.format.font.color = "green";
 
         await context.sync();
     });
@@ -1075,223 +1772,95 @@ Excel.TextConditionalFormat.rule:
 
         await context.sync();
     });
-Excel.ConditionalTextComparisonRule.text:
+Excel.Range.getIntersectionOrNullObject:
   - |-
     await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B16:D18");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.containsText);
-        conditionalFormat.textComparison.format.font.color = "red";
-        conditionalFormat.textComparison.rule = { operator: Excel.ConditionalTextOperator.contains, text: "Delayed" };
+        const sheet = context.workbook.worksheets.getItem("Sample");    
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const dataRange = salesTable.getDataBodyRange();
 
-        await context.sync();
-    });
-Excel.ConditionalFormat.cellValue:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B21:E23");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.cellValue);
-        conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        // We want the most recent quarter that has data, so 
+        // exclude quarters without data and get the last of 
+        // the remaining columns.
+        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
+        const currentQuarterRange = usedDataRange.getLastColumn();
 
-        await context.sync();
-    });
-Excel.CellValueConditionalFormat.format:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B21:E23");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.cellValue);
-        conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        // Asian and European teams have separate contests.
+        const asianSalesRange = sheet.getRange("A2:E4");
+        const europeanSalesRange = sheet.getRange("A5:E7");
 
-        await context.sync();
-    });
-Excel.CellValueConditionalFormat.rule:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B21:E23");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.cellValue);
-        conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        // The data for each chart is the intersection of 
+        // the current quarter column and the rows for the 
+        // continent.
+        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
 
-        await context.sync();
-    });
-Excel.ConditionalCellValueRule.formula1:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B21:E23");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.cellValue);
-        conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
-
-        await context.sync();
-    });
-Excel.ConditionalCellValueRule.operator:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B21:E23");
-        const conditionalFormat = range.conditionalFormats
-            .add(Excel.ConditionalFormatType.cellValue);
-        conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
-
-        await context.sync();
-    });
-Excel.ConditionalFormat.custom:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B8:E13");
-        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
-        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
-        conditionalFormat.custom.format.font.color = "green";
-
-        await context.sync();
-    });
-Excel.CustomConditionalFormat.format:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B8:E13");
-        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
-        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
-        conditionalFormat.custom.format.font.color = "green";
-
-        await context.sync();
-    });
-Excel.ConditionalFormatRule.formula:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B8:E13");
-        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
-        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
-        conditionalFormat.custom.format.font.color = "green";
-
-        await context.sync();
-    });
-Excel.ConditionalFormat.type:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const worksheetRange = sheet.getRange();
-        worksheetRange.conditionalFormats.load("type");
-
+        // Must sync before you can test the output of *OrNullObject 
+        // method/property.
         await context.sync();
 
-        let cfRangePairs: { cf: Excel.ConditionalFormat, range: Excel.Range }[] = [];
-        worksheetRange.conditionalFormats.items.forEach(item => {
-            cfRangePairs.push({
-                cf: item,
-                range: item.getRange().load("address")
-            });
-        });
-
-        await context.sync();
-
-        $("#conditional-formats li").remove();
-        if (cfRangePairs.length > 0) {
-            cfRangePairs.forEach(item => {
-                let $p = $("<p></p>").text(
-                    `${item.cf.type}`)
-                let $li = $(`<li></li>`);
-                $li.append($p);
-                $("#conditional-formats").append($li);
-                $(".conditional-formats").show()[0].scrollIntoView();
-            })
+        if (asianContestRange.isNullObject) {
+            // See the declaration of this method for how to 
+            // test this code path.
+            reportMissingData("Asian");
+        } else {
+            createContinentChart(sheet, "Asian", asianContestRange, "A9", "F24");
         }
-        else {
-            OfficeHelpers.UI.notify("None to display", "No conditional formats in workbook", "warning");
+
+        if (europeanContestRange.isNullObject) {
+            // See the declaration of this method for how to 
+            // test this code path.
+            reportMissingData("European");
+        } else {
+            createContinentChart(sheet, "European", europeanContestRange, "A25", "F40");
         }
+
+        await context.sync();
     });
-Excel.ConditionalFormatCollection.getItemAt:
+Excel.Range.getUsedRange:
   - |-
     await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const worksheetRange = sheet.getRange();
-        worksheetRange.conditionalFormats.load("type");
+        const sheet = context.workbook.worksheets.getItem("Sample");    
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const dataRange = salesTable.getDataBodyRange();
 
+        // We want the most recent quarter that has data, so 
+        // exclude quarters without data and get the last of 
+        // the remaining columns.
+        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
+        const currentQuarterRange = usedDataRange.getLastColumn();
+
+        // Asian and European teams have separate contests.
+        const asianSalesRange = sheet.getRange("A2:E4");
+        const europeanSalesRange = sheet.getRange("A5:E7");
+
+        // The data for each chart is the intersection of 
+        // the current quarter column and the rows for the 
+        // continent.
+        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+
+        // Must sync before you can test the output of *OrNullObject 
+        // method/property.
         await context.sync();
 
-        let cfRangePairs: { cf: Excel.ConditionalFormat, range: Excel.Range }[] = [];
-        worksheetRange.conditionalFormats.items.forEach(item => {
-            cfRangePairs.push({
-                cf: item,
-                range: item.getRange().load("address")
-            });
-        });
-
-        await context.sync();
-
-        $("#conditional-formats li").remove();
-        if (cfRangePairs.length > 0) {
-            cfRangePairs.forEach(item => {
-                let $p = $("<p></p>").text(
-                    `${item.cf.type}`)
-                let $li = $(`<li></li>`);
-                $li.append($p);
-                $("#conditional-formats").append($li);
-                $(".conditional-formats").show()[0].scrollIntoView();
-            })
+        if (asianContestRange.isNullObject) {
+            // See the declaration of this method for how to 
+            // test this code path.
+            reportMissingData("Asian");
+        } else {
+            createContinentChart(sheet, "Asian", asianContestRange, "A9", "F24");
         }
-        else {
-            OfficeHelpers.UI.notify("None to display", "No conditional formats in workbook", "warning");
+
+        if (europeanContestRange.isNullObject) {
+            // See the declaration of this method for how to 
+            // test this code path.
+            reportMissingData("European");
+        } else {
+            createContinentChart(sheet, "European", europeanContestRange, "A25", "F40");
         }
-    });
-Excel.ConditionalFormat.getRange:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const worksheetRange = sheet.getRange();
-        worksheetRange.conditionalFormats.load("type");
 
         await context.sync();
-
-        let cfRangePairs: { cf: Excel.ConditionalFormat, range: Excel.Range }[] = [];
-        worksheetRange.conditionalFormats.items.forEach(item => {
-            cfRangePairs.push({
-                cf: item,
-                range: item.getRange().load("address")
-            });
-        });
-
-        await context.sync();
-
-        $("#conditional-formats li").remove();
-        if (cfRangePairs.length > 0) {
-            cfRangePairs.forEach(item => {
-                let $p = $("<p></p>").text(
-                    `${item.cf.type}`)
-                let $li = $(`<li></li>`);
-                $li.append($p);
-                $("#conditional-formats").append($li);
-                $(".conditional-formats").show()[0].scrollIntoView();
-            })
-        }
-        else {
-            OfficeHelpers.UI.notify("None to display", "No conditional formats in workbook", "warning");
-        }
-    });
-Excel.ConditionalFormatCollection.clearAll:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange();
-        range.conditionalFormats.clearAll();
-
-        await context.sync();
-
-        $(".conditional-formats").hide();
     });
 Excel.Range.hyperlink:
   - |-
@@ -1433,6 +2002,34 @@ Excel.RangeHyperlink.documentReference:
 
         OfficeHelpers.UI.notify("Created a hyperlink to a location in this workbook for each of the products in the second table.");
     });
+Excel.Range.getUsedRangeOrNullObject:
+  - |-
+    await Excel.run(async (context) => {
+
+        const sheet = context.workbook.worksheets.getItem("Sample");    
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const dataRange = salesTable.getDataBodyRange();
+
+        // Pass true so only cells with values count as used 
+        const usedDataRange = dataRange.getUsedRangeOrNullObject(true /* valuesOnly */);
+
+        //Must sync before reading value returned from *OrNullObject method/property.
+        await context.sync();
+
+        if (usedDataRange.isNullObject) {
+            OfficeHelpers.UI.notify("Need Data to Make Chart", "To create a meaningful chart, add names to the Product column and numbers to some of the other cells. Then press 'Try to create chart' again.");            
+        } else {            
+            const chart = sheet.charts.add(Excel.ChartType.columnClustered, dataRange, "Columns");
+            chart.setPosition("A15", "F30");
+            chart.title.text = "Quarterly sales chart";
+            chart.legend.position = "Right";
+            chart.legend.format.fill.setSolidColor("white");
+            chart.dataLabels.format.font.size = 15;
+            chart.dataLabels.format.font.color = "black";
+        }
+
+        await context.sync();
+    });
 Excel.RangeFormat.textOrientation:
   - |-
     await Excel.run(async (context) => {
@@ -1445,254 +2042,41 @@ Excel.RangeFormat.textOrientation:
 
         await context.sync();
     });
-Excel.WorksheetFreezePanes.freezeAt:
+Excel.Setting.delete:
   - |-
     await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        // Freeze the specified range in top-and-left-most pane of the worksheet.
-        sheet.freezePanes.freezeAt(sheet.getRange("H2:K5"));
-
-        await context.sync();
-    });
-Excel.WorksheetFreezePanes.freezeColumns:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        // Freeze the first two columns in the worksheet.
-        sheet.freezePanes.freezeColumns(2);
-
-        await context.sync();
-    });
-Excel.WorksheetFreezePanes.freezeRows:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        // Freeze the top two rows in the worksheet.
-        sheet.freezePanes.freezeRows(2);
-
-        await context.sync();
-    });
-Excel.WorksheetFreezePanes.getLocationOrNullObject:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const frozenRange = sheet.freezePanes.getLocationOrNullObject();
-        frozenRange.load("address");
+        const settings = context.workbook.settings;
+        let needsReview = settings.getItem("NeedsReview");
+        needsReview.delete();
+        needsReview = settings.getItemOrNullObject("NeedsReview");
 
         await context.sync();
 
-        if (frozenRange.isNullObject) {
-            OfficeHelpers.UI.notify(`The worksheet does not contain a frozen pane.`);
+        if (needsReview.isNullObject) {
+            OfficeHelpers.UI.notify("The setting has been deleted");
         } else {
-            OfficeHelpers.UI.notify(`The address of the frozen range (cells that are frozen in the top-and-left-most pane) is "${frozenRange.address}"`);
+            OfficeHelpers.UI.notify("The setting was not deleted");
         }
-    });
-Excel.WorksheetFreezePanes.unfreeze:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        sheet.freezePanes.unfreeze();
 
         await context.sync();
     });
-Excel.Worksheet.showGridlines:
+Excel.SettingCollection.getItemOrNullObject:
   - |-
     await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        sheet.showGridlines = true;
-
-        await context.sync();
-    });
-Excel.Worksheet.tabColor:
-  - |-
-    await Excel.run(async (context) => {
-        const activeSheet = context.workbook.worksheets.getActiveWorksheet();
-        activeSheet.tabColor = "#FF0000";
-
-        await context.sync();
-    });
-Excel.ChartTrendlineCollection.add:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let seriesCollection = sheet.charts.getItemAt(0).series;
-
-         // Add a trendline.  
-        seriesCollection.getItemAt(0).trendlines.add("Linear");
-
-        await context.sync();
-    });
-Excel.ChartTrendline.type:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let seriesCollection = sheet.charts.getItemAt(0).series;
-
-        // Get the trendline for series 1 and load its type property.  
-        let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
-        trendline.load("type");
+        const settings = context.workbook.settings;
+        let needsReview = settings.getItem("NeedsReview");
+        needsReview.delete();
+        needsReview = settings.getItemOrNullObject("NeedsReview");
 
         await context.sync();
 
-        console.log("The trendline type is:" + trendline.type);  
-    });
-Excel.ChartTrendlineFormat.line:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let seriesCollection = sheet.charts.getItemAt(0).series; 
-
-        // Get the color of the chart trendline. 
-        // In this example, it's #4472c4 which is blue.
-        let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
-        let line = trendline.format.line;
-        line.load("color");
+        if (needsReview.isNullObject) {
+            OfficeHelpers.UI.notify("The setting has been deleted");
+        } else {
+            OfficeHelpers.UI.notify("The setting was not deleted");
+        }
 
         await context.sync();
-
-        console.log("The trendline color is:" + line.color);
-    });
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let seriesCollection = sheet.charts.getItemAt(0).series; 
-        let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
-
-        // Set format of the trendline to a solid, red line.
-        let line = trendline.format.line;
-        line.color = '#FF0000';
-
-        await context.sync();
-
-        console.log("The trendline color has been set to:" + line.color);
-    });
-Excel.ChartSeries.delete:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let seriesCollection = sheet.charts.getItemAt(0).series;
-        let series = seriesCollection.getItemAt(0);
-
-        // Delete the first series.
-        series.delete();
-
-        await context.sync();
-    });
-Excel.ChartSeries.setValues:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let seriesCollection = sheet.charts.getItemAt(0).series;
-
-        // Add new series.
-        let series = seriesCollection.add("New Product");
-        let values = sheet.getRange("E2:E7");
-
-        // Set the vertical values for the series.
-        series.setValues(values);
-        seriesCollection.load("count");
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("Number of series  = " + seriesCollection.count);
-    });
-Excel.ChartAxis.displayUnit:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let chart = sheet.charts.getItemAt(0);
-        let categoryAxis = chart.axes.categoryAxis;
-        let valueAxis = chart.axes.valueAxis;
-
-        // Load to get display unit.
-        valueAxis.load("displayUnit");
-       
-        await context.sync();
-
-        OfficeHelpers.UI.notify("The vertical axis display unit is: " +  valueAxis.displayUnit);
-    });
-Excel.ChartAxis.showDisplayUnitLabel:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let chart = sheet.charts.getItemAt(0);
-        let axis = chart.axes.valueAxis;
-
-        // Remove display unit.
-        axis.showDisplayUnitLabel = false;
-
-        await context.sync();
-    });
-Excel.ChartLegendFormat.font:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let chart = sheet.charts.getItemAt(0);
-        chart.legend.visible = true;
-
-        // Format the legend font.
-        let font = chart.legend.format.font;
-        font.bold = true;
-        font.color = "red";
-        font.italic = true;
-        font.size = 15;
-        font.name = "Calibri";
-        font.underline = "Single";
-
-        await context.sync();
-    });
-Excel.ChartFill.setSolidColor:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        let pointsCollection = sheet.charts.getItemAt(0).series.getItemAt(0).points;
-        let point = pointsCollection.getItemAt(2);
-
-        // Set color for chart point.
-        point.format.fill.setSolidColor('red');
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("Successfully set chart point color to red (for the third item in series 1).");            
-    });
-Excel.Workbook.properties:
-  - |-
-    await Excel.run(async (context) => {
-        let titleValue = "Excel document properties API";
-        let subjectValue = "Set and get document properties";
-        let keywordsValue = "Set and get operations";
-        let commentsValue = "This is an Excel document properties API code sample";
-        let categoryValue = "Office Add-ins";
-        let managerValue = "John";
-        let companyValue = "Microsoft";
-
-        let docProperties = context.workbook.properties;
-
-        // Set the writeable document properties.
-        docProperties.title = titleValue;
-        docProperties.subject = subjectValue;
-        docProperties.keywords = keywordsValue;
-        docProperties.comments = commentsValue;
-        docProperties.category = categoryValue;
-        docProperties.manager = managerValue;
-        docProperties.company = companyValue;
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("Set the following document properties: title, subject, keywords, comments, category, manager, company.");
     });
 Excel.Range.style:
   - |-
@@ -1706,50 +2090,6 @@ Excel.Range.style:
         range.format.horizontalAlignment = "Right";
 
         await context.sync();
-    });
-Excel.StyleCollection.getItem:
-  - |-
-    await Excel.run(async (context) => {
-        let styles = context.workbook.styles;
-
-        // Add a new style to the style collection.
-        // Styles is in the Home tab ribbon.
-        styles.add("Diagonal Orientation Style");
-              
-        let newStyle = styles.getItem("Diagonal Orientation Style");
-        
-        // The "Diagonal Orientation Style" properties.
-        newStyle.textOrientation = 38;
-        newStyle.autoIndent = true;
-        newStyle.includeProtection = true;
-        newStyle.shrinkToFit = true;
-        newStyle.locked = false;
-        
-        await context.sync();
-
-        OfficeHelpers.UI.notify("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
-    });
-Excel.StyleCollection.add:
-  - |-
-    await Excel.run(async (context) => {
-        let styles = context.workbook.styles;
-
-        // Add a new style to the style collection.
-        // Styles is in the Home tab ribbon.
-        styles.add("Diagonal Orientation Style");
-              
-        let newStyle = styles.getItem("Diagonal Orientation Style");
-        
-        // The "Diagonal Orientation Style" properties.
-        newStyle.textOrientation = 38;
-        newStyle.autoIndent = true;
-        newStyle.includeProtection = true;
-        newStyle.shrinkToFit = true;
-        newStyle.locked = false;
-        
-        await context.sync();
-
-        OfficeHelpers.UI.notify("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
     });
 Excel.Style.font:
   - |-
@@ -1810,242 +2150,75 @@ Excel.Style.horizontalAlignment:
 
         await context.sync();
     });
-Excel.TableSelectionChangedEventArgs.address:
-  - |-
-    async function onSelectionChange(args) {
-        await Excel.run(async (context) => {
-            console.log("Handler for table onSelectionChanged event has been triggered.  The new selection is : " + args.address);
-        });
-    }
-Excel.Table.onChanged:
+Excel.StyleCollection.getItem:
   - |-
     await Excel.run(async (context) => {
-        let table = context.workbook.tables.getItemAt(0);
-        table.onChanged.add(onChange);
+        let styles = context.workbook.styles;
+
+        // Add a new style to the style collection.
+        // Styles is in the Home tab ribbon.
+        styles.add("Diagonal Orientation Style");
+              
+        let newStyle = styles.getItem("Diagonal Orientation Style");
+        
+        // The "Diagonal Orientation Style" properties.
+        newStyle.textOrientation = 38;
+        newStyle.autoIndent = true;
+        newStyle.includeProtection = true;
+        newStyle.shrinkToFit = true;
+        newStyle.locked = false;
+        
+        await context.sync();
+
+        OfficeHelpers.UI.notify("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
+    });
+Excel.StyleCollection.add:
+  - |-
+    await Excel.run(async (context) => {
+        let styles = context.workbook.styles;
+
+        // Add a new style to the style collection.
+        // Styles is in the Home tab ribbon.
+        styles.add("Diagonal Orientation Style");
+              
+        let newStyle = styles.getItem("Diagonal Orientation Style");
+        
+        // The "Diagonal Orientation Style" properties.
+        newStyle.textOrientation = 38;
+        newStyle.autoIndent = true;
+        newStyle.includeProtection = true;
+        newStyle.shrinkToFit = true;
+        newStyle.locked = false;
+        
+        await context.sync();
+
+        OfficeHelpers.UI.notify("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
+    });
+Excel.NamedItem.formula:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        // Get the named item
+        const myNamedItem = sheet.names.getItemOrNullObject("MyRange");
+        myNamedItem.load("name, formula");
 
         await context.sync();
 
-        OfficeHelpers.UI.notify("A handler has been registered for the onChanged event",
-            "Try changing a cell value in the table, and watch the console output.");
-    });
-Excel.Table.onSelectionChanged:
-  - |-
-    await Excel.run(async (context) => {
-        let table = context.workbook.tables.getItemAt(0);
-        table.onSelectionChanged.add(onSelectionChange);
+        if (myNamedItem.isNullObject) {
+            OfficeHelpers.UI.notify(`There is no named item with the name "MyRange".`);
+        } else {
+            
+            // Update named item to point to the second range
+            myNamedItem.formula = "=Sample!$B$10:$D$14";
 
-        await context.sync();
-
-        OfficeHelpers.UI.notify("A handler has been registered for table onSelectionChanged event",
-            "Try changing a range selection in the table, and watch the console output.");
-    });
-Excel.WorksheetCollection.onAdded:
-  - |-
-    await Excel.run(async (context) => {
-        let sheet = context.workbook.worksheets;
-        sheet.onAdded.add(onWorksheetAdd);
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("A handler has been registered for the OnAdded event",
-            "Try adding a worksheet, and watch the console output.");
-    });
-Excel.Worksheet.onChanged:
-  - |-
-    await Excel.run(async (context) => {
-        let sheet = context.workbook.worksheets.getItem("Sample");
-        sheet.onChanged.add(onChange);
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("A handler has been registered for the onChanged event.");
-    });
-Excel.WorksheetAddedEventArgs.worksheetId:
-  - |-
-    async function onWorksheetAdd(event) {
-        await Excel.run(async (context) => {
-            console.log("Handler for worksheet onAdded event has been triggered.  Newly added worksheet Id : " + event.worksheetId);
-        });
-    }
-Excel.WorksheetCollection.onDeactivated:
-  - |-
-    await Excel.run(async (context) => {
-        let sheets = context.workbook.worksheets;
-        sheets.onDeactivated.add(onDeactivate);
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("A handler has been registered for the OnDeactivate event",
-            "Try selecting a different worksheet, and watch the console output.");   
-    });
-Excel.WorksheetCollection.onActivated:
-  - |-
-    await Excel.run(async (context) => {
-        let sheets = context.workbook.worksheets;
-        sheets.onActivated.add(onActivate);
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("A handler has been registered for the OnActivate event",
-            "Try selecting a different worksheet, and watch the console output.");   
-    });
-Excel.ChartSeries.markerStyle:
-  - |-
-    await Excel.run(async (context) => {
-        let sheet = context.workbook.worksheets.getItem("Sample");
-        let salesTable = sheet.tables.getItem("SalesTable");
-        let dataRange = sheet.getRange("A1:E7");
-
-        // Create an XY scatter chart.
-        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
-        chart.title.text = "Bicycle Parts Quarterly Sales"; 
-      
-        let series = chart.series;
-        let series0 = series.getItemAt(0);
-        let series1 = series.getItemAt(1);
-        let series2 = series.getItemAt(2);
-        let series3 = series.getItemAt(3);
-
-        // Set markers.
-        series0.markerStyle = "Dash";
-        series0.markerForegroundColor = "black";
-        series1.markerStyle = "Star";
-        series1.markerForegroundColor = "black";
-        series2.markerStyle = "X";
-        series2.markerSize = 12;
-        series3.markerStyle = "Triangle";
-        series3.markerBackgroundColor = "purple";
-
-        await context.sync();
-    });
-Excel.ChartSeries.markerSize:
-  - |-
-    await Excel.run(async (context) => {
-        let sheet = context.workbook.worksheets.getItem("Sample");
-        let salesTable = sheet.tables.getItem("SalesTable");
-        let dataRange = sheet.getRange("A1:E7");
-
-        // Create an XY scatter chart.
-        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
-        chart.title.text = "Bicycle Parts Quarterly Sales"; 
-      
-        let series = chart.series;
-        let series0 = series.getItemAt(0);
-        let series1 = series.getItemAt(1);
-        let series2 = series.getItemAt(2);
-        let series3 = series.getItemAt(3);
-
-        // Set markers.
-        series0.markerStyle = "Dash";
-        series0.markerForegroundColor = "black";
-        series1.markerStyle = "Star";
-        series1.markerForegroundColor = "black";
-        series2.markerStyle = "X";
-        series2.markerSize = 12;
-        series3.markerStyle = "Triangle";
-        series3.markerBackgroundColor = "purple";
-
-        await context.sync();
-    });
-Excel.ChartSeries.markerForegroundColor:
-  - |-
-    await Excel.run(async (context) => {
-        let sheet = context.workbook.worksheets.getItem("Sample");
-        let salesTable = sheet.tables.getItem("SalesTable");
-        let dataRange = sheet.getRange("A1:E7");
-
-        // Create an XY scatter chart.
-        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
-        chart.title.text = "Bicycle Parts Quarterly Sales"; 
-      
-        let series = chart.series;
-        let series0 = series.getItemAt(0);
-        let series1 = series.getItemAt(1);
-        let series2 = series.getItemAt(2);
-        let series3 = series.getItemAt(3);
-
-        // Set markers.
-        series0.markerStyle = "Dash";
-        series0.markerForegroundColor = "black";
-        series1.markerStyle = "Star";
-        series1.markerForegroundColor = "black";
-        series2.markerStyle = "X";
-        series2.markerSize = 12;
-        series3.markerStyle = "Triangle";
-        series3.markerBackgroundColor = "purple";
-
-        await context.sync();
-    });
-Excel.ChartSeries.markerBackgroundColor:
-  - |-
-    await Excel.run(async (context) => {
-        let sheet = context.workbook.worksheets.getItem("Sample");
-        let salesTable = sheet.tables.getItem("SalesTable");
-        let dataRange = sheet.getRange("A1:E7");
-
-        // Create an XY scatter chart.
-        let chart = sheet.charts.add("XYScatterSmooth", dataRange, "Auto");
-        chart.title.text = "Bicycle Parts Quarterly Sales"; 
-      
-        let series = chart.series;
-        let series0 = series.getItemAt(0);
-        let series1 = series.getItemAt(1);
-        let series2 = series.getItemAt(2);
-        let series3 = series.getItemAt(3);
-
-        // Set markers.
-        series0.markerStyle = "Dash";
-        series0.markerForegroundColor = "black";
-        series1.markerStyle = "Star";
-        series1.markerForegroundColor = "black";
-        series2.markerStyle = "X";
-        series2.markerSize = 12;
-        series3.markerStyle = "Triangle";
-        series3.markerBackgroundColor = "purple";
-
-        await context.sync();
-    });
-Excel.TableCollection.onChanged:
-  - |-
-    await Excel.run(async (context) => {
-        let tables = context.workbook.tables;
-        tables.onChanged.add(onChange);
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("A handler has been registered for the table collection onChanged event",
-            "Try changing cell values in the tables, and watch the console output.");
-    });
-Excel.TableChangedEventArgs.worksheetId:
-  - |-
-    async function onChange(event) {
-        await Excel.run(async (context) => {
-            let table = context.workbook.tables.getItem(event.tableId);
-            let worksheet = context.workbook.worksheets.getItem(event.worksheetId);
-            worksheet.load("name");
+            sheet.getRange("B10:D14").select();
 
             await context.sync();
 
-            console.log("Handler for table collection onChanged event has been triggered.  Data changed address : " + event.address);
-            console.log("Table Id : " + event.tableId);
-            console.log("Worksheet Id : " + worksheet.name);
-        });
-    }
-Excel.TableChangedEventArgs.tableId:
-  - |-
-    async function onChange(event) {
-        await Excel.run(async (context) => {
-            let table = context.workbook.tables.getItem(event.tableId);
-            let worksheet = context.workbook.worksheets.getItem(event.worksheetId);
-            worksheet.load("name");
-
-            await context.sync();
-
-            console.log("Handler for table collection onChanged event has been triggered.  Data changed address : " + event.address);
-            console.log("Table Id : " + event.tableId);
-            console.log("Worksheet Id : " + worksheet.name);
-        });
-    }
+            OfficeHelpers.UI.notify(`Just updated the named item "${myNamedItem.name}" -- it's now located here: ${myNamedItem.formula}`);
+        }
+    });
 Excel.Workbook.getActiveCell:
   - |-
     await Excel.run(async (context) => {
@@ -2073,81 +2246,166 @@ Excel.Worksheet.copy:
 
         console.log("'" + sampleSheet.name + "' was copied to '" + copiedSheet.name + "'")
     });
-Excel.WorksheetProtection.protect:
+Excel.WorksheetFreezePanes.freezeAt:
   - |-
     await Excel.run(async (context) => {
-        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
-        activeSheet.load("protection/protected");
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        // Freeze the specified range in top-and-left-most pane of the worksheet.
+        sheet.freezePanes.freezeAt(sheet.getRange("H2:K5"));
+
+        await context.sync();
+    });
+Excel.WorksheetFreezePanes.freezeColumns:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        // Freeze the first two columns in the worksheet.
+        sheet.freezePanes.freezeColumns(2);
+
+        await context.sync();
+    });
+Excel.WorksheetFreezePanes.freezeRows:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        // Freeze the top two rows in the worksheet.
+        sheet.freezePanes.freezeRows(2);
+
+        await context.sync();
+    });
+Excel.WorksheetFreezePanes.getLocationOrNullObject:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const frozenRange = sheet.freezePanes.getLocationOrNullObject();
+        frozenRange.load("address");
 
         await context.sync();
 
-        if (!activeSheet.protection.protected) {
-            activeSheet.protection.protect();
+        if (frozenRange.isNullObject) {
+            OfficeHelpers.UI.notify(`The worksheet does not contain a frozen pane.`);
+        } else {
+            OfficeHelpers.UI.notify(`The address of the frozen range (cells that are frozen in the top-and-left-most pane) is "${frozenRange.address}"`);
         }
     });
+Excel.WorksheetFreezePanes.unfreeze:
   - |-
-    let password = await passwordHandler();
-    passwordHelper(password);
     await Excel.run(async (context) => {
-        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
-        activeSheet.load("protection/protected");
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        sheet.freezePanes.unfreeze();
+
+        await context.sync();
+    });
+Excel.Worksheet.getPrevious:
+  - |-
+    await Excel.run(async (context) => {
+        const sheets = context.workbook.worksheets;
+        const currentSheet = sheets.getActiveWorksheet();
+        const previousYearSheet = currentSheet.getPrevious();
+        const currentTaxDueRange = currentSheet.getRange("C2");
+        const previousTaxDueRange = previousYearSheet.getRange("C2");
+
+        currentSheet.load("name");
+        previousYearSheet.load("name");
+        currentTaxDueRange.load("text");
+        previousTaxDueRange.load("text");
 
         await context.sync();
 
-        if (!activeSheet.protection.protected) {
-            activeSheet.protection.protect(null, password);
-        }
+        let currentYear = currentSheet.name.substr(5, 4);
+        let previousYear = previousYearSheet.name.substr(5, 4);
+        OfficeHelpers.UI.notify("Two Year Tax Due Comparison", `Tax due for ${currentYear} was ${currentTaxDueRange.text[0][0]}\nTax due for ${previousYear} was ${previousTaxDueRange.text[0][0]}`)
+
+        await context.sync();
     });
-Excel.WorksheetProtection.unprotect:
+Excel.Worksheet.getNext:
   - |-
     await Excel.run(async (context) => {
-        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
-        activeSheet.protection.unprotect();
-    });
-  - |-
-    let password = await passwordHandler();
-    passwordHelper(password);
-    await Excel.run(async (context) => {
-        let activeSheet = context.workbook.worksheets.getActiveWorksheet();
-        activeSheet.protection.unprotect(password);
-    });
-Excel.WorkbookProtection.protect:
-  - |-
-    await Excel.run(async (context) => {
-        let workbook = context.workbook;
-        workbook.load("protection/protected");
+        const sheets = context.workbook.worksheets;
+
+        // We don't want to include the default worksheet that was created
+        // when the workbook was created, so our "firstSheet" will be the one
+        // after the literal first. Note chaining of navigation methods.
+        const firstSheet = sheets.getFirst().getNext();
+        const lastSheet = sheets.getLast();
+        const firstTaxRateRange = firstSheet.getRange("B2");
+        const lastTaxRateRange = lastSheet.getRange("B2");
+
+        firstSheet.load("name");
+        lastSheet.load("name");
+        firstTaxRateRange.load("text");
+        lastTaxRateRange.load("text");
 
         await context.sync();
 
-        if (!workbook.protection.protected) {
-            workbook.protection.protect();
-        }
+        let firstYear = firstSheet.name.substr(5, 4);
+        let lastYear = lastSheet.name.substr(5, 4);
+        OfficeHelpers.UI.notify(`Tax Rate change from ${firstYear} to ${lastYear}`, `Tax rate for ${firstYear}: ${firstTaxRateRange.text[0][0]}\nTax rate for ${lastYear}: ${lastTaxRateRange.text[0][0]}`)
+
+        await context.sync();
     });
+Excel.WorksheetCollection.getFirst:
   - |-
-    let password = await passwordHandler();
-    passwordHelper(password);
     await Excel.run(async (context) => {
-        let workbook = context.workbook;
-        workbook.load("protection/protected");
+        const sheets = context.workbook.worksheets;
+
+        // We don't want to include the default worksheet that was created
+        // when the workbook was created, so our "firstSheet" will be the one
+        // after the literal first. Note chaining of navigation methods.
+        const firstSheet = sheets.getFirst().getNext();
+        const lastSheet = sheets.getLast();
+        const firstTaxRateRange = firstSheet.getRange("B2");
+        const lastTaxRateRange = lastSheet.getRange("B2");
+
+        firstSheet.load("name");
+        lastSheet.load("name");
+        firstTaxRateRange.load("text");
+        lastTaxRateRange.load("text");
 
         await context.sync();
 
-        if (!workbook.protection.protected) {
-            workbook.protection.protect(password);
-        }
+        let firstYear = firstSheet.name.substr(5, 4);
+        let lastYear = lastSheet.name.substr(5, 4);
+        OfficeHelpers.UI.notify(`Tax Rate change from ${firstYear} to ${lastYear}`, `Tax rate for ${firstYear}: ${firstTaxRateRange.text[0][0]}\nTax rate for ${lastYear}: ${lastTaxRateRange.text[0][0]}`)
+
+        await context.sync();
     });
-Excel.WorkbookProtection.unprotect:
+Excel.WorksheetCollection.getLast:
   - |-
     await Excel.run(async (context) => {
-        let workbook = context.workbook;
-        workbook.protection.unprotect();
+        const sheets = context.workbook.worksheets;
+
+        // We don't want to include the default worksheet that was created
+        // when the workbook was created, so our "firstSheet" will be the one
+        // after the literal first. Note chaining of navigation methods.
+        const firstSheet = sheets.getFirst().getNext();
+        const lastSheet = sheets.getLast();
+        const firstTaxRateRange = firstSheet.getRange("B2");
+        const lastTaxRateRange = lastSheet.getRange("B2");
+
+        firstSheet.load("name");
+        lastSheet.load("name");
+        firstTaxRateRange.load("text");
+        lastTaxRateRange.load("text");
+
+        await context.sync();
+
+        let firstYear = firstSheet.name.substr(5, 4);
+        let lastYear = lastSheet.name.substr(5, 4);
+        OfficeHelpers.UI.notify(`Tax Rate change from ${firstYear} to ${lastYear}`, `Tax rate for ${firstYear}: ${firstTaxRateRange.text[0][0]}\nTax rate for ${lastYear}: ${lastTaxRateRange.text[0][0]}`)
+
+        await context.sync();
     });
+Excel.Worksheet.tabColor:
   - |-
-    let password = await passwordHandler();
-    passwordHelper(password);
     await Excel.run(async (context) => {
-        let workbook = context.workbook;
-        workbook.protection.unprotect(password);
+        const activeSheet = context.workbook.worksheets.getActiveWorksheet();
+        activeSheet.tabColor = "#FF0000";
+
+        await context.sync();
     });
 Word.InlinePicture.getBase64ImageSrc:
   - |-

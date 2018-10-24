@@ -14,6 +14,7 @@ script:
         $("#apply-icon-set-format").click(() => tryCatch(applyIconSetFormat));
         $("#apply-text-format").click(() => tryCatch(applyTextFormat));
         $("#apply-cell-value-format").click(() => tryCatch(applyCellValueFormat));
+        $("#apply-top-bottom-format").click(() => tryCatch(applyTopBottomFormat));
         $("#apply-custom-format").click(() => tryCatch(applyCustomFormat));
         $("#list-conditional-formats").click(() => tryCatch(listConditionalFormats));
         $("#clear-all-conditional-formats").click(() => tryCatch(clearAllConditionalFormats));
@@ -122,6 +123,19 @@ script:
                     .add(Excel.ConditionalFormatType.cellValue);
                 conditionalFormat.cellValue.format.font.color = "red";
                 conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+
+                await context.sync();
+            });
+        }
+
+        async function applyTopBottomFormat() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getRange("B21:E23");
+                const conditionalFormat = range.conditionalFormats
+                    .add(Excel.ConditionalFormatType.topBottom);
+                conditionalFormat.topBottom.format.fill.color = "green"
+                conditionalFormat.topBottom.rule = { rank: 1, type: "TopItems"}
 
                 await context.sync();
             });
@@ -316,6 +330,10 @@ template:
             <button id="apply-cell-value-format" class="ms-Button">
                 <span class="ms-Button-label">Apply cell value format</span>
             </button>
+            <label class="ms-font-s">Apply a green highlight to the highest value cell in the profit/loss table.</label>
+            <button id="apply-top-bottom-format" class="ms-Button">
+                <span class="ms-Button-label">Apply top bottom format</span>
+            </button>
             <label class="ms-font-s">Use green font for cell values higher than the previous quarter value in sales table.</label>
             <button id="apply-custom-format" class="ms-Button">
                 <span class="ms-Button-label">Apply custom format</span>
@@ -376,4 +394,4 @@ libraries: |
     @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
-    @types/jquery
+    @types/jquery@3.1.1

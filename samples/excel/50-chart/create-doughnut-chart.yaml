@@ -1,86 +1,98 @@
 order: 2
 id: excel-chart-create-doughnut-chart
 name: Doughnut chart
-description: Create a doughnut chart
+description: Create a doughnut chart and adjust the size
 author: OfficeDev
 host: EXCEL
 api_set:
-    ExcelApi: 1.1
+    ExcelApi: 1.7
 script:
     content: |
-        $("#setup").click(setup);
-        $("#create-doughnut-chart").click(createChart);
+        $("#setup").click(() => tryCatch(setup));
+        $("#create-doughnut-chart").click(() => tryCatch(createChart));
+        $("#add-series").click(() => tryCatch(addSeries));
 
         async function createChart() {
-            try {
-                Excel.run(async (context) => {
+            Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesByCategoryTable = sheet.tables.getItem("ExpensesByCategoryTable");
+                const dataRange = expensesByCategoryTable.getDataBodyRange();
 
-                    const sheet = context.workbook.worksheets.getItem("Sample");
+                let categoryChart = sheet.charts.add(Excel.ChartType.doughnut, dataRange, "Auto");
 
-                    const expensesByCategoryTable = sheet.tables.getItem("ExpensesByCategoryTable");
+                categoryChart.setPosition("A15", "F25");
+                categoryChart.title.text = "Expenses By Category";
+                categoryChart.title.format.font.size = 10;
+                categoryChart.title.format.font.name = "Corbel";
+                categoryChart.title.format.font.color = "#41AEBD";
+                categoryChart.legend.format.font.name = "Corbel";
+                categoryChart.legend.format.font.size = 8;
+                categoryChart.legend.position = "Right";
+                categoryChart.dataLabels.showPercentage = true;
+                categoryChart.dataLabels.format.font.size = 8;
+                categoryChart.dataLabels.format.font.color = "gray";
+                let points = categoryChart.series.getItemAt(0).points;
+                points.getItemAt(0).format.fill.setSolidColor("#0C8DB9");
+                points.getItemAt(1).format.fill.setSolidColor("#B1D9F7");
+                points.getItemAt(2).format.fill.setSolidColor("#4C66C5");
+                points.getItemAt(3).format.fill.setSolidColor("#5CC9EF");
+                points.getItemAt(4).format.fill.setSolidColor("#5CCBAD");
+                points.getItemAt(5).format.fill.setSolidColor("#A5E750");
 
-                    const dataRange = expensesByCategoryTable.getDataBodyRange();
+                await context.sync();
+            });
+        }
 
-                    let categoryChart = sheet.charts.add(Excel.ChartType.doughnut, dataRange, "Auto");
+        async function addSeries() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
 
-                    categoryChart.setPosition("A15", "F25");
-                    categoryChart.title.text = "Expenses By Category";
-                    categoryChart.title.format.font.size = 10;
-                    categoryChart.title.format.font.name = "Corbel";
-                    categoryChart.title.format.font.color = "#41AEBD";
-                    categoryChart.legend.format.font.name = "Corbel";
-                    categoryChart.legend.format.font.size = 8;
-                    categoryChart.legend.position = "Right";
-                    categoryChart.dataLabels.showPercentage = true;
-                    categoryChart.dataLabels.format.font.size = 8;
-                    categoryChart.dataLabels.format.font.color = "white";
-                    let points = categoryChart.series.getItemAt(0).points;
-                    points.getItemAt(0).format.fill.setSolidColor("#0C8DB9");
-                    points.getItemAt(1).format.fill.setSolidColor("#B1D9F7");
-                    points.getItemAt(2).format.fill.setSolidColor("#4C66C5");
-                    points.getItemAt(3).format.fill.setSolidColor("#5CC9EF");
-                    points.getItemAt(4).format.fill.setSolidColor("#5CCBAD");
-                    points.getItemAt(5).format.fill.setSolidColor("#A5E750");
+                let seriesCollection = sheet.charts.getItemAt(0);
+                let rangeSelection = sheet.getRange("C2:C7");
+                let xRangeSelection = sheet.getRange("A1:A7");
 
-                    await context.sync();
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                // Add a series.
+                let newSeries = seriesCollection.series.add("Qtr2");
+                newSeries.setValues(rangeSelection);
+                newSeries.setXAxisValues(xRangeSelection);
+
+                // Set the size of the doughnut hole.
+                // The hole size is expressed as a percentage of the chart size.
+                newSeries.doughnutHoleSize = 80;
+
+                await context.sync();
+            });
         }
 
         async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesTable = sheet.tables.add('A1:B1', true);
+
+                expensesTable.name = "ExpensesByCategoryTable";
+                expensesTable.getHeaderRowRange().values = [["Category", "Expense"]];
+                expensesTable.rows.add(null, [
+                    ["Groceries", 5000],
+                    ["Entertaiment", 400],
+                    ["Education", 12000],
+                    ["Charity", 1550],
+                    ["Transportation", 225],
+                    ["Other", 6005]
+                ]);
+
+                sheet.getUsedRange().getEntireColumn().format.autofitColumns();
+                sheet.getUsedRange().getEntireRow().format.autofitRows();
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                await Excel.run(async (context) => {
-
-                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-
-                    const sheet = context.workbook.worksheets.getItem("Sample");
-
-
-                    const expensesTable = sheet.tables.add('A1:B1', true);
-                    expensesTable.name = "ExpensesByCategoryTable";
-
-                    expensesTable.getHeaderRowRange().values = [["Category", "Expense"]];
-
-                    expensesTable.rows.add(null, [
-                        ["Groceries", 5000],
-                        ["Entertaiment", 400],
-                        ["Education", 12000],
-                        ["Charity", 1550],
-                        ["Transportation", 225],
-                        ["Other", 6005]
-                    ]);
-
-                    sheet.getUsedRange().getEntireColumn().format.autofitColumns();
-                    sheet.getUsedRange().getEntireRow().format.autofitRows();
-
-                    sheet.activate();
-
-                    await context.sync();
-                });
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);
@@ -105,6 +117,10 @@ template:
             <h3>Try it out</h3>
             <button id="create-doughnut-chart" class="ms-Button">
                 <span class="ms-Button-label">Create a doughnut chart</span>
+            </button><p>
+            <p>Use the chart series to adjust the doughtnut hole size.</p>
+            <button id="add-series" class="ms-Button">
+                <span class="ms-Button-label">Add series</span>
             </button>
         </section>
     language: html

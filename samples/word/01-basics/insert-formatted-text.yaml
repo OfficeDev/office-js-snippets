@@ -7,92 +7,103 @@ api_set:
     WordApi: 1.1
 script:
     content: |-
-        $("#run").click(() => tryCatch(run));
+        $("#add-text").click(() => tryCatch(addFormattedText));
+        $("#add-paragraph").click(() => tryCatch(addFormattedParagraph));
+        $("#add-preset").click(() => tryCatch(addPreStyledFormattedText));
 
-        async function run() {
-            await Word.run(async (context) => {
-                // Insert first sentence. Then we adjust the formatting.
-                // Note that replace affects the calling object, in this case the entire document body.
-                // A similar method can also be used at the range level.
-                let firstSentence = context.document.body.insertText("This is some formatted text!", "Replace");
-                firstSentence.font.set({
-                    name: "Courier New",
-                    bold: true,
-                    size: 18
-                });;
-
-                // Second sentence, let's insert it as a paragraph after the previously inserted one.
-                let secondSentence = context.document.body.insertParagraph("This is other formatted text.", "End");
-                secondSentence.font.set({
-                    bold: false,
-                    italic: true,
-                    name: 'Berlin Sans FB',
-                    color: 'blue',
-                    size: 30
-                });;
-
-                // You can also use pre-exsiting styles.
-                let lastSentence = context.document.body.insertParagraph("To be or not to be", "End");
-
-                // Use styleBuiltIn to use an enumeration of existing styles. If your style is custom make sure to use range.style = "name of your style";
-                lastSentence.styleBuiltIn = Word.Style.intenseReference;
-
-                await context.sync();
+        async function addFormattedText() {
+          await Word.run(async (context) => {
+            // Insert the sentence, then adjust the formatting.
+            // Note that replace affects the calling object, in this case the entire document body.
+            // A similar method can also be used at the range level.
+            let sentence = context.document.body.insertText(
+              "This is some formatted text!",
+              "Replace"
+            );
+            sentence.font.set({
+              name: "Courier New",
+              bold: true,
+              size: 18
             });
+
+            await context.sync();
+          });
+        }
+
+        async function addFormattedParagraph() {
+          await Word.run(async (context) => {
+            // Second sentence, let's insert it as a paragraph after the previously inserted one.
+            let secondSentence = context.document.body.insertParagraph(
+              "This is the first text with a custom style.",
+              "End"
+            );
+            secondSentence.font.set({
+              bold: false,
+              italic: true,
+              name: "Berlin Sans FB",
+              color: "blue",
+              size: 30
+            });
+
+            await context.sync();
+          });
+        }
+
+        async function addPreStyledFormattedText() {
+          await Word.run(async (context) => {
+            let sentence = context.document.body.insertParagraph(
+              "To be or not to be",
+              "End"
+            );
+
+            // Use styleBuiltIn to use an enumeration of existing styles. If your style is custom make sure to use range.style = "name of your style";
+            sentence.styleBuiltIn = Word.Style.intenseReference;
+
+            await context.sync();
+          });
         }
 
         /** Default helper for invoking an action and handling errors. */
         async function tryCatch(callback) {
-            try {
-                await callback();
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+          try {
+            await callback();
+          } catch (error) {
+            OfficeHelpers.UI.notify(error);
+            OfficeHelpers.Utilities.log(error);
+          }
         }
     language: typescript
 template:
     content: |-
-        <p class="ms-font-m">Shows how to insert basic formatted text and apply built-in styles.</p>
-        <button id="run" class="ms-Button">
-            <span class="ms-Button-label">Run code</span>
-        </button>
+        <section class="ms-font-m">
+            This sample shows how to insert basic formatted text and apply built-in styles.
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="add-text" class="ms-Button">
+              <span class="ms-Button-label">Insert formatted text</span>
+          </button><p>
+          <button id="add-paragraph" class="ms-Button">
+              <span class="ms-Button-label">Insert formatted paragrph</span>
+          </button><p>
+          <button id="add-preset" class="ms-Button">
+              <span class="ms-Button-label">Insert paragraph with preset style</span>
+          </button>
+        </section>
     language: html
 style:
     content: |-
-        body {
-            margin: 0;
-            padding: 10px;
+        section.samples {
+            margin-top: 20px;
         }
 
-
-        /* Button customization, including overwriting some Fabric defaults */
-
-        .ms-Button, .ms-Button:focus {
-            background: #2b579a;
-            border: #2b579a;
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
         }
-
-            .ms-Button > .ms-Button-label,
-            .ms-Button:focus > .ms-Button-label,
-            .ms-Button:hover > .ms-Button-label {
-                color: white;
-            }
-
-            .ms-Button:hover, .ms-Button:active {
-                background: #204072;
-            }
-
-            .ms-Button.is-disabled, .ms-Button:disabled {
-                background-color: #f4f4f4;
-                border-color: #f4f4f4;
-            }
-
-            .ms-Button.is-disabled .ms-Button-label,
-            .ms-Button:disabled .ms-Button-label {
-                color: #a6a6a6;
-            }
     language: css
 libraries: |-
     https://appsforoffice.microsoft.com/lib/1/hosted/office.js
@@ -108,4 +119,4 @@ libraries: |-
     @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
-    @types/jquery@3.1.1
+    @types/jquery@3.3.1

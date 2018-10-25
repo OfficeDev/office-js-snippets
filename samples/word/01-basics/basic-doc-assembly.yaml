@@ -55,24 +55,28 @@ script:
             });
         }
 
-        //Simulates creation of a template. First searches the document for instances of the string "Contractor",
-        //then changes the format  of each search result,
-        //then wraps each search result within a content control,
-        //finally sets a tag and title property on each content control.
+        // Simulates creation of a template. First searches the document for instances of the string "Contractor",
+        // then changes the format  of each search result,
+        // then wraps each search result within a content control,
+        // finally sets a tag and title property on each content control.
         async function addContentControls() {
             await Word.run(async (context) => {
                 let results = context.document.body.search("Contractor");
                 results.load("font/bold");
 
+                // check to make sure we haven't added these content controls yet
+                let customerContentControls = context.document.contentControls.getByTag("customer");
+                customerContentControls.load("text");
                 await context.sync();
 
+              if (customerContentControls.items.length === 0) {
                 for (var i = 0; i < results.items.length; i++) { 
                     results.items[i].font.bold = true;
                     var cc = results.items[i].insertContentControl();
                     cc.tag = "customer";  // This value is used in the next step of this sample.
-                    cc.title = "Customer Name";
+                    cc.title = "Customer Name " + i;
                 }
-
+              }
                 await context.sync();
             });
         }
@@ -85,7 +89,7 @@ script:
                 await context.sync();
 
                 for (let i = 0; i < contentControls.items.length; i++) {
-                    contentControls.items[i].insertText("Fabrikam", "Replace");
+                  contentControls.items[i].insertText("Fabrikam", "Replace");
                 }
 
                 await context.sync();
@@ -115,26 +119,33 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-             This sample demonstrates how to use the basic document assembly objects. It creates a sample document, searches for text, creates a template, and adds paragraphs and footers.
+            This sample demonstrates how to use the basic document assembly objects. It creates a sample document, searches for text,
+            creates a template, and adds paragraphs and footers.
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
             <button id="insert-header" class="ms-Button">
             <span class="ms-Button-label">Add title</span>
-          </button><p>
-            <label class="ms-font-m">  Add paragraphs with different styles, content controls, page break.</label><p>
-            <button id="add-paragraphs" class="ms-Button">
+          </button>
+            <p>
+                <label class="ms-font-m">  Add paragraphs with different styles, content controls, and page breaks.</label>
+                <p>
+                    <button id="add-paragraphs" class="ms-Button">
             <span class="ms-Button-label">Add paragraphs and controls</span>
-          </button><p>
-            <label class="ms-font-s">  Search for "Contractor" and insert content controls to hold the customer name.</label><p>
-            <button id="add-content-controls" class="ms-Button">
+          </button>
+                    <p>
+                        <label class="ms-font-m">  Search for "Contractor" and insert content controls to hold the customer name.</label>
+                        <p>
+                            <button id="add-content-controls" class="ms-Button">
             <span class="ms-Button-label">Search and templetize</span>
-          </button><p>
-            <button id="change-customer" class="ms-Button">
+          </button>
+                            <p>
+                                <button id="change-customer" class="ms-Button">
             <span class="ms-Button-label">Change customer</span>
-          </button><p>
-            <button id="add-footer" class="ms-Button">
+          </button>
+                                <p>
+                                    <button id="add-footer" class="ms-Button">
             <span class="ms-Button-label">Insert Footer</span>
           </button>
         </section>

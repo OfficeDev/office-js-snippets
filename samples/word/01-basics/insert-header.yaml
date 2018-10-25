@@ -7,39 +7,49 @@ api_set:
     WordApi: 1.1
 script:
     content: |-
-        $("#run").click(() => tryCatch(run));
+        $("#add-header").click(() => tryCatch(addHeader));
+        $("#add-footer").click(() => tryCatch(addFooter));
 
-        async function run() {
-            await Word.run(async (context) => {
-                context.document.sections.getFirst()
-                    .getHeader("Primary").insertText("This is a header", "Start");
+        async function addHeader() {
+          await Word.run(async context => {
+            context.document.sections.getFirst().getHeader("Primary")
+              .insertParagraph("This is a header", "End");
 
-                await context.sync();
-            });
+            await context.sync();
+          });
         }
 
+        async function addFooter() {
+          await Word.run(async (context) => {
+            context.document.sections.getFirst().getFooter("Primary")
+              .insertParagraph("This is a footer", "End");
+
+            await context.sync();
+          });
+        }
 
         /** Default helper for invoking an action and handling errors. */
         async function tryCatch(callback) {
-            try {
-                await callback();
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+          try {
+            await callback();
+          } catch (error) {
+            OfficeHelpers.UI.notify(error);
+            OfficeHelpers.Utilities.log(error);
+          }
         }
     language: typescript
 template:
     content: |-
         <section class="ms-font-m">
-          This sample inserts a header in the document.
+            This sample inserts a header and footer in the document.
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-          <button id="run" class="ms-Button">
+            <button id="add-header" class="ms-Button">
               <span class="ms-Button-label">Insert header</span>
+          </button><button id="add-footer" class="ms-Button">
+              <span class="ms-Button-label">Insert footer</span>
           </button>
         </section>
     language: html

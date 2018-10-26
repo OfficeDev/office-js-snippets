@@ -2424,10 +2424,10 @@ Word.InlinePicture.getBase64ImageSrc:
 Word.Section.getHeader:
   - |-
     await Word.run(async (context) => {
-        context.document.sections.getFirst()
-            .getHeader("Primary").insertText("This is a header", "Start");
+      context.document.sections.getFirst().getHeader("Primary")
+        .insertParagraph("This is a header", "End");
 
-        await context.sync();
+      await context.sync();
     });
 Word.Paragraph.insertBreak:
   - |-
@@ -2447,33 +2447,20 @@ Word.Paragraph.insertBreak:
 Word.Paragraph.insertParagraph:
   - |-
     await Word.run(async (context) => {
-        // Insert first sentence. Then we adjust the formatting.
-        // Note that replace affects the calling object, in this case the entire document body.
-        // A similar method can also be used at the range level.
-        let firstSentence = context.document.body.insertText("This is some formatted text!", "Replace");
-        firstSentence.font.set({
-            name: "Courier New",
-            bold: true,
-            size: 18
-        });;
+      // Second sentence, let's insert it as a paragraph after the previously inserted one.
+      let secondSentence = context.document.body.insertParagraph(
+        "This is the first text with a custom style.",
+        "End"
+      );
+      secondSentence.font.set({
+        bold: false,
+        italic: true,
+        name: "Berlin Sans FB",
+        color: "blue",
+        size: 30
+      });
 
-        // Second sentence, let's insert it as a paragraph after the previously inserted one.
-        let secondSentence = context.document.body.insertParagraph("This is other formatted text.", "End");
-        secondSentence.font.set({
-            bold: false,
-            italic: true,
-            name: 'Berlin Sans FB',
-            color: 'blue',
-            size: 30
-        });;
-
-        // You can also use pre-exsiting styles.
-        let lastSentence = context.document.body.insertParagraph("To be or not to be", "End");
-
-        // Use styleBuiltIn to use an enumeration of existing styles. If your style is custom make sure to use range.style = "name of your style";
-        lastSentence.styleBuiltIn = Word.Style.intenseReference;
-
-        await context.sync();
+      await context.sync();
     });
 Word.Body.search:
   - |-
@@ -2543,15 +2530,19 @@ Word.Range.insertContentControl:
         let results = context.document.body.search("Contractor");
         results.load("font/bold");
 
+        // check to make sure we haven't added these content controls yet
+        let customerContentControls = context.document.contentControls.getByTag("customer");
+        customerContentControls.load("text");
         await context.sync();
 
+      if (customerContentControls.items.length === 0) {
         for (var i = 0; i < results.items.length; i++) { 
             results.items[i].font.bold = true;
             var cc = results.items[i].insertContentControl();
             cc.tag = "customer";  // This value is used in the next step of this sample.
-            cc.title = "Customer Name";
+            cc.title = "Customer Name " + i;
         }
-
+      }
         await context.sync();
     });
 Word.ContentControlCollection.getByTag:
@@ -2563,7 +2554,7 @@ Word.ContentControlCollection.getByTag:
         await context.sync();
 
         for (let i = 0; i < contentControls.items.length; i++) {
-            contentControls.items[i].insertText("Fabrikam", "Replace");
+          contentControls.items[i].insertText("Fabrikam", "Replace");
         }
 
         await context.sync();
@@ -2571,10 +2562,10 @@ Word.ContentControlCollection.getByTag:
 Word.Section.getFooter:
   - |-
     await Word.run(async (context) => {
-        context.document.sections.getFirst()
-            .getFooter("Primary").insertParagraph("Confidential", "End");
+      context.document.sections.getFirst().getFooter("Primary")
+        .insertParagraph("This is a footer", "End");
 
-        await context.sync();
+      await context.sync();
     });
 Word.Paragraph.text:
   - |-
@@ -2596,7 +2587,7 @@ Word.Paragraph.getTextRanges:
 
         await context.sync();
 
-        //  Expands the range to the end of the paragraph to get all the complete sentences.
+        // Expands the range to the end of the paragraph to get all the complete sentences.
         let sentencesToTheEndOfParagraph = sentences.items[0].getRange()
             .expandTo(context.document.getSelection().paragraphs
                 .getFirst().getRange("End")).getTextRanges(["."], false /* Don't trim spaces*/);
@@ -2754,21 +2745,25 @@ Word.Paragraph.split:
 Word.Table.getCell:
   - |-
     await Word.run(async (context) => {
-        let firstCell = context.document.body.tables.getFirst().getCell(0, 0).body;
-        firstCell.load("text");
+      let firstCell = context.document.body.tables.getFirst().getCell(0, 0).body;
+      firstCell.load("text");
 
-        await context.sync();
-        console.log("First cell text is " + firstCell.text);
+      await context.sync();
+      console.log("First cell text is " + firstCell.text);
     });
 Word.Body.insertTable:
   - |-
     await Word.run(async (context) => {
-        // We need a 2D array to hold the initial table values
-        let data = [["Apple", "Orange", "Pineapple"], ["Tokyo", "Beijing", "Seattle"]];
-        let table = context.document.body.insertTable(3, 3, "Start", data);
-        table.styleBuiltIn = Word.Style.gridTable5Dark_Accent2;
+      // We need a 2D array to hold the initial table values
+      let data = [
+        ["Tokyo", "Beijing", "Seattle"],
+        ["Apple", "Orange", "Pineapple"]
+      ];
+      let table = context.document.body.insertTable(2, 3, "Start", data);
+      table.styleBuiltIn = Word.Style.gridTable5Dark_Accent2;
+      table.styleFirstColumn = false;
 
-        await context.sync();
+      await context.sync();
     });
 Word.Paragraph.startNewList:
   - |-
@@ -2830,26 +2825,26 @@ Word.Document.properties:
 Word.Paragraph.set:
   - |-
     await Word.run(async (context) => {
-        const paragraph = context.document.body.paragraphs.getFirst();
-        paragraph.set({
-            leftIndent: 30,
-            font: {
-                bold: true,
-                color: "red"
-            }
-        });
+      const paragraph = context.document.body.paragraphs.getFirst();
+      paragraph.set({
+        leftIndent: 30,
+        font: {
+          bold: true,
+          color: "red"
+        }
+      });
 
-        await context.sync();
+      await context.sync();
     });
   - |-
     await Word.run(async (context) => {
-        const firstParagraph = context.document.body.paragraphs.getFirst();
-        const secondParagraph = firstParagraph.getNext();
-        firstParagraph.load("text, font/color, font/bold, leftIndent");
+      const firstParagraph = context.document.body.paragraphs.getFirst();
+      const secondParagraph = firstParagraph.getNext();
+      firstParagraph.load("text, font/color, font/bold, leftIndent");
 
-        await context.sync();
+      await context.sync();
 
-        secondParagraph.set(firstParagraph);
+      secondParagraph.set(firstParagraph);
 
-        await context.sync();
+      await context.sync();
     });

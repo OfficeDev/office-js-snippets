@@ -68,11 +68,38 @@ script:
 
             return sheets.items.filter((s) => (s.visibility === visibility));
         }
+
+        async function setup() {
+        try {
+            await Excel.run(async context => {
+            const sheets = context.workbook.worksheets;
+            sheets.load("items");
+
+            await context.sync();
+
+            if (sheets.items.length < 2) {
+                sheets.add();
+
+                await context.sync();
+            }
+            });
+        } catch (error) {
+            OfficeHelpers.UI.notify(error);
+            OfficeHelpers.Utilities.log(error);
+        }
+        }
     language: typescript
 template:
     content: |
         <section class="ms-font-m">
             <p>This sample shows how to change the visbility of a worksheet using the Excel API.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Ensure two worksheets</span>
+            </button>
         </section>
 
         <section class="samples ms-font-m">

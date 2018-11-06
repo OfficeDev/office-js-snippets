@@ -1,48 +1,45 @@
-id: word-range-split-words-of-first-paragraph
-name: Range manipulation
-description: 'Show how to split a paragraph into word ranges and then traverses all the ranges to format each word, producing a "karaoke" effect.'
+order: 4
+id: word-paragraphs-insert-line-and-page-breaks
+name: Insert breaks
+description: Inserts page and line breaks in a document.
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: 1.3
+    WordApi: 1.2
 script:
-    content: |
+    content: |-
         $("#setup").click(() => tryCatch(setup));
-        $("#highlight").click(() => tryCatch(highlightWords));
+        $("#line").click(() => tryCatch(insertLineBreak));
+        $("#page").click(() => tryCatch(insertPageBreak));
 
-        async function highlightWords() {
-            await Word.run(async (context) => {
-                let paragraph = context.document.body.paragraphs.getFirst();
-                let words = paragraph.split(
-                    [" "], true /* trimDelimiters*/, true /* trimSpaces */);
-                words.load("text");
+        async function insertLineBreak() {
+            Word.run(async (context) => {
+                context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "After");
 
                 await context.sync();
-
-                for (let i = 0; i < words.items.length; i++) {
-                    if (i >= 1) {
-                        words.items[i - 1].font.highlightColor = "#FFFFFF";
-                    }
-                    words.items[i].font.highlightColor = "#FFFF00";
-
-                    await context.sync();
-                    await pause(200);
-                }
+                console.log("success");
             });
         }
 
-        function pause(milliseconds) {
-            return new Promise(resolve => setTimeout(resolve, milliseconds));
+        async function insertPageBreak() {
+            await Word.run(async (context) => {
+                context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "After");
+
+                await context.sync();
+                console.log("success");
+            });
         }
 
         async function setup() {
             await Word.run(async (context) => {
+                // Let's insert a couple of paragraphs to illustrate the point..
                 context.document.body.clear();
                 context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
-                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.", "Replace");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the elements you want from the different Online galleries.", "Replace");
 
                 await context.sync();
-            })
+                console.log("success");
+            });
         }
 
         async function tryCatch(callback) {
@@ -56,23 +53,26 @@ script:
         }
     language: typescript
 template:
-    content: |
+    content: |-
         <section class="ms-font-m">
-           This sample demonstrates splitting and traversing ranges.
+          This sample demonstrates how to insert pagr and line breaks.
         </section>
 
         <section class="setup ms-font-m">
             <h3>Set up</h3>
             <button id="setup" class="ms-Button">
-                <span class="ms-Button-label">Add sample text</span>
-            </button>
+            <span class="ms-Button-label">Setup</span>
+          </button>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="highlight" class="ms-Button">
-                <span class="ms-Button-label">Highlight word by word</span>
-            </button>
+            <button id="line" class="ms-Button">
+            <span class="ms-Button-label">Insert line break</span>
+          </button><p>
+            <button id="page" class="ms-Button">
+            <span class="ms-Button-label">Insert page break</span>
+          </button>
         </section>
     language: html
 style:
@@ -88,7 +88,7 @@ style:
             min-width: 80px;
         }
     language: css
-libraries: |
+libraries: |-
     https://appsforoffice.microsoft.com/lib/1/hosted/office.js
     @types/office-js
 

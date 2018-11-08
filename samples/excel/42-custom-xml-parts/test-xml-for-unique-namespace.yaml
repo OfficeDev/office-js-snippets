@@ -1,0 +1,149 @@
+order: 2
+id: excel-custom-xml-parts-test-xml-for-unique-namespace
+name: Unique namespaces in custom XML
+description: Tests to see if there is only one XML part for a specified namespace.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.5
+script:
+    content: |
+        $("#create-custom-xml-part").click(() => tryCatch(createCustomXmlPart));
+        $("#test-for-unique-namespace").click(() => tryCatch(testForUniqueNamespace));
+        $("#delete-all-custom-xml-parts").click(() => tryCatch(deleteAllCustomXmlParts));
+
+        async function createCustomXmlPart() {
+            await Excel.run(async (context) => {
+                $("#display-xml").text("");
+
+                // You must have the xmlns attribute to populate the 
+                // CustomXml.namespaceUri property.
+                const originalXml = "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
+                const customXmlPart = context.workbook.customXmlParts.add(originalXml);
+                const xmlBlob = customXmlPart.getXml();
+
+                await context.sync();
+
+                // Make it a bit more readable.
+                const readableXml = xmlBlob.value.replace(/></g, ">\n<");
+                $("#display-xml").text(readableXml);
+
+                await context.sync();
+            });
+        }
+
+        async function testForUniqueNamespace() {
+            await Excel.run(async (context) => {
+                $("#display-xml").text("");
+                const contosoNamespace = "http://schemas.contoso.com/review/1.0";
+                const customXmlParts = context.workbook.customXmlParts;
+                const filteredXmlParts = customXmlParts.getByNamespace(contosoNamespace);
+                const numberOfPartsInNamespace = filteredXmlParts.getCount();
+
+                await context.sync();
+
+                if (numberOfPartsInNamespace.value == 1) {
+                    const onlyXmlPartInNamespace = filteredXmlParts.getOnlyItem();
+                    const xmlBlob = onlyXmlPartInNamespace.getXml();
+
+                    await context.sync();
+
+                    // Make it a bit more readable.
+                    const readableXml = xmlBlob.value.replace(/></g, ">\n<");
+
+                    $("#display-xml").text(`The only XML part in the namespace ${contosoNamespace} is:
+                        ${readableXml}`);
+
+                } else {
+                    OfficeHelpers.UI.notify(`There are ${numberOfPartsInNamespace.value} XML parts with namespace ${contosoNamespace}.
+                        There should be exactly 1.`);
+                }        
+
+                await context.sync();
+            });
+        }
+
+        async function deleteAllCustomXmlParts() {
+            await Excel.run(async (context) => {
+                $("#display-xml").text("");
+                const customXmlParts = context.workbook.customXmlParts;
+                customXmlParts.load("items");
+
+                await context.sync();
+
+                for (let i = 0; i < customXmlParts.items.length; i++) {
+                    customXmlParts.items[i].delete();
+                }
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to determine if there is just one XML part for a specified namespace.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Press the "Create XML part" button to create and display Contoso's Reviewer metadata. <span class="ms-fontWeight-semibold">Press it more than once if you want to set up an error situation.</span></p>
+            <button id="create-custom-xml-part" class="ms-Button">
+                <span class="ms-Button-label">Create XML part</span>
+            </button>
+            <p>Press the "Test for unique namespace" button to see if there is more than one XML part with the Contoso namespace. <span class="ms-fontWeight-semibold">If there is more than one, an error is thrown.</span></p>
+            <button id="test-for-unique-namespace" class="ms-Button">
+                <span class="ms-Button-label">Test for unique namespace</span>
+            </button>
+                <p>To start over, press "Delete all XML parts".</p>
+            <button id="delete-all-custom-xml-parts" class="ms-Button">
+                <span class="ms-Button-label">Delete all XML parts</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>XML part display</h3>
+            <div id="display-xml" class="ms-font-l" style="max-width:320px;">
+            </div>
+        </section>
+
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

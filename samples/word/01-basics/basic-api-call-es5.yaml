@@ -1,27 +1,40 @@
-order: 3
-id: word-guidance-basic-common-api-call
-name: Basic API call (Office 2013)
-description: Performs a basic Word API call using JavaScript with the "common API" syntax (compatible with Office 2013).
+order: 2
+id: word-basics-api-call-es5
+name: Basic API call (JavaScript)
+description: Performs a basic Word API call using plain JavaScript & Promises.
 author: OfficeDev
 host: WORD
 api_set:
-    Selection: 1.1
+    WordApi: 1.1
 script:
-    content: |
-        $("#run").click(run);
+    content: |-
+        $("#run").click(() => tryCatch(run));
 
         function run() {
-            Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, (asyncResult) => {
-                if (asyncResult.status === Office.AsyncResultStatus.Failed) {
-                    console.log(asyncResult.error.message);
-                } else {
-                    console.log(`The selected data is "${asyncResult.value}".`);
-                }
+            return Word.run(function (context) {
+                var range = context.document.getSelection();
+                range.font.color = "red";
+                range.load("text");
+
+                return context.sync()
+                    .then(function() {
+                        console.log("The selected text was \"" + range.text + "\".");
+                    });
             });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        function tryCatch(callback) {
+            Promise.resolve()
+                .then(callback)
+                .catch(function (error) {
+                    OfficeHelpers.UI.notify(error);
+                    OfficeHelpers.Utilities.log(error);
+                });
         }
     language: typescript
 template:
-    content: |
+    content: |-
         <section class="ms-font-m">
             This sample executes a code snippet that prints the selected text to the console. Make sure to enter and select text before clicking "Print selection".
         </section>

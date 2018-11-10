@@ -1,41 +1,27 @@
-order: 1
-id: word-guidance-basic-api-call
-name: Basic API call (TypeScript)
-description: Performs a basic Word API call using TypeScript.
+order: 3
+id: word-basics-basic-common-api-call
+name: Basic API call (Office 2013)
+description: Performs a basic Word API call using JavaScript with the "common API" syntax (compatible with Office 2013).
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: 1.1
+    Selection: 1.1
 script:
-    content: |-
-        $("#run").click(() => tryCatch(run));
+    content: |
+        $("#run").click(run);
 
-        async function run() {
-            // Gets the current selection and changes the font color to red.
-            await Word.run(async (context) => {
-                const range = context.document.getSelection();
-                range.font.color = "red";
-                range.load("text");
-
-                await context.sync();
-
-                console.log(`The selected text was "${range.text}".`);
+        function run() {
+            Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, (asyncResult) => {
+                if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+                    console.log(asyncResult.error.message);
+                } else {
+                    console.log(`The selected data is "${asyncResult.value}".`);
+                }
             });
-        }
-
-        /** Default helper for invoking an action and handling errors. */
-        async function tryCatch(callback) {
-            try {
-                await callback();
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
         }
     language: typescript
 template:
-    content: |-
+    content: |
         <section class="ms-font-m">
             This sample executes a code snippet that prints the selected text to the console. Make sure to enter and select text before clicking "Print selection".
         </section>

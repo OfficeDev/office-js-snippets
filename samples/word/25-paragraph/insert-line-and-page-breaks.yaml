@@ -1,0 +1,105 @@
+order: 2
+id: word-paragraph-insert-line-and-page-breaks
+name: Insert breaks
+description: Inserts page and line breaks in a document.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.2
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#line").click(() => tryCatch(insertLineBreak));
+        $("#page").click(() => tryCatch(insertPageBreak));
+
+        async function insertLineBreak() {
+            Word.run(async (context) => {
+                context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "After");
+
+                await context.sync();
+                console.log("success");
+            });
+        }
+
+        async function insertPageBreak() {
+            await Word.run(async (context) => {
+                context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "After");
+
+                await context.sync();
+                console.log("success");
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                // Let's insert a couple of paragraphs to illustrate the point..
+                context.document.body.clear();
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the elements you want from the different Online galleries.", "Replace");
+
+                await context.sync();
+                console.log("success");
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          This sample demonstrates how to insert pagr and line breaks.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="line" class="ms-Button">
+            <span class="ms-Button-label">Insert line break</span>
+          </button><p>
+            <button id="page" class="ms-Button">
+            <span class="ms-Button-label">Insert page break</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -1,0 +1,214 @@
+order: 2
+id: excel-just-for-fun-gradient
+name: Gradient
+description: Uses range formatting and external libraries to draw a colorful gradient within a range. Contributed by Alexander Zlatkovski.
+author: AlexanderZlatkovski
+host: EXCEL
+api_set:
+    ExcelApi: 1.2
+script:
+    content: |-
+        initializeColorPickers();
+
+        // Set up the click handler:
+        const $drawButton = $("#draw-gradient").click(drawGradient);
+        $("#random").click(randomizeColors);
+
+        /** Click-handler for drawing the gradient */
+        async function drawGradient() {
+            $drawButton.prop("disabled", true);
+
+            try {
+                await Excel.run(drawGradientHelper);
+            }
+            catch (error) {
+                OfficeHelpers.Utilities.log(error);
+            }
+
+            $drawButton.prop("disabled", false);
+        }
+
+        /** Helper function to do the actual gradient-drawing */
+        async function drawGradientHelper(context: Excel.RequestContext) {
+            const sheet = await OfficeHelpers.ExcelUtilities
+                .forceCreateSheet(context.workbook, "Gradient", true /*clearOnly*/);
+
+            sheet.getRange().untrack().format.set({
+                rowHeight: 15,
+                columnWidth: 15,
+                fill: {
+                    color: "#1e1e1e"
+                }
+            });
+
+            let originalSize = parseInt($('#size').val() as string);
+
+            // Create a 2D in-memory array to hold the colors
+            const colors2D = Array(originalSize);
+            for (let row = 0; row < originalSize; row++) {
+                colors2D[row] = Array(originalSize);
+            }
+
+            fillInColors(colors2D, originalSize);
+
+            let range = sheet.getCell(1, 1).untrack().getResizedRange(
+                originalSize - 1, originalSize - 1).untrack();
+            for (let row = 0; row < originalSize; row++) {
+                for (let col = 0; col < originalSize; col++) {
+                    range.getCell(row, col).untrack().format.fill.color =
+                        colors2D[row][col];
+                }
+            }
+
+            sheet.activate();
+            await context.sync();
+        }
+
+        function fillInColors(colors2D: string[][], size: number) {
+            const topColors = getColorsArray(
+                $("#top-left").spectrum("get").toRgb(),
+                $("#top-right").spectrum("get").toRgb(),
+                size);
+
+            const bottomColors = getColorsArray(
+                $("#bottom-left").spectrum("get").toRgb(),
+                $("#bottom-right").spectrum("get").toRgb(),
+                size);
+
+            for (let col = 0; col < size; col++) {
+                const columnColors = getColorsArray(
+                    topColors[col], bottomColors[col], size);
+                for (let row = 0; row < size; row++) {
+                    colors2D[row][col] =
+                        tinycolor(columnColors[row]).toHexString();
+                }
+            }
+        }
+
+        /** Helper function to get an array of colors */
+        function getColorsArray(color1: ColorFormats.RGB, color2: ColorFormats.RGB, count: number) {
+            const result = new Array<ColorFormats.RGB>(count);
+            for (let i = 0; i < count; i++) {
+                const fraction = i / (count - 1);
+                result[i] = {
+                    r: color1.r + (color2.r - color1.r) * fraction,
+                    g: color1.g + (color2.g - color1.g) * fraction,
+                    b: color1.b + (color2.b - color1.b) * fraction
+                }
+            }
+            return result;
+        }
+
+        function initializeColorPickers() {
+            $("#color-table input[type='text']").spectrum({
+                preferredFormat: "rgb",
+                showInput: true
+            });
+        }
+
+        function randomizeColors() {
+            $("#color-table input[type='text']")
+                .each((index, element) => {
+                    $(element).spectrum("set", tinycolor.random().toHexString());
+                });
+        }
+    language: typescript
+template:
+    content: |-
+        <h2 class="ms-font-l">Color configuration</h2>
+
+        <div id="color-table" class="ms-font-s">
+            <div>Top left</div>
+            <table class="ms-font-m">
+                <tr>
+                    <td><input id="top-left" type="text" value="red" /></td>
+                    <td><input id="top-right" type="text" value="lime" /></td>
+                </tr>
+                <tr>
+                    <td><input id="bottom-left" type="text" value="blue" /></td>
+                    <td><input id="bottom-right" type="text" value="yellow" /></td>
+                </tr>
+            </table>
+            <div>
+                Bottom right
+            </div>
+        </div>
+
+        <button id="random" class="ms-Button">
+            <span class="ms-Button-label">Randomize colors</span>
+        </button>
+
+        <h2 class="ms-font-l">Size
+            <span class="ms-font-m">(width x height)</span>
+        </h2>
+        <input id="size" type="range" value="25" min="2" max="100"></input>
+
+        <button id="draw-gradient" class="ms-Button ms-Button--primary">
+            <span class="ms-Button-label ms-font-l">Draw gradient</span>
+        </button>
+
+        <div id="credits">
+            <div class="ms-font-s">
+                Uses the <a href="https://github.com/bgrins/spectrum" target="_blank">Spectrum color picker</a>, and the <a href="https://github.com/bgrins/TinyColor" target="_blank">TinyColor</a> libraries.
+            </div>
+        </div>
+    language: html
+style:
+    content: |-
+        h2:not(:first-child) {
+            margin-top: 35px;
+        }
+
+        #color-table {
+            width: 130px;
+            margin-bottom: 20px;
+        }
+
+            #color-table table {
+                width: 100%;
+            }
+
+            #color-table td:nth-child(2),
+            #color-table div:last-child {
+                text-align: right;
+            }
+
+        #credits {
+            margin-top: 60px;
+            padding: 10px;
+            background: linear-gradient(rgb(150, 150, 200), white);
+        }
+
+            #credits div:first-child {
+                margin-bottom: 6px;
+            }
+
+        #size {
+            width: 100%;
+        }
+
+        #draw-gradient {
+            width: 100%;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1
+
+    tinycolor2@1.4.1/tinycolor.js
+    @types/tinycolor2
+    spectrum-colorpicker@1.8.0/spectrum.js
+    spectrum-colorpicker@1.8.0/spectrum.css
+    @types/spectrum

@@ -7,9 +7,9 @@ host: EXCEL
 api_set:
     ExcelApi: 1.3
 script:
-    content: |+
-        $("#setup").click(setup);
-        $("#refresh-pivot-table").click(refreshPivotTable);
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#refresh-pivot-table").click(() => tryCatch(refreshPivotTable));
 
         async function refreshPivotTable() {
             await Excel.run(async (context) => {
@@ -77,6 +77,16 @@ script:
             }
         }
 
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
     language: typescript
 template:
     content: |+

@@ -8,40 +8,30 @@ api_set:
     ExcelApi: 1.1
 script:
     content: |
-        $("#import-json-data").click(importJsonData);
+        $("#import-json-data").click(() => tryCatch(importJsonData));
 
         async function importJsonData() {
-          try {
-                await Excel.run(async (context) => {
+            await Excel.run(async (context) => {
+            await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            
+            let expensesTable = sheet.tables.add("A1:D1", true);
+            expensesTable.name = "ExpensesTable";
+            expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
 
-                  await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+            const newData = transactions.map(item =>
+              [item.DATE, item.MERCHANT, item.CATEGORY, item.AMOUNT]);
 
-                  const sheet = context.workbook.worksheets.getItem("Sample");
+            expensesTable.rows.add(null, newData);
 
-              let expensesTable = sheet.tables.add("A1:D1", true);
-                expensesTable.name = "ExpensesTable";
-
-              expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
-
-              const newData = transactions.map(item =>
-                  [item.DATE, item.MERCHANT, item.CATEGORY, item.AMOUNT]);
-
-              expensesTable.rows.add(null, newData);
-
-                  if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
-                      sheet.getUsedRange().format.autofitColumns();
-                      sheet.getUsedRange().format.autofitRows();
-              }
-              
-              sheet.activate();
-
-              await context.sync();
-             });
+            if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.getUsedRange().format.autofitRows();
             }
-            catch (error) {
-              OfficeHelpers.UI.notify(error);
-              OfficeHelpers.Utilities.log(error);
-            }
+          
+            sheet.activate();
+            await context.sync();
+         });
         }
 
         const transactions = [    
@@ -112,6 +102,17 @@ script:
             "AMOUNT":"$178"
           }
         ];
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
     language: typescript
 template:
     content: |+

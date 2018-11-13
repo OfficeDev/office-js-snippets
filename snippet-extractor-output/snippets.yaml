@@ -1,6 +1,6 @@
 Excel.ChartAxis.displayUnit:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         const sheet = context.workbook.worksheets.getItem("Sample");
 
         let chart = sheet.charts.getItemAt(0);
@@ -9,16 +9,17 @@ Excel.ChartAxis.displayUnit:
 
         // Load to get display unit.
         valueAxis.load("displayUnit");
-       
+
         await context.sync();
 
-        OfficeHelpers.UI.notify("The vertical axis display unit is: " +  valueAxis.displayUnit);
+        OfficeHelpers.UI.notify(
+        "The vertical axis display unit is: " + valueAxis.displayUnit
+        );
     });
 Excel.ChartAxis.showDisplayUnitLabel:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-
         let chart = sheet.charts.getItemAt(0);
         let axis = chart.axes.valueAxis;
 
@@ -287,18 +288,12 @@ Excel.NamedItemCollection.add:
         await context.sync();
     });
   - |-
-    try {
-        await Excel.run(async (context) => {
-            const sheet = context.workbook.worksheets.getItem("Sample");
-            sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
-            sheet.getRange("D11").values = [["=TotalAmount"]];
-            await context.sync();
-        });
-    }
-    catch (error) {
-        OfficeHelpers.UI.notify(error);
-        OfficeHelpers.Utilities.log(error);
-    }
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
+        sheet.getRange("D11").values = [["=TotalAmount"]];
+        await context.sync();
+    });
 Excel.CustomXmlPart.getXml:
   - |-
     await Excel.run(async (context) => {
@@ -877,24 +872,15 @@ Excel.Range.set:
     });
 Excel.NamedItem.delete:
   - |-
-    try {
-        await Excel.run(async (context) => {
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        sheet.names.getItem("TotalAmount").delete();
 
-            const sheet = context.workbook.worksheets.getItem("Sample");
+        // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
+        sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
 
-            sheet.names.getItem("TotalAmount").delete();
-
-            // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
-            sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
-
-            await context.sync();
-
-        });
-    }
-    catch (error) {
-        OfficeHelpers.UI.notify(error);
-        OfficeHelpers.Utilities.log(error);
-    }
+        await context.sync();
+    });
 Excel.DataPivotHierarchy.showAs:
   - |-
     await Excel.run(async (context) => {

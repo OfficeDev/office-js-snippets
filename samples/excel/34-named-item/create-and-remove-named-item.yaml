@@ -7,72 +7,52 @@ api_set:
     ExcelApi: 1.4
 script:
     content: |
-        $("#add-name").click(addName);
-        $("#remove-name").click(removeName);
-        $("#setup").click(setup);
+        $("#setup").click(() => tryCatch(setup));
+
+        $("#add-name").click(() => tryCatch(addName));
+        $("#remove-name").click(() => tryCatch(removeName));
 
         async function addName() {
-            try {
-                await Excel.run(async (context) => {
-                    const sheet = context.workbook.worksheets.getItem("Sample");
-                    sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
-                    sheet.getRange("D11").values = [["=TotalAmount"]];
-                    await context.sync();
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
+                sheet.getRange("D11").values = [["=TotalAmount"]];
+                await context.sync();
+            });
         }
 
         async function removeName() {
-            try {
-                await Excel.run(async (context) => {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.names.getItem("TotalAmount").delete();
 
-                    const sheet = context.workbook.worksheets.getItem("Sample");
+                // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
+                sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
 
-                    sheet.names.getItem("TotalAmount").delete();
-
-                    // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
-                    sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
-
-                    await context.sync();
-
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                await context.sync();
+            });
         }
 
         async function setup() {
-            try {
-                await Excel.run(async (context) => {
+            await Excel.run(async (context) => {
 
-                    let sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                let sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
 
-                    let expensesTable = sheet.tables.add("A1:D1", true);
-                    expensesTable.name = "ExpensesTable";
+                let expensesTable = sheet.tables.add("A1:D1", true);
+                expensesTable.name = "ExpensesTable";
 
-                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+                expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
 
-                    let newData = transactions.map(item =>
-                        [item.date, item.merchant, item.category, item.amount]);
+                let newData = transactions.map(item =>
+                    [item.date, item.merchant, item.category, item.amount]);
 
-                    expensesTable.rows.add(null, newData);
-                    sheet.getUsedRange().format.autofitColumns();
-                    sheet.getUsedRange().format.autofitRows();
-                    sheet.activate();
+                expensesTable.rows.add(null, newData);
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.getUsedRange().format.autofitRows();
+                sheet.activate();
 
-                    await context.sync();
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                await context.sync();
+            });
         }
 
         const transactions = [
@@ -131,6 +111,17 @@ script:
                 "amount": "$27"
             }
         ];
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
     language: typescript
 template:
     content: |+

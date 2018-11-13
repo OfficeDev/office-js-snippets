@@ -8,69 +8,54 @@ api_set:
     ExcelApi: 1.1
 script:
     content: |
-        $("#hide-worksheet").click(hideWorksheet);
-        $("#unhide-worksheet").click(unhideWorksheet);
+        $("#hide-worksheet").click(() => tryCatch(hideWorksheet));
+        $("#unhide-worksheet").click(() => tryCatch(unhideWorksheet));
 
         async function hideWorksheet() {
-            try {
-                await Excel.run(async (context) => {
+            await Excel.run(async (context) => {
 
-                    const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.visible);
+                const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.visible);
 
-                    if (visibleSheets.length > 1) {
-                        console.log(`Hiding worksheet named "${visibleSheets[0].name}"...`);
+                if (visibleSheets.length > 1) {
+                    console.log(`Hiding worksheet named "${visibleSheets[0].name}"...`);
 
-                        visibleSheets[0].visibility = Excel.SheetVisibility.hidden;
+                    visibleSheets[0].visibility = Excel.SheetVisibility.hidden;
 
-                        await context.sync();
+                    await context.sync();
 
-                    } else {
-                        console.log("Cannot hide the only visible worksheet");
-                    }
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                } else {
+                    console.log("Cannot hide the only visible worksheet");
+                }
+            });
         }
 
         async function unhideWorksheet() {
-            try {
-                await Excel.run(async (context) => {
+            await Excel.run(async (context) => {
 
-                    const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.hidden);
+                const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.hidden);
 
-                    if (visibleSheets.length > 0) {
-                        console.log(`Unhiding worksheet named "${visibleSheets[0].name}"...`);
+                if (visibleSheets.length > 0) {
+                    console.log(`Unhiding worksheet named "${visibleSheets[0].name}"...`);
 
-                        visibleSheets[0].visibility = Excel.SheetVisibility.visible;
+                    visibleSheets[0].visibility = Excel.SheetVisibility.visible;
 
-                        await context.sync();
-                        
-                    } else {
-                        console.log("No hidden worksheets in the workbook");
-                    }
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                    await context.sync();
+                    
+                } else {
+                    console.log("No hidden worksheets in the workbook");
+                }
+            });
         }
 
         async function filterWorksheetsByVisibility(context: Excel.RequestContext, visibility: string): Promise<Excel.Worksheet[]> {
-
             const sheets = context.workbook.worksheets;
             sheets.load("items/name, items/visibility");
-
             await context.sync();
 
             return sheets.items.filter((s) => (s.visibility === visibility));
         }
 
         async function setup() {
-        try {
             await Excel.run(async context => {
             const sheets = context.workbook.worksheets;
             sheets.load("items");
@@ -83,10 +68,17 @@ script:
                 await context.sync();
             }
             });
-        } catch (error) {
-            OfficeHelpers.UI.notify(error);
-            OfficeHelpers.Utilities.log(error);
         }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
         }
     language: typescript
 template:

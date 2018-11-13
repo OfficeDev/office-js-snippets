@@ -8,80 +8,73 @@ api_set:
     ExcelApi: 1.1
 script:
     content: |-
-        $("#setup").click(setup);
+        $("#setup").click(() => tryCatch(setup));
 
-        $("#get-active-worksheet").click(getActiveWorksheet);
-        $("#set-active-worksheet").click(setActiveWorksheet);
+        $("#get-active-worksheet").click(() => tryCatch(getActiveWorksheet));
+        $("#set-active-worksheet").click(() => tryCatch(setActiveWorksheet));
 
         async function getActiveWorksheet() {
-            try {
-                await Excel.run(async (context) => {
-                    const sheet = context.workbook.worksheets.getActiveWorksheet();
-                    sheet.load("name");
-                    
-                    await context.sync();
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                sheet.load("name");
+                
+                await context.sync();
 
-                    console.log(`The active worksheet is "${sheet.name}"`);
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                console.log(`The active worksheet is "${sheet.name}"`);
+            });
         }
 
         async function setActiveWorksheet() {
-            try {
-                await Excel.run(async (context) => {
-                    const sheet = context.workbook.worksheets.getActiveWorksheet();
-                    sheet.load("name");
-                    
-                    const sheets = context.workbook.worksheets;
-                    sheets.load("items");
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                sheet.load("name");
+                
+                const sheets = context.workbook.worksheets;
+                sheets.load("items");
+
+                await context.sync();
+
+                let newSheet = sheet;
+
+                if (sheets.items.length > 1) {
+                    if (sheet.id === sheets.items[0].id) {
+                        newSheet = sheets.items[1];
+                    } else {
+                        newSheet = sheets.items[0];
+                    }
+                    newSheet.load("name");
+
+                    newSheet.activate();
 
                     await context.sync();
+                } else {
+                    console.log("Cannot change the active worksheet since there is only one sheet in the workbook");
+                }
 
-                    let newSheet = sheet;
-
-                    if (sheets.items.length > 1) {
-                        if (sheet.id === sheets.items[0].id) {
-                            newSheet = sheets.items[1];
-                        } else {
-                            newSheet = sheets.items[0];
-                        }
-                        newSheet.load("name");
-
-                        newSheet.activate();
-
-                        await context.sync();
-                    } else {
-                        console.log("Cannot change the active worksheet since there is only one sheet in the workbook");
-                    }
-
-                    console.log(`The active worksheet is "${newSheet.name}"`);
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                console.log(`The active worksheet is "${newSheet.name}"`);
+            });
         }
 
         async function setup() {
-            try {
-                await Excel.run(async (context) => {
+            await Excel.run(async (context) => {
 
-                    const sheets = context.workbook.worksheets;
-                    sheets.load("items");
-                    
+                const sheets = context.workbook.worksheets;
+                sheets.load("items");
+                
+                await context.sync();
+
+                if (sheets.items.length < 2) {
+                    sheets.add();
+
                     await context.sync();
+                }
+            });
+        }
 
-                    if (sheets.items.length < 2) {
-                        sheets.add();
-
-                        await context.sync();
-                    }
-                });
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);

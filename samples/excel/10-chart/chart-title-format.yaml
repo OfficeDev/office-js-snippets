@@ -1,33 +1,65 @@
 order: 11
-id: excel-chart-title-substring
-name: Title substring
-description: Changes the color for a substring in the chart's title.
+id: excel-chart-title-format
+name: Title format
+description: Adjust a chart title's format.
 host: EXCEL
 api_set:
     ExcelApi: 1.7
 script:
-    content: |+
+    content: |
         $("#setup").click(() => tryCatch(setup));
+        $("#change-title-format").click(() => tryCatch(changeTitleFormat));
         $("#change-title-substring").click(() => tryCatch(changeTitleSubstring));
+        $("#change-title-orientation").click(() => tryCatch(changeTitleOrientation));
+        $("#add-title-shadow").click(() => tryCatch(addTitleShadow));
+
+        async function changeTitleFormat() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const title = sheet.charts.getItemAt(0).title;
+                title.format.fill.setSolidColor("SkyBlue");
+                title.format.border.lineStyle = "Dash";
+
+                await context.sync();
+            });
+        }
 
         async function changeTitleSubstring() {
-            await Excel.run(async (context) => {
+            await Excel.run(async context => {
                 let sheet = context.workbook.worksheets.getItem("Sample");
                 let chart = sheet.charts.getItemAt(0);
-             
-                // Get first seven characters of the title and highlight them to green.
-                let font = chart.title.getSubstring(0, 7).font;
-                font.color = "Green"; 
 
-                await context.sync();                
+                // Get first seven characters of the title and color them green.
+                chart.title.getSubstring(0, 7).font.color = "Yellow";
+                await context.sync();
+            });
+        }
+
+        async function changeTitleOrientation() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const title = sheet.charts.getItemAt(0).title;
+                title.textOrientation = -45;
+
+                await context.sync();
+            });
+        }
+
+        async function addTitleShadow() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const title = sheet.charts.getItemAt(0).title;
+                title.format.font.size = 16;
+                title.showShadow = true;
+
+                await context.sync();
             });
         }
 
         async function setup() {
-            await Excel.run(async (context) => {
-                const sheet = await OfficeHelpers.ExcelUtilities
-                    .forceCreateSheet(context.workbook, "Sample");
-                let expensesTable = sheet.tables.add('A1:E1', true);
+            await Excel.run(async context => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                let expensesTable = sheet.tables.add("A1:E1", true);
                 expensesTable.name = "SalesTable";
 
                 expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
@@ -41,11 +73,6 @@ script:
                     ["Spokes", 6005, 7634, 4589, 8765]
                 ]);
 
-                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
-                    sheet.getUsedRange().format.autofitColumns();
-                    sheet.getUsedRange().format.autofitRows();
-                }
-
                 createChart(context);
                 sheet.activate();
 
@@ -58,7 +85,7 @@ script:
 
             let dataRange = sheet.getRange("A3:E7");
             let chart = sheet.charts.add("ColumnStacked", dataRange, "Auto");
-            chart.title.text = "Bicycle parts sales";
+            chart.title.text = "Bicycle Parts Sales";
             chart.setPosition("A10", "H33");
             chart.legend.position = "Right";
             chart.legend.format.fill.setSolidColor("white");
@@ -70,13 +97,11 @@ script:
         async function tryCatch(callback) {
             try {
                 await callback();
-            }
-            catch (error) {
+            } catch (error) {
                 OfficeHelpers.UI.notify(error);
                 OfficeHelpers.Utilities.log(error);
             }
         }
-
     language: typescript
 template:
     content: |+
@@ -93,6 +118,12 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
+            <button id="change-title-substring" class="ms-Button">
+                <span class="ms-Button-label">Change title substring</span>
+            </button><p>
+            <button id="change-title-substring" class="ms-Button">
+                <span class="ms-Button-label">Change title substring</span>
+            </button>
             <button id="change-title-substring" class="ms-Button">
                 <span class="ms-Button-label">Change title substring</span>
             </button>

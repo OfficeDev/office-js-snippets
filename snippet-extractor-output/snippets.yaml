@@ -64,35 +64,36 @@ Excel.ChartFill.setSolidColor:
     });
 Excel.ChartSeries.delete:
   - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
+    await Excel.run(async context => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const seriesCollection = sheet.charts.getItemAt(0).series;
+      seriesCollection.load("count");
+      await context.sync();
 
-        let seriesCollection = sheet.charts.getItemAt(0).series;
-        let series = seriesCollection.getItemAt(0);
+      if (seriesCollection.count > 0) {
+        const series = seriesCollection.getItemAt(0);
 
         // Delete the first series.
         series.delete();
+      }
 
-        await context.sync();
+      await context.sync();
     });
 Excel.ChartSeries.setValues:
   - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
+    await Excel.run(async context => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
 
-        let seriesCollection = sheet.charts.getItemAt(0).series;
+      let seriesCollection = sheet.charts.getItemAt(0);
+      let rangeSelection = sheet.getRange("C2:C7");
+      let xRangeSelection = sheet.getRange("A1:A7");
 
-        // Add new series.
-        let series = seriesCollection.add("New Product");
-        let values = sheet.getRange("E2:E7");
+      // Add a series.
+      let newSeries = seriesCollection.series.add("Qtr2");
+      newSeries.setValues(rangeSelection);
+      newSeries.setXAxisValues(xRangeSelection);
 
-        // Set the vertical values for the series.
-        series.setValues(values);
-        seriesCollection.load("count");
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("Number of series  = " + seriesCollection.count);
+      await context.sync();
     });
 Excel.ChartSeries.markerStyle:
   - |-
@@ -271,27 +272,13 @@ Excel.ChartTrendlineFormat.line:
     });
 Excel.NamedItemCollection.add:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        const headerRange = sheet.getRange("A1:E1");
+        const headerRange = sheet.getRange("A1:D1");
+
         sheet.names.add("ExpensesHeader", headerRange);
         const namedItems = sheet.names.load("name, type");
 
-        await context.sync();
-
-        let namedItemsList = `This workbook contains ${namedItems.items.length} named item(s):`;
-        for (let i = 0; i < namedItems.items.length; i++) {
-            namedItemsList += JSON.stringify(namedItems.items[i]);
-        }
-        OfficeHelpers.UI.notify(namedItemsList);
-
-        await context.sync();
-    });
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
-        sheet.getRange("D11").values = [["=TotalAmount"]];
         await context.sync();
     });
 Excel.CustomXmlPart.getXml:
@@ -872,12 +859,20 @@ Excel.Range.set:
     });
 Excel.NamedItem.delete:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        sheet.names.getItem("TotalAmount").delete();
+        const totalName = sheet.names.getItemOrNullObject("TotalAmount");
+        totalName.load();
+        await context.sync();
 
-        // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
-        sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
+        if (totalName.value) {
+            totalName.delete();
+
+            // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
+            sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
+        } else {
+            console.log("No named item created for the formula.");
+        }
 
         await context.sync();
     });
@@ -1985,28 +1980,36 @@ Excel.RangeHyperlink.documentReference:
     });
 Excel.Range.getUsedRangeOrNullObject:
   - |-
-    await Excel.run(async (context) => {
-
-        const sheet = context.workbook.worksheets.getItem("Sample");    
+    await Excel.run(async context => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
         const salesTable = sheet.tables.getItem("SalesTable");
         const dataRange = salesTable.getDataBodyRange();
 
-        // Pass true so only cells with values count as used 
-        const usedDataRange = dataRange.getUsedRangeOrNullObject(true /* valuesOnly */);
+        // Pass true so only cells with values count as used
+        const usedDataRange = dataRange.getUsedRangeOrNullObject(
+        true /* valuesOnly */
+        );
 
         //Must sync before reading value returned from *OrNullObject method/property.
         await context.sync();
 
         if (usedDataRange.isNullObject) {
-            OfficeHelpers.UI.notify("Need Data to Make Chart", "To create a meaningful chart, add names to the Product column and numbers to some of the other cells. Then press 'Try to create chart' again.");            
-        } else {            
-            const chart = sheet.charts.add(Excel.ChartType.columnClustered, dataRange, "Columns");
-            chart.setPosition("A15", "F30");
-            chart.title.text = "Quarterly sales chart";
-            chart.legend.position = "Right";
-            chart.legend.format.fill.setSolidColor("white");
-            chart.dataLabels.format.font.size = 15;
-            chart.dataLabels.format.font.color = "black";
+        OfficeHelpers.UI.notify(
+            "Need Data to Make Chart",
+            "To create a meaningful chart, press 'Fill the table' (or add names to the Product column and numbers to some of the other cells). Then press 'Try to create chart' again."
+        );
+        } else {
+        const chart = sheet.charts.add(
+            Excel.ChartType.columnClustered,
+            dataRange,
+            "Columns"
+        );
+        chart.setPosition("A15", "F30");
+        chart.title.text = "Quarterly sales chart";
+        chart.legend.position = "Right";
+        chart.legend.format.fill.setSolidColor("white");
+        chart.dataLabels.format.font.size = 15;
+        chart.dataLabels.format.font.color = "black";
         }
 
         await context.sync();
@@ -2183,18 +2186,14 @@ Excel.NamedItem.formula:
         // Get the named item
         const myNamedItem = sheet.names.getItemOrNullObject("MyRange");
         myNamedItem.load("name, formula");
-
         await context.sync();
 
         if (myNamedItem.isNullObject) {
             OfficeHelpers.UI.notify(`There is no named item with the name "MyRange".`);
-        } else {
-            
+        } else {                    
             // Update named item to point to the second range
             myNamedItem.formula = "=Sample!$B$10:$D$14";
-
             sheet.getRange("B10:D14").select();
-
             await context.sync();
 
             OfficeHelpers.UI.notify(`Just updated the named item "${myNamedItem.name}" -- it's now located here: ${myNamedItem.formula}`);
@@ -2385,6 +2384,25 @@ Excel.Worksheet.tabColor:
     await Excel.run(async (context) => {
         const activeSheet = context.workbook.worksheets.getActiveWorksheet();
         activeSheet.tabColor = "#FF0000";
+
+        await context.sync();
+    });
+Excel.ChartTitle.getSubstring:
+  - |-
+    await Excel.run(async context => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let chart = sheet.charts.getItemAt(0);
+
+        // Get first seven characters of the title and color them green.
+        chart.title.getSubstring(0, 7).font.color = "Yellow";
+        await context.sync();
+    });
+Excel.ChartTitle.textOrientation:
+  - |-
+    await Excel.run(async context => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const title = sheet.charts.getItemAt(0).title;
+        title.textOrientation = -45;
 
         await context.sync();
     });

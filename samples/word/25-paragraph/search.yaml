@@ -1,0 +1,119 @@
+order: 7
+id: word-paragraph-search
+name: Search
+description: Shows basic and advanced search capabilities.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.1
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#basic-search").click(() => tryCatch(basicSearch));
+        $("#wildcard-search").click(() => tryCatch(wildcardSearch));
+
+        async function basicSearch() {
+            await Word.run(async (context) => {
+                let results = context.document.body.search("Online");
+                results.load("font/highlightColor");
+
+                await context.sync();
+
+                // Let's traverse the search results... and highlight...
+                for (let i = 0; i < results.items.length; i++) {
+                    results.items[i].font.highlightColor = "yellow";
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function wildcardSearch() {
+            await Word.run(async (context) => {
+                // Check out how wildcard expression are built, also use the second parameter of the search method to include search modes (i.e. we are using wildcards).
+                let results = context.document.body.search("$*.[0-9][0-9]", { matchWildcards: true });
+                results.load("font/highlightColor, font/color");
+
+                await context.sync();
+
+                // Let's traverse the search results... and highlight...
+                for (let i = 0; i < results.items.length; i++) {
+                    results.items[i].font.highlightColor = "red";
+                    results.items[i].font.color = "white";
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                // Let's insert a couple of paragraphs to illustrate the point..
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video ($10,000.00), you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.", "Replace");
+
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates basic and advanced search capabilities of the API.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="basic-search" class="ms-Button">
+            <span class="ms-Button-label">Basic search</span>
+          </button><p>
+            <button id="wildcard-search" class="ms-Button">
+            <span class="ms-Button-label">Wildcard search</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

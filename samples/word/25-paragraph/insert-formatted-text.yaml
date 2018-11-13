@@ -1,0 +1,123 @@
+order: 4
+id: word-paragraph-insert-formatted-text
+name: Insert formatted text
+description: Formats text with pre-built and custom styles.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.1
+script:
+    content: |-
+        $("#add-text").click(() => tryCatch(addFormattedText));
+        $("#add-paragraph").click(() => tryCatch(addFormattedParagraph));
+        $("#add-preset").click(() => tryCatch(addPreStyledFormattedText));
+
+        async function addFormattedText() {
+          await Word.run(async (context) => {
+            // Insert the sentence, then adjust the formatting.
+            // Note that replace affects the calling object, in this case the entire document body.
+            // A similar method can also be used at the range level.
+            let sentence = context.document.body.insertText(
+              "This is some formatted text!",
+              "Replace"
+            );
+            sentence.font.set({
+              name: "Courier New",
+              bold: true,
+              size: 18
+            });
+
+            await context.sync();
+          });
+        }
+
+        async function addFormattedParagraph() {
+          await Word.run(async (context) => {
+            // Second sentence, let's insert it as a paragraph after the previously inserted one.
+            let secondSentence = context.document.body.insertParagraph(
+              "This is the first text with a custom style.",
+              "End"
+            );
+            secondSentence.font.set({
+              bold: false,
+              italic: true,
+              name: "Berlin Sans FB",
+              color: "blue",
+              size: 30
+            });
+
+            await context.sync();
+          });
+        }
+
+        async function addPreStyledFormattedText() {
+          await Word.run(async (context) => {
+            let sentence = context.document.body.insertParagraph(
+              "To be or not to be",
+              "End"
+            );
+
+            // Use styleBuiltIn to use an enumeration of existing styles. If your style is custom make sure to use range.style = "name of your style";
+            sentence.styleBuiltIn = Word.Style.intenseReference;
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            OfficeHelpers.UI.notify(error);
+            OfficeHelpers.Utilities.log(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample shows how to insert basic formatted text and apply built-in styles.
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="add-text" class="ms-Button">
+              <span class="ms-Button-label">Insert formatted text</span>
+          </button><p>
+          <button id="add-paragraph" class="ms-Button">
+              <span class="ms-Button-label">Insert formatted paragrph</span>
+          </button><p>
+          <button id="add-preset" class="ms-Button">
+              <span class="ms-Button-label">Insert paragraph with preset style</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

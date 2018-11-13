@@ -289,32 +289,9 @@ Excel.NamedItemCollection.add:
   - |-
     try {
         await Excel.run(async (context) => {
-
-            await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-
             const sheet = context.workbook.worksheets.getItem("Sample");
-
-            let expensesTable = sheet.tables.add("A1:D1", true);
-            expensesTable.name = "ExpensesTable";
-
-            expensesTable.getHeaderRowRange().values = [["DATE", "MERCHANT", "CATEGORY", "AMOUNT"]];
-
-            let newData = transactions.map(item =>
-                [item.DATE, item.MERCHANT, item.CATEGORY, item.AMOUNT]);
-
-            expensesTable.rows.add(null, newData);
-
             sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
-
             sheet.getRange("D11").values = [["=TotalAmount"]];
-
-            if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
-                sheet.getUsedRange().format.autofitColumns();
-                sheet.getUsedRange().format.autofitRows();
-            }
-
-            sheet.activate();
-
             await context.sync();
         });
     }
@@ -1774,93 +1751,111 @@ Excel.TextConditionalFormat.rule:
     });
 Excel.Range.getIntersectionOrNullObject:
   - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");    
-        const salesTable = sheet.tables.getItem("SalesTable");
-        const dataRange = salesTable.getDataBodyRange();
+    await Excel.run(async context => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const salesTable = sheet.tables.getItem("SalesTable");
+      const dataRange = salesTable.getDataBodyRange();
 
-        // We want the most recent quarter that has data, so 
-        // exclude quarters without data and get the last of 
-        // the remaining columns.
-        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
-        const currentQuarterRange = usedDataRange.getLastColumn();
+      // We want the most recent quarter that has data, so
+      // exclude quarters without data and get the last of
+      // the remaining columns.
+      const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
+      const currentQuarterRange = usedDataRange.getLastColumn();
 
-        // Asian and European teams have separate contests.
-        const asianSalesRange = sheet.getRange("A2:E4");
-        const europeanSalesRange = sheet.getRange("A5:E7");
+      // Asian and European teams have separate contests.
+      const asianSalesRange = sheet.getRange("A2:E4");
+      const europeanSalesRange = sheet.getRange("A5:E7");
 
-        // The data for each chart is the intersection of 
-        // the current quarter column and the rows for the 
-        // continent.
-        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+      // The data for each chart is the intersection of the
+      // current quarter column and the rows for the continent.
+      const asianContestRange = asianSalesRange.getIntersectionOrNullObject(
+        currentQuarterRange
+      );
+      const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(
+        currentQuarterRange
+      );
 
-        // Must sync before you can test the output of *OrNullObject 
-        // method/property.
-        await context.sync();
+      // Must sync before you can test the output of *OrNullObject
+      // method/property.
+      await context.sync();
 
-        if (asianContestRange.isNullObject) {
-            // See the declaration of this method for how to 
-            // test this code path.
-            reportMissingData("Asian");
-        } else {
-            createContinentChart(sheet, "Asian", asianContestRange, "A9", "F24");
-        }
+      if (asianContestRange.isNullObject) {
+        // See the declaration of this method for how to
+        // test this code path.
+        reportMissingData("Asian");
+      } else {
+        createContinentChart(sheet, "Asian", asianContestRange, "A9", "F24");
+      }
 
-        if (europeanContestRange.isNullObject) {
-            // See the declaration of this method for how to 
-            // test this code path.
-            reportMissingData("European");
-        } else {
-            createContinentChart(sheet, "European", europeanContestRange, "A25", "F40");
-        }
+      if (europeanContestRange.isNullObject) {
+        // See the declaration of this method for how to
+        // test this code path.
+        reportMissingData("European");
+      } else {
+        createContinentChart(
+          sheet,
+          "European",
+          europeanContestRange,
+          "A25",
+          "F40"
+        );
+      }
 
-        await context.sync();
+      await context.sync();
     });
 Excel.Range.getUsedRange:
   - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");    
-        const salesTable = sheet.tables.getItem("SalesTable");
-        const dataRange = salesTable.getDataBodyRange();
+    await Excel.run(async context => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const salesTable = sheet.tables.getItem("SalesTable");
+      const dataRange = salesTable.getDataBodyRange();
 
-        // We want the most recent quarter that has data, so 
-        // exclude quarters without data and get the last of 
-        // the remaining columns.
-        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
-        const currentQuarterRange = usedDataRange.getLastColumn();
+      // We want the most recent quarter that has data, so
+      // exclude quarters without data and get the last of
+      // the remaining columns.
+      const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
+      const currentQuarterRange = usedDataRange.getLastColumn();
 
-        // Asian and European teams have separate contests.
-        const asianSalesRange = sheet.getRange("A2:E4");
-        const europeanSalesRange = sheet.getRange("A5:E7");
+      // Asian and European teams have separate contests.
+      const asianSalesRange = sheet.getRange("A2:E4");
+      const europeanSalesRange = sheet.getRange("A5:E7");
 
-        // The data for each chart is the intersection of 
-        // the current quarter column and the rows for the 
-        // continent.
-        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+      // The data for each chart is the intersection of the
+      // current quarter column and the rows for the continent.
+      const asianContestRange = asianSalesRange.getIntersectionOrNullObject(
+        currentQuarterRange
+      );
+      const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(
+        currentQuarterRange
+      );
 
-        // Must sync before you can test the output of *OrNullObject 
-        // method/property.
-        await context.sync();
+      // Must sync before you can test the output of *OrNullObject
+      // method/property.
+      await context.sync();
 
-        if (asianContestRange.isNullObject) {
-            // See the declaration of this method for how to 
-            // test this code path.
-            reportMissingData("Asian");
-        } else {
-            createContinentChart(sheet, "Asian", asianContestRange, "A9", "F24");
-        }
+      if (asianContestRange.isNullObject) {
+        // See the declaration of this method for how to
+        // test this code path.
+        reportMissingData("Asian");
+      } else {
+        createContinentChart(sheet, "Asian", asianContestRange, "A9", "F24");
+      }
 
-        if (europeanContestRange.isNullObject) {
-            // See the declaration of this method for how to 
-            // test this code path.
-            reportMissingData("European");
-        } else {
-            createContinentChart(sheet, "European", europeanContestRange, "A25", "F40");
-        }
+      if (europeanContestRange.isNullObject) {
+        // See the declaration of this method for how to
+        // test this code path.
+        reportMissingData("European");
+      } else {
+        createContinentChart(
+          sheet,
+          "European",
+          europeanContestRange,
+          "A25",
+          "F40"
+        );
+      }
 
-        await context.sync();
+      await context.sync();
     });
 Excel.Range.hyperlink:
   - |-
@@ -2673,8 +2668,8 @@ Word.ContentControl.tag:
     });
 Word.ContentControl.set:
   - >-
-    // I'll add title and colors to odd and even content controls! and change
-    appearance of all.
+    // Adds title and colors to odd and even content controls and changes their
+    appearance.
 
     await Word.run(async (context) => {
         // Gets the complete sentence  (as range) associated with the insertion point.

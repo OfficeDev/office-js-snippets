@@ -1,0 +1,137 @@
+order: 6
+id: word-paragraph-paragraph-properties
+name: Paragraph properties
+description: 'Sets indentation, space between paragraphs, and other paragraph properties.'
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.2
+script:
+    content: |-
+        $("#indent").click(() => tryCatch(indent));
+        $("#spacing").click(() => tryCatch(spacing));
+        $("#space-after").click(() => tryCatch(spaceAfter));
+        $("#align").click(() => tryCatch(align));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function indent() {
+            await Word.run(async (context) => {
+                // Indents the first paragraph
+                context.document.body.paragraphs.
+                    getFirst().leftIndent = 75; //units = points
+
+                return context.sync();
+            });
+        }
+
+        async function spacing() {
+            await Word.run(async (context) => {
+                // Adjusts line spacing 
+                context.document.body.paragraphs
+                    .getFirst().lineSpacing = 20;
+
+                await context.sync();
+            });
+        }
+
+        async function spaceAfter() {
+            await Word.run(async (context) => {
+                //Adjust space between paragraphs
+                context.document.body.paragraphs
+                    .getFirst().spaceAfter = 20;
+
+                await context.sync();
+            });
+        }
+
+        async function align() {
+            await Word.run(async (context) => {
+                // Centers last paragraph alignment
+                context.document.body.paragraphs
+                    .getLast().alignment = "Centered";
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                // insert a couple of paragraphs
+                context.document.body.clear();
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.", "Replace");
+                context.document.body.paragraphs.getFirst().alignment = "Left";
+                context.document.body.paragraphs.getLast().alignment = "Left";
+
+                await context.sync();
+            })
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+        This sample demonstrates paragraph property usage.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="indent" class="ms-Button">
+              <span class="ms-Button-label">Indent first paragraph</span>
+          </button><p>
+            <button id="spacing" class="ms-Button">
+              <span class="ms-Button-label">Adjust first paragraph's line spacing</span>
+          </button><p>
+            <button id="space-after" class="ms-Button">
+              <span class="ms-Button-label">Adjust space between paragraphs</span>
+          </button><p>
+            <button id="align" class="ms-Button">
+              <span class="ms-Button-label">Align last paragraph to center</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

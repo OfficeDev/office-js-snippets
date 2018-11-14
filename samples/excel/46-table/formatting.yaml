@@ -8,66 +8,61 @@ api_set:
     ExcelApi: 1.1
 script:
     content: |
-        $("#setup").click(setup);
-        $("#format-table").click(formatTable);
+        $("#setup").click(() => tryCatch(setup));
+        $("#format-table").click(() => tryCatch(formatTable));
 
         async function formatTable() {
-            try {
-                await Excel.run(async (context) => {
-                    const sheet = context.workbook.worksheets.getItem("Sample");
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesTable = sheet.tables.getItem("ExpensesTable");
 
-                    const expensesTable = sheet.tables.getItem("ExpensesTable");
-
-                    expensesTable.getHeaderRowRange().format.fill.color = "#C70039";
-
-                    expensesTable.getDataBodyRange().format.fill.color = "#DAF7A6";
-
-                    expensesTable.rows.getItemAt(1).getRange().format.fill.color = "#FFC300";
-
-                    expensesTable.columns.getItemAt(0).getDataBodyRange().format.fill.color = "#FFA07A";
-                    
-                  await context.sync();
-                });
-             }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                expensesTable.getHeaderRowRange().format.fill.color = "#C70039";
+                expensesTable.getDataBodyRange().format.fill.color = "#DAF7A6";
+                expensesTable.rows.getItemAt(1).getRange().format.fill.color = "#FFC300";
+                expensesTable.columns.getItemAt(0).getDataBodyRange().format.fill.color = "#FFA07A";
+                
+              await context.sync();
+            });
         }
 
         /** Create a new table with sample data */
         async function setup() {
+            await Excel.run(async (context) => {
+
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
+                 expensesTable.name = "ExpensesTable";
+
+                expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                expensesTable.rows.add(null /*add at the end*/, [
+                    ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                    ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                    ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                    ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                    ["1/11/2017", "Bellows College", "Education", "$350"],
+                    ["1/15/2017", "Trey Research", "Other", "$135"],
+                    ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                await Excel.run(async (context) => {
-
-                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-
-                    const sheet = context.workbook.worksheets.getItem("Sample");
-
-                    const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
-                     expensesTable.name = "ExpensesTable";
-
-                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
-
-                    expensesTable.rows.add(null /*add at the end*/, [
-                        ["1/1/2017", "The Phone Company", "Communications", "$120"],
-                        ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
-                        ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
-                        ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
-                        ["1/11/2017", "Bellows College", "Education", "$350"],
-                        ["1/15/2017", "Trey Research", "Other", "$135"],
-                        ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
-                    ]);
-
-                    if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
-                        sheet.getUsedRange().format.autofitColumns();
-                        sheet.getUsedRange().format.autofitRows();
-                    }
-
-                    sheet.activate();
-
-                    await context.sync();
-                });
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);

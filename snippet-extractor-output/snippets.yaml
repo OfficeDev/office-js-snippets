@@ -1,6 +1,6 @@
 Excel.ChartAxis.displayUnit:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         const sheet = context.workbook.worksheets.getItem("Sample");
 
         let chart = sheet.charts.getItemAt(0);
@@ -9,16 +9,17 @@ Excel.ChartAxis.displayUnit:
 
         // Load to get display unit.
         valueAxis.load("displayUnit");
-       
+
         await context.sync();
 
-        OfficeHelpers.UI.notify("The vertical axis display unit is: " +  valueAxis.displayUnit);
+        OfficeHelpers.UI.notify(
+        "The vertical axis display unit is: " + valueAxis.displayUnit
+        );
     });
 Excel.ChartAxis.showDisplayUnitLabel:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-
         let chart = sheet.charts.getItemAt(0);
         let axis = chart.axes.valueAxis;
 
@@ -63,35 +64,36 @@ Excel.ChartFill.setSolidColor:
     });
 Excel.ChartSeries.delete:
   - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
+    await Excel.run(async context => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const seriesCollection = sheet.charts.getItemAt(0).series;
+      seriesCollection.load("count");
+      await context.sync();
 
-        let seriesCollection = sheet.charts.getItemAt(0).series;
-        let series = seriesCollection.getItemAt(0);
+      if (seriesCollection.count > 0) {
+        const series = seriesCollection.getItemAt(0);
 
         // Delete the first series.
         series.delete();
+      }
 
-        await context.sync();
+      await context.sync();
     });
 Excel.ChartSeries.setValues:
   - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
+    await Excel.run(async context => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
 
-        let seriesCollection = sheet.charts.getItemAt(0).series;
+      let seriesCollection = sheet.charts.getItemAt(0);
+      let rangeSelection = sheet.getRange("C2:C7");
+      let xRangeSelection = sheet.getRange("A1:A7");
 
-        // Add new series.
-        let series = seriesCollection.add("New Product");
-        let values = sheet.getRange("E2:E7");
+      // Add a series.
+      let newSeries = seriesCollection.series.add("Qtr2");
+      newSeries.setValues(rangeSelection);
+      newSeries.setXAxisValues(xRangeSelection);
 
-        // Set the vertical values for the series.
-        series.setValues(values);
-        seriesCollection.load("count");
-
-        await context.sync();
-
-        OfficeHelpers.UI.notify("Number of series  = " + seriesCollection.count);
+      await context.sync();
     });
 Excel.ChartSeries.markerStyle:
   - |-
@@ -270,39 +272,18 @@ Excel.ChartTrendlineFormat.line:
     });
 Excel.NamedItemCollection.add:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        const headerRange = sheet.getRange("A1:E1");
+        const headerRange = sheet.getRange("A1:D1");
+
         sheet.names.add("ExpensesHeader", headerRange);
         const namedItems = sheet.names.load("name, type");
 
         await context.sync();
-
-        let namedItemsList = `This workbook contains ${namedItems.items.length} named item(s):`;
-        for (let i = 0; i < namedItems.items.length; i++) {
-            namedItemsList += JSON.stringify(namedItems.items[i]);
-        }
-        OfficeHelpers.UI.notify(namedItemsList);
-
-        await context.sync();
     });
-  - |-
-    try {
-        await Excel.run(async (context) => {
-            const sheet = context.workbook.worksheets.getItem("Sample");
-            sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
-            sheet.getRange("D11").values = [["=TotalAmount"]];
-            await context.sync();
-        });
-    }
-    catch (error) {
-        OfficeHelpers.UI.notify(error);
-        OfficeHelpers.Utilities.log(error);
-    }
 Excel.CustomXmlPart.getXml:
   - |-
     await Excel.run(async (context) => {
-
         // You must have the xmlns attribute to populate the 
         // CustomXml.namespaceUri property.
         const originalXml = "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
@@ -324,7 +305,6 @@ Excel.CustomXmlPart.getXml:
 Excel.CustomXmlPart.id:
   - |-
     await Excel.run(async (context) => {
-
         // You must have the xmlns attribute to populate the 
         // CustomXml.namespaceUri property.
         const originalXml = "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
@@ -347,32 +327,31 @@ Excel.CustomXmlPart.setXml:
   - |-
     await Excel.run(async (context) => {
         const settings = context.workbook.settings;
-        const xmlPartIDSetting = settings.getItem("ContosoReviewXmlPartId").load("value");
-
+        const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
         await context.sync();
-        
+
+    if (xmlPartIDSetting.value) {   
         const customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
 
         // The setXml method does a whole-for-whole replacement 
         // of the entire XML.
         customXmlPart.setXml("<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>John</Reviewer><Reviewer>Hitomi</Reviewer></Reviewers>");
         const xmlBlob = customXmlPart.getXml();
-
         await context.sync();
 
         const readableXml = addLineBreaksToXML(xmlBlob.value);
         $("#display-xml").text(readableXml);
-
         await context.sync();
+    }
     });
 Excel.CustomXmlPart.delete:
   - |-
     await Excel.run(async (context) => {
         const settings = context.workbook.settings;
-        const xmlPartIDSetting = settings.getItem("ContosoReviewXmlPartId").load("value");
-
+        const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
         await context.sync();
-        
+
+        if (xmlPartIDSetting.value) {   
         let customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
         const xmlBlob = customXmlPart.getXml();
         customXmlPart.delete();
@@ -392,11 +371,11 @@ Excel.CustomXmlPart.delete:
         }
 
         await context.sync();
+        }
     });
 Excel.CustomXmlPartCollection.add:
   - |-
     await Excel.run(async (context) => {
-
         // You must have the xmlns attribute to populate the 
         // CustomXml.namespaceUri property.
         const originalXml = "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
@@ -419,32 +398,31 @@ Excel.CustomXmlPartCollection.getItem:
   - |-
     await Excel.run(async (context) => {
         const settings = context.workbook.settings;
-        const xmlPartIDSetting = settings.getItem("ContosoReviewXmlPartId").load("value");
-
+        const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
         await context.sync();
-        
+
+    if (xmlPartIDSetting.value) {   
         const customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
 
         // The setXml method does a whole-for-whole replacement 
         // of the entire XML.
         customXmlPart.setXml("<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>John</Reviewer><Reviewer>Hitomi</Reviewer></Reviewers>");
         const xmlBlob = customXmlPart.getXml();
-
         await context.sync();
 
         const readableXml = addLineBreaksToXML(xmlBlob.value);
         $("#display-xml").text(readableXml);
-
         await context.sync();
+    }
     });
 Excel.CustomXmlPartScopedCollection.getItemOrNullObject:
   - |-
     await Excel.run(async (context) => {
         const settings = context.workbook.settings;
-        const xmlPartIDSetting = settings.getItem("ContosoReviewXmlPartId").load("value");
-
+        const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
         await context.sync();
-        
+
+        if (xmlPartIDSetting.value) {   
         let customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
         const xmlBlob = customXmlPart.getXml();
         customXmlPart.delete();
@@ -464,6 +442,7 @@ Excel.CustomXmlPartScopedCollection.getItemOrNullObject:
         }
 
         await context.sync();
+        }
     });
 Excel.CustomXmlPartCollection.getByNamespace:
   - |-
@@ -699,7 +678,7 @@ Excel.SettingCollection.onSettingsChanged:
     await Excel.run(async (context) => {
         const settings = context.workbook.settings; 
         settings.onSettingsChanged.add(onChangedSetting);
-        OfficeHelpers.UI.notify("Handler registered", "");
+        OfficeHelpers.UI.notify("Settings changed handler registered", "Press the next button to change the setting, then watch the console.");
 
         await context.sync();
     });
@@ -708,7 +687,7 @@ Excel.SettingCollection.add:
     await Excel.run(async (context) => {
         const settings = context.workbook.settings; 
         settings.onSettingsChanged.add(onChangedSetting);
-        OfficeHelpers.UI.notify("Handler registered", "");
+        OfficeHelpers.UI.notify("Settings changed handler registered", "Press the next button to change the setting, then watch the console.");
 
         await context.sync();
     });
@@ -784,29 +763,33 @@ Excel.TableCollection.onChanged:
     });
 Excel.WorksheetCollection.onDeactivated:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         let sheets = context.workbook.worksheets;
         sheets.onDeactivated.add(onDeactivate);
 
         await context.sync();
 
-        OfficeHelpers.UI.notify("A handler has been registered for the OnDeactivate event",
-            "Try selecting a different worksheet, and watch the console output.");   
+        OfficeHelpers.UI.notify(
+            "A handler has been registered for the OnDeactivate event",
+            "Try selecting a different worksheet, and watch the console output."
+        );
     });
 Excel.WorksheetCollection.onActivated:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         let sheets = context.workbook.worksheets;
         sheets.onActivated.add(onActivate);
 
         await context.sync();
 
-        OfficeHelpers.UI.notify("A handler has been registered for the OnActivate event",
-            "Try selecting a different worksheet, and watch the console output.");   
+        OfficeHelpers.UI.notify(
+            "A handler has been registered for the OnActivate event",
+            "Try selecting a different worksheet, and watch the console output."
+        );
     });
 Excel.Worksheet.onChanged:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         let sheet = context.workbook.worksheets.getItem("Sample");
         sheet.onChanged.add(onChange);
 
@@ -817,20 +800,25 @@ Excel.Worksheet.onChanged:
 Excel.WorksheetAddedEventArgs.worksheetId:
   - |-
     async function onWorksheetAdd(event) {
-        await Excel.run(async (context) => {
-            console.log("Handler for worksheet onAdded event has been triggered.  Newly added worksheet Id : " + event.worksheetId);
+        await Excel.run(async context => {
+            console.log(
+                "Handler for worksheet onAdded event has been triggered.  Newly added worksheet Id : " +
+                event.worksheetId
+            );
         });
     }
 Excel.WorksheetCollection.onAdded:
   - |-
-    await Excel.run(async (context) => {
+    await Excel.run(async context => {
         let sheet = context.workbook.worksheets;
         sheet.onAdded.add(onWorksheetAdd);
 
         await context.sync();
 
-        OfficeHelpers.UI.notify("A handler has been registered for the OnAdded event",
-            "Try adding a worksheet, and watch the console output.");
+        OfficeHelpers.UI.notify(
+            "A handler has been registered for the OnAdded event",
+            "Try adding a worksheet, and watch the console output."
+        );
     });
 Excel.Worksheet.showGridlines:
   - |-
@@ -877,24 +865,23 @@ Excel.Range.set:
     });
 Excel.NamedItem.delete:
   - |-
-    try {
-        await Excel.run(async (context) => {
+    await Excel.run(async context => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const totalName = sheet.names.getItemOrNullObject("TotalAmount");
+        totalName.load();
+        await context.sync();
 
-            const sheet = context.workbook.worksheets.getItem("Sample");
-
-            sheet.names.getItem("TotalAmount").delete();
+        if (totalName.value) {
+            totalName.delete();
 
             // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
             sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
+        } else {
+            console.log("No named item created for the formula.");
+        }
 
-            await context.sync();
-
-        });
-    }
-    catch (error) {
-        OfficeHelpers.UI.notify(error);
-        OfficeHelpers.Utilities.log(error);
-    }
+        await context.sync();
+    });
 Excel.DataPivotHierarchy.showAs:
   - |-
     await Excel.run(async (context) => {
@@ -1999,28 +1986,36 @@ Excel.RangeHyperlink.documentReference:
     });
 Excel.Range.getUsedRangeOrNullObject:
   - |-
-    await Excel.run(async (context) => {
-
-        const sheet = context.workbook.worksheets.getItem("Sample");    
+    await Excel.run(async context => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
         const salesTable = sheet.tables.getItem("SalesTable");
         const dataRange = salesTable.getDataBodyRange();
 
-        // Pass true so only cells with values count as used 
-        const usedDataRange = dataRange.getUsedRangeOrNullObject(true /* valuesOnly */);
+        // Pass true so only cells with values count as used
+        const usedDataRange = dataRange.getUsedRangeOrNullObject(
+        true /* valuesOnly */
+        );
 
         //Must sync before reading value returned from *OrNullObject method/property.
         await context.sync();
 
         if (usedDataRange.isNullObject) {
-            OfficeHelpers.UI.notify("Need Data to Make Chart", "To create a meaningful chart, add names to the Product column and numbers to some of the other cells. Then press 'Try to create chart' again.");            
-        } else {            
-            const chart = sheet.charts.add(Excel.ChartType.columnClustered, dataRange, "Columns");
-            chart.setPosition("A15", "F30");
-            chart.title.text = "Quarterly sales chart";
-            chart.legend.position = "Right";
-            chart.legend.format.fill.setSolidColor("white");
-            chart.dataLabels.format.font.size = 15;
-            chart.dataLabels.format.font.color = "black";
+        OfficeHelpers.UI.notify(
+            "Need Data to Make Chart",
+            "To create a meaningful chart, press 'Fill the table' (or add names to the Product column and numbers to some of the other cells). Then press 'Try to create chart' again."
+        );
+        } else {
+        const chart = sheet.charts.add(
+            Excel.ChartType.columnClustered,
+            dataRange,
+            "Columns"
+        );
+        chart.setPosition("A15", "F30");
+        chart.title.text = "Quarterly sales chart";
+        chart.legend.position = "Right";
+        chart.legend.format.fill.setSolidColor("white");
+        chart.dataLabels.format.font.size = 15;
+        chart.dataLabels.format.font.color = "black";
         }
 
         await context.sync();
@@ -2197,18 +2192,14 @@ Excel.NamedItem.formula:
         // Get the named item
         const myNamedItem = sheet.names.getItemOrNullObject("MyRange");
         myNamedItem.load("name, formula");
-
         await context.sync();
 
         if (myNamedItem.isNullObject) {
             OfficeHelpers.UI.notify(`There is no named item with the name "MyRange".`);
-        } else {
-            
+        } else {                    
             // Update named item to point to the second range
             myNamedItem.formula = "=Sample!$B$10:$D$14";
-
             sheet.getRange("B10:D14").select();
-
             await context.sync();
 
             OfficeHelpers.UI.notify(`Just updated the named item "${myNamedItem.name}" -- it's now located here: ${myNamedItem.formula}`);
@@ -2399,6 +2390,25 @@ Excel.Worksheet.tabColor:
     await Excel.run(async (context) => {
         const activeSheet = context.workbook.worksheets.getActiveWorksheet();
         activeSheet.tabColor = "#FF0000";
+
+        await context.sync();
+    });
+Excel.ChartTitle.getSubstring:
+  - |-
+    await Excel.run(async context => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let chart = sheet.charts.getItemAt(0);
+
+        // Get first seven characters of the title and color them green.
+        chart.title.getSubstring(0, 7).font.color = "Yellow";
+        await context.sync();
+    });
+Excel.ChartTitle.textOrientation:
+  - |-
+    await Excel.run(async context => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const title = sheet.charts.getItemAt(0).title;
+        title.textOrientation = -45;
 
         await context.sync();
     });

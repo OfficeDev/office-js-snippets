@@ -8,36 +8,35 @@ api_set:
     ExcelApi: 1.1
 script:
     content: |
-        $("#get-selection").click(getSelection);
-        $("#set-selection").click(setSelection);
+        $("#get-selection").click(() => tryCatch(getSelection));
+        $("#set-selection").click(() => tryCatch(setSelection));
 
         async function getSelection() {
-            try {
-                await Excel.run(async (context) => {
-                    const range = context.workbook.getSelectedRange();
-                    range.load("address");
+            await Excel.run(async (context) => {
+                const range = context.workbook.getSelectedRange();
+                range.load("address");
 
-                    await context.sync();
+                await context.sync();
 
-                    console.log(`The address of the selected range is "${range.address}"`)
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                console.log(`The address of the selected range is "${range.address}"`)
+            });
         }
 
         async function setSelection() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const range = sheet.getRange("B2:E6");
+
+                range.select();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                await Excel.run(async (context) => {
-                    const sheet = context.workbook.worksheets.getActiveWorksheet();
-                    const range = sheet.getRange("B2:E6");
-
-                    range.select();
-
-                    await context.sync();
-                });
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);

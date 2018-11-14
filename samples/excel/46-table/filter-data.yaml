@@ -8,89 +8,82 @@ api_set:
     ExcelApi: 1.1
 script:
     content: |
-        $("#setup").click(setup);
-        $("#filter-table").click(filterTable);
-        $("#clear-filters").click(clearFilters);
+        $("#setup").click(() => tryCatch(setup));
+        $("#filter-table").click(() => tryCatch(filterTable));
+        $("#clear-filters").click(() => tryCatch(clearFilters));
 
         async function filterTable() {
-            try {
-                await Excel.run(async (context) => {
-                    const sheet = context.workbook.worksheets.getItem("Sample");
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
 
-                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+                const expensesTable = sheet.tables.getItem("ExpensesTable");
 
-                    let filter = expensesTable.columns.getItem("Amount").filter;
-                    filter.apply({
-                        filterOn: Excel.FilterOn.dynamic,
-                        dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
-                    });
+                let filter = expensesTable.columns.getItem("Amount").filter;
+                filter.apply({
+                    filterOn: Excel.FilterOn.dynamic,
+                    dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
+                });
 
-                    filter = expensesTable.columns.getItem("Category").filter;
-                    filter.apply({
-                            filterOn: Excel.FilterOn.values,
-                            values: ["Restaurant", "Groceries"]
-                    });
+                filter = expensesTable.columns.getItem("Category").filter;
+                filter.apply({
+                        filterOn: Excel.FilterOn.values,
+                        values: ["Restaurant", "Groceries"]
+                });
 
-                    await context.sync();
-               });
-             }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                await context.sync();
+           });
         }
 
         async function clearFilters() {
-            try {
-                await Excel.run(async (context) => {
-                    const sheet = context.workbook.worksheets.getItem("Sample");
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
 
-                    const expensesTable = sheet.tables.getItem("ExpensesTable");
+                const expensesTable = sheet.tables.getItem("ExpensesTable");
 
-                    expensesTable.clearFilters();
+                expensesTable.clearFilters();
 
-                    await context.sync();
-               });
-             }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                await context.sync();
+           });
         }
 
         /** Create a new table with sample data */
         async function setup() {
+            await Excel.run(async (context) => {
+
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
+                 expensesTable.name = "ExpensesTable";
+
+                expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                expensesTable.rows.add(null /*add at the end*/, [
+                    ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                    ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                    ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                    ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                    ["1/11/2017", "Bellows College", "Education", "$350"],
+                    ["1/15/2017", "Trey Research", "Other", "$135"],
+                    ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                await Excel.run(async (context) => {
-
-                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-
-                    const sheet = context.workbook.worksheets.getItem("Sample");
-
-                    const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
-                     expensesTable.name = "ExpensesTable";
-
-                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
-
-                    expensesTable.rows.add(null /*add at the end*/, [
-                        ["1/1/2017", "The Phone Company", "Communications", "$120"],
-                        ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
-                        ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
-                        ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
-                        ["1/11/2017", "Bellows College", "Education", "$350"],
-                        ["1/15/2017", "Trey Research", "Other", "$135"],
-                        ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
-                    ]);
-
-                    if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
-                        sheet.getUsedRange().format.autofitColumns();
-                        sheet.getUsedRange().format.autofitRows();
-                    }
-
-                    sheet.activate();
-
-                    await context.sync();
-                });
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);

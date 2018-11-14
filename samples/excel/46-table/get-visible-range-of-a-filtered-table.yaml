@@ -8,118 +8,88 @@ api_set:
     ExcelApi: 1.1
 script:
     content: |+
-        $("#create-table").click(createTable);
-        $("#filter-table").click(filterTable);
-        $("#get-range").click(getRange);
-        $("#get-visible-range").click(getVisibleRange);
+        $("#create-table").click(() => tryCatch(createTable));
+        $("#filter-table").click(() => tryCatch(filterTable));
+        $("#get-range").click(() => tryCatch(getRange));
+        $("#get-visible-range").click(() => tryCatch(getVisibleRange));
 
         async function getVisibleRange() {
-          try {
             await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesTable = sheet.tables.getItem("ExpensesTable");                    
+                const visibleRange = expensesTable.getDataBodyRange().getVisibleView().load("values");
+                await sheet.context.sync();
 
-              const sheet = context.workbook.worksheets.getItem("Sample");
-
-                    const expensesTable = sheet.tables.getItem("ExpensesTable");
-                    
-              const visibleRange = expensesTable.getDataBodyRange().getVisibleView().load("values");
-
-              await sheet.context.sync();
-
-              const visibleValues = visibleRange.values;
-
-              console.log(visibleValues);
-
-              await context.sync();
+                const visibleValues = visibleRange.values;
+                console.log(visibleValues);
+                await context.sync();
             });
-          }
-          catch (error) {
-            OfficeHelpers.UI.notify(error);
-            OfficeHelpers.Utilities.log(error);
-          }
         }
 
         async function getRange() {
-          try {
             await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesTable = sheet.tables.getItem("ExpensesTable");                    
+                const range = expensesTable.getDataBodyRange().load("values");
+                await sheet.context.sync();
 
-              const sheet = context.workbook.worksheets.getItem("Sample");
-
-                    const expensesTable = sheet.tables.getItem("ExpensesTable");
-                    
-              const range = expensesTable.getDataBodyRange().load("values");
-
-              await sheet.context.sync();
-
-              const values = range.values;
-
-              console.log(values);
-
-              await context.sync();
-            })
-          }
-          catch (error) {
-            OfficeHelpers.UI.notify(error);
-            OfficeHelpers.Utilities.log(error);
-          }
+                const values = range.values;
+                console.log(values);
+                await context.sync();
+            });
         }
 
         /** Create a new table with some sample data*/
         async function createTable() {
-            try {
-                await Excel.run(async (context) => {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
 
-                    await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                let expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);
+                expensesTable.name = "ExpensesTable";
 
-                    const sheet = context.workbook.worksheets.getItem("Sample");
+                expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
 
-                    let expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);
-                    expensesTable.name = "ExpensesTable";
+                expensesTable.rows.add(null /*add at the end*/, [
+                    ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                    ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                    ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                    ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                    ["1/11/2017", "Bellows College", "Education", "$350"],
+                    ["1/15/2017", "Trey Research", "Other", "$135"],
+                    ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                ]);
 
-                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
 
-                    expensesTable.rows.add(null /*add at the end*/, [
-                        ["1/1/2017", "The Phone Company", "Communications", "$120"],
-                        ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
-                        ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
-                        ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
-                        ["1/11/2017", "Bellows College", "Education", "$350"],
-                        ["1/15/2017", "Trey Research", "Other", "$135"],
-                        ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
-                    ]);
-
-                    if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
-                        sheet.getUsedRange().format.autofitColumns();
-                        sheet.getUsedRange().format.autofitRows();
-                    }
-
-                    sheet.activate();
-
-                    await context.sync();
-                })
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                sheet.activate();
+                await context.sync();
+            });
         }
 
         /** Filter the table*/
         async function filterTable() {
-            try {
-                await Excel.run(async (context) => {
-                    const sheet = context.workbook.worksheets.getItem("Sample");
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesTable = sheet.tables.getItem("ExpensesTable");
+                const filter = expensesTable.columns.getItem("Amount").filter;
 
-                    const expensesTable = sheet.tables.getItem("ExpensesTable");
-
-                    const filter = expensesTable.columns.getItem("Amount").filter;
-
-                    filter.apply({
-                        filterOn: Excel.FilterOn.dynamic,
-                        dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
-                    });
-
-                    await context.sync();
+                filter.apply({
+                    filterOn: Excel.FilterOn.dynamic,
+                    dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
                 });
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);

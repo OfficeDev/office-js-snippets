@@ -8,25 +8,30 @@ api_set:
     ExcelApi: 1.1
 script:
     content: |
-        $("#list-worksheets").click(listWorksheets);
+        $("#list-worksheets").click(() => tryCatch(listWorksheets));
 
         async function listWorksheets() {
-            try {
-                await Excel.run(async (context) => {
-                    const sheets = context.workbook.worksheets;
-                    sheets.load("items/name");
-                    
-                    await context.sync();
+            await Excel.run(async (context) => {
+                const sheets = context.workbook.worksheets;
+                sheets.load("items/name");
+                
+                await context.sync();
 
-                    if (sheets.items.length > 1) {
-                        console.log(`There are ${sheets.items.length} worksheets in the workbook:`);
-                    } else {
-                        console.log(`There is one worksheet in the workbook:`);
-                    }
-                    for (let i in sheets.items) {
-                        console.log(sheets.items[i].name);
-                    } 
-                });
+                if (sheets.items.length > 1) {
+                    console.log(`There are ${sheets.items.length} worksheets in the workbook:`);
+                } else {
+                    console.log(`There is one worksheet in the workbook:`);
+                }
+                for (let i in sheets.items) {
+                    console.log(sheets.items[i].name);
+                } 
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);

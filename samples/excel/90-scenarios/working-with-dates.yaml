@@ -10,94 +10,88 @@ script:
     content: |
         declare var moment: any;
 
-        $("#setup").click(setup);
-        $("#set-date-value-using-timestamp").click(setDateValueUsingTimestamp);
-        $("#get-date-value").click(getDateValue);
+        $("#setup").click(() => tryCatch(setup));
+        $("#set-date-value-using-timestamp").click(() => tryCatch(setDateValueUsingTimestamp));
+        $("#get-date-value").click(() => tryCatch(getDateValue));
 
         async function setDateValueUsingTimestamp() {
-            try {
-                await Excel.run(async (context) => {
+            await Excel.run(async (context) => {
 
-                    const sheet = context.workbook.worksheets.getItem("Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
 
-                    const now = Date.now();
-                    console.log(`set (timestamp): ${now}`);
+                const now = Date.now();
+                console.log(`set (timestamp): ${now}`);
 
-                    const nowMoment = moment(now);
-                    console.log(`set (moment): ${JSON.stringify(nowMoment)}`);
+                const nowMoment = moment(now);
+                console.log(`set (moment): ${JSON.stringify(nowMoment)}`);
 
-                    const nowMS = nowMoment.toOADate();
-                    console.log(`set (MSDate): ${nowMS}`);
+                const nowMS = nowMoment.toOADate();
+                console.log(`set (MSDate): ${nowMS}`);
 
-                    const dateRange = sheet.getRange("B4");
-                    dateRange.values = [[nowMS]];``
-                    dateRange.numberFormat = [["[$-409]m/d/yy h:mm AM/PM;@"]];
+                const dateRange = sheet.getRange("B4");
+                dateRange.values = [[nowMS]];``
+                dateRange.numberFormat = [["[$-409]m/d/yy h:mm AM/PM;@"]];
 
-                    dateRange.format.autofitColumns();
+                dateRange.format.autofitColumns();
 
-                    await context.sync();
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                await context.sync();
+            });
         }
 
         async function getDateValue() {
-            try {
-                await Excel.run(async (context) => {
+            await Excel.run(async (context) => {
 
-                    const sheet = context.workbook.worksheets.getItem("Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
 
-                    const dateRange = sheet.getRange("B3");
-                    dateRange.load("values");
+                const dateRange = sheet.getRange("B3");
+                dateRange.load("values");
 
-                    await context.sync();
+                await context.sync();
 
-                    const nowMS = dateRange.values[0][0];
+                const nowMS = dateRange.values[0][0];
 
-                    console.log(`get (MSDate): ${nowMS}`);
+                console.log(`get (MSDate): ${nowMS}`);
 
-                    const nowMoment = moment.fromOADate(nowMS);
-                    console.log(`get (moment): ${JSON.stringify(nowMoment)}`);
+                const nowMoment = moment.fromOADate(nowMS);
+                console.log(`get (moment): ${JSON.stringify(nowMoment)}`);
 
-                    const now = nowMoment.unix();
-                    console.log(`get (timestamp): ${now}`)
-           
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+                const now = nowMoment.unix();
+                console.log(`get (timestamp): ${now}`)
+
+            });
         }
 
         async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+
+                const data = [
+                    ["Now"],
+                    ["=NOW()"]
+                ];
+
+                const dataRange = sheet.getRange("B2:B3");
+                dataRange.formulas = data;
+
+                const headerRange = sheet.getRange("B2");
+                headerRange.format.font.bold = true;
+
+                const dateRange = sheet.getRange("B3");
+                dateRange.numberFormat = [["[$-409]m/d/yy h:mm AM/PM;@"]];
+
+                dateRange.format.autofitColumns();
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                await Excel.run(async (context) => {
-                    const sheet = await OfficeHelpers.ExcelUtilities
-                        .forceCreateSheet(context.workbook, "Sample");
-
-                    const data = [
-                        ["Now"],
-                        ["=NOW()"]
-                    ];
-
-                    const dataRange = sheet.getRange("B2:B3");
-                    dataRange.formulas = data;
-
-                    const headerRange = sheet.getRange("B2");
-                    headerRange.format.font.bold = true;
-
-                    const dateRange = sheet.getRange("B3");
-                    dateRange.numberFormat = [["[$-409]m/d/yy h:mm AM/PM;@"]];
-
-                    dateRange.format.autofitColumns();
-
-                    sheet.activate();
-                    await context.sync();
-                });
+                await callback();
             }
             catch (error) {
                 OfficeHelpers.UI.notify(error);
@@ -158,4 +152,4 @@ libraries: |
     @types/jquery@3.3.1
 
     moment@2.18.1 
-    moment-msdate@0.2.2 
+    moment-msdate@0.2.2

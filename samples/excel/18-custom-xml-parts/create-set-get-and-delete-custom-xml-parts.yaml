@@ -14,7 +14,6 @@ script:
 
         async function createCustomXmlPart() {
             await Excel.run(async (context) => {
-
                 // You must have the xmlns attribute to populate the 
                 // CustomXml.namespaceUri property.
                 const originalXml = "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
@@ -38,33 +37,32 @@ script:
         async function changeCustomXmlPart() {
             await Excel.run(async (context) => {
                 const settings = context.workbook.settings;
-                const xmlPartIDSetting = settings.getItem("ContosoReviewXmlPartId").load("value");
-
+                const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
                 await context.sync();
-                
+
+            if (xmlPartIDSetting.value) {   
                 const customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
 
                 // The setXml method does a whole-for-whole replacement 
                 // of the entire XML.
                 customXmlPart.setXml("<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>John</Reviewer><Reviewer>Hitomi</Reviewer></Reviewers>");
                 const xmlBlob = customXmlPart.getXml();
-
                 await context.sync();
 
                 const readableXml = addLineBreaksToXML(xmlBlob.value);
                 $("#display-xml").text(readableXml);
-
                 await context.sync();
+            }
             });
         }
 
         async function deleteCustomXmlPart() {
             await Excel.run(async (context) => {
                 const settings = context.workbook.settings;
-                const xmlPartIDSetting = settings.getItem("ContosoReviewXmlPartId").load("value");
-
+                const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
                 await context.sync();
-                
+
+                if (xmlPartIDSetting.value) {   
                 let customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
                 const xmlBlob = customXmlPart.getXml();
                 customXmlPart.delete();
@@ -84,6 +82,7 @@ script:
                 }
 
                 await context.sync();
+                }
             });
         }
 

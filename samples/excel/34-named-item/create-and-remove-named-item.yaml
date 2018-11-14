@@ -1,141 +1,186 @@
 order: 1
 id: excel-named-item-create-and-remove-named-item
-name: Create and remove
-description: Creates and removes named items for a formula.
+name: 'Create, access, and remove'
+description: 'Creates, accesses, and removes named items in a worksheet.'
 host: EXCEL
 api_set:
     ExcelApi: 1.4
 script:
-    content: |
-        $("#add-name").click(addName);
-        $("#remove-name").click(removeName);
-        $("#setup").click(setup);
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
 
-        async function addName() {
-            try {
-                await Excel.run(async (context) => {
-                    const sheet = context.workbook.worksheets.getItem("Sample");
-                    sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
-                    sheet.getRange("D11").values = [["=TotalAmount"]];
-                    await context.sync();
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+        $("#add-name-to-total").click(() => tryCatch(addNameToTotal));
+        $("#add-name-to-header").click(() => tryCatch(addNameToHeader));
+        $("#format-named-range").click(() => tryCatch(formatRangeByName));
+        $("#remove-name").click(() => tryCatch(removeName));
+        $("#list-named-items").click(() => tryCatch(listNamedItems));
+
+        async function addNameToTotal() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                sheet.names.add("TotalAmount", "=SUM(ExpensesTable[AMOUNT])");
+                sheet.getRange("D11").values = [["=TotalAmount"]];
+
+                await context.sync();
+            });
+        }
+
+        async function addNameToHeader() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const headerRange = sheet.getRange("A1:D1");
+
+                sheet.names.add("ExpensesHeader", headerRange);
+                const namedItems = sheet.names.load("name, type");
+
+                await context.sync();
+            });
+        }
+
+        async function formatRangeByName() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const headerRowName = sheet.names.getItemOrNullObject("ExpensesHeader");
+                headerRowName.load();
+                await context.sync();
+
+                if (headerRowName.value) {
+                    const headerRange = headerRowName.getRange();
+                    headerRange.format.fill.color = "red";
+                } else {
+                    console.log("No named item created for the range.");
+                }
+
+                await context.sync();
+            });
         }
 
         async function removeName() {
-            try {
-                await Excel.run(async (context) => {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const totalName = sheet.names.getItemOrNullObject("TotalAmount");
+                totalName.load();
+                await context.sync();
 
-                    const sheet = context.workbook.worksheets.getItem("Sample");
-
-                    sheet.names.getItem("TotalAmount").delete();
+                if (totalName.value) {
+                    totalName.delete();
 
                     // Replace the named item (TotalAmount) with the actual formula for TotalAmount to avoid displaying #NAME in the cell.
                     sheet.getRange("D11").values = [["=SUM(ExpensesTable[AMOUNT])"]];
+                } else {
+                    console.log("No named item created for the formula.");
+                }
 
-                    await context.sync();
+                await context.sync();
+            });
+        }
 
-                });
-            }
-            catch (error) {
-                OfficeHelpers.UI.notify(error);
-                OfficeHelpers.Utilities.log(error);
-            }
+        async function listNamedItems() {
+            await Excel.run(async context => {
+                const namedItems = context.workbook.worksheets.getActiveWorksheet().names.load();
+                await context.sync();
+
+                console.log("This worksheet contains " + namedItems.items.length + " named items.");
+
+                for (let i = 0; i < namedItems.items.length; i++) {
+                    console.log(JSON.stringify(namedItems.items[i])) + "\n";
+                }
+
+                await context.sync();
+            });
         }
 
         async function setup() {
+            await Excel.run(async context => {
+                let sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                let expensesTable = sheet.tables.add("A1:D1", true);
+                expensesTable.name = "ExpensesTable";
+                expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                let newData = transactions.map(item => [item.date, item.merchant, item.category, item.amount
+                ]);
+
+                expensesTable.rows.add(null, newData);
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.getUsedRange().format.autofitRows();
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        const transactions = [
+        {
+            date: "1/1/2017",
+            merchant: "The Phone Company",
+            category: "Communications",
+            amount: "$120"
+        },
+        {
+            date: "1/1/2017",
+            merchant: "SouthRidge Video",
+            category: "Entertainment",
+            amount: "$40"
+        },
+        {
+            date: "1/1/2017",
+            merchant: "Coho Winery",
+            category: "Restaurant",
+            amount: "$47"
+        },
+        {
+            date: "1/2/2017",
+            merchant: "Contoso, Ltd",
+            category: "Shopping",
+            amount: "$56"
+        },
+        {
+            date: "1/2/2017",
+            merchant: "Contoso, Ltd",
+            category: "Shopping",
+            amount: "$110"
+        },
+        {
+            date: "1/2/2017",
+            merchant: "Liberty Bakery & Cafe",
+            category: "Groceries",
+            amount: "$27"
+        },
+        {
+            date: "1/2/2017",
+            merchant: "Liberty Bakery & Cafe",
+            category: "Groceries",
+            amount: "$38"
+        },
+        {
+            date: "1/2/2017",
+            merchant: "Northwind Electric Cars",
+            category: "Transportation",
+            amount: "$42"
+        },
+        {
+            date: "1/2/2017",
+            merchant: "Best For You Organics Company",
+            category: "Groceries",
+            amount: "$27"
+        }
+        ];
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
             try {
-                await Excel.run(async (context) => {
-
-                    let sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-
-                    let expensesTable = sheet.tables.add("A1:D1", true);
-                    expensesTable.name = "ExpensesTable";
-
-                    expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
-
-                    let newData = transactions.map(item =>
-                        [item.date, item.merchant, item.category, item.amount]);
-
-                    expensesTable.rows.add(null, newData);
-                    sheet.getUsedRange().format.autofitColumns();
-                    sheet.getUsedRange().format.autofitRows();
-                    sheet.activate();
-
-                    await context.sync();
-                });
-            }
-            catch (error) {
+                await callback();
+            } catch (error) {
                 OfficeHelpers.UI.notify(error);
                 OfficeHelpers.Utilities.log(error);
             }
         }
-
-        const transactions = [
-            {
-                "date": "1/1/2017",
-                "merchant": "The Phone Company",
-                "category": "Communications",
-                "amount": "$120"
-            },
-            {
-                "date": "1/1/2017",
-                "merchant": "SouthRidge Video",
-                "category": "Entertainment",
-                "amount": "$40"
-            },
-            {
-                "date": "1/1/2017",
-                "merchant": "Coho Winery",
-                "category": "Restaurant",
-                "amount": "$47"
-            },
-            {
-                "date": "1/2/2017",
-                "merchant": "Contoso, Ltd",
-                "category": "Shopping",
-                "amount": "$56"
-            },
-            {
-                "date": "1/2/2017",
-                "merchant": "Contoso, Ltd",
-                "category": "Shopping",
-                "amount": "$110"
-            },
-            {
-                "date": "1/2/2017",
-                "merchant": "Liberty Bakery & Cafe",
-                "category": "Groceries",
-                "amount": "$27"
-            },
-            {
-                "date": "1/2/2017",
-                "merchant": "Liberty Bakery & Cafe",
-                "category": "Groceries",
-                "amount": "$38"
-            },
-            {
-                "date": "1/2/2017",
-                "merchant": "Northwind Electric Cars",
-                "category": "Transportation",
-                "amount": "$42"
-            },
-            {
-                "date": "1/2/2017",
-                "merchant": "Best For You Organics Company",
-                "category": "Groceries",
-                "amount": "$27"
-            }
-        ];
     language: typescript
 template:
-    content: |+
+    content: |
         <section class="ms-font-m">
-            <p>This sample shows how to create a named item using the Excel JavaScript API.</p>
+            <p>This sample shows how to create, access, and delete named items using the Excel JavaScript API.</p>
         </section>
 
         <section class="samples ms-font-m">
@@ -144,14 +189,23 @@ template:
                 <span class="ms-Button-label">Add sample data</span>
             </button>
              <h3>Try it out</h3>
-            <button id="add-name" class="ms-Button">
-                <span class="ms-Button-label">Create a named item for a formula</span>
+             <p>Named items have unique names, so attempting to create a duplicate (pressing the button twice) will throw an error.</p>
+            <button id="add-name-to-total" class="ms-Button">
+                <span class="ms-Button-label">Create named item for formula</span>
             </button>
+            <button id="add-name-to-header" class="ms-Button">
+                <span class="ms-Button-label">Create named item for range</span>
+            </button>
+            <button id="format-named-range" class="ms-Button">
+                <span class="ms-Button-label">Format named range</span>
+            </button>      
             <button id="remove-name" class="ms-Button">
-                <span class="ms-Button-label">Remove a named item for a formula</span>
+                <span class="ms-Button-label">Remove named item for formula</span>
+            </button>      
+            <button id="list-named-items" class="ms-Button">
+                <span class="ms-Button-label">List named items</span>
             </button>
         </section>
-
     language: html
 style:
     content: |-

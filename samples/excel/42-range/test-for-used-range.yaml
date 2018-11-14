@@ -9,54 +9,87 @@ api_set:
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#try-create-chart-from-empty-table").click(() => tryCatch(tryCreateChartFromEmptyTable));
+        $("#try-create-chart-from-table").click(() => tryCatch(tryCreateChartFromEmptyTable));
+        $("#fill-table").click(() => tryCatch(fillTable));
 
         async function tryCreateChartFromEmptyTable() {
-            await Excel.run(async (context) => {
-
-                const sheet = context.workbook.worksheets.getItem("Sample");    
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
                 const salesTable = sheet.tables.getItem("SalesTable");
                 const dataRange = salesTable.getDataBodyRange();
 
-                // Pass true so only cells with values count as used 
-                const usedDataRange = dataRange.getUsedRangeOrNullObject(true /* valuesOnly */);
+                // Pass true so only cells with values count as used
+                const usedDataRange = dataRange.getUsedRangeOrNullObject(
+                true /* valuesOnly */
+                );
 
                 //Must sync before reading value returned from *OrNullObject method/property.
                 await context.sync();
 
                 if (usedDataRange.isNullObject) {
-                    OfficeHelpers.UI.notify("Need Data to Make Chart", "To create a meaningful chart, add names to the Product column and numbers to some of the other cells. Then press 'Try to create chart' again.");            
-                } else {            
-                    const chart = sheet.charts.add(Excel.ChartType.columnClustered, dataRange, "Columns");
-                    chart.setPosition("A15", "F30");
-                    chart.title.text = "Quarterly sales chart";
-                    chart.legend.position = "Right";
-                    chart.legend.format.fill.setSolidColor("white");
-                    chart.dataLabels.format.font.size = 15;
-                    chart.dataLabels.format.font.color = "black";
+                OfficeHelpers.UI.notify(
+                    "Need Data to Make Chart",
+                    "To create a meaningful chart, press 'Fill the table' (or add names to the Product column and numbers to some of the other cells). Then press 'Try to create chart' again."
+                );
+                } else {
+                const chart = sheet.charts.add(
+                    Excel.ChartType.columnClustered,
+                    dataRange,
+                    "Columns"
+                );
+                chart.setPosition("A15", "F30");
+                chart.title.text = "Quarterly sales chart";
+                chart.legend.position = "Right";
+                chart.legend.format.fill.setSolidColor("white");
+                chart.dataLabels.format.font.size = 15;
+                chart.dataLabels.format.font.color = "black";
                 }
 
                 await context.sync();
             });
         }
 
+        async function fillTable() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const salesTable = sheet.tables.getItem("SalesTable");
+                const dataRange = salesTable.getDataBodyRange();
+                dataRange.values = [
+                ["Frames", 5000, 7000, 6544, 4377],
+                ["Saddles", 400, 323, 276, 651],
+                ["Brake levers", 12000, 8766, 8456, 9812],
+                ["Chains", 1550, 1088, 692, 853],
+                ["Mirrors", 225, 600, 923, 544],
+                ["Spokes", 6005, 7634, 4589, 8765]
+                ];
+
+                dataRange.format.autofitColumns();
+                await context.sync();
+            });
+        }
+
         async function setup() {
-            await Excel.run(async (context) => {
-                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-                let salesTable = sheet.tables.add("B2:F2", true /* hasHeaders */);         
+            await Excel.run(async context => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(
+                context.workbook,
+                "Sample"
+                );
+                let salesTable = sheet.tables.add("B2:F2", true /* hasHeaders */);
                 salesTable.name = "SalesTable";
                 salesTable.showTotals = true;
-                salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+                salesTable.getHeaderRowRange().values = [
+                ["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]
+                ];
 
                 // The table should be created wtih no data.
                 salesTable.rows.add(null, [
-                    [null, null, null, null, null],
-                    [null, null, null, null, null],
-                    [null, null, null, null, null],
-                    [null, null, null, null, null],
-                    [null, null, null, null, null],
-                    [null, null, null, null, null]
-                ]);  
+                [null, null, null, null, null],
+                [null, null, null, null, null],
+                [null, null, null, null, null],
+                [null, null, null, null, null],
+                [null, null, null, null, null],
+                [null, null, null, null, null]
+                ]);
                 sheet.activate();
 
                 await context.sync();
@@ -67,8 +100,7 @@ script:
         async function tryCatch(callback) {
             try {
                 await callback();
-            }
-            catch (error) {
+            } catch (error) {
                 OfficeHelpers.UI.notify(error);
                 OfficeHelpers.Utilities.log(error);
             }
@@ -77,7 +109,7 @@ script:
 template:
     content: |
         <section class="ms-font-m">
-            <p>This sample shows how to format a range using the Excel API.</p>
+            <p>This sample creates a chart from a table, but only if there's data in the table.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -89,9 +121,12 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="try-create-chart-from-empty-table" class="ms-Button">
+            <button id="try-create-chart-from-table" class="ms-Button">
                 <span class="ms-Button-label">Try to create chart</span>
-            </button>   
+            </button><p>
+            <button id="fill-table" class="ms-Button">
+                <span class="ms-Button-label">Fill the table</span>
+            </button>
         </section>
     language: html
 style:

@@ -1,0 +1,95 @@
+order: 2
+id: excel-workbook-create-workbook
+name: Create workbook
+description: 'Creates a new, empty workbook and creates a new workbook by copying an existing one.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.8
+script:
+    content: |
+        $("#create-new-blank-workbook").click(() => tryCatch(createBlankWorkbook));
+        $("#file").change(() => tryCatch(createWorkbookFromExisting));
+
+        async function createBlankWorkbook() {
+            await Excel.run(async (context) => {
+                Excel.createWorkbook();
+            });
+        }
+
+        async function createWorkbookFromExisting() {
+            const myFile = <HTMLInputElement>document.getElementById("file");
+            const reader = new FileReader();
+
+            reader.onload = ((event) => {
+                Excel.run(context => {
+                    // strip off the metadata before the base64-encoded string
+                    const startIndex = (<FileReader>event.target).result.indexOf("base64,");
+                    const mybase64 = (<FileReader>event.target).result.substr(startIndex + 7);
+
+                    Excel.createWorkbook(mybase64);
+                    return context.sync();
+                });
+            });
+
+            // read in the file as a data URL so we can parse the base64-encoded string
+            reader.readAsDataURL(myFile.files[0]);
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create a new, empty workbook and how to create a new workbook by copying an existing one.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p><b>Create empty workbook</b></p>
+            <button id="create-new-blank-workbook" class="ms-Button">
+                <span class="ms-Button-label">Create new blank workbook</span>
+            </button><p>
+            <p><b>Copy existing workbook</b></p>
+            <p>Select an Excel workbook to copy and open in a new instance of Excel.</p>
+            <form>
+                <input type="file" id="file" />
+            </form>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

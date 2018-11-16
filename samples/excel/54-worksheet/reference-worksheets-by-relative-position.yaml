@@ -1,0 +1,173 @@
+order: 8
+id: excel-worksheet-reference-worksheets-by-relative-position
+name: Reference worksheets by relative position
+description: Gets a worksheet by using its relative position within the workbook.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.5
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#compare-current-and-previous-year").click(() => tryCatch(compareCurrentWithPreviousTax));
+        $("#compare-first-and-last-year").click(()  => tryCatch(compareFirstWithMostRecentTaxRate));
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheets = context.workbook.worksheets;
+                sheets.load("NoPropertiesNeeded");
+
+                await context.sync();
+
+                // Make setup repeatable by deleting all worksheets,
+                // except the default. Note: DEcrement on each loop.
+                for (let i = sheets.items.length; i > 0; i--) {
+                    if (sheets.items[i]) {
+                        sheets.items[i].delete();
+                    }            
+                }
+
+                let currentYearSheet: Excel.Worksheet;
+                let revenue = 10000;
+                let taxRate = .213;
+
+                for (let year = 2014; year < 2018; year++) {
+                    let sheet = sheets.add();
+                    sheet.name = `Taxes${year}`;
+                    let taxDataTable = sheet.tables.add('A1:C1', true);
+
+                    // Table names must be unique within the whole workbook.        
+                    taxDataTable.name = `TaxesCalculation${year}`;
+                    taxDataTable.getHeaderRowRange().values = [["Revenue", "Tax Rate", "Tax Due"]];
+                    taxDataTable.rows.add(null, [
+                        [revenue, taxRate, "=A2 * B2"],
+                    ]);  
+                    sheet.getRange("A2").numberFormat = [["$#,##0.00"]];
+                    sheet.getRange("B2").numberFormat = [["0.00%"]];
+                    sheet.getRange("C2").numberFormat = [["$#,##0.00"]];
+                    taxDataTable.getRange().format.autofitColumns();
+                    taxDataTable.getRange().format.autofitRows();
+                    currentYearSheet = sheet;
+                    revenue += 150;
+                    taxRate += .0025;
+                }
+                currentYearSheet.activate();
+                
+                await context.sync();
+            });
+        }
+
+        async function compareCurrentWithPreviousTax() {
+            await Excel.run(async (context) => {
+                const sheets = context.workbook.worksheets;
+                const currentSheet = sheets.getActiveWorksheet();
+                const previousYearSheet = currentSheet.getPrevious();
+                const currentTaxDueRange = currentSheet.getRange("C2");
+                const previousTaxDueRange = previousYearSheet.getRange("C2");
+
+                currentSheet.load("name");
+                previousYearSheet.load("name");
+                currentTaxDueRange.load("text");
+                previousTaxDueRange.load("text");
+
+                await context.sync();
+
+                let currentYear = currentSheet.name.substr(5, 4);
+                let previousYear = previousYearSheet.name.substr(5, 4);
+                console.log("Two Year Tax Due Comparison", `Tax due for ${currentYear} was ${currentTaxDueRange.text[0][0]}\nTax due for ${previousYear} was ${previousTaxDueRange.text[0][0]}`)
+
+                await context.sync();
+            });
+        }
+
+        async function compareFirstWithMostRecentTaxRate() {
+            await Excel.run(async (context) => {
+                const sheets = context.workbook.worksheets;
+
+                // We don't want to include the default worksheet that was created
+                // when the workbook was created, so our "firstSheet" will be the one
+                // after the literal first. Note chaining of navigation methods.
+                const firstSheet = sheets.getFirst().getNext();
+                const lastSheet = sheets.getLast();
+                const firstTaxRateRange = firstSheet.getRange("B2");
+                const lastTaxRateRange = lastSheet.getRange("B2");
+
+                firstSheet.load("name");
+                lastSheet.load("name");
+                firstTaxRateRange.load("text");
+                lastTaxRateRange.load("text");
+
+                await context.sync();
+
+                let firstYear = firstSheet.name.substr(5, 4);
+                let lastYear = lastSheet.name.substr(5, 4);
+                console.log(`Tax Rate change from ${firstYear} to ${lastYear}`, `Tax rate for ${firstYear}: ${firstTaxRateRange.text[0][0]}\nTax rate for ${lastYear}: ${lastTaxRateRange.text[0][0]}`)
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to get a reference to a sheet using its relative worksheet position.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create sample worksheets</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Select any of the three worksheets for 2015, 1016, or 2017 and press the button to compare the <b>tax due</b> on the current sheet with the previous sheet.</p>
+            <button id="compare-current-and-previous-year" class="ms-Button">
+                <span class="ms-Button-label">Compare tax bills</span>
+            </button>
+            <p>Compare the tax <b>rate</b> on the last sheet with the first sheet.</p>
+            <button id="compare-first-and-last-year" class="ms-Button">
+                <span class="ms-Button-label">Compare tax rates</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

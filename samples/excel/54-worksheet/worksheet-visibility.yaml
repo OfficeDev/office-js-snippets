@@ -1,0 +1,134 @@
+order: 10
+id: excel-worksheet-visibility
+name: Visibility
+description: Hides and unhides a worksheet.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#hide-worksheet").click(() => tryCatch(hideWorksheet));
+        $("#unhide-worksheet").click(() => tryCatch(unhideWorksheet));
+
+        async function hideWorksheet() {
+            await Excel.run(async (context) => {
+
+                const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.visible);
+
+                if (visibleSheets.length > 1) {
+                    console.log(`Hiding worksheet named "${visibleSheets[0].name}"...`);
+
+                    visibleSheets[0].visibility = Excel.SheetVisibility.hidden;
+
+                    await context.sync();
+
+                } else {
+                    console.log("Cannot hide the only visible worksheet");
+                }
+            });
+        }
+
+        async function unhideWorksheet() {
+            await Excel.run(async (context) => {
+
+                const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.hidden);
+
+                if (visibleSheets.length > 0) {
+                    console.log(`Unhiding worksheet named "${visibleSheets[0].name}"...`);
+
+                    visibleSheets[0].visibility = Excel.SheetVisibility.visible;
+
+                    await context.sync();
+                    
+                } else {
+                    console.log("No hidden worksheets in the workbook");
+                }
+            });
+        }
+
+        async function filterWorksheetsByVisibility(context: Excel.RequestContext, visibility: string): Promise<Excel.Worksheet[]> {
+            const sheets = context.workbook.worksheets;
+            sheets.load("items/name, items/visibility");
+            await context.sync();
+
+            return sheets.items.filter((s) => (s.visibility === visibility));
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+            const sheets = context.workbook.worksheets;
+            sheets.load("items");
+
+            await context.sync();
+
+            if (sheets.items.length < 2) {
+                sheets.add();
+
+                await context.sync();
+            }
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to change the visbility of a worksheet.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Ensure two worksheets</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="hide-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Hide worksheet</span>
+            </button>
+            <button id="unhide-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Unhide worksheet</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -1,0 +1,238 @@
+order: 3
+id: excel-pivottable-filters-and-summaries
+name: Filters and summaries
+description: Filters PivotTable data and shows different summarizations.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.8
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#deletePivot").click(() => tryCatch(deletePivot));
+        $("#filter").click(() => tryCatch(filter));
+        $("#getCrateTotal").click(() => tryCatch(getCrateTotal));
+        $("#minFunc").click(() => tryCatch(minFunc));
+        $("#maxFunc").click(() => tryCatch(maxFunc));
+        $("#countFunc").click(() => tryCatch(countFunc));
+        $("#avgFunc").click(() => tryCatch(avgFunc));
+        $("#sumFunc").click(() => tryCatch(sumFunc));
+
+        async function filter(functionType: Excel.AggregationFunction) {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                const filters = pivotTable.filterHierarchies;
+                const filter = filters.getItemOrNullObject("Classification");
+                filter.load();
+                await context.sync();
+
+                // add the Classification hierarchy to the filter, if it's not already there
+                if (filter.isNullObject) {
+                    filters.add(pivotTable.hierarchies.getItem("Classification"));
+                    await context.sync();
+                }
+            });
+        }
+
+        async function minFunc() {
+            genericFunctionSwitch(Excel.AggregationFunction.min);
+        }
+        async function maxFunc() {
+            genericFunctionSwitch(Excel.AggregationFunction.max);
+        }
+        async function countFunc() {
+            genericFunctionSwitch(Excel.AggregationFunction.count);
+        }
+        async function avgFunc() {
+            genericFunctionSwitch(Excel.AggregationFunction.average);
+        }
+        async function sumFunc() {
+            genericFunctionSwitch(Excel.AggregationFunction.sum);
+        }
+
+        async function genericFunctionSwitch(functionType: Excel.AggregationFunction) {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                pivotTable.dataHierarchies.load("no-properties-needed");
+                await context.sync();
+
+                pivotTable.dataHierarchies.items[0].summarizeBy = functionType;
+                pivotTable.dataHierarchies.items[1].summarizeBy = functionType;
+                await context.sync();
+            });
+        }
+
+        async function getCrateTotal() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+                // the layout controls the ranges used by the PivotTable
+                const range = pivotTable.layout.getDataBodyRange();
+
+                // get all the data hierarchy totals
+                const grandTotalRange = range.getLastRow();
+                grandTotalRange.load("address");
+                await context.sync();
+                
+                // use the wholesale and farm sale totals to make a final sum
+                const masterTotalRange = context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27");
+                masterTotalRange.formulas = [["All Crates", "=SUM(" + grandTotalRange.address + ")"]];
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                // create the worksheets
+                const dataSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Data");
+                const pivotSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Pivot");
+
+                // create farm data
+                const data = [["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"],
+                ["A Farms", "Lime", "Organic", 300, 2000],
+                ["A Farms", "Lemon", "Organic", 250, 1800],
+                ["A Farms", "Orange", "Organic", 200, 2200],
+                ["B Farms", "Lime", "Conventional", 80, 1000],
+                ["B Farms", "Lemon", "Conventional", 75, 1230],
+                ["B Farms", "Orange", "Conventional", 25, 800],
+                ["B Farms", "Orange", "Organic", 20, 500],
+                ["B Farms", "Lemon", "Organic", 10, 770],
+                ["B Farms", "Kiwi", "Conventional", 30, 300],
+                ["B Farms", "Lime", "Organic", 50, 400],
+                ["C Farms", "Apple", "Organic", 275, 220],
+                ["C Farms", "Kiwi", "Organic", 200, 120],
+                ["D Farms", "Apple", "Conventional", 100, 3000],
+                ["D Farms", "Apple", "Organic", 80, 2800],
+                ["E Farms", "Lime", "Conventional", 160, 2700],
+                ["E Farms", "Orange", "Conventional", 180, 2000],
+                ["E Farms", "Apple", "Conventional", 245, 2200],
+                ["E Farms", "Kiwi", "Conventional", 200, 1500],
+                ["F Farms", "Kiwi", "Organic", 100, 150],
+                ["F Farms", "Lemon", "Conventional", 150, 270]];
+
+                const range = dataSheet.getRange("A1:E21");
+                range.values = data;
+                range.format.autofitColumns();
+                pivotSheet.activate();
+
+                // create the PivotTable
+                context.workbook.worksheets.getActiveWorksheet()
+                    .pivotTables.add("Farm Sales", "Data!A1:E21", "A2");
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+                pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Type"));      
+                pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+                pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
+                await context.sync();
+            });
+        }
+
+        async function deletePivot() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItem("Pivot").pivotTables.getItem("Farm Sales").delete();
+                
+                // also clean up the extra data from getCrateTotal()
+                context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27").delete(Excel.DeleteShiftDirection.up);
+                await context.sync();
+            });
+        }
+
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }        
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to filter PivotTables and manipulate their data.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup sample</span>
+            </button>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Try it out</h3>
+        </section>
+
+        <section class="setup ms-font-m">
+            <p><b>Change functions</b></p>
+            <button id="minFunc" class="ms-Button">
+                <span class="ms-Button-label">Switch to minimums</span>
+            </button><p />
+            <button id="maxFunc" class="ms-Button">
+                <span class="ms-Button-label">Switch to maximums</span>
+            </button><p />
+            <button id="countFunc" class="ms-Button">
+                <span class="ms-Button-label">Switch to counts</span>
+            </button><p />
+            <button id="avgFunc" class="ms-Button">
+                <span class="ms-Button-label">Switch to averages</span>
+            </button><p />
+            <button id="sumFunc" class="ms-Button">
+                <span class="ms-Button-label">Switch to sums</span>
+            </button>
+        </section>
+
+        <section class="setup ms-font-m">
+            <p><b>Filtering</b></p>
+            <button id="filter" class="ms-Button">
+                <span class="ms-Button-label">Enable filter</span>
+            </button><p />
+            <span>After pressing the "Enable filter" button, manually select the classification filter for the PivotTable</span>
+
+        <section class="setup ms-font-m">
+            <p><b>Data Manipulation</b></p>
+            <button id="getCrateTotal" class="ms-Button">
+                <span class="ms-Button-label">Get or refresh crate total</span>
+            </button>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Clean up</h3>
+            <button id="deletePivot" class="ms-Button">
+                <span class="ms-Button-label">Delete PivotTable</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

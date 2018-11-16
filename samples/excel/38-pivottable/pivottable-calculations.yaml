@@ -1,0 +1,216 @@
+order: 1
+id: excel-pivottable-calculations
+name: Calculations
+description: Changes the calculations the PivotTable performs.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.8
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#deletePivot").click(() => tryCatch(deletePivot));
+        $("#showPercentages").click(() => tryCatch(showPercentages));
+        $("#showDifferenceFrom").click(() => tryCatch(showDifferenceFrom));
+        $("#showSums").click(() => tryCatch(showSums));
+
+        async function showPercentages() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                const farmDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold at Farm");        
+                const wholesaleDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold Wholesale");
+
+                farmDataHierarchy.load("showAs");
+                wholesaleDataHierarchy.load("showAs");
+                await context.sync();
+
+                // show the crates of each fruit type sold at the farm as a percentage of the column's total
+                let farmShowAs = farmDataHierarchy.showAs;
+                farmShowAs.calculation = Excel.ShowAsCalculation.percentOfColumnTotal;
+                farmShowAs.baseField = pivotTable.rowHierarchies.getItem("Type").fields.getItem("Type");
+                farmDataHierarchy.showAs = farmShowAs;
+
+                let wholesaleShowAs = wholesaleDataHierarchy.showAs;
+                wholesaleShowAs.calculation = Excel.ShowAsCalculation.percentOfColumnTotal;
+                wholesaleShowAs.baseField = pivotTable.rowHierarchies.getItem("Type").fields.getItem("Type");
+                wholesaleDataHierarchy.showAs = wholesaleShowAs;
+                await context.sync();
+            });
+        }
+
+        async function showDifferenceFrom() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                const farmDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold at Farm");
+                const wholesaleDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold Wholesale");
+
+                farmDataHierarchy.load("showAs");
+                wholesaleDataHierarchy.load("showAs");
+                await context.sync();
+
+                // show the difference between crate sales of the "A Farms" and the other farms
+                // this difference is both aggregated and shown for individual fruit types (where applicable)
+                let farmShowAs = farmDataHierarchy.showAs;
+                farmShowAs.calculation = Excel.ShowAsCalculation.differenceFrom;
+                farmShowAs.baseField = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm");
+                farmShowAs.baseItem = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm").items.getItem("A Farms");
+                farmDataHierarchy.showAs = farmShowAs;
+
+                let wholesaleShowAs = wholesaleDataHierarchy.showAs;
+                wholesaleShowAs.calculation = Excel.ShowAsCalculation.differenceFrom;
+                wholesaleShowAs.baseField = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm");
+                wholesaleShowAs.baseItem = pivotTable.rowHierarchies.getItem("Farm").fields.getItem("Farm").items.getItem("A Farms");
+                wholesaleDataHierarchy.showAs = wholesaleShowAs;
+                await context.sync();
+            });
+        }
+
+        async function showSums() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                const farmDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold at Farm");
+                const wholesaleDataHierarchy: Excel.DataPivotHierarchy = pivotTable.dataHierarchies.getItem("Sum of Crates Sold Wholesale");
+
+                farmDataHierarchy.load("showAs");
+                wholesaleDataHierarchy.load("showAs");
+                await context.sync();
+
+                // show the sum totals crates of each fruit type sold at the farm (the default behavior)
+                let farmShowAs = farmDataHierarchy.showAs;
+                farmShowAs.calculation = Excel.ShowAsCalculation.none;
+                farmDataHierarchy.showAs = farmShowAs;
+
+                let wholesaleShowAs = wholesaleDataHierarchy.showAs;
+                wholesaleShowAs.calculation = Excel.ShowAsCalculation.none;
+                wholesaleDataHierarchy.showAs = wholesaleShowAs;
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                // create the worksheets
+                const dataSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Data");
+                const pivotSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Pivot");
+
+                // create farm data
+                const data = [["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"],
+                ["A Farms", "Lime", "Organic", 300, 2000],
+                ["A Farms", "Lemon", "Organic", 250, 1800],
+                ["A Farms", "Orange", "Organic", 200, 2200],
+                ["B Farms", "Lime", "Conventional", 80, 1000],
+                ["B Farms", "Lemon", "Conventional", 75, 1230],
+                ["B Farms", "Orange", "Conventional", 25, 800],
+                ["B Farms", "Orange", "Organic", 20, 500],
+                ["B Farms", "Lemon", "Organic", 10, 770],
+                ["B Farms", "Kiwi", "Conventional", 30, 300],
+                ["B Farms", "Lime", "Organic", 50, 400],
+                ["C Farms", "Apple", "Organic", 275, 220],
+                ["C Farms", "Kiwi", "Organic", 200, 120],
+                ["D Farms", "Apple", "Conventional", 100, 3000],
+                ["D Farms", "Apple", "Organic", 80, 2800],
+                ["E Farms", "Lime", "Conventional", 160, 2700],
+                ["E Farms", "Orange", "Conventional", 180, 2000],
+                ["E Farms", "Apple", "Conventional", 245, 2200],
+                ["E Farms", "Kiwi", "Conventional", 200, 1500],
+                ["F Farms", "Kiwi", "Organic", 100, 150],
+                ["F Farms", "Lemon", "Conventional", 150, 270]];
+
+                const range = dataSheet.getRange("A1:E21");
+                range.values = data;
+                range.format.autofitColumns();
+                pivotSheet.activate();
+
+                // create the PivotTable
+                context.workbook.worksheets.getActiveWorksheet()
+                    .pivotTables.add("Farm Sales", "Data!A1:E21", "A2");
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+                pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Type"));      
+                pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+                pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
+                await context.sync();
+            });
+        }
+
+        async function deletePivot() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItem("Pivot").pivotTables.getItem("Farm Sales").delete();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }        
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to change the calculations of PivotTable data hierarchies.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup sample</span>
+            </button>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Try it out</h3>
+            <button id="showPercentages" class="ms-Button">
+                <span class="ms-Button-label">Show percentages</span>
+            </button><p />
+            <button id="showDifferenceFrom" class="ms-Button">
+                <span class="ms-Button-label">Show difference from A Farms</span>
+            </button><p />
+            <button id="showSums" class="ms-Button">
+                <span class="ms-Button-label">Show sums</span>
+            </button>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Clean up</h3>
+            <button id="deletePivot" class="ms-Button">
+                <span class="ms-Button-label">Delete PivotTable</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

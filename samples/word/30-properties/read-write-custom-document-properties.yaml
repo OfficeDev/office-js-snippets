@@ -1,0 +1,101 @@
+order: 2
+id: word-properties-read-write-custom-document-properties
+name: Custom document properties
+description: Adds and reads custom document properties of different types.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.3
+script:
+    content: |-
+        $("#number").click(() => tryCatch(insertNumericProperty));
+        $("#string").click(() => tryCatch(insertStringProperty));
+        $("#read").click(() => tryCatch(readCustomDocumentProperties));
+
+        async function insertNumericProperty() {
+            await Word.run(async (context) => {
+                context.document.properties.customProperties.add("Numeric Property", 1234);
+
+                await context.sync();
+                console.log("Property added");
+            });
+        }
+
+        async function insertStringProperty() {
+            await Word.run(async (context) => {
+                context.document.properties.customProperties.add("String Property", "Hello World!");
+
+                await context.sync();
+                console.log("Property added");
+            });
+        }
+
+        async function readCustomDocumentProperties() {
+            await Word.run(async (context) => {
+                let properties = context.document.properties.customProperties;
+                properties.load("key,type,value");
+
+                await context.sync();
+                for (var i = 0; i < properties.items.length; i++)
+                    console.log("Property Name:" + properties.items[i].key + "; Type=" + properties.items[i].type + "; Property Value=" + properties.items[i].value);
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to insert custom document properties of different data types and how to read them.
+        </section>
+
+        <section class="samples ms-font-m">
+        <h3>Try it out</h3>
+            <button id="number" class="ms-Button">
+                        <span class="ms-Button-label">Add 'numeric' property</span>
+                    </button><p>
+            <button id="string" class="ms-Button">
+                        <span class="ms-Button-label">Add 'string' property</span>
+                    </button><p>
+            <button id="read" class="ms-Button">
+                        <span class="ms-Button-label">Read properties</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

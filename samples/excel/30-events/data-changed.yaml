@@ -1,0 +1,121 @@
+order: 3
+id: excel-events-data-changed
+name: Data change event
+description: Registers an event handler that runs when data is changed.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.3
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#register-data-changed-handler").click(() => tryCatch(registerDataChangedHandler));
+
+        async function registerDataChangedHandler() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");    
+                const salesTable = sheet.tables.getItem("SalesTable");
+                const salesByQuarterBinding = context.workbook.bindings.add(salesTable.getRange(), "Table", "SalesByQuarter");
+                salesByQuarterBinding.onDataChanged.add(onSalesDataChanged);
+
+                console.log("The data changed handler is registered.");
+
+                await context.sync();
+            });
+        }
+
+        async function onSalesDataChanged(eventArgs: Excel.BindingDataChangedEventArgs) {
+            await Excel.run(async (context) => {
+                console.log("Data was changed with binding " + eventArgs.binding.id);
+                
+                // Get the name of the table that's changed.
+                const table: Excel.Table = context.workbook.bindings.getItem(eventArgs.binding.id).getTable();
+                table.load("name");
+
+                await context.sync();
+                console.log("Name of the changed table: " + table.name);
+            });
+        } 
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                let salesTable = sheet.tables.add('A1:E1', true);        
+                salesTable.name = "SalesTable";
+                salesTable.getHeaderRowRange().values = [["Sales Team", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                salesTable.rows.add(null, [
+                    ["London", 500, 700, 654, null ],
+                    ["Hong Kong", 400, 323, 276, null ],
+                    ["New York", 1200, 876, 845, null ],
+                    ["Port-of-Spain", 600, 500, 854, null ],
+                    ["Nairobi", 5001, 2232, 4763, null ]
+                ]);  
+
+                salesTable.getRange().format.autofitColumns();
+                salesTable.getRange().format.autofitRows();
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to register and use a handler for the data-changed event.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="register-data-changed-handler" class="ms-Button">
+                <span class="ms-Button-label">Register data-changed handler</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

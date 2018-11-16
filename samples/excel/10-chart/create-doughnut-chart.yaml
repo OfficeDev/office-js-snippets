@@ -1,0 +1,154 @@
+order: 4
+id: excel-chart-create-doughnut-chart
+name: Doughnut chart
+description: Creates a doughnut chart and adjusts its size.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#create-doughnut-chart").click(() => tryCatch(createChart));
+        $("#add-series").click(() => tryCatch(addSeries));
+
+        async function createChart() {
+            Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesByCategoryTable = sheet.tables.getItem("ExpensesByCategoryTable");
+                const dataRange = expensesByCategoryTable.getDataBodyRange();
+
+                let categoryChart = sheet.charts.add(Excel.ChartType.doughnut, dataRange, "Auto");
+
+                categoryChart.setPosition("A15", "F25");
+                categoryChart.title.text = "Expenses By Category";
+                categoryChart.title.format.font.size = 10;
+                categoryChart.title.format.font.name = "Corbel";
+                categoryChart.title.format.font.color = "#41AEBD";
+                categoryChart.legend.format.font.name = "Corbel";
+                categoryChart.legend.format.font.size = 8;
+                categoryChart.legend.position = "Right";
+                categoryChart.dataLabels.showPercentage = true;
+                categoryChart.dataLabels.format.font.size = 8;
+                categoryChart.dataLabels.format.font.color = "gray";
+                let points = categoryChart.series.getItemAt(0).points;
+                points.getItemAt(0).format.fill.setSolidColor("#0C8DB9");
+                points.getItemAt(1).format.fill.setSolidColor("#B1D9F7");
+                points.getItemAt(2).format.fill.setSolidColor("#4C66C5");
+                points.getItemAt(3).format.fill.setSolidColor("#5CC9EF");
+                points.getItemAt(4).format.fill.setSolidColor("#5CCBAD");
+                points.getItemAt(5).format.fill.setSolidColor("#A5E750");
+
+                await context.sync();
+            });
+        }
+
+        async function addSeries() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let seriesCollection = sheet.charts.getItemAt(0);
+                let rangeSelection = sheet.getRange("C2:C7");
+                let xRangeSelection = sheet.getRange("A1:A7");
+
+                // Add a series.
+                let newSeries = seriesCollection.series.add("Qtr2");
+                newSeries.setValues(rangeSelection);
+                newSeries.setXAxisValues(xRangeSelection);
+
+                // Set the size of the doughnut hole.
+                // The hole size is expressed as a percentage of the chart size.
+                newSeries.doughnutHoleSize = 80;
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesTable = sheet.tables.add('A1:B1', true);
+
+                expensesTable.name = "ExpensesByCategoryTable";
+                expensesTable.getHeaderRowRange().values = [["Category", "Expense"]];
+                expensesTable.rows.add(null, [
+                    ["Groceries", 5000],
+                    ["Entertaiment", 400],
+                    ["Education", 12000],
+                    ["Charity", 1550],
+                    ["Transportation", 225],
+                    ["Other", 6005]
+                ]);
+
+                sheet.getUsedRange().getEntireColumn().format.autofitColumns();
+                sheet.getUsedRange().getEntireRow().format.autofitRows();
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create a doughnut chart.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="create-doughnut-chart" class="ms-Button">
+                <span class="ms-Button-label">Create a doughnut chart</span>
+            </button><p>
+            <p>Use the chart series to adjust the doughtnut hole size.</p>
+            <button id="add-series" class="ms-Button">
+                <span class="ms-Button-label">Add series</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

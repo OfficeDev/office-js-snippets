@@ -1,0 +1,109 @@
+order: 1
+id: word-lists-insert-list
+name: Create a list
+description: Inserts a new list into the document.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.3
+script:
+    content: |-
+        $("#insert-controls").click(() => tryCatch(insertList));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function insertList() {
+            //This example starts a new list stating with the second paragraph.
+            await Word.run(async (context) => {
+                let paragraphs = context.document.body.paragraphs;
+                paragraphs.load("$none"); //We need no properties.
+
+                await context.sync();
+
+                var list = paragraphs.items[1].startNewList(); //Indicates new list to be started in the second paragraph.
+                list.load("$none"); //We need no properties.
+
+                await context.sync();
+
+                //To add new items to the list use start/end on the insert location parameter.
+                list.insertParagraph('New list item on top of the list', 'Start');
+                let paragraph = list.insertParagraph('New list item at the end of the list (4th level)', 'End');
+                paragraph.listItem.level = 4; //Sets up list level for the lsit item.
+                //To add paragraphs outside the list use before/after:
+                list.insertParagraph('New paragraph goes after (not part of the list)', 'After');
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                // Let's insert a couple of paragraphs to illustrate the point..
+                context.document.body.clear();
+                context.document.body.insertParagraph("Themes and styles also help keep your document coordinated. When you click design and choose a new Theme, the pictures, charts, and SmartArt graphics change to match your new theme. When you apply styles, your headings change to match the new theme. ", "Start");
+                context.document.body.insertParagraph("Save time in Word with new buttons that show up where you need them. To change the way a picture fits in your document, click it and a button for layout options appears next to it. When you work on a table, click where you want to add a row or a column, and then click the plus sign. ", "Start");
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ", "Replace");
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          This sample demonstrates how to insert and change lists.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Add text</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>    
+            <button id="insert-controls" class="ms-Button">
+              <span class="ms-Button-label">Insert list</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

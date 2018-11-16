@@ -1,0 +1,140 @@
+order: 3
+id: excel-range-insert-delete-and-clear-range
+name: 'Insert, delete, and clear'
+description: 'Inserts, deletes, and clears a range.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+
+        $("#insert-range").click(() => tryCatch(insertRange));
+        $("#delete-range").click(() => tryCatch(deleteRange));
+        $("#clear-range").click(() => tryCatch(clearRange));
+
+        async function insertRange() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getRange("B4:E4");
+
+                range.insert(Excel.InsertShiftDirection.down);
+                
+                await context.sync();
+            });
+        }
+
+        async function deleteRange() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getRange("B4:E4");
+
+                range.delete(Excel.DeleteShiftDirection.up);
+
+                await context.sync();
+            });
+        }
+
+        async function clearRange() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                let range = sheet.getRange("E2:E5");
+
+                range.clear();
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+
+                const data = [
+                    ["Product", "Qty", "Unit Price", "Total Price"],
+                    ["Almonds", 2, 7.50, "=C3 * D3"],
+                    ["Coffee", 1, 34.50, "=C4 * D4"],
+                    ["Chocolate", 5, 9.56, "=C5 * D5"]
+                ];
+
+                const range = sheet.getRange("B2:E5");
+                range.values = data;
+                range.format.autofitColumns();
+
+                const header = range.getRow(0);
+                header.format.fill.color = "#4472C4";
+                header.format.font.color = "white";
+
+                sheet.activate();
+                
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to insert, delete and clear the contents of a range.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="insert-range" class="ms-Button">
+                <span class="ms-Button-label">Insert range</span>
+            </button>   
+            <button id="delete-range" class="ms-Button">
+                <span class="ms-Button-label">Delete range</span>
+            </button>
+            <button id="clear-range" class="ms-Button">
+                <span class="ms-Button-label">Clear range</span>
+            </button>  
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

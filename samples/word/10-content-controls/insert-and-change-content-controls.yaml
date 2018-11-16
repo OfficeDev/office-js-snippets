@@ -1,0 +1,152 @@
+order: 1
+id: word-content-controls-insert-and-change-content-controls
+name: Content control basics
+description: 'Inserts, updates, and retrieves content controls.'
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.1
+script:
+    content: |-
+        $("#insert-controls").click(() => tryCatch(insertContentControls));
+        $("#change-controls").click(() => tryCatch(modifyContentControls));
+        $("#setup").click(() => tryCatch(setup));
+
+
+        async function insertContentControls() {
+            // Traverses each paragraph of the document and wraps a content control on each with either a even or odd tags
+            await Word.run(async (context) => {
+                let paragraphs = context.document.body.paragraphs;
+                paragraphs.load("$none"); //Don't need any properties, we'll just wrap each paragraph with a content control
+
+                await context.sync();
+
+                for (let i = 0; i < paragraphs.items.length; i++) {
+                    let contentControl = paragraphs.items[i].insertContentControl();
+                    // For even we tag "even"
+                    if (i % 2 === 0) {
+                        contentControl.tag = "even";
+                    }
+
+                    else {
+                        contentControl.tag = "odd";
+                    }
+                }
+                console.log("Content controls inserted: " + paragraphs.items.length)
+
+                await context.sync();
+            });
+
+        }
+
+        async function modifyContentControls() {
+            // Adds title and colors to odd and even content controls and changes their appearance.
+            await Word.run(async (context) => {
+                // Gets the complete sentence  (as range) associated with the insertion point.
+                let evenContentControls = context.document.contentControls.getByTag("even");
+                let oddContentControls = context.document.contentControls.getByTag("odd");
+                evenContentControls.load("color,title,appearance");
+                oddContentControls.load("color,title,appearance");
+
+                await context.sync();
+
+                for (let i = 0; i < evenContentControls.items.length; i++) {
+                    // Change a few properties and append a paragraph
+                    evenContentControls.items[i].set({
+                        color: 'red',
+                        title: 'Odd ContentControl #' + (i + 1),
+                        appearance: 'Tags'
+                    });
+                    evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
+                }
+
+                for (let j = 0; j < oddContentControls.items.length; j++) {
+                    // Change a few properties and append a paragraph
+                    oddContentControls.items[j].set({
+                        color: 'green',
+                        title: 'Even ContentControl #' + (j + 1),
+                        appearance: 'Tags'
+                    });
+                    oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                context.document.body.clear();
+                context.document.body.insertParagraph("One more paragraph. ", "Start");
+                context.document.body.insertParagraph("Inserting another paragraph. ", "Start");
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ", "Replace");
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          This sample demonstrates how to insert and change content control properties.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <span class="ms-font-m">Insert content controls on each paragraph.</span>
+            <button id="insert-controls" class="ms-Button">
+            <span class="ms-Button-label">Insert</span>
+          </button><p>
+            <span class="ms-font-m">Modify content control appearance and content.</span>
+          <button id="change-controls" class="ms-Button">
+            <span class="ms-Button-label">Modify content controls</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

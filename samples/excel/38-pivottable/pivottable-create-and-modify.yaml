@@ -1,0 +1,281 @@
+order: 2
+id: excel-pivottable-create-and-modify
+name: Create and modify
+description: Creates and modifies a PivotTable.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.8
+script:
+    content: |-
+        $("#deletePivot").click(() => tryCatch(deletePivot));
+        $("#createWithNames").click(() => tryCatch(createWithNames));
+        $("#addRow").click(() => tryCatch(addRow));
+        $("#removeRow").click(() => tryCatch(removeRow));
+        $("#toggleColumn").click(() => tryCatch(toggleColumn));
+        $("#addValues").click(() => tryCatch(addValues));
+        $("#changeHierarchyNames").click(() => tryCatch(changeHierarchyNames));
+        $("#changeLayout").click(() => tryCatch(changeLayout));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function createWithNames() {
+            await Excel.run(async (context) => {
+                const rangeToAnalyze = context.workbook.worksheets.getItem("Data").getRange("A1:E21");
+                const rangeToPlacePivot = context.workbook.worksheets.getItem("Pivot").getRange("A2");
+                context.workbook.worksheets.getItem("Pivot").pivotTables.add("Farm Sales", rangeToAnalyze, rangeToPlacePivot);
+
+                await context.sync();
+            });
+        }
+
+        async function deletePivot() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItem("Pivot").pivotTables.getItem("Farm Sales").delete();
+
+                await context.sync();
+            });
+        }
+
+        async function addRow() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+                // check if the PivotTable already has rows
+                const farmRow = pivotTable.rowHierarchies.getItemOrNullObject("Farm");
+                const typeRow = pivotTable.rowHierarchies.getItemOrNullObject("Type");
+                const classificationRow = pivotTable.rowHierarchies.getItemOrNullObject("Classification");
+                pivotTable.rowHierarchies.load();
+                await context.sync();
+
+                if (farmRow.isNullObject) {
+                    pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+                } else if (typeRow.isNullObject) {
+                    pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Type"));
+                } else if (classificationRow.isNullObject) {
+                    pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Classification"));
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function removeRow() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+                // check if the PivotTable already has rows
+                const farmRow = pivotTable.rowHierarchies.getItemOrNullObject("Farm");
+                const typeRow = pivotTable.rowHierarchies.getItemOrNullObject("Type");
+                const classificationRow = pivotTable.rowHierarchies.getItemOrNullObject("Classification");
+                pivotTable.rowHierarchies.load();
+                await context.sync();
+
+                if (!classificationRow.isNullObject) {
+                    pivotTable.rowHierarchies.remove(classificationRow);
+                } else if (!typeRow.isNullObject) {
+                    pivotTable.rowHierarchies.remove(typeRow);
+                } else if (!farmRow.isNullObject) {
+                    pivotTable.rowHierarchies.remove(farmRow);
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function toggleColumn() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");       
+
+                // check if the PivotTable already has a column
+                const column = pivotTable.columnHierarchies.getItemOrNullObject("Farm");
+                column.load("id");
+                await context.sync();
+
+                if (column.isNullObject) {
+                    // ading the farm column to the column hierarchy automatically removes it from the row hierarchy
+                    pivotTable.columnHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+                } else {
+                    pivotTable.columnHierarchies.remove(column);
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function addValues() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+                pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
+                await context.sync();
+            });
+        }
+
+        async function changeHierarchyNames() {
+            await Excel.run(async (context) => {
+                const dataHierarchies = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales").dataHierarchies
+                dataHierarchies.load("no-properties-needed");
+                await context.sync();
+
+                dataHierarchies.items[0].name = "Farm Sales";
+                dataHierarchies.items[1].name = "Wholesale";
+                await context.sync();
+            });
+        }
+
+        async function changeLayout() {
+            await Excel.run(async (context) => {
+                const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+                pivotTable.layout.load("layoutType");
+                await context.sync();
+
+                // cycle between the three layout types
+                if (pivotTable.layout.layoutType === "Compact") {
+                    pivotTable.layout.layoutType = "Outline";
+                } else if (pivotTable.layout.layoutType === "Outline") {
+                    pivotTable.layout.layoutType = "Tabular";
+                } else {
+                    pivotTable.layout.layoutType = "Compact";
+                }
+                await context.sync();
+                console.log("Pivot layout is now " + pivotTable.layout.layoutType);
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheetData = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Data");
+                const sheetPivot = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Pivot");
+
+                const data = [["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"],
+                ["A Farms", "Lime", "Organic", 300, 2000],
+                ["A Farms", "Lemon", "Organic", 250, 1800],
+                ["A Farms", "Orange", "Organic", 200, 2200],
+                ["B Farms", "Lime", "Conventional", 80, 1000],
+                ["B Farms", "Lemon", "Conventional", 75, 1230],
+                ["B Farms", "Orange", "Conventional", 25, 800],
+                ["B Farms", "Orange", "Organic", 20, 500],
+                ["B Farms", "Lemon", "Organic", 10, 770],
+                ["B Farms", "Kiwi", "Conventional", 30, 300],
+                ["B Farms", "Lime", "Organic", 50, 400],
+                ["C Farms", "Apple", "Organic", 275, 220],
+                ["C Farms", "Kiwi", "Organic", 200, 120],
+                ["D Farms", "Apple", "Conventional", 100, 3000],
+                ["D Farms", "Apple", "Organic", 80, 2800],
+                ["E Farms", "Lime", "Conventional", 160, 2700],
+                ["E Farms", "Orange", "Conventional", 180, 2000],
+                ["E Farms", "Apple", "Conventional", 245, 2200],
+                ["E Farms", "Kiwi", "Conventional", 200, 1500],
+                ["F Farms", "Kiwi", "Organic", 100, 150],
+                ["F Farms", "Lemon", "Conventional", 150, 270]];
+
+                const range = sheetData.getRange("A1:E21");
+                range.values = data;
+                range.format.autofitColumns();
+
+                sheetPivot.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create PivotTables and add hierarchies to form rows, columns, and data sets.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup sample</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+        </section>
+        <section class="samples ms-font-m">
+            <p><b>Create the PivotTable</b></p>
+            <button id="createWithNames" class="ms-Button">
+                <span class="ms-Button-label">Create</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <p><b>Adjust the PivotTable</b></p>
+            <button id="addRow" class="ms-Button">
+                <span class="ms-Button-label">Add row</span>
+            </button>
+            <p />
+                <button id="removeRow" class="ms-Button">
+                <span class="ms-Button-label">Remove row</span>
+            </button>
+            <p />
+            <button id="toggleColumn" class="ms-Button">
+                <span class="ms-Button-label">Toggle column</span>
+            </button>
+            <p />
+            <button id="addValues" class="ms-Button">
+                <span class="ms-Button-label">Add data hierarchies</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <p><b>Adjust formatting</b></p>
+            <button id="changeHierarchyNames" class="ms-Button">
+                <span class="ms-Button-label">Change pivot hierarchy names</span>
+            </button>
+            <p />
+            <button id="changeLayout" class="ms-Button">
+                <span class="ms-Button-label">Change pivot layout</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <p><b>Delete the PivotTable</b></p>
+            <button id="deletePivot" class="ms-Button">
+                <span class="ms-Button-label">Delete PivotTable</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

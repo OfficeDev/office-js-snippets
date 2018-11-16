@@ -1,0 +1,188 @@
+order: 4
+id: excel-worksheet-freeze-panes
+name: Frozen panes
+description: 'Freezes columns, rows, and a range of cells. Gets the address of the frozen pane. Unfreezes frozen panes.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+
+        $("#freeze-columns").click(() => tryCatch(freezeColumns));
+        $("#freeze-rows").click(() => tryCatch(freezeRows));
+        $("#freeze-at").click(() => tryCatch(freezeAt));
+        $("#get-location").click(() => tryCatch(getLocation));
+        $("#unfreeze-all-panes").click(() => tryCatch(unfreezeAllPanes));
+
+        async function freezeColumns() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                // Freeze the first two columns in the worksheet.
+                sheet.freezePanes.freezeColumns(2);
+
+                await context.sync();
+            });
+        }
+
+        async function freezeRows() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                // Freeze the top two rows in the worksheet.
+                sheet.freezePanes.freezeRows(2);
+
+                await context.sync();
+            });
+        }
+
+        async function freezeAt() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                // Freeze the specified range in top-and-left-most pane of the worksheet.
+                sheet.freezePanes.freezeAt(sheet.getRange("H2:K5"));
+
+                await context.sync();
+            });
+        }
+
+        async function getLocation() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const frozenRange = sheet.freezePanes.getLocationOrNullObject();
+                frozenRange.load("address");
+
+                await context.sync();
+
+                if (frozenRange.isNullObject) {
+                    OfficeHelpers.UI.notify(`The worksheet does not contain a frozen pane.`);
+                } else {
+                    console.log(`The address of the frozen range (cells that are frozen in the top-and-left-most pane) is "${frozenRange.address}"`);
+                }
+            });
+        }
+
+        async function unfreezeAllPanes() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.freezePanes.unfreeze();
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+
+                const productsData1 = [
+                    ["Vegetables", "Qty", "Unit Price", "Total Price"],
+                    ["Potatoes", 10, 1.00, "=D3 * E3"],
+                    ["Peppers", 7, 2.50, "=D4 * E4"],
+                    ["Lettuce", 5, 1.50, "=D5 * E5"]
+                ];
+
+                const range1 = sheet.getRange("C2:F5");
+                range1.values = productsData1;
+                range1.format.autofitColumns();
+
+                const header1 = range1.getResizedRange(-3, 0);
+                header1.format.fill.color = "yellow";
+                header1.format.font.bold = true;
+
+                const productsData2 = [
+                    ["Fruit", "Qty", "Unit Price", "Total Price"],
+                    ["Apples", 10, 2.00, "=I3 * J3"],
+                    ["Bananas", 5, 0.75, "=I4 * J4"],
+                    ["Melons", 8, 3.50, "=I5 * J5"]
+                ];
+
+                const range2 = sheet.getRange("H2:K5");
+                range2.values = productsData2;
+                range2.format.autofitColumns();
+
+                const header2 = range2.getResizedRange(-3, 0);
+                header2.format.fill.color = "green";
+                header2.format.font.bold = true;
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to freeze columns, freeze rows, freeze a range, and manage frozen panes in a worksheet.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="freeze-columns" class="ms-Button">
+                <span class="ms-Button-label">Freeze columns</span>
+            </button><p>
+            <button id="freeze-rows" class="ms-Button">
+                <span class="ms-Button-label">Freeze rows</span>
+            </button><p>
+            <button id="freeze-at" class="ms-Button">
+                <span class="ms-Button-label">Freeze range</span>
+            </button><p>
+            <button id="get-location" class="ms-Button">
+                <span class="ms-Button-label">Get location of frozen pane</span>
+            </button><p>
+            <button id="unfreeze-all-panes" class="ms-Button">
+                <span class="ms-Button-label">Unfreeze all panes</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

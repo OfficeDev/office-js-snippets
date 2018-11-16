@@ -1,0 +1,106 @@
+order: 2
+id: word-ranges-split-words-of-first-paragraph
+name: Split a paragraph into ranges
+description: 'Splits a paragraph into word ranges and then traverses all the ranges to format each word, producing a "karaoke" effect.'
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.3
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#highlight").click(() => tryCatch(highlightWords));
+
+        async function highlightWords() {
+            await Word.run(async (context) => {
+                let paragraph = context.document.body.paragraphs.getFirst();
+                let words = paragraph.split(
+                    [" "], true /* trimDelimiters*/, true /* trimSpaces */);
+                words.load("text");
+
+                await context.sync();
+
+                for (let i = 0; i < words.items.length; i++) {
+                    if (i >= 1) {
+                        words.items[i - 1].font.highlightColor = "#FFFFFF";
+                    }
+                    words.items[i].font.highlightColor = "#FFFF00";
+
+                    await context.sync();
+                    await pause(200);
+                }
+            });
+        }
+
+        function pause(milliseconds) {
+            return new Promise(resolve => setTimeout(resolve, milliseconds));
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                context.document.body.clear();
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.", "Replace");
+
+                await context.sync();
+            })
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+           This sample demonstrates splitting and traversing ranges.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample text</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="highlight" class="ms-Button">
+                <span class="ms-Button-label">Highlight word by word</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -1,0 +1,107 @@
+order: 1
+id: word-ranges-scroll-to-range
+name: Scroll to a range
+description: Scrolls to a range with and without selection.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.2
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#scroll").click(() => tryCatch(scroll));
+        $("#scroll-end").click(() => tryCatch(scrollEnd));
+
+
+        async function scroll() {
+            await Word.run(async (context) => {
+                // If select is called, with no parameters it selects the object.
+                context.document.body.paragraphs.getLast().select();
+
+                await context.sync();
+            });
+        }
+
+        async function scrollEnd() {
+            await Word.run(async (context) => {
+                //Select can be at the start or end of a range, this by definition moves the insertion point without selecting the range. 
+                context.document.body.paragraphs.getLast().select("End");
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                //Let's insert a couple of paragraphs to illustrate the point..
+                context.document.body.clear();
+                let firstSentence = context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
+                firstSentence.insertBreak(Word.BreakType.page, "After");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.", "Replace");
+
+                await context.sync();
+            })
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          This sample demonstrates how to scroll to a range.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="scroll" class="ms-Button">
+              <span class="ms-Button-label">Scroll with selection</span>
+          </button><p>
+            <button id="scroll-end" class="ms-Button">
+              <span class="ms-Button-label">Scroll without selection</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -1,0 +1,118 @@
+order: 9
+id: excel-worksheet-tab-color
+name: Tab color
+description: Gets and sets the tab color of a worksheet.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |
+        $("#set-tab-color-to-hex-color").click(() => tryCatch(setTabColorToHexColor));
+        $("#set-tab-color-to-named-color").click(() => tryCatch(setTabColorToNamedColor));
+        $("#set-tab-color-to-default-color").click(() => tryCatch(setTabColorToDefaultColor));
+        $("#get-tab-color").click(() => tryCatch(getTabColor));
+
+        async function setTabColorToHexColor() {
+            await Excel.run(async (context) => {
+                const activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.tabColor = "#FF0000";
+
+                await context.sync();
+            });
+        }
+
+        async function setTabColorToNamedColor() {
+            await Excel.run(async (context) => {
+                const activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.tabColor = "yellow";
+
+                await context.sync();
+            });
+        }
+
+        async function setTabColorToDefaultColor() {
+            await Excel.run(async (context) => {
+                const activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.tabColor = "";
+
+                await context.sync();
+            });
+        }
+
+        async function getTabColor() {
+            await Excel.run(async (context) => {
+                const activeSheet = context.workbook.worksheets.getActiveWorksheet();
+                activeSheet.load("name, tabColor");
+
+                await context.sync();
+
+                let tabColor = activeSheet.tabColor === "" ? "the default color" : activeSheet.tabColor;
+                console.log(`Tab color for the "${activeSheet.name}" worksheet is ${tabColor}.`);
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to set and get the tab color of a worksheet.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <label class="ms-font-m">Set tab color for the active worksheet.</label>
+            <button id="set-tab-color-to-hex-color" class="ms-Button">
+                <span class="ms-Button-label">Set tab color to hex color</span>
+            </button>
+            <button id="set-tab-color-to-named-color" class="ms-Button">
+                <span class="ms-Button-label">Set tab color to named color</span>
+            </button>
+            <button id="set-tab-color-to-default-color" class="ms-Button">
+                <span class="ms-Button-label">Set tab color to default color</span>
+            </button>
+            <br/><br/>
+            <label class="ms-font-m">Get tab color of the active worksheet.</label>
+            <button id="get-tab-color" class="ms-Button">
+                <span class="ms-Button-label">Get tab color</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

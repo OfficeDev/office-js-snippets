@@ -1,0 +1,242 @@
+order: 1
+id: excel-chart-axis
+name: Axis details
+description: 'Gets, sets, and removes axis unit, label, and title in a chart.'
+host: EXCEL
+api_set:
+    ExcelAPI: 1.7
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#get-axis-unit").click(() => tryCatch(getAxisUnit));
+        $("#change-axis-unit").click(() => tryCatch(changeAxisUnit));
+        $("#remove-axis-label").click(() => tryCatch(removeAxisLabel));
+        $("#show-axis-label").click(() => tryCatch(showAxisLabel));
+        $("#set-axis-title").click(() => tryCatch(setAxisTitle));
+
+        async function getAxisUnit() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let chart = sheet.charts.getItemAt(0);
+                let categoryAxis = chart.axes.categoryAxis;
+                let valueAxis = chart.axes.valueAxis;
+
+                // Load to get display unit.
+                valueAxis.load("displayUnit");
+
+                await context.sync();
+
+                console.log("The vertical axis display unit is: " + valueAxis.displayUnit);
+            });
+        }
+
+        async function changeAxisUnit() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let chart = sheet.charts.getItemAt(0);
+                let axis = chart.axes.valueAxis;
+
+                // Set display unit.
+                axis.displayUnit = "Hundreds";
+
+                await context.sync();
+            });
+        }
+
+        async function removeAxisLabel() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                let chart = sheet.charts.getItemAt(0);
+                let axis = chart.axes.valueAxis;
+
+                // Remove display unit.
+                axis.showDisplayUnitLabel = false;
+
+                await context.sync();
+            });
+        }
+
+        async function showAxisLabel() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let chart = sheet.charts.getItemAt(0);
+                let axis = chart.axes.valueAxis;
+
+                // Show display unit.
+                axis.showDisplayUnitLabel = true;
+                await context.sync();
+            });
+        }
+
+        async function setAxisTitle() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let chart = sheet.charts.getItemAt(0);
+                let categoryAxis = chart.axes.categoryAxis;
+
+                // Set horizontal axis title.
+                categoryAxis.title.text = "Bicycle parts";
+
+                let valueAxis = chart.axes.valueAxis;
+
+                // Set vertical axis title.
+                valueAxis.title.text = "Number of items";
+
+                // Show small gridlines.
+                valueAxis.minorGridlines.visible = true;
+
+                categoryAxis.title.load("text");
+                valueAxis.load("text");
+                valueAxis.minorGridlines.load("visible");
+
+                await context.sync();
+
+                console.log("The category axis title is: " + categoryAxis.title.text);
+                console.log("The value axis title is: " + valueAxis.title.text);
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                let expensesTable = sheet.tables.add("A1:E1", true);
+                expensesTable.name = "SalesTable";
+
+                expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                expensesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                const chart = createChart(context);
+                addVerticalAxisLabel(chart);
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        function createChart(context: Excel.RequestContext) {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const salesTable = sheet.tables.getItem("SalesTable");
+
+            const dataRange = salesTable.getRange();
+
+            let chart = sheet.charts.add(
+                "ColumnClustered",
+                dataRange,
+                Excel.ChartSeriesBy.columns
+            );
+
+            chart.setPosition("A15", "F30");
+            chart.title.text = "Quarterly sales chart";
+            chart.legend.position = "Right";
+            chart.legend.format.fill.setSolidColor("white");
+            chart.dataLabels.format.font.size = 15;
+            chart.dataLabels.format.font.color = "black";
+            let points = chart.series.getItemAt(0).points;
+
+            return chart;
+        }
+
+        function addVerticalAxisLabel(chart: Excel.Chart) {
+            let axis = chart.axes.valueAxis;
+            axis.displayUnit = "Thousands";
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to get, set, and remove axis unit, label and title in a chart.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-axis-unit" class="ms-Button">
+                <span class="ms-Button-label">Get axis unit</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="change-axis-unit" class="ms-Button">
+                <span class="ms-Button-label">Change axis unit</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="remove-axis-label" class="ms-Button">
+                <span class="ms-Button-label">Remove axis label</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="show-axis-label" class="ms-Button">
+                <span class="ms-Button-label">Show axis label</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="set-axis-title" class="ms-Button">
+                <span class="ms-Button-label">Set axis title</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

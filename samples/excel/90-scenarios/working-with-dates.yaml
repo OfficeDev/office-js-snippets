@@ -1,0 +1,155 @@
+order: 3
+id: excel-scenarios-working-with-dates
+name: Working with dates
+description: Shows how to work with dates by using the Moment JavaScript library with the Moment-MSDate plug-in.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        declare var moment: any;
+
+        $("#setup").click(() => tryCatch(setup));
+        $("#set-date-value-using-timestamp").click(() => tryCatch(setDateValueUsingTimestamp));
+        $("#get-date-value").click(() => tryCatch(getDateValue));
+
+        async function setDateValueUsingTimestamp() {
+            await Excel.run(async (context) => {
+
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const now = Date.now();
+                console.log(`set (timestamp): ${now}`);
+
+                const nowMoment = moment(now);
+                console.log(`set (moment): ${JSON.stringify(nowMoment)}`);
+
+                const nowMS = nowMoment.toOADate();
+                console.log(`set (MSDate): ${nowMS}`);
+
+                const dateRange = sheet.getRange("B4");
+                dateRange.values = [[nowMS]];``
+                dateRange.numberFormat = [["[$-409]m/d/yy h:mm AM/PM;@"]];
+
+                dateRange.format.autofitColumns();
+
+                await context.sync();
+            });
+        }
+
+        async function getDateValue() {
+            await Excel.run(async (context) => {
+
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const dateRange = sheet.getRange("B3");
+                dateRange.load("values");
+
+                await context.sync();
+
+                const nowMS = dateRange.values[0][0];
+
+                console.log(`get (MSDate): ${nowMS}`);
+
+                const nowMoment = moment.fromOADate(nowMS);
+                console.log(`get (moment): ${JSON.stringify(nowMoment)}`);
+
+                const now = nowMoment.unix();
+                console.log(`get (timestamp): ${now}`)
+
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+
+                const data = [
+                    ["Now"],
+                    ["=NOW()"]
+                ];
+
+                const dataRange = sheet.getRange("B2:B3");
+                dataRange.formulas = data;
+
+                const headerRange = sheet.getRange("B2");
+                headerRange.format.font.bold = true;
+
+                const dateRange = sheet.getRange("B3");
+                dateRange.numberFormat = [["[$-409]m/d/yy h:mm AM/PM;@"]];
+
+                dateRange.format.autofitColumns();
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to set and get date values in a range and manipulating them using the Moment JavaScript library with the Moment-MSDate plug-in.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="set-date-value-using-timestamp" class="ms-Button">
+                <span class="ms-Button-label">Set date value using timestamp</span>
+            </button>
+            <button id="get-date-value" class="ms-Button">
+                <span class="ms-Button-label">Get date value</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1
+
+    moment@2.18.1 
+    moment-msdate@0.2.2

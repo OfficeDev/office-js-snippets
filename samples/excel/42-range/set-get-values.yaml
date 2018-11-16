@@ -1,0 +1,247 @@
+order: 8
+id: excel-range-values-and-formulas
+name: Values and formulas
+description: Gets and sets values and formulas for a range.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+
+        $("#set-value").click(() => tryCatch(setValue));
+        $("#set-values").click(() => tryCatch(setValues));
+        $("#set-formula").click(() => tryCatch(setFormula));
+        $("#set-formulas").click(() => tryCatch(setFormulas));
+        $("#set-formulas-r1c1").click(() => tryCatch(setFormulasR1C1));
+        $("#get-values").click(() => tryCatch(getValues));
+        $("#get-texts").click(() => tryCatch(getTexts));
+        $("#get-formulas").click(() => tryCatch(getFormulas));
+
+        async function setValue() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const range = sheet.getRange("C3");
+                range.values = [[ 5 ]];
+                range.format.autofitColumns();
+
+                await context.sync();
+            });
+        }
+
+        async function setValues() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const data = [
+                    ["Potato Chips", 10, 1.80],
+                ];
+                
+                const range = sheet.getRange("B5:D5");
+                range.values = data;
+                range.format.autofitColumns();
+
+                await context.sync();
+            });
+        }
+
+        async function setFormula() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const range = sheet.getRange("E3");
+                range.formulas = [[ "=C3 * D3" ]];
+                range.format.autofitColumns();
+
+                await context.sync();
+            });
+        }
+
+        async function setFormulas() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const data = [
+                    ["Total Price"],
+                    ["=C3 * D3"],
+                    ["=C4 * D4"],
+                    ["=C5 * D5"],
+                    ["=SUM(E3:E5)"]
+                ];
+                
+                const range = sheet.getRange("E2:E6");
+                range.formulas = data;
+                range.format.autofitColumns();
+
+                await context.sync();
+            });
+        }
+
+        async function setFormulasR1C1() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const data = [
+                    ["Total Price"],
+                    ["=R[0]C[-2] * R[0]C[-1]"],
+                    ["=R[0]C[-2] * R[0]C[-1]"],
+                    ["=R[0]C[-2] * R[0]C[-1]"],
+                    ["=SUM(R[-3]C[0]:R[-1]C[0])"]
+                ];
+                
+                const range = sheet.getRange("E2:E6");
+                range.formulasR1C1 = data;
+                range.format.autofitColumns();
+
+                await context.sync();
+            });
+        }
+
+        async function getValues() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getRange("B2:E6");
+                range.load("values");
+
+                await context.sync();
+
+                console.log(JSON.stringify(range.values, null, 4));
+            });
+        }
+
+        async function getTexts() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getRange("B2:E6");
+                range.load("text");
+
+                await context.sync();
+
+                console.log(JSON.stringify(range.text, null, 4));
+            });
+        }
+
+        async function getFormulas() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getRange("B2:E6");
+                range.load("formulas");
+
+                await context.sync();
+
+                console.log(JSON.stringify(range.formulas, null, 4));
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                
+                const data = [
+                    ["Product", "Qty", "Unit Price"],
+                    ["Almonds", 2, 7.50],
+                    ["Coffee", 1, 34.50],
+                    ["Chocolate", 5, 9.56]
+                ];
+
+                const range = sheet.getRange("B2:D5");
+                range.values = data;
+                range.format.autofitColumns();
+
+                const header = range.getRow(0);
+                header.format.fill.color = "#4472C4";
+                header.format.font.color = "white";
+
+                sheet.activate();
+                
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to set and get values and formulas for a range.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+
+            <button id="set-value" class="ms-Button">
+                <span class="ms-Button-label">Set value</span>
+            </button>
+            <button id="set-values" class="ms-Button">
+                <span class="ms-Button-label">Set values</span>
+            </button>
+            <button id="set-formula" class="ms-Button">
+                <span class="ms-Button-label">Set formula using A1-style</span>
+            </button>
+            <button id="set-formulas" class="ms-Button">
+                <span class="ms-Button-label">Set formulas using A1-style</span>
+            </button>
+            <button id="set-formulas-r1c1" class="ms-Button">
+                <span class="ms-Button-label">Set formulas using R1C1-style</span>
+            </button>
+
+            <br />
+
+            <button id="get-values" class="ms-Button">
+                <span class="ms-Button-label">Get values</span>
+            </button>
+            <button id="get-texts" class="ms-Button">
+                <span class="ms-Button-label">Get texts</span>
+            </button>
+            <button id="get-formulas" class="ms-Button">
+                <span class="ms-Button-label">Get formulas</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

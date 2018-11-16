@@ -1,0 +1,162 @@
+order: 1
+id: excel-custom-xml-parts-create-set-get-and-delete-custom-xml-parts
+name: Using custom XML parts
+description: 'Creates, sets, gets, and deletes a custom XML part.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.5
+script:
+    content: |
+        $("#create-custom-xml-part").click(() => tryCatch(createCustomXmlPart));
+        $("#change-custom-xml-part").click(() => tryCatch(changeCustomXmlPart));
+        $("#delete-custom-xml-part").click(() => tryCatch(deleteCustomXmlPart));
+
+        async function createCustomXmlPart() {
+            await Excel.run(async (context) => {
+                // You must have the xmlns attribute to populate the 
+                // CustomXml.namespaceUri property.
+                const originalXml = "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
+                const customXmlPart = context.workbook.customXmlParts.add(originalXml);
+                customXmlPart.load("id");
+                const xmlBlob = customXmlPart.getXml();
+
+                await context.sync();
+
+                const readableXml = addLineBreaksToXML(xmlBlob.value);
+                $("#display-xml").text(readableXml);
+
+                // Store the XML part's ID in a setting.
+                const settings = context.workbook.settings;
+                settings.add("ContosoReviewXmlPartId", customXmlPart.id);
+
+                await context.sync();
+            });
+        }
+
+        async function changeCustomXmlPart() {
+            await Excel.run(async (context) => {
+                const settings = context.workbook.settings;
+                const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
+                await context.sync();
+
+                if (xmlPartIDSetting.value) {   
+                    const customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
+
+                    // The setXml method does a whole-for-whole replacement 
+                    // of the entire XML.
+                    customXmlPart.setXml("<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>John</Reviewer><Reviewer>Hitomi</Reviewer></Reviewers>");
+                    const xmlBlob = customXmlPart.getXml();
+                    await context.sync();
+
+                    const readableXml = addLineBreaksToXML(xmlBlob.value);
+                    $("#display-xml").text(readableXml);
+                    await context.sync();
+                }
+            });
+        }
+
+        async function deleteCustomXmlPart() {
+            await Excel.run(async (context) => {
+                const settings = context.workbook.settings;
+                const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
+                await context.sync();
+
+                if (xmlPartIDSetting.value) {   
+                    let customXmlPart = context.workbook.customXmlParts.getItem(xmlPartIDSetting.value);
+                    const xmlBlob = customXmlPart.getXml();
+                    customXmlPart.delete();
+                    customXmlPart = context.workbook.customXmlParts.getItemOrNullObject(xmlPartIDSetting.value);
+
+                    await context.sync();
+
+                    if (customXmlPart.isNullObject) {
+                        $("#display-xml").text(`The XML part with the id ${xmlPartIDSetting.value} has been deleted.`);
+
+                        // Delete the unneeded setting too.
+                        xmlPartIDSetting.delete();            
+                    } else {
+                        const readableXml = addLineBreaksToXML(xmlBlob.value);
+                        const strangeMessage = `This is strange. The XML part with the id ${xmlPartIDSetting.value} has not been deleted:\n${readableXml}`
+                        $("#display-xml").text(strangeMessage);
+                    }
+
+                    await context.sync();
+                }
+            });
+        }
+
+        function addLineBreaksToXML(xmlBlob: string) : string {
+            const replaceValue = new RegExp(">");
+            return xmlBlob.replace(/></g, "> <");
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to create, set, get, and delete custom XML parts in the file.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Press the button to create and display Contoso's Reviewer metadata.</p>
+            <button id="create-custom-xml-part" class="ms-Button">
+                <span class="ms-Button-label">Create XML part</span>
+            </button>
+            <p>Press the button to change the reviewers and display the new XML.</p>
+            <button id="change-custom-xml-part" class="ms-Button">
+                <span class="ms-Button-label">Change XML part</span>
+            </button>
+            <p>Press the button to delete the XML part.</p>
+            <button id="delete-custom-xml-part" class="ms-Button">
+                <span class="ms-Button-label">Delete XML part</span>
+            </button>
+        </section>
+
+
+        <section class="samples ms-font-m">
+            <h3>XML part display</h3>
+            <div id="display-xml" class="ms-font-l" style="max-width:320px;">
+            </div>
+        </section>
+
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

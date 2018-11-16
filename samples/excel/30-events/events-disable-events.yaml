@@ -1,0 +1,189 @@
+order: 4
+id: excel-events-disable-events
+name: Enable and disable events
+description: Toggles event firing on and off.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.8
+script:
+    content: |
+        $("#toggleEvents").click(() => tryCatch(toggleEvents));
+        $("#setup").click(() => tryCatch(setup));
+        $("#refreshData").click(() => tryCatch(addOrRefreshData));
+        $("#registerSumChangedHandlers").click(() => tryCatch(registerSumChangedHandlers));
+
+        async function toggleEvents() {
+            await Excel.run(async (context) => {
+                context.runtime.load("enableEvents");
+                await context.sync();
+
+                // check if events are enabled and toggle accordingly
+                const eventBoolean = !context.runtime.enableEvents
+                context.runtime.enableEvents = eventBoolean;
+                if (eventBoolean) {
+                    console.log("Events are currently on.");
+                } else {
+                    console.log("Events are currently off.");
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function registerSumChangedHandlers() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const sumRange = sheet.getRange("B20:P20");
+                sumRange.load("columnCount");
+                await context.sync();
+
+                // add an event handler to each cell in the sum range
+                for (var i = 0; i < sumRange.columnCount; i++) {
+                    let sumBinding = context.workbook.bindings.add(sumRange.getCell(0,i), Excel.BindingType.range, "SumBinding" + i);
+                    sumBinding.onDataChanged.add(onSumChanged);
+                }
+                await context.sync();
+            });
+        }
+
+        async function onSumChanged(eventArgs: Excel.BindingDataChangedEventArgs) {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const cell = sheet.getRange("P21");
+                 
+                // get the grand total of the whole sum range
+                // note that we are having this program perform the sum instead of giving the Excel cell a function,
+                // this gives us updating control
+                let x = context.workbook.functions.sum(sheet.getRange("B20:P20"));
+                x.load("value");
+                await context.sync();
+
+                cell.values = [[x.value]];
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                let infoRange = sheet.getRange("A20:A21");
+                infoRange.values = [["Sums"], ["Grand Total"]]
+                infoRange.format.autofitColumns();
+                infoRange.format.font.bold = true;
+                addOrRefreshData();
+                addSumRow();
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        async function addOrRefreshData() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const dataRange = sheet.getRange("B1:P19");
+                dataRange.load(["rowCount", "columnCount"]);
+                await context.sync();
+
+                // fill the range with random numbers
+                for (var i = 0; i < dataRange.rowCount; i++) {
+                    for (var j = 0; j < dataRange.columnCount; j++) {
+                        dataRange.getCell(i, j).values = [[Math.round(Math.random() * 100)]];
+                    }
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function addSumRow() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const dataRange = sheet.getRange("B1:P19");
+                dataRange.load("rowCount");
+
+                // add a sum of each column to the top
+                const sumRange = sheet.getRange("B20:P20");
+                sumRange.load(["columnCount"]);
+                await context.sync();
+
+                for (var i = 0; i < sumRange.columnCount; i++) {
+                    const formulaCell = sumRange.getCell(0, i);
+                    const startAddressCell = dataRange.getCell(0, i);
+                    const endAddressCell = dataRange.getCell(dataRange.rowCount - 1, i);
+                    startAddressCell.load("address");
+                    endAddressCell.load("address");
+                    await context.sync();
+                    formulaCell.formulas = [["=SUM(" + startAddressCell.address + ":" + endAddressCell.address + ")"]];
+                    formulaCell.format.font.bold = true;
+                }
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to turn events on and off.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create random numbers</span>
+            </button><p/>
+            <button id="registerSumChangedHandlers" class="ms-Button">
+                <span class="ms-Button-label">Register event handlers on sums</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>The handlers update the "Grand Total" cell when events are fired (and enabled). Try editing the cells or refreshing the data with events enabled and disabled.</p>
+            <button id="toggleEvents" class="ms-Button">
+                <span class="ms-Button-label">Toggle events</span>
+            </button><p/>
+            <button id="refreshData" class="ms-Button">
+                <span class="ms-Button-label">Refresh data</span>
+            </button>
+            <p><i>Please wait until all the numbers are written to the range before pressing <b>Refresh data</b> again.</i></p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

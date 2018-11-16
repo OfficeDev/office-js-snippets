@@ -1,0 +1,269 @@
+order: 4
+id: excel-range-range-relationships
+name: Range relationships
+description: 'Shows relationships between ranges, such as bounding rectangles and intersections.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#bounding-rect").click(() => tryCatch(boundingRect));
+        $("#intersection").click(() => tryCatch(intersection));
+        $("#offset-range").click(() => tryCatch(offsetRange));
+        $("#resized-range").click(() => tryCatch(resizedRange));
+        $("#create-sales-contest-charts").click(() => tryCatch(createContestCharts));
+
+        async function boundingRect() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const rangeA = sheet.getRange("H2:J5");
+                const rangeB = sheet.getRange("J4:L8");
+
+                const boundingRect = rangeA.getBoundingRect(rangeB);
+                boundingRect.format.fill.color = "Blue";
+                boundingRect.getCell(0, 0).values = [["Bounding Rect"]];
+
+                await context.sync();
+            });
+        }
+
+        async function intersection() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const rangeA = sheet.getRange("H2:J5");
+                const rangeB = sheet.getRange("J4:L8");
+
+                const intersection = rangeA.getIntersection(rangeB);
+                intersection.format.fill.color = "Blue";
+                intersection.getCell(0, 0).values = [["Intersection"]];
+
+                await context.sync();
+            });
+        }
+
+        async function offsetRange() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const rangeA = sheet.getRange("H2:J5");
+
+                const offsetRange = rangeA.getOffsetRange(6, 3);
+                offsetRange.format.fill.color = "Blue";
+                offsetRange.getCell(0, 0).values = [["OffsetRange(6,3)"]];
+
+                await context.sync();
+            });
+        }
+
+        async function resizedRange() {
+            await Excel.run(async context => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const rangeB = sheet.getRange("J4:L8");
+
+                const resizedRange = rangeB.getResizedRange(2, -1);
+                resizedRange.format.fill.color = "Blue";
+                resizedRange.getCell(0, 0).values = [["ResizedRange(2,-1)"]];
+
+                await context.sync();
+            });
+        }
+
+        async function createContestCharts() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const salesTable = sheet.tables.getItem("SalesTable");
+                const dataRange = salesTable.getDataBodyRange();
+
+                // We want the most recent quarter that has data, so
+                // exclude quarters without data and get the last of
+                // the remaining columns.
+                const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
+                const currentQuarterRange = usedDataRange.getLastColumn();
+
+                // Asian and European teams have separate contests.
+                const asianSalesRange = sheet.getRange("A2:E4");
+                const europeanSalesRange = sheet.getRange("A5:E7");
+
+                // The data for each chart is the intersection of the
+                // current quarter column and the rows for the continent.
+                const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+                const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+
+                // Must sync before you can test the output of *OrNullObject
+                // method/property.
+                await context.sync();
+
+                if (asianContestRange.isNullObject) {
+                    // See the declaration of this method for how to
+                    // test this code path.
+                    reportMissingData("Asian");
+                } else {
+                    createContinentChart(
+                        sheet,
+                        "Asian",
+                        asianContestRange,
+                        "A9",
+                        "F24"
+                    );
+                }
+
+                if (europeanContestRange.isNullObject) {
+                    // See the declaration of this method for how to
+                    // test this code path.
+                    reportMissingData("European");
+                } else {
+                    createContinentChart(
+                        sheet,
+                        "European",
+                        europeanContestRange,
+                        "A25",
+                        "F40"
+                    );
+                }
+
+                await context.sync();
+            });
+        }
+
+        function createContinentChart(
+            sheet: Excel.Worksheet,
+            continent: string,
+            contestRange: Excel.Range,
+            startPosition: string,
+            endPosition: string
+        ) {
+            let chart = sheet.charts.add("ColumnClustered", contestRange, "Columns");
+            chart.setPosition(startPosition, endPosition);
+            chart.title.text = `${continent} Current Quarter Sales Contest`;
+            chart.legend.position = "Right";
+            chart.legend.format.fill.setSolidColor("white");
+            chart.dataLabels.format.font.size = 15;
+            chart.dataLabels.format.font.color = "black";
+        }
+
+        function reportMissingData(continent: string) {
+            // To test this method,
+            // (1) Press "Create Table"
+            // (2) Delete data from the rows for one continent,
+            //     INCLUDING THE "Sales Team" COLUMN VALUES.
+            // (3) Press "Create sales contest charts".
+            OfficeHelpers.UI.notify(
+                `Missing ${continent} Data`,
+                `There is no data for the ${continent} teams.`
+            );
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(
+                    context.workbook,
+                    "Sample"
+                );
+
+                const rangeA = sheet.getRange("H2:J5");
+                rangeA.format.fill.color = "green";
+                rangeA.getCell(0, 0).values = [["Range A"]];
+
+                const rangeB = sheet.getRange("J4:L8");
+                rangeB.format.fill.color = "yellow";
+                rangeB.getCell(0, 0).values = [["Range B"]];
+
+                let salesTable = sheet.tables.add("A1:E1", true);
+                salesTable.name = "SalesTable";
+                salesTable.getHeaderRowRange().values = [
+                    ["Sales Team", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]
+                ];
+
+                salesTable.rows.add(null, [
+                    ["Asian Team 1", 500, 700, 654, null],
+                    ["Asian Team 2", 400, 323, 276, null],
+                    ["Asian Team 3", 1200, 876, 845, null],
+                    ["European Team 1", 600, 500, 854, null],
+                    ["European Team 2", 5001, 2232, 4763, null],
+                    ["European Team 3", 130, 776, 104, null]
+                ]);
+
+                salesTable.getRange().format.autofitColumns();
+                salesTable.getRange().format.autofitRows();
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to do various operations on ranges, for example, getting the bounding rect of two ranges.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="intersection" class="ms-Button">
+                    <span class="ms-Button-label">Show intersection</span>
+              </button><p>
+            <button id="resized-range" class="ms-Button">
+                        <span class="ms-Button-label">Show resized range</span>
+                </button><p>
+            <button id="bounding-rect" class="ms-Button">
+                <span class="ms-Button-label">Show bounding rectangle</span>
+            </button><p>
+            <button id="offset-range" class="ms-Button">
+                <span class="ms-Button-label">Show offset range</span>
+            </button><p>
+            <p>Display charts based on the intersection of the current quarter and a continent.</p>
+            <button id="create-sales-contest-charts" class="ms-Button">
+                <span class="ms-Button-label">Create sales contest charts</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

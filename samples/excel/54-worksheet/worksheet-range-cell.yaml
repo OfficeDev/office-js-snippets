@@ -1,0 +1,159 @@
+order: 5
+id: excel-worksheet-worksheet-range-cell
+name: Get range or cell
+description: 'Gets the used range, the entire range of a worksheet, the specified range, and the specified cell.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+
+        $("#get-used-range").click(() => tryCatch(getUsedRange));
+        $("#get-entire-range").click(() => tryCatch(getEntireRange));
+        $("#get-range").click(() => tryCatch(getRange));
+        $("#get-cell").click(() => tryCatch(getCell));
+
+        async function getUsedRange() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getUsedRange();
+                range.load("address");
+
+                await context.sync();
+
+                console.log(`The address of the used range in the worksheet is "${range.address}"`);
+            });
+        }
+
+        async function getEntireRange() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getRange();
+                range.load("address");
+
+                await context.sync();
+
+                console.log(`The address of the entire worksheet range is "${range.address}"`);
+            });
+        }
+
+        async function getRange() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getRange("B2:C5");
+                range.load("address");
+
+                await context.sync();
+
+                console.log(`The address of the range B2:C5 is "${range.address}"`);
+            });
+        }
+
+        async function getCell() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const range = sheet.getCell(1, 4);
+                range.load("address");
+                
+                await context.sync();
+
+                console.log(`The address of the cell in row 2 column 5 is "${range.address}"`);
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+                
+                const data = [
+                    ["Product", "Qty", "Unit Price", "Total Price"],
+                    ["Almonds", 2, 7.50, "=C3 * D3"],
+                    ["Coffee", 1, 34.50, "=C4 * D4"],
+                    ["Chocolate", 5, 9.56, "=C5 * D5"]
+                ];
+
+                const range = sheet.getRange("B2:E5");
+                range.values = data;
+                range.format.autofitColumns();
+
+                const header = range.getRow(0);
+                header.format.fill.color = "#4472C4";
+                header.format.font.color = "white";
+
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to get a range or a cell in a worksheet.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-used-range" class="ms-Button">
+                <span class="ms-Button-label">Get used range</span>
+            </button>       
+            <button id="get-entire-range" class="ms-Button">
+                <span class="ms-Button-label">Get entire range</span>
+            </button>
+            <button id="get-range" class="ms-Button">
+                <span class="ms-Button-label">Get range</span>
+            </button>
+            <button id="get-cell" class="ms-Button">
+                <span class="ms-Button-label">Get cell</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

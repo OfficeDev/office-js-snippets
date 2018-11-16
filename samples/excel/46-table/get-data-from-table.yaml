@@ -1,0 +1,133 @@
+order: 6
+id: excel-table-get-data-from-table
+name: Get data
+description: Gets data from a table.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#get-data-from-table").click(() => tryCatch(getData));
+
+        async function getData() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesTable = sheet.tables.getItem("ExpensesTable");
+
+                const headerRange = expensesTable.getHeaderRowRange().load("values");
+                const bodyRange = expensesTable.getDataBodyRange().load("values");
+                const columnRange = expensesTable.columns.getItem("MERCHANT").getDataBodyRange().load("values");
+                const rowRange= expensesTable.rows.getItemAt(1).load("values");
+
+                await sheet.context.sync();
+
+                const headerValues = headerRange.values;
+                const bodyValues = bodyRange.values;
+                const merchantColumnValues = columnRange.values;
+                const secondRowValues = rowRange.values;
+
+                sheet.getRange("A18:A18").values = [["Results"]];
+                sheet.getRange("A20:D20").values = headerValues;
+                sheet.getRange("A21:D27").values = bodyValues;
+                sheet.getRange("B30:B36").values = merchantColumnValues;
+                sheet.getRange("A17:D17").values = secondRowValues;
+
+                await context.sync();
+            });
+        }
+
+        /** Create a new table with some sample data */
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);
+                 expensesTable.name = "ExpensesTable";
+
+                expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                expensesTable.rows.add(null /*add at the end*/, [
+                ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                ["1/11/2017", "Bellows College", "Education", "$350"],
+                ["1/15/2017", "Trey Research", "Other", "$135"],
+                ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                ]);
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to get data from a table and write it to the sheet.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-data-from-table" class="ms-Button">
+                <span class="ms-Button-label">Get data from a table</span>
+            </button>
+        </section>
+
+
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

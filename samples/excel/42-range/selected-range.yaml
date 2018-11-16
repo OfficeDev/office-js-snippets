@@ -1,0 +1,90 @@
+order: 5
+id: excel-range-selected-range
+name: Selected range
+description: Gets and sets the currently selected range.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#get-selection").click(() => tryCatch(getSelection));
+        $("#set-selection").click(() => tryCatch(setSelection));
+
+        async function getSelection() {
+            await Excel.run(async (context) => {
+                const range = context.workbook.getSelectedRange();
+                range.load("address");
+
+                await context.sync();
+
+                console.log(`The address of the selected range is "${range.address}"`)
+            });
+        }
+
+        async function setSelection() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const range = sheet.getRange("B2:E6");
+
+                range.select();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to get and set the currently selected range.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-selection" class="ms-Button">
+                <span class="ms-Button-label">Get selection</span>
+            </button>   
+            <button id="set-selection" class="ms-Button">
+                <span class="ms-Button-label">Set selection</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

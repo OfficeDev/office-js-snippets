@@ -1,0 +1,199 @@
+order: 8
+id: excel-events-worksheet
+name: Worksheet events
+description: 'Registers event handlers that run when data is changed in worksheet, the selected range changes in a worksheet, or the worksheet is recalculated.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+
+        $("#register-on-selection-changed-handler").click(() => tryCatch(registerSelectionChangedHandler));
+        $("#select-range").click(() => tryCatch(selectRange));
+
+        $("#register-on-changed-handler").click(() => tryCatch(registerOnChangedHandler));
+        $("#register-onCalculated-handler").click(() => tryCatch(registerOnCalculatedHandler));
+        $("#recalculate").click(() => tryCatch(recalculate));
+
+        async function registerSelectionChangedHandler() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.onSelectionChanged.add(onSelectionChange);
+                await context.sync();
+            });
+        }
+
+        async function selectRange() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                let range = sheet.getRange("B7:C7");
+                range.select();
+
+                await context.sync();
+            });
+        }
+
+        async function onSelectionChange(event) {
+            await Excel.run(async (context) => {
+                console.log("The selected range has changed to: " + event.address);
+            });
+        }
+
+        async function registerOnCalculatedHandler() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.onCalculated.add(onCalculated);
+                await context.sync();
+                console.log("Added worksheet selection changed event handler.");
+            });
+        }
+
+        async function recalculate() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                let randomResult = context.workbook.functions.randBetween(1, 3000).load("value");
+                await context.sync();
+
+                let row = sheet.tables.getItem("SalesTable").rows.getItemAt(0);
+                let newValue = [["Frames", 5000, 7000, 6544, randomResult.value, "=SUM(B2:E2)"]];
+                row.values = newValue;
+                row.load("values");
+                await context.sync();
+            });
+        }
+
+        async function onCalculated(event) {
+            await Excel.run(async (context) => {
+                console.log("The worksheet has recalculated.");
+            });
+        }
+
+        async function registerOnChangedHandler() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.onChanged.add(onChange);
+
+                await context.sync();
+                console.log("A handler has been registered for the onChanged event.");
+            });
+        }
+
+        async function changeData() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                let range = sheet.getRange("B5");
+                range.values = [[800]];
+                range.format.autofitColumns();
+
+                await context.sync();
+
+                console.log("B5 value has been changed.");
+            });
+        }
+
+        async function onChange(event) {
+            await Excel.run(async (context) => {
+                console.log(
+                "Handler for worksheet onChanged event has been triggered.  Data changed address : " +
+                    event.address
+                );
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                let sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                let salesTable = sheet.tables.add("A1:F1", true);
+                salesTable.name = "SalesTable";
+
+                salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4", "Total"]];
+
+                salesTable.rows.add(null, [
+                    ["Frames", 5000, 7000, 6544, 4377, "=SUM(B2:E2)"],
+                    ["Saddles", 400, 323, 276, 651, "=SUM(B3:E3)"],
+                    ["Brake levers", 12000, 8766, 8456, 9812, "=SUM(B4:E4)"],
+                    ["Chains", 1550, 1088, 692, 853, "=SUM(B5:E5)"],
+                    ["Mirrors", 225, 600, 923, 544, "=SUM(B6:E6)"],
+                    ["Spokes", 6005, 7634, 4589, 8765, "=SUM(B7:E7)"]
+                ]);
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                    await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to register and use an event handler for the worksheet onSelectionChanged event.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add sample data</span>
+        </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+
+            <p><b>Selection Changed</b></p><section class="samples ms-font-m">
+            <button id="register-on-selection-changed-handler" class="ms-Button">
+                <span class="ms-Button-label">Register onSelectionChanged handler</span>
+            </button>
+            <button id="select-range" class="ms-Button">
+                <span class="ms-Button-label">Select range</span>
+            </button>
+            <p><b>Changed and Calculated</b></p>
+            <button id="register-on-changed-handler" class="ms-Button">
+                <span class="ms-Button-label">Register onChanged event handler</span>
+            </button>
+            <button id="register-onCalculated-handler" class="ms-Button">
+                <span class="ms-Button-label">Register onCalculated handler</span>
+            </button>
+            <button id="recalculate" class="ms-Button">
+                <span class="ms-Button-label">Change the value of E2</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

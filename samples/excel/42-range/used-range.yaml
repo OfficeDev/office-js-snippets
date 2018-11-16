@@ -1,0 +1,152 @@
+order: 7
+id: excel-range-used-range
+name: Used range
+description: Tests for a used range and creates a chart from a table only if there's data in the table.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.4
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#try-create-chart-from-table").click(() => tryCatch(tryCreateChartFromEmptyTable));
+        $("#fill-table").click(() => tryCatch(fillTable));
+
+        async function tryCreateChartFromEmptyTable() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const salesTable = sheet.tables.getItem("SalesTable");
+                const dataRange = salesTable.getDataBodyRange();
+
+                // Pass true so only cells with values count as used
+                const usedDataRange = dataRange.getUsedRangeOrNullObject(
+                    true /* valuesOnly */
+                );
+
+                //Must sync before reading value returned from *OrNullObject method/property.
+                await context.sync();
+
+                if (usedDataRange.isNullObject) {
+                    OfficeHelpers.UI.notify(
+                        "Need Data to Make Chart",
+                        "To create a meaningful chart, press 'Fill the table' (or add names to the Product column and numbers to some of the other cells). Then press 'Try to create chart' again."
+                    );
+                } else {
+                    const chart = sheet.charts.add(
+                        Excel.ChartType.columnClustered,
+                        dataRange,
+                        "Columns"
+                    );
+                    chart.setPosition("A15", "F30");
+                    chart.title.text = "Quarterly sales chart";
+                    chart.legend.position = "Right";
+                    chart.legend.format.fill.setSolidColor("white");
+                    chart.dataLabels.format.font.size = 15;
+                    chart.dataLabels.format.font.color = "black";
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function fillTable() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const salesTable = sheet.tables.getItem("SalesTable");
+                const dataRange = salesTable.getDataBodyRange();
+                dataRange.values = [
+                    ["Frames", 5000, 7000, 6544, 4377],
+                    ["Saddles", 400, 323, 276, 651],
+                    ["Brake levers", 12000, 8766, 8456, 9812],
+                    ["Chains", 1550, 1088, 692, 853],
+                    ["Mirrors", 225, 600, 923, 544],
+                    ["Spokes", 6005, 7634, 4589, 8765]];
+
+                dataRange.format.autofitColumns();
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async context => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                let salesTable = sheet.tables.add("B2:F2", true /* hasHeaders */);
+                salesTable.name = "SalesTable";
+                salesTable.showTotals = true;
+                salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+                // The table should be created wtih no data.
+                salesTable.rows.add(null, [
+                    [null, null, null, null, null],
+                    [null, null, null, null, null],
+                    [null, null, null, null, null],
+                    [null, null, null, null, null],
+                    [null, null, null, null, null],
+                    [null, null, null, null, null]]);
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample creates a chart from a table, but only if there's data in the table.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="try-create-chart-from-table" class="ms-Button">
+                <span class="ms-Button-label">Try to create chart</span>
+            </button><p>
+            <button id="fill-table" class="ms-Button">
+                <span class="ms-Button-label">Fill the table</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

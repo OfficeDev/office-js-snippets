@@ -1,0 +1,111 @@
+order: 2
+id: excel-table-convert-range-to-table
+name: Convert a range
+description: Converts a range to a table.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#convert-range-to-table").click(() => tryCatch(convertRangeToTable));
+
+        async function convertRangeToTable() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                let expensesTable = sheet.tables.add('A1:E7', true);
+                expensesTable.name = "ExpensesTable";
+
+                await context.sync();
+            });
+        }
+
+        /** Create a range */
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"],
+                ["Frames", 5000, 7000, 6544, 4377],
+                ["Saddles", 400, 323, 276, 651],
+                ["Brake levers", 12000, 8766, 8456, 9812],
+                ["Chains", 1550, 1088, 692, 853],
+                ["Mirrors", 225, 600, 923, 544],
+                ["Spokes", 6005, 7634, 4589, 8765]];
+
+                const range = sheet.getRange("A1:E7");
+                range.values = values;
+
+                sheet.getRange("A1:E1").format.font.bold = true;
+
+                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
+                    sheet.getUsedRange().format.autofitColumns();
+                    sheet.getUsedRange().format.autofitRows();
+                }   
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to convert a range to a table.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create range</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="convert-range-to-table" class="ms-Button">
+                    <span class="ms-Button-label">Convert range to table</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

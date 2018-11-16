@@ -1,0 +1,158 @@
+order: 3
+id: word-paragraph-insert-in-different-locations
+name: Insert content at different locations
+description: Inserts content at different document locations.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.2
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#before").click(() => tryCatch(before));
+        $("#start").click(() => tryCatch(start));
+        $("#end").click(() => tryCatch(end));
+        $("#after").click(() => tryCatch(after));
+        $("#replace").click(() => tryCatch(replace));
+
+        async function before() {
+            await Word.run(async (context) => {
+                // Let's insert before the first paragraph. 
+                let range = context.document.body.paragraphs
+                    .getFirst().insertParagraph("This is Before", "Before");
+                range.font.highlightColor = "yellow";
+
+                await context.sync();
+            });
+        }
+
+        async function start() {
+            await Word.run(async (context) => {
+                // This button assumes before() ran.
+                // Get the next paragraph and insert text at the beginning. Note that there are invalid locations depending on the object. For instance, insertParagraph and "before" on a paragraph object is not a valid combination.
+                let range = context.document.body.paragraphs
+                    .getFirst().getNext().insertText("This is Start", "Start");
+                range.font.highlightColor = "blue";
+                range.font.color = "white";
+
+                await context.sync();
+            });
+        }
+
+        async function end() {
+            await Word.run(async (context) => {
+                // Here we insert text at the end of a paragraph
+                let range = context.document.body.paragraphs
+                    .getFirst().getNext().insertText(" This is End", "End");
+                range.font.highlightColor = "green";
+                range.font.color = "white";
+
+                await context.sync();
+            });
+        }
+
+        async function after() {
+            await Word.run(async (context) => {
+                // Here we insert a paragraph after an  existing one
+                let range = context.document.body.paragraphs
+                    .getFirst().getNext().insertParagraph("This is After", "After");
+                range.font.highlightColor = "red";
+                range.font.color = "white";
+
+                await context.sync();
+            });
+        }
+
+        async function replace() {
+            await Word.run(async (context) => {
+                // Here we insert to replace text
+                let range = context.document.body.paragraphs
+                    .getLast().insertText("Just replaced the last paragraph!", "Replace");
+                range.font.highlightColor = "black";
+                range.font.color = "white";
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                // insert a couple of paragraphs
+                context.document.body.clear();
+                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
+                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.", "Replace");
+
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          This sample demonstrates a variety of insert locations available in the API.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                  <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+          <button id="before" class="ms-Button">
+              <span class="ms-Button-label">Insert before</span>
+          </button><p>
+          <button id="start" class="ms-Button">
+              <span class="ms-Button-label">Insert start</span>
+          </button><p>
+          <button id="end" class="ms-Button">
+              <span class="ms-Button-label">Insert end</span>
+          </button><p>
+          <button id="after" class="ms-Button">
+              <span class="ms-Button-label">Insert after</span>
+          </button><p>
+          <button id="replace" class="ms-Button">
+              <span class="ms-Button-label">Replace last paragraph</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

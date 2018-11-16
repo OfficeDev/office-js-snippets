@@ -1,0 +1,335 @@
+order: 2
+id: excel-range-hyperlink
+name: Hyperlinks
+description: 'Creates, updates, and clears hyperlinks in a range.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+
+        $("#create-url-hyperlinks").click(() => tryCatch(createUrlHyperlinks));
+        $("#create-document-hyperlinks").click(() => tryCatch(createDocumentHyperlinks));
+        $("#update-hyperlinks").click(() => tryCatch(updateHyperlinks));
+        $("#clear-hyperlinks").click(() => tryCatch(clearHyperlinks));
+
+        async function createUrlHyperlinks() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Orders");
+
+                let productsRange = sheet.getRange("A3:A5");
+                productsRange.load("values");
+
+                await context.sync();
+
+                // Create a hyperlink to a URL 
+                // for each product name in the first table.
+                for (let i = 0; i < productsRange.values.length; i++) {
+                    let cellRange = productsRange.getCell(i, 0);
+                    let cellText = productsRange.values[i][0];
+
+                    let hyperlink = {
+                        textToDisplay: cellText,
+                        screenTip: "Search Bing for '" + cellText + "'",
+                        address: "https://www.bing.com?q=" + cellText
+                    }
+                    cellRange.hyperlink = hyperlink;
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function createDocumentHyperlinks() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Orders");
+
+                let productsRange = sheet.getRange("A9:A11");
+                productsRange.load("values");
+
+                await context.sync();
+
+                // Create a hyperlink to a location within the workbook
+                // for each product name in the second table.
+                for (let i = 0; i < productsRange.values.length; i++) {
+                    let cellRange = productsRange.getCell(i, 0);
+                    let cellText = productsRange.values[i][0];
+
+                    let hyperlink = {
+                        textToDisplay: cellText,
+                        screenTip: "Navigate to the '" + cellText + "' worksheet",
+                        documentReference: cellText + "!A1"
+                    }
+                    cellRange.hyperlink = hyperlink;
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function updateHyperlinks() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Orders");
+
+                let productsRange = sheet.getRange("A3:A5");
+                productsRange.load("values");
+
+                await context.sync();
+
+                // Update the hyperlink screen tip and address
+                // for each product name in the first table.
+                for (let i = 0; i < productsRange.values.length; i++) {
+                    let cellRange = productsRange.getCell(i, 0);
+                    let cellText = productsRange.values[i][0];
+
+                    let hyperlink = {
+                        textToDisplay: cellText,
+                        screenTip: "View Wikipedia page for '" + cellText + "'",
+                        address: "https://wikipedia.org/wiki/" + cellText
+                    }
+                    cellRange.hyperlink = hyperlink;
+                }
+
+                await context.sync();
+
+                console.log("Updated the hyperlink for each of the products in the first table.");
+            });
+        }
+
+        async function clearHyperlinks() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Orders");
+
+                const productsRange = sheet.getRange("A3:A11");
+                productsRange.load("values");
+
+                await context.sync();
+
+                // Clear all hyperlinks.
+                for (let i = 0; i < productsRange.values.length; i++) {
+                    let cellRange = productsRange.getCell(i, 0);
+
+                    // Clear the hyperlink.
+                    // This eliminates the hyperlink but does not update text format.
+                    cellRange.clear(Excel.ClearApplyTo.hyperlinks);
+
+                    // Update text format.
+                    cellRange.format.font.underline = Excel.RangeUnderlineStyle.none;
+                    cellRange.format.font.color = "#000000";
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+
+                const ordersSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Orders");
+
+                const appleSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Apple");
+
+                const bananaSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Banana");
+
+                const melonSheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Melon");
+
+                createOrdersData(ordersSheet);
+
+                createAppleData(appleSheet);
+
+                createBananaData(bananaSheet);
+
+                createMelonData(melonSheet);
+
+                ordersSheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        function createOrdersData(ordersSheet: Excel.Worksheet) {
+            const productsData1 = [
+                ["Vegetable", "Qty", "Unit Price", "Total Price"],
+                ["Potato", 10, 1.00, "=B3 * C3"],
+                ["Tomato", 7, 2.50, "=B4 * C4"],
+                ["Lettuce", 5, 1.50, "=B5 * C5"]
+            ];
+
+            const range1 = ordersSheet.getRange("A2:D5");
+            range1.values = productsData1;
+            range1.format.autofitColumns();
+            range1.format.fill.color = "lightgray";
+
+            const header1 = range1.getResizedRange(-3, 0);
+            header1.format.fill.color = "lightblue";
+            header1.format.font.bold = true;
+
+            const productsData2 = [
+                ["Fruit", "Qty", "Unit Price", "Total Price"],
+                ["Apple", 10, 2.00, "=B9 * C9"],
+                ["Banana", 5, 0.75, "=B10 * C10"],
+                ["Melon", 8, 3.50, "=B11 * C11"]
+            ];
+
+            const range2 = ordersSheet.getRange("A8:D11");
+            range2.values = productsData2;
+            range2.format.autofitColumns();
+            range2.format.fill.color = "lightgray";
+
+            const header2 = range2.getResizedRange(-3, 0);
+            header2.format.fill.color = "lightblue";
+            header2.format.font.bold = true;
+        }
+
+        function createAppleData(appleSheet: Excel.Worksheet) {
+            const applesData = [
+                ["Month", "Apples sold"],
+                ["January 2016", 100],
+                ["February 2016", 50],
+                ["March 2016", 200],
+                ["April 2016", 75],
+                ["May 2016", 150],
+                ["June 2016", 190],
+                ["July 2016", 200],
+                ["August 2016", 115],
+                ["September 2016", 80],
+                ["October 2016", 70],
+                ["November 2016", 160],
+                ["December 2016", 195]
+            ];
+
+            const range = appleSheet.getRange("A1:B13");
+            range.values = applesData;
+            range.format.autofitColumns();
+
+            const header = range.getResizedRange(-12, 0);
+            header.format.fill.color = "pink";
+            header.format.font.bold = true;
+        }
+
+        function createBananaData(bananaSheet: Excel.Worksheet) {
+            const bananasData = [
+                ["Month", "Bananas sold"],
+                ["January 2016", 175],
+                ["February 2016", 250],
+                ["March 2016", 300],
+                ["April 2016", 175],
+                ["May 2016", 50],
+                ["June 2016", 95],
+                ["July 2016", 270],
+                ["August 2016", 150],
+                ["September 2016", 85],
+                ["October 2016", 125],
+                ["November 2016", 160],
+                ["December 2016", 175]
+            ];
+
+            const range = bananaSheet.getRange("A1:B13");
+            range.values = bananasData;
+            range.format.autofitColumns();
+
+            const header = range.getResizedRange(-12, 0);
+            header.format.fill.color = "yellow";
+            header.format.font.bold = true;
+        }
+
+        function createMelonData(melonSheet: Excel.Worksheet) {
+            const melonsData = [
+                ["Month", "Melons sold"],
+                ["January 2016", 275],
+                ["February 2016", 180],
+                ["March 2016", 350],
+                ["April 2016", 125],
+                ["May 2016", 250],
+                ["June 2016", 195],
+                ["July 2016", 170],
+                ["August 2016", 350],
+                ["September 2016", 185],
+                ["October 2016", 225],
+                ["November 2016", 260],
+                ["December 2016", 275]
+            ];
+
+            const range = melonSheet.getRange("A1:B13");
+            range.values = melonsData;
+            range.format.autofitColumns();
+
+            const header = range.getResizedRange(-12, 0);
+            header.format.fill.color = "lightgreen";
+            header.format.font.bold = true;
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create, update, and clear a hyperlink for a range.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="create-url-hyperlinks" class="ms-Button">
+                <span class="ms-Button-label">Create URL hyperlinks</span>
+            </button><p>
+            <button id="create-document-hyperlinks" class="ms-Button">
+                <span class="ms-Button-label">Create document hyperlinks</span>
+            </button><p>
+            <button id="update-hyperlinks" class="ms-Button">
+                <span class="ms-Button-label">Update hyperlinks</span>
+            </button><p>
+            <button id="clear-hyperlinks" class="ms-Button">
+                <span class="ms-Button-label">Clear all hyperlinks</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

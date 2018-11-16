@@ -1,0 +1,146 @@
+order: 2
+id: excel-scenarios-multiple-property-set
+name: Set multiple properties
+description: Sets multiple properties at once with the API object set() method.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.4
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#set-multiple-properties-with-object").click(() => tryCatch(setMultiplePropertiesWithObject));
+        $("#copy-properties-from-range").click(() => tryCatch(copyPropertiesFromRange));
+
+        async function setMultiplePropertiesWithObject() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const range = sheet.getRange("B2:E2");
+                range.set({
+                    format: {
+                        fill: {
+                            color: "#4472C4"
+                        },
+                        font: {
+                            name: "Verdana",
+                            color: "white"
+                        }
+                    }
+                })
+                range.format.autofitColumns();
+                await context.sync();
+            });
+        }
+
+        async function copyPropertiesFromRange() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const sourceRange = sheet.getRange("B2:E2");
+                sourceRange.load("format/fill/color, format/font/name, format/font/color");
+                await context.sync();
+
+                // Set properties based on the loaded and synced 
+                // source range.
+                const targetRange = sheet.getRange("B7:E7");
+                targetRange.set(sourceRange); 
+                targetRange.format.autofitColumns();
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities
+                    .forceCreateSheet(context.workbook, "Sample");
+
+                const groceryData = [
+                    ["Product", "Qty", "Unit Price", "Total Price"],
+                    ["Almonds", 2, 7.50, "=C3 * D3"],
+                    ["Coffee", 1, 34.50, "=C4 * D4"],
+                    ["Chocolate", 5, 9.56, "=C5 * D5"]
+                ];
+
+                const groceryRange = sheet.getRange("B2:E5");
+                groceryRange.values = groceryData;
+                groceryRange.format.autofitColumns();
+
+                const bakeryData = [
+                    ["Product", "Qty", "Unit Price", "Total Price"],
+                    ["Cake", 2, 18.99, "=C8 * D8"],
+                    ["Donuts", 12, 1.25, "=C9 * D9"],
+                ];
+
+                const bakeryRange = sheet.getRange("B7:E9");
+                bakeryRange.values = bakeryData;
+                bakeryRange.format.autofitColumns();
+
+                sheet.activate();
+                
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to format a range.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="set-multiple-properties-with-object" class="ms-Button">
+                <span class="ms-Button-label">Set Multiple Properties with Object</span>
+            </button>   
+            <button id="copy-properties-from-range" class="ms-Button">
+                <span class="ms-Button-label">Copy Properties from Range</span>
+            </button> 
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

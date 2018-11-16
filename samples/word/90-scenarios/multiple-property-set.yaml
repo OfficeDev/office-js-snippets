@@ -1,0 +1,124 @@
+order: 2
+id: word-scenarios-multiple-property-set
+name: Set multiple properties at once
+description: Sets multiple properties at once with the API object set() method.
+host: WORD
+api_set:
+    WordApi: 1.3
+script:
+    content: |-
+        $("#set-multiple-properties-with-object").click(() => tryCatch(setMultiplePropertiesWithObject));
+        $("#copy-properties-from-paragraph").click(() => tryCatch(copyPropertiesFromParagraph));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function setMultiplePropertiesWithObject() {
+          await Word.run(async (context) => {
+            const paragraph = context.document.body.paragraphs.getFirst();
+            paragraph.set({
+              leftIndent: 30,
+              font: {
+                bold: true,
+                color: "red"
+              }
+            });
+
+            await context.sync();
+          });
+        }
+
+        async function copyPropertiesFromParagraph() {
+          await Word.run(async (context) => {
+            const firstParagraph = context.document.body.paragraphs.getFirst();
+            const secondParagraph = firstParagraph.getNext();
+            firstParagraph.load("text, font/color, font/bold, leftIndent");
+
+            await context.sync();
+
+            secondParagraph.set(firstParagraph);
+
+            await context.sync();
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            // insert a couple of paragraphs
+            context.document.body.clear();
+            context.document.body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            context.document.body.paragraphs
+              .getLast()
+              .insertText(
+                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.",
+                "Replace"
+              );
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            OfficeHelpers.UI.notify(error);
+            OfficeHelpers.Utilities.log(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to format text using the object.set method.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Set the styling of the first paragraph.</p>
+            <button id="set-multiple-properties-with-object" class="ms-Button">
+                <span class="ms-Button-label">Set multiple properties</span>
+            </button>
+            <p>Now copy the formatting of the first paragraph to the second.</p>
+            <button id="copy-properties-from-paragraph" class="ms-Button">
+                <span class="ms-Button-label">Copy properties</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

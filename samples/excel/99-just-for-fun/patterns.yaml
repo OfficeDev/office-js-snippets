@@ -1,0 +1,199 @@
+order: 1
+id: excel-just-for-fun-patterns
+name: Colorful Patterns
+description: Uses range formatting to draw interesting pattern. Contributed by Alexander Zlatkovski.
+author: AlexanderZlatkovski
+host: EXCEL
+api_set:
+    ExcelApi: 1.2
+script:
+    content: |-
+        $("#squares").click(() => tryCatch(drawSquares));
+        $("#spiral").click(() => tryCatch(drawSpiral));
+        $("#decoration").click(() => tryCatch(drawDecoration));
+
+        async function drawSquares() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Patterns", true /*clearOnly*/);
+                sheet.activate();
+                formatBackground(sheet);
+
+                const size = parseInt($("#size").val() as string);
+
+                for (var i = 0; i < size; i++) {
+                    const width = size * 2 - 2 * i;
+                    const colors = [
+                        rgb(30 + Math.floor(225 / size * i), 0, 0),
+                        rgb(0, Math.floor(225 / size * i), 0)
+                    ];
+                    const range = sheet.getCell(i + 1, i + 1).getResizedRange(width - 1, width - 1);
+                    range.format.fill.color = colors[i % 2];
+                    await context.sync();
+                    await pause(20);
+                }
+            });
+        }
+
+
+        async function drawSpiral() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Patterns", true /*clearOnly*/);
+                sheet.activate();
+                formatBackground(sheet);
+
+                const size = Math.floor(parseInt($("#size").val() as string) / 2);
+
+                for (let i = 0; i < size - 1; i++) {
+
+                    // i is the number of full turns of the spiral; x, y, z, and w - are lengths of lines that go right, down, left, and up, respectively.
+                    let x = 4 * i + 1;
+                    let y = 4 * i + 2;
+                    let z = 4 * i + 3;
+                    let w = 4 * i + 4;
+
+                    let colorFactor = Math.floor(190 / size);
+
+                    formatLineRight(size, i, colorFactor, x);
+                    await context.sync();
+                    await pause(30);
+
+                    formatLineDown(size, i, colorFactor, x, y);
+                    await context.sync();
+                    await pause(30);
+
+                    formatLineLeft(size, i, colorFactor, x, y, z);
+                    await context.sync();
+                    await pause(30);
+
+                    formatLineUp(size, i, colorFactor, x, y, z, w);
+                    await context.sync();
+                    await pause(30);
+                }
+
+                // Helpers
+
+                function formatLineRight(size, i, colorFactor, x) {
+                    const rangeLineRight = sheet.getCell((size-i)*2-1, (size-i)*2-1).getResizedRange(0, x);
+                    rangeLineRight.format.fill.color = rgb(255 - i * colorFactor, 0, i * colorFactor);
+                }
+
+                function formatLineDown(size, i, colorFactor, x, y) {
+                    const rangeLineDown = sheet.getCell((size-i)*2-1, (size-i)*2-1 + x).getResizedRange(y, 0);
+                    rangeLineDown.format.fill.color = rgb(250 - i * colorFactor, 0, i * colorFactor + 5);
+                }
+
+                function formatLineLeft(size, i, colorFactor, x, y, z) {
+                    const rangeLineLeft = sheet.getCell((size-i)*2-1 + y, (size-i)*2-1 + x).getResizedRange(0, -z);
+                    rangeLineLeft.format.fill.color = rgb(245 - i * colorFactor, 0, i * colorFactor + 10);
+                }
+
+                function formatLineUp(size, i, colorFactor, x, y, z, w) {
+                    const rangeLineUp = sheet.getCell((size-i)*2-1 + y, (size-i)*2-1 + x - z).getResizedRange(-w, 0);
+                    rangeLineUp.format.fill.color = rgb(240 - i * colorFactor, 0, i * colorFactor + 15);
+                }
+            });
+        }
+
+        async function drawDecoration() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Patterns", true /*clearOnly*/);
+                sheet.activate();
+                formatBackground(sheet);
+
+                const size = Math.floor(parseInt($("#size").val() as string) / 2);
+
+                for (var i = 0; i < size; i++) {
+                    const range1 = sheet.getCell(2 * i + 1, 2 * i + 1).getResizedRange(size - i, size - i);
+                    const range2 = sheet.getCell(2 * i + 1, 3 * size - i).getResizedRange(size - i, size - i);
+                    const range3 = sheet.getCell(3 * size - i, 2 * i + 1).getResizedRange(size - i, size - i);
+                    const range4 = sheet.getCell(3 * size - i, 3 * size - i).getResizedRange(size - i, size - i);
+
+                    var colorFactor = 255 - Math.floor(200 / size * i)
+                    range1.format.fill.color = rgb(colorFactor, 255 - colorFactor, 0);
+                    range2.format.fill.color = rgb(colorFactor, 255 - colorFactor, 0);
+                    range3.format.fill.color = rgb(colorFactor, 255 - colorFactor, 0);
+                    range4.format.fill.color = rgb(colorFactor, 255 - colorFactor, 0);
+
+                    await context.sync();
+                    await pause(30);
+                }
+            });
+        }
+
+        function rgb(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        function pause(milliseconds) {
+            return new Promise(resolve => setTimeout(resolve, milliseconds));
+        }
+
+        function formatBackground(sheet: Excel.Worksheet) {
+            const range = sheet.getRange();
+            range.format.columnWidth = 7;
+            range.format.rowHeight = 7;
+            range.format.fill.color = "black";
+        }
+
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <h2 class="ms-font-l">Draw colorful patterns</h2>
+
+        <section class="ms-font-m" style="margin-top: 30px">
+            <div>Choose size:</div>
+            <input id="size" type="range" min="2" max="50" value="30"></input>
+        </section>
+
+        <section class="ms-font-m" style="margin-top: 30px">
+            <button id="squares" class="ms-Button ">
+                <span class="ms-Button-label">Concentric Squares</span>
+            </button>
+            <br/><br/>
+
+            <button id="spiral" class="ms-Button">
+                <span class="ms-Button-label">Spiral</span>
+            </button>   
+            <br/><br/>
+
+            <button id="decoration" class="ms-Button">
+                <span class="ms-Button-label">Decoration</span>
+            </button>   
+        </section>
+    language: html
+style:
+    content: |
+        h2:not(:first-child) {
+            margin-top: 35px;
+        }
+
+        #size {
+            width: 100%;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

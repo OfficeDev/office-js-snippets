@@ -1,0 +1,161 @@
+order: 1
+id: excel-scenarios-report-generation
+name: Report generation
+description: 'Writes data to the workbook, reads and applies basic formatting, and adds a chart bound to that data.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#create-report").click(() => tryCatch(createReport));
+
+        /** Load sample data into a new worksheet and create a chart */
+        async function createReport() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.add();
+
+                try {
+                    await writeSheetData(sheet);
+                    sheet.activate();
+                    await context.sync();
+                }
+                catch (error) {
+                        // Try to activate the new sheet regardless, to show
+                        // how far the processing got before failing
+                    sheet.activate();
+                    await context.sync();
+
+                    // Then re-throw the original error, for appropriate error-handling
+                    // (in this snippet, simply showing a notification)
+                    throw error;
+                }
+            });
+
+            console.log("Success!", "Report generation completed.");
+        }
+
+        async function writeSheetData(sheet: Excel.Worksheet) {
+            // Set the report title in the worksheet
+            const titleCell = sheet.getCell(0, 0);
+            titleCell.values = [["Quarterly Sales Report"]];
+            titleCell.format.font.name = "Century";
+            titleCell.format.font.size = 26;
+
+            // Create an array containing sample data
+            const headerNames = ["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"];
+            const data = [
+                ["Frames", 5000, 7000, 6544, 4377],
+                ["Saddles", 400, 323, 276, 651],
+                ["Brake levers", 12000, 8766, 8456, 9812],
+                ["Chains", 1550, 1088, 692, 853],
+                ["Mirrors", 225, 600, 923, 544],
+                ["Spokes", 6005, 7634, 4589, 8765]
+            ];
+
+            // Write the sample data to the specified range in the worksheet 
+            // and bold the header row
+            const headerRow = titleCell.getOffsetRange(1, 0)
+                .getResizedRange(0, headerNames.length - 1);
+            headerRow.values = [headerNames];
+            headerRow.getRow(0).format.font.bold = true;
+
+            const dataRange = headerRow.getOffsetRange(1, 0)
+                .getResizedRange(data.length - 1, 0);
+            dataRange.values = data;
+
+
+            titleCell.getResizedRange(0, headerNames.length - 1).merge();
+            dataRange.format.autofitColumns();
+
+            const columnRanges = headerNames.map((header, index) => dataRange.getColumn(index).load("format/columnWidth"));
+            await sheet.context.sync();
+
+            // For the header (product name) column, make it a minimum of 100px;
+            const firstColumn = columnRanges.shift();
+            if (firstColumn.format.columnWidth < 100) {
+                console.log("Expanding the first column to 100px");
+                firstColumn.format.columnWidth = 100;
+            }
+
+            // For the remainder, make them identical or a minimum of 60px
+            let minColumnWidth = 60;
+            columnRanges.forEach((column, index) => {
+                console.log(`Column #${index + 1}: auto-fitted width = ${column.format.columnWidth}`);
+                minColumnWidth = Math.max(minColumnWidth, column.format.columnWidth);
+            });
+            console.log(`Setting data columns to a width of ${minColumnWidth} pixels`);
+            dataRange.getOffsetRange(0, 1).getResizedRange(0, -1)
+                .format.columnWidth = minColumnWidth;
+
+            // Add a new chart
+            const chart = sheet.charts.add(
+                Excel.ChartType.columnClustered,
+                dataRange, Excel.ChartSeriesBy.columns);
+
+            // Set the properties and format the chart
+            const chartTopRow = dataRange.getLastRow().getOffsetRange(2, 0);
+            chart.setPosition(chartTopRow, chartTopRow.getOffsetRange(14, 0));
+            chart.title.text = "Quarterly sales chart";
+            chart.legend.position = "Right"
+            chart.legend.format.fill.setSolidColor("white");
+            chart.dataLabels.format.font.size = 15;
+            chart.dataLabels.format.font.color = "black";
+
+            const points = chart.series.getItemAt(0).points;
+            points.getItemAt(0).format.fill.setSolidColor("pink");
+            points.getItemAt(1).format.fill.setSolidColor("indigo");
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to load sample data into the worksheet, and then create a chart.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="create-report" class="ms-Button">
+                <span class="ms-Button-label">Create report</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -1,0 +1,154 @@
+order: 2
+id: excel-worksheet-add-delete-rename-move-worksheet
+name: 'Add, delete, rename, and move worksheet'
+description: 'Adds, deletes, renames, and moves a worksheet.'
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |
+        $("#add-worksheet").click(() => tryCatch(addWorksheet));
+        $("#delete-worksheet").click(() => tryCatch(deleteWorksheet));
+        $("#rename-worksheet").click(() => tryCatch(renameWorksheet));
+        $("#move-worksheet").click(() => tryCatch(moveWorksheet));
+
+        async function addWorksheet() {
+            await Excel.run(async (context) => {
+                const sheets = context.workbook.worksheets;
+
+                const sheet = sheets.add();
+                sheet.load("name, position");
+                
+                await context.sync();
+                console.log(`Added worksheet named "${sheet.name}" in position ${sheet.position}`)
+            });
+        }
+
+        async function deleteWorksheet() {
+            await Excel.run(async (context) => {
+                const sheets = context.workbook.worksheets;
+                sheets.load("items/name");
+
+                await context.sync();
+
+                if (sheets.items.length > 1) {
+                    const lastSheet = sheets.items[sheets.items.length - 1];
+
+                    console.log(`Deleting worksheet named "${lastSheet.name}"`); 
+                    lastSheet.delete();
+
+                    await context.sync();
+                    
+                } else {
+                    console.log("Unable to delete the last worksheet in the workbook");
+                }    
+            });
+        }
+
+        async function renameWorksheet() {
+            await Excel.run(async (context) => {
+                const currentSheet = context.workbook.worksheets.getActiveWorksheet();
+
+                currentSheet.name = await uniqueWorksheetName(context);
+
+                await context.sync();
+                console.log(`Renamed worksheet to "${currentSheet.name}"`);
+            });
+        }
+
+        async function uniqueWorksheetName(context: Excel.RequestContext) {
+            let number = 1;
+            let name: string;
+            while (true) {
+                name = `Renamed${number}`;
+
+                try {
+                    const sheet = context.workbook.worksheets.getItem(name);
+
+                    await context.sync();
+
+                    ++number;
+                }
+                catch (e) {
+                    break;
+                }
+            }
+            return name;
+        }
+
+        async function moveWorksheet() {
+            await Excel.run(async (context) => {
+                const sheets = context.workbook.worksheets;
+                sheets.load("items");
+                await context.sync();
+
+                const lastSheet = sheets.items[sheets.items.length - 1];
+                lastSheet.position = 0;
+
+                await context.sync();
+                console.log(`Moved worksheet "${lastSheet.name}" to tab position "${lastSheet.position}"`);
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to add, delete, rename and change the position of a worksheet.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="add-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Add worksheet</span>
+            </button><p>
+            <button id="delete-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Delete worksheet</span>
+            </button><p>
+            <button id="rename-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Rename worksheet</span>
+            </button><p>
+            <button id="move-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Move worksheet</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

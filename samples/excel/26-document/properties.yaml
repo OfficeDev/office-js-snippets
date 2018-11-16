@@ -1,0 +1,190 @@
+order: 2
+id: excel-document-properties
+name: Properties
+description: Gets and sets document properties.
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |
+        $("#set-doc-properties").click(() => tryCatch(setDocProperties));
+        $("#get-doc-properties").click(() => tryCatch(getDocProperties));
+        $("#set-custom-doc-properties").click(() => tryCatch(setCustomDocProperties));
+        $("#get-custom-doc-properties").click(() => tryCatch(getCustomDocProperties));
+        $("#get-count-custom-doc-properties").click(() => tryCatch(getCountCustomDocProperties));
+
+        async function setDocProperties() {
+            await Excel.run(async (context) => {
+                let titleValue = "Excel document properties API";
+                let subjectValue = "Set and get document properties";
+                let keywordsValue = "Set and get operations";
+                let commentsValue = "This is an Excel document properties API code sample";
+                let categoryValue = "Office Add-ins";
+                let managerValue = "John";
+                let companyValue = "Microsoft";
+
+                let docProperties = context.workbook.properties;
+
+                // Set the writeable document properties.
+                docProperties.title = titleValue;
+                docProperties.subject = subjectValue;
+                docProperties.keywords = keywordsValue;
+                docProperties.comments = commentsValue;
+                docProperties.category = categoryValue;
+                docProperties.manager = managerValue;
+                docProperties.company = companyValue;
+
+                await context.sync();
+
+                console.log("Set the following document properties: title, subject, keywords, comments, category, manager, company.");
+            });
+        }
+
+        async function getDocProperties() {
+            await Excel.run(async (context) => {
+                let docProperties = context.workbook.properties;
+
+                // Load a combination of read-only 
+                // and writeable document properties.
+                docProperties.load("author, lastAuthor, revisionNumber, title, subject, keywords, comments, category, manager, company, creationDate");
+
+                await context.sync();
+
+                // Write the document properties to the console.
+                // To learn how to view document properties in the UI, 
+                // see https://support.office.com/en-us/article/View-or-change-the-properties-for-an-Office-file-21D604C2-481E-4379-8E54-1DD4622C6B75
+                console.log("Author: " + docProperties.author);
+                console.log("Last author : " + docProperties.lastAuthor);
+                console.log("Revision number: " + docProperties.revisionNumber);
+                console.log("Title: " + docProperties.title);
+                console.log("Subject: " + docProperties.subject);
+                console.log("Keywords: " + docProperties.keywords);
+                console.log("Comments: " + docProperties.comments);
+                console.log("Category: " + docProperties.category);
+                console.log("Manager: " + docProperties.manager);
+                console.log("Company: " + docProperties.company);
+                console.log("Workbook creation date: " + docProperties.creationDate.toDateString());
+            });
+        }
+
+        async function setCustomDocProperties() {
+            await Excel.run(async (context) => {
+                let customDocProperties = context.workbook.properties.custom;
+
+                // Add custom document properties.
+                customDocProperties.add("Introduction", "Hello");
+                customDocProperties.add("Integer", "12");
+
+                await context.sync();
+
+                console.log("Successfully set custom document properties.");
+            });
+        }
+
+        async function getCustomDocProperties() {
+            await Excel.run(async (context) => {
+                let customDocProperties = context.workbook.properties.custom;
+                let customProperty = customDocProperties.getItem("Introduction");
+                customProperty.load("key, value");
+
+                await context.sync();
+
+                // Write the custom document properties to the console.
+                // To learn how to view document properties in the UI, 
+                // see https://support.office.com/en-us/article/View-or-change-the-properties-for-an-Office-file-21D604C2-481E-4379-8E54-1DD4622C6B75
+                console.log("Custom key  : " + customProperty.key);  
+                console.log("Custom value : " + customProperty.value); 
+
+            });
+        }
+
+        async function getCountCustomDocProperties() {
+            await Excel.run(async (context) => {
+
+                let customDocProperties = context.workbook.properties.custom;
+
+                let count = customDocProperties.getCount();
+
+                await context.sync();
+
+                console.log("Count of custom document properties :" + count.value);
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to set and get document properties.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="set-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Set document properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="get-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Get document properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="set-custom-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Set custom document properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="get-custom-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Get custom document properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <button id="get-count-custom-doc-properties" class="ms-Button">
+                <span class="ms-Button-label">Get count of custom document properties</span>
+            </button>
+        </section>
+
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

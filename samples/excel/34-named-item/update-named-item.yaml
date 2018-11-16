@@ -1,0 +1,137 @@
+order: 2
+id: excel-update-named-item
+name: Update
+description: Creates and then updates a named item.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.7
+script:
+    content: |-
+        $("#add-named-item").click(() => tryCatch(addNamedItem));
+        $("#update-named-item").click(() => tryCatch(updateNamedItem));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function addNamedItem() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                // Check if the named item already exists
+                const myNamedItem = sheet.names.getItemOrNullObject("MyRange");
+                myNamedItem.load("no-properties-needed");
+                await context.sync();
+
+                if (myNamedItem.isNullObject) {
+                    // Add named item for the first range
+                    const firstRange = sheet.getRange("B2:E7");
+                    sheet.names.add("MyRange", firstRange);
+                    const namedItems = sheet.names.load("name, formula");
+                    firstRange.select();
+
+                    await context.sync();
+                    console.log(`Just created the named item "${namedItems.items[0].name}" located here: ${namedItems.items[0].formula}`);
+                } else {
+                    OfficeHelpers.UI.notify("The named item already exists");
+                }
+            });
+        }
+
+        async function updateNamedItem() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                // Get the named item
+                const myNamedItem = sheet.names.getItemOrNullObject("MyRange");
+                myNamedItem.load("name, formula");
+                await context.sync();
+
+                if (myNamedItem.isNullObject) {
+                    OfficeHelpers.UI.notify(`There is no named item. Create it with "Add named item for a range" first.`);
+                } else {                    
+                    // Update named item to point to the second range
+                    myNamedItem.formula = "=Sample!$B$10:$D$14";
+                    sheet.getRange("B10:D14").select();
+                    await context.sync();
+
+                    console.log(`Just updated the named item "${myNamedItem.name}" -- it's now located here: ${myNamedItem.formula}`);
+                }
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                // Create and activate the worksheet
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                sheet.activate();
+
+                // Format the first range
+                const firstRange = sheet.getRange("B2:E7");
+                firstRange.format.fill.color = "yellow";
+
+                // Format the second range
+                const secondRange = sheet.getRange("B10:D14");
+                secondRange.format.fill.color = "green";
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create and update a named item.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+            <h3>Try it out</h3>
+            <button id="add-named-item" class="ms-Button">
+                <span class="ms-Button-label">Add named item for a range</span>
+            </button>
+            <button id="update-named-item" class="ms-Button">
+                <span class="ms-Button-label">Update named item</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

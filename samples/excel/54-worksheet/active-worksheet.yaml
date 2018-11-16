@@ -1,0 +1,135 @@
+order: 1
+id: excel-worksheet-active-worksheet
+name: Active worksheet
+description: Gets and sets the active worksheet.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+
+        $("#get-active-worksheet").click(() => tryCatch(getActiveWorksheet));
+        $("#set-active-worksheet").click(() => tryCatch(setActiveWorksheet));
+
+        async function getActiveWorksheet() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                sheet.load("name");
+                
+                await context.sync();
+
+                console.log(`The active worksheet is "${sheet.name}"`);
+            });
+        }
+
+        async function setActiveWorksheet() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                sheet.load("name");
+                
+                const sheets = context.workbook.worksheets;
+                sheets.load("items");
+
+                await context.sync();
+
+                let newSheet = sheet;
+
+                if (sheets.items.length > 1) {
+                    if (sheet.id === sheets.items[0].id) {
+                        newSheet = sheets.items[1];
+                    } else {
+                        newSheet = sheets.items[0];
+                    }
+                    newSheet.load("name");
+
+                    newSheet.activate();
+
+                    await context.sync();
+                } else {
+                    console.log("Cannot change the active worksheet since there is only one sheet in the workbook");
+                }
+
+                console.log(`The active worksheet is "${newSheet.name}"`);
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+
+                const sheets = context.workbook.worksheets;
+                sheets.load("items");
+                
+                await context.sync();
+
+                if (sheets.items.length < 2) {
+                    sheets.add();
+
+                    await context.sync();
+                }
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to get and set the active worksheet.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Ensure two worksheets</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-active-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Get active worksheet</span>
+            </button>   
+            <button id="set-active-worksheet" class="ms-Button">
+                <span class="ms-Button-label">Set active worksheet</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

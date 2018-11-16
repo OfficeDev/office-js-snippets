@@ -16,15 +16,23 @@ script:
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Sample");
 
-                // Add named item for the first range
-                const firstRange = sheet.getRange("B2:E7");
-                sheet.names.add("MyRange", firstRange);
-                const namedItems = sheet.names.load("name, formula");
-                firstRange.select();
-
+                // Check if the named item already exists
+                const myNamedItem = sheet.names.getItemOrNullObject("MyRange");
+                myNamedItem.load("no-properties-needed");
                 await context.sync();
 
-                OfficeHelpers.UI.notify(`Just created the named item "${namedItems.items[0].name}" located here: ${namedItems.items[0].formula}`);
+                if (myNamedItem.isNullObject) {
+                    // Add named item for the first range
+                    const firstRange = sheet.getRange("B2:E7");
+                    sheet.names.add("MyRange", firstRange);
+                    const namedItems = sheet.names.load("name, formula");
+                    firstRange.select();
+
+                    await context.sync();
+                    console.log(`Just created the named item "${namedItems.items[0].name}" located here: ${namedItems.items[0].formula}`);
+                } else {
+                    OfficeHelpers.UI.notify("The named item already exists");
+                }
             });
         }
 
@@ -38,14 +46,14 @@ script:
                 await context.sync();
 
                 if (myNamedItem.isNullObject) {
-                    OfficeHelpers.UI.notify(`There is no named item with the name "MyRange".`);
+                    OfficeHelpers.UI.notify(`There is no named item. Create it with "Add named item for a range" first.`);
                 } else {                    
                     // Update named item to point to the second range
                     myNamedItem.formula = "=Sample!$B$10:$D$14";
                     sheet.getRange("B10:D14").select();
                     await context.sync();
 
-                    OfficeHelpers.UI.notify(`Just updated the named item "${myNamedItem.name}" -- it's now located here: ${myNamedItem.formula}`);
+                    console.log(`Just updated the named item "${myNamedItem.name}" -- it's now located here: ${myNamedItem.formula}`);
                 }
             });
         }

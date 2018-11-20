@@ -8,10 +8,7 @@ api_set:
     ExcelApi: 1.8
 script:
     content: |-
-        $("#run").click(() => {
-            $("#setup").hide();
-            tryCatch(run);
-        });
+        $("#run").click(() => tryCatch(run));
         $("#selectedFile").change(() => tryCatch(getBackgroundImage));
 
         function getBackgroundImage() {
@@ -29,10 +26,12 @@ script:
         }
 
         async function run() {
-            await Excel.run(async ctx => {
+            await Excel.run(async (ctx) => {
                 const shapes = ctx.workbook.worksheets.getActiveWorksheet().shapes;
                 shapes.load("items");
                 await ctx.sync();
+
+                $("#setup").hide();
 
                 for (var i = 0; i < shapes.items.length; i++) {
                     shapes.items[i].delete();
@@ -104,12 +103,7 @@ script:
                     for (let i = 0; i < 4; i++) {
                         for (let j = 0; j < 4; j++) {
                             if (piece[i][j]) {
-                                if (
-                                    y + i >= NUM_ROWS ||
-                                    x + j < 0 ||
-                                    x + j >= NUM_COLS ||
-                                    rows[y + i][x + j]
-                                ) {
+                                if (y + i >= NUM_ROWS || x + j < 0 || x + j >= NUM_COLS || rows[y + i][x + j]) {
                                     return true;
                                 }
                             }
@@ -203,12 +197,7 @@ script:
                     }
 
                     if (intersects(this.rows, this.currentPiece, this.pieceY + 1, this.pieceX)) {
-                        this.rows = applyPiece(
-                            this.rows,
-                            this.currentPiece,
-                            this.pieceY,
-                            this.pieceX
-                        );
+                        this.rows = applyPiece(this.rows, this.currentPiece, this.pieceY, this.pieceX);
 
                         const r = removeRows(this.rows);
                         this.rows = r.rows;
@@ -249,8 +238,7 @@ script:
 
                 coreMovementFunction.prototype.rotateLeft = function() {
                     const newPiece = rotateLeft(this.currentPiece);
-                    if (!intersects(this.rows, newPiece, this.pieceY, this.pieceX))
-                        this.currentPiece = newPiece;
+                    if (!intersects(this.rows, newPiece, this.pieceY, this.pieceX)) this.currentPiece = newPiece;
                 };
 
                 coreMovementFunction.prototype.rotateRight = function() {
@@ -261,7 +249,7 @@ script:
                 };
 
                 coreMovementFunction.prototype.letFall = function() {
-                    while (!intersects(this.rows, this.currentPiece, this.pieceY + 1,this.pieceX)) {
+                    while (!intersects(this.rows, this.currentPiece, this.pieceY + 1, this.pieceX)) {
                         this.pieceY += 1;
                     }
 
@@ -269,12 +257,7 @@ script:
                 };
 
                 coreMovementFunction.prototype.getRows = function() {
-                    return applyPiece(
-                        this.rows,
-                        this.currentPiece,
-                        this.pieceY,
-                        this.pieceX
-                    );
+                    return applyPiece(this.rows, this.currentPiece, this.pieceY, this.pieceX);
                 };
 
                 coreMovementFunction.prototype.getNextPiece = function() {
@@ -289,7 +272,6 @@ script:
                     return this.sessionOver;
                 };
 
-
                 function drawPreview(rows, num_rows, num_cols, domContainer) {
                     const boardElem = document.createElement("div");
                     for (let i = 0; i < num_rows; i++) {
@@ -302,8 +284,7 @@ script:
 
                             blockElem.style.top = i * BLOCK_HEIGHT + "px";
                             blockElem.style.left = j * BLOCK_WIDTH + "px";
-                            blockElem.style.backgroundColor =
-                                background[rows[i][j] - 1];
+                            blockElem.style.backgroundColor = background[rows[i][j] - 1];
                             boardElem.appendChild(blockElem);
                         }
                     }
@@ -367,7 +348,6 @@ script:
                         // #3: Update the cache
                         cachedShapesByPosition = validShapes;
                     } else if (renderPolicy == RENDER_USING_ADD_FILL) {
-
                         let countOfShapesRefilled = 0;
                         let countOfShapesSetToInvisible = 0;
                         let countOfShapesSetToVisible = 0;
@@ -443,10 +423,12 @@ script:
                     const consolePaneElem = document.createElement("div");
                     consolePaneElem.classList.add("consolePane");
 
-                    const rowsClearedElem = drawRowsCleared(session, isPaused);
+                    const previewText = drawPreviewText(session);
                     const previewElem = drawSessionPreview(session);
+                    const rowsClearedElem = drawRowsCleared(session, isPaused);
                     const usageElem = drawSessionUsage();
 
+                    consolePaneElem.appendChild(previewText);
                     consolePaneElem.appendChild(previewElem);
                     consolePaneElem.appendChild(rowsClearedElem);
                     consolePaneElem.appendChild(usageElem);
@@ -458,7 +440,7 @@ script:
                     const rowsCleared = session.getRowsCleared();
                     const rowsClearedElem = document.createElement("div");
                     rowsClearedElem.classList.add("sessionRowsCleared");
-                    rowsClearedElem.innerHTML = "<p>Rows Cleared: " + rowsCleared + "</p>";
+                    rowsClearedElem.innerHTML = "<p>Rows cleared: " + rowsCleared + "</p>";
                     if (isPaused) {
                         rowsClearedElem.innerHTML += "<p>PAUSED</p>";
                     }
@@ -468,6 +450,13 @@ script:
                     }
 
                     return rowsClearedElem;
+                }
+
+                function drawPreviewText(session) {
+                    const previewTextElem = document.createElement("div");
+                    previewTextElem.classList.add("previewText");
+                    previewTextElem.innerHTML = "<p><i>Next shape</i></p>";
+                    return previewTextElem;
                 }
 
                 function drawSessionPreview(session) {
@@ -482,12 +471,16 @@ script:
                     const usageElem = document.createElement("div");
                     usageElem.classList.add("usage");
                     usageElem.innerHTML =
+                        "<p><b>Keyboard controls</b></p>" +
                         "<table>" +
-                        "<tr><th>Cursor Keys</th><td>Steer</td></tr>" +
-                        "<tr><th>'a'/'d'</th><td>Rotate</td></tr>" +
-                        "<tr><th>Space</th><td>Let fall</td></tr>" +
-                        "<tr><th>Enter</th><td>Toggle pause</td></tr>" +
-                        "<tr><th>'R'</th><td>Restart session</td></tr>" +
+                        "<tr><th>Move shape left</th><td>Left arrow</td></tr>" +
+                        "<tr><th>Move shape right</th><td>Right arrow</td></tr>" +
+                        "<tr><th>Move shape down</th><td>Down arrow</td></tr>" +
+                        "<tr><th>Rotate counterclockwise</th><td>A</td></tr>" +
+                        "<tr><th>Rotate clockwise</th><td>D</td></tr>" +
+                        "<tr><th>Drop shape to bottom</th><td>Space</td></tr>" +
+                        "<tr><th>Pause/Unpause</th><td>Enter</td></tr>" +
+                        "<tr><th>Restart session</th><td>R</td></tr>" +
                         "</table>";
                     return usageElem;
                 }
@@ -510,13 +503,7 @@ script:
                                 let left = j * BLOCK_WIDTH;
                                 let key = top + "-" + left;
 
-                                let newshp = shapes.addGeometricShape(
-                                    "Rectangle",
-                                    left,
-                                    top,
-                                    BLOCK_WIDTH,
-                                    BLOCK_HEIGHT
-                                );
+                                let newshp = shapes.addGeometricShape("Rectangle", left, top, BLOCK_WIDTH, BLOCK_HEIGHT);
 
                                 newshp.fill.transparency = 1;
                                 newshp.fill.foreColor = "#000000";
@@ -540,20 +527,12 @@ script:
 
                     let drawingFactory = function(context) {
                         return function() {
-                            drawCoreMovement.apply(context, [
-                                session,
-                                isPaused,
-                                containerElem
-                            ]);
+                            drawCoreMovement.apply(context, [session, isPaused, containerElem]);
                         };
                     };
 
                     if (!throttledRedraw) {
-                        throttledRedraw = _.throttle(
-                            drawingFactory(this),
-                            TICK_MS / 5,
-                            { maxWait: TICK_MS }
-                        );
+                        throttledRedraw = _.throttle(drawingFactory(this), TICK_MS / 5, { maxWait: TICK_MS });
                     }
 
                     throttledRedraw();
@@ -711,6 +690,14 @@ style:
             margin: 0;
             padding: 0;
             width: 100%;
+        }
+
+        div.consolePane div.previewText {
+            position: relative;
+            display: block;
+            margin: 0;
+            padding: 0;
+            font-size: 20pt;
         }
 
         div.consolePane div.sessionRowsCleared {

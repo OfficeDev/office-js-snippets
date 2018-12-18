@@ -1,0 +1,128 @@
+order: 2
+id: excel-performance-optimization
+name: Performance optimization
+description: Optimizes performance by untracking ranges and turning off screen painting.
+host: EXCEL
+api_set:
+    ExcelApi: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#refresh-data").click(() => tryCatch(refreshData));
+        $("#toggle-tracking").click(() => tryCatch(toggleTracking));
+        $("#toggle-screen-painting").click(() => tryCatch(toggleScreenPainting));
+
+        let untrack = false;
+        let pauseScreenPainting = false;
+
+        async function refreshData() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const rowCount = 500;
+                const columnCount = 20;
+
+                const startTime = Date.now();
+                console.log("Starting...");
+
+                if (pauseScreenPainting) {
+                    context.application.suspendScreenUpdatingUntilNextSync();
+                }
+
+                for (let i = 0; i < rowCount; i++) {
+                    for (let j = 0; j < columnCount; j++) {
+                        let cell = sheet.getCell(i, j);
+                        cell.values = [[i * j * Math.random()]];
+                        if (untrack) {
+                            cell.untrack();
+                        }
+                    }
+                }
+
+                await context.sync();
+
+                console.log(`Ending. Adding ${rowCount * columnCount} cells took ${Date.now() - startTime} milliseconds`);
+            });
+        }
+
+        function toggleScreenPainting() {
+            pauseScreenPainting = !pauseScreenPainting;
+            console.log(`pauseScreenPainting is ${pauseScreenPainting}`);
+        }
+
+        function toggleTracking() {
+            untrack = !untrack;
+            console.log(`untrack is ${untrack}`);
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows some performance optimizations.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="refresh-data" class="ms-Button">
+                <span class="ms-Button-label">Refresh data</span>
+            </button><p>
+            <button id="toggle-screen-painting" class="ms-Button">
+                <span class="ms-Button-label">Toggle screen painting</span>
+            </button><p>
+            <button id="toggle-tracking" class="ms-Button">
+                <span class="ms-Button-label">Toggle range tracking</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

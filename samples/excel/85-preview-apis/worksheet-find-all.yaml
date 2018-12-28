@@ -1,0 +1,156 @@
+order: 4
+id: excel-worksheet-find-all
+name: Find text matches within a worksheet
+description: Finds cells within a worksheet based on string matching.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#findCompleted").click(() => tryCatch(findCompleted));
+        $("#findDelayed").click(() => tryCatch(findDelayed));
+        $("#findCanceled").click(() => tryCatch(findCanceled));
+
+        async function findCompleted() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const foundRanges = sheet.findAllOrNullObject("Complete", {
+                    completeMatch: true,
+                    matchCase: false
+                });
+
+                await context.sync();
+
+                if (foundRanges.isNullObject) {
+                    console.log("No complete projects");
+                } else {
+                    foundRanges.format.fill.color = "green"
+                }
+            });
+        }
+
+        async function findDelayed() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const foundRanges = sheet.findAllOrNullObject("Delay", {
+                    completeMatch: false,
+                    matchCase: false
+                });
+
+                await context.sync();
+
+                if (foundRanges.isNullObject) {
+                    console.log("No delayed projects");
+                } else {
+                    foundRanges.format.fill.color = "yellow"
+                }
+            });
+        }
+
+        async function findCanceled() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                // NOTE: In this sample, there are no canceled projects.
+                // Calling sheet.findAll(...) instead of sheet.findAllOrNullObject(...)
+                // would throw an ItemNotFound error.
+                const foundRanges = sheet.findAllOrNullObject("canceled", {
+                    completeMatch: false,
+                    matchCase: false
+                });
+
+                await context.sync();
+
+                if (foundRanges.isNullObject) {
+                    console.log("No canceled projects");
+                } else {
+                    foundRanges.format.fill.color = "red"
+                }
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const projectTable = sheet.tables.add("A1:D1", true);
+                projectTable.name = "ProjectTable";
+                projectTable.getHeaderRowRange().values = [["Project", "Alpha", "Beta", "Ship"]];
+                projectTable.rows.add(null, [
+                    ["Project 1", "Complete", "Ongoing", "On Schedule"],
+                    ["Project 2", "Complete", "Complete", "On Schedule"],
+                    ["Project 3", "Ongoing", "Not Started", "Delayed"],
+                    ["Project 4", "Complete", "Complete", "On Schedule"],
+                    ["Project 5", "Incomplete", "Delayed", "Delays Likely"]
+                ]);
+
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to find cells with matching string values across an entire worksheet.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create sample data</span>
+            </button>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Try it out</h3>
+            <button id="findCompleted" class="ms-Button">
+                <span class="ms-Button-label">Highlight complete projects</span>
+            </button><p/>
+            <button id="findDelayed" class="ms-Button">
+                <span class="ms-Button-label">Highlight delayed projects</span>
+            </button><p/>
+          <button id="findCanceled" class="ms-Button">
+                <span class="ms-Button-label">Highlight canceled projects</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

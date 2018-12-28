@@ -1,0 +1,175 @@
+order: 3
+id: excel-range-find
+name: Find
+description: Finds data within a range.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.9
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#findText").click(() => tryCatch(findText));
+        $("#findTextWithNullCheck").click(() => tryCatch(findTextWithNullCheck));
+        $("#toggleComplete").click(() => tryCatch(toggleComplete));
+        $("#toggleCase").click(() => tryCatch(toggleCase));
+        $("#toggleDirection").click(() => tryCatch(toggleDirection));
+
+        let completeMatch  = false;
+        let matchCase = false;
+        let searchDirection = Excel.SearchDirection.forward;
+
+        async function findText() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const table = sheet.tables.getItem("ExpensesTable");
+                const searchRange = table.getRange();
+
+                // NOTE: If no match is found, an ItemNotFound error
+                //       is thrown when Range.find is evaluated.
+                const foundRange = searchRange.find($("#searchText").text(), {
+                    completeMatch: completeMatch,
+                    matchCase: matchCase,
+                    searchDirection: searchDirection
+                });
+                
+                foundRange.load("address");
+                await context.sync();
+
+
+                console.log(foundRange.address);
+            });
+        }
+
+        async function findTextWithNullCheck() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const table = sheet.tables.getItem("ExpensesTable");
+                const searchRange = table.getRange();
+                const foundRange = searchRange.findOrNullObject($("#searchText").text(), {
+                    completeMatch: completeMatch,
+                    matchCase: matchCase,
+                    searchDirection: searchDirection
+                });
+                
+                foundRange.load("address");
+                await context.sync();
+
+                if (foundRange.isNullObject) {
+                    console.log("Text not found");
+                } else {
+                    console.log(foundRange.address);
+                }
+            });
+        }
+
+        function toggleComplete() {
+            completeMatch = !completeMatch;
+            console.log("Finding complete match = " + completeMatch);
+        }
+
+        function toggleCase() {
+            matchCase = !matchCase;
+            console.log("Finding matched case = " + matchCase);
+        }
+
+        function toggleDirection() {
+            searchDirection = searchDirection === Excel.SearchDirection.forward ? Excel.SearchDirection.backwards : Excel.SearchDirection.forward;
+            console.log("Search direction = " + searchDirection);
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
+                expensesTable.name = "ExpensesTable";
+                expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+                expensesTable.rows.add(null /*add at the end*/, [
+                    ["1/1/2017", "The Phone Company", "Communications", "$120"],
+                    ["1/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                    ["1/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                    ["1/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                    ["1/11/2017", "The Phone Company", "communications", "$5"],
+                    ["1/15/2017", "Coho Vineyard (Wine)", "Groceries", "$60"],
+                    ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                ]);
+
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to find data within a range.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create sample data</span>
+            </button>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Try it out</h3>
+          <p>Enter text to search for in the box below and press <b>Find text</b> or <b> Find text with null check</b> to display the found text's address in the console.</p>
+            <textarea id="searchText">Groceries</textarea><p/>
+            <button id="findText" class="ms-Button">
+                <span class="ms-Button-label">Find text</span>
+            </button><p/>
+            <button id="findTextWithNullCheck" class="ms-Button">
+                <span class="ms-Button-label">Find text with null check</span>
+            </button><p/>
+          <p>Toggle the following search options to test different search behaviors.</p>
+          <button id="toggleComplete" class="ms-Button">
+                <span class="ms-Button-label">Toggle complete match</span>
+            </button><p/>
+            <button id="toggleCase" class="ms-Button">
+                <span class="ms-Button-label">Toggle case sensitivity</span>
+            </button><p/>
+            <button id="toggleDirection" class="ms-Button">
+                <span class="ms-Button-label">Toggle search direction</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

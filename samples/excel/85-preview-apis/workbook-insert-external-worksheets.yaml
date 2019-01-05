@@ -1,0 +1,87 @@
+order: 5
+id: excel-worksheet-insert-external-worksheets
+name: Insert external worksheets
+description: Inserts worksheets from another workbook into the current workbook.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.9
+script:
+    content: |
+        $("#file").change(() => tryCatch(insertSheets));
+
+        async function insertSheets() {
+            const myFile = <HTMLInputElement>document.getElementById("file");
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                Excel.run((context) => {
+                    // strip off the metadata before the base64-encoded string
+                    const startIndex = (<string>(<FileReader>event.target).result).indexOf("base64,");
+                    const workbookContents = (<string>(<FileReader>event.target).result).substr(startIndex + 7);
+
+                    const sheets = context.workbook.worksheets;
+                    sheets.addFromBase64(
+                        workbookContents,
+                        null, // get all the worksheets 
+                        Excel.WorksheetPositionType.end // insert them after the current workbook's worksheets
+                        );
+                    return context.sync();
+                });
+            };
+
+            // read in the file as a data URL so we can parse the base64-encoded string
+            reader.readAsDataURL(myFile.files[0]);
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to copy the worksheets from an existing workbook into the current workbook.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Select an Excel workbook to copy its worksheets into the current workbook.</p>
+            <form>
+                <input type="file" id="file" />
+            </form>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

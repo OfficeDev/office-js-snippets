@@ -1,0 +1,198 @@
+order: 6
+id: excel-worksheet-page-layout
+name: Page layout and print settings
+description: Changes the page layout and other settings for printing a worksheet.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#setPageBreaks").click(() => tryCatch(setPageBreaks));
+        $("#center").click(() => tryCatch(center));
+        $("#setBlackAndWhite").click(() => tryCatch(setBlackAndWhite));
+        $("#setPrintTitleRow").click(() => tryCatch(setPrintTitleRow));
+        $("#setPrintArea").click(() => tryCatch(setPrintArea));
+        $("#changeOrientation").click(() => tryCatch(changeOrientation));
+
+        async function setPageBreaks() {
+            await Excel.run(async (context) => {
+                const farmSheet = context.workbook.worksheets.getItem("Print");
+                farmSheet.horizontalPageBreaks.add("A21:E21");
+                await context.sync();
+            });
+        }
+
+        async function center() {
+            await Excel.run(async (context) => {
+                const farmSheet = context.workbook.worksheets.getItem("Print");
+                farmSheet.pageLayout.centerHorizontally = true;
+                farmSheet.pageLayout.centerVertically = true;
+                await context.sync();
+            });
+        }
+
+        async function setBlackAndWhite() {
+            await Excel.run(async (context) => {
+                const farmSheet = context.workbook.worksheets.getItem("Print");
+                farmSheet.pageLayout.blackAndWhite = true;
+                await context.sync();
+            });
+        }
+
+        async function setPrintTitleRow() {
+            await Excel.run(async (context) => {
+                const farmSheet = context.workbook.worksheets.getItem("Print");
+                farmSheet.pageLayout.setPrintTitleRows("$1:$1");
+                await context.sync();
+            });
+        }
+
+        async function setPrintArea() {
+            await Excel.run(async (context) => {
+                const farmSheet = context.workbook.worksheets.getItem("Print");
+                farmSheet.pageLayout.setPrintArea("A1:D41");
+                await context.sync();
+            });
+        }
+
+        async function changeOrientation() {
+            await Excel.run(async (context) => {
+                const farmSheet = context.workbook.worksheets.getItem("Print");
+                farmSheet.pageLayout.orientation = Excel.PageOrientation.landscape;
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const printSheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Print");
+
+                let farmTable = printSheet.tables.add("A1:E1", true);
+                farmTable.name = "FarmTable";
+                farmTable.getHeaderRowRange().values = [
+                    ["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"]
+                ];
+
+                farmTable.rows.add(null, [
+                    ["A Farms", "Lime", "Organic", 300, 2000],
+                    ["A Farms", "Lemon", "Organic", 250, 1800],
+                    ["A Farms", "Orange", "Organic", 200, 2200],
+                    ["B Farms", "Lime", "Conventional", 80, 1000],
+                    ["B Farms", "Lemon", "Conventional", 75, 1230],
+                    ["B Farms", "Orange", "Conventional", 25, 800],
+                    ["B Farms", "Orange", "Organic", 20, 500],
+                    ["B Farms", "Lemon", "Organic", 10, 770],
+                    ["B Farms", "Kiwi", "Conventional", 30, 300],
+                    ["B Farms", "Lime", "Organic", 50, 400],
+                    ["C Farms", "Apple", "Organic", 275, 220],
+                    ["C Farms", "Kiwi", "Organic", 200, 120],
+                    ["D Farms", "Apple", "Conventional", 100, 3000],
+                    ["D Farms", "Apple", "Organic", 80, 2800],
+                    ["E Farms", "Lime", "Conventional", 160, 2700],
+                    ["E Farms", "Orange", "Conventional", 180, 2000],
+                    ["E Farms", "Apple", "Conventional", 245, 2200],
+                    ["E Farms", "Kiwi", "Conventional", 200, 1500],
+                    ["F Farms", "Kiwi", "Organic", 100, 150],
+                    ["F Farms", "Lemon", "Conventional", 150, 270],
+                    ["G Farms", "Lime", "Organic", 300, 2000],
+                    ["G Farms", "Lemon", "Organic", 250, 1800],
+                    ["G Farms", "Orange", "Organic", 200, 2200],
+                    ["H Farms", "Lime", "Conventional", 80, 1000],
+                    ["H Farms", "Lemon", "Conventional", 75, 1230],
+                    ["H Farms", "Orange", "Conventional", 25, 800],
+                    ["H Farms", "Orange", "Organic", 20, 500],
+                    ["H Farms", "Lemon", "Organic", 10, 770],
+                    ["H Farms", "Kiwi", "Conventional", 30, 300],
+                    ["I Farms", "Lime", "Organic", 50, 400],
+                    ["I Farms", "Apple", "Organic", 275, 220],
+                    ["I Farms", "Kiwi", "Organic", 200, 120],
+                    ["I Farms", "Apple", "Conventional", 100, 3000],
+                    ["J Farms", "Apple", "Organic", 80, 2800],
+                    ["J Farms", "Lime", "Conventional", 160, 2700],
+                    ["K Farms", "Orange", "Conventional", 180, 2000],
+                    ["K Farms", "Apple", "Conventional", 245, 2200],
+                    ["L Farms", "Kiwi", "Conventional", 200, 1500],
+                    ["L Farms", "Kiwi", "Organic", 100, 150],
+                    ["L Farms", "Lemon", "Conventional", 150, 270]
+                ]);
+
+                farmTable.getRange().format.autofitColumns();
+                printSheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to change page layout and other settings for printing a worksheet.</p>
+        </section>
+        <section class="setup ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create sample data</span>
+            </button>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Try it out</h3>
+            <p>In Excel, choose <b>View > Page Layout</b>, then observe the page layout changes as you press the following buttons.</p>
+            <button id="setPageBreaks" class="ms-Button">
+                <span class="ms-Button-label">Add page break</span>
+            </button><p/>
+            <button id="setPrintTitleRow" class="ms-Button">
+                <span class="ms-Button-label">Add title row to all pages</span>
+            </button><p/>
+            <p>In Excel, choose <b>File > Print</b> to see differences in printing before and after you press the following buttons.</p>
+            <button id="center" class="ms-Button">
+                <span class="ms-Button-label">Center data</span>
+            </button><p/>
+            <button id="setBlackAndWhite" class="ms-Button">
+                <span class="ms-Button-label">Set to black and white printing</span>
+            </button><p/>
+            <button id="setPrintArea" class="ms-Button">
+                <span class="ms-Button-label">Remove last column from print area</span>
+            </button><p/>
+            <button id="changeOrientation" class="ms-Button">
+                <span class="ms-Button-label">Change orientation</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -1,0 +1,98 @@
+order: 9
+id: excel-worksheet-save-and-close
+name: Save and close
+description: Saves and closes a workbook.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.9
+script:
+    content: |
+        $("#saveWithPrompt").click(() => tryCatch(saveWithPrompt));
+        $("#saveWithoutPrompt").click(() => tryCatch(saveWithoutPrompt));
+        $("#closeWithSave").click(() => tryCatch(closeWithSave));
+        $("#closeWithoutSave").click(() => tryCatch(closeWithoutSave));
+
+        async function saveWithPrompt() {
+            await Excel.run(async (context) => {
+                context.workbook.save(Excel.SaveBehavior.prompt);
+            });
+        }
+
+        async function saveWithoutPrompt() {
+            await Excel.run(async (context) => {
+                context.workbook.save(Excel.SaveBehavior.save);
+            });
+        }
+
+        async function closeWithSave() {
+            await Excel.run(async (context) => {
+                context.workbook.close(Excel.CloseBehavior.save);
+            });
+        }
+
+        async function closeWithoutSave() {
+            await Excel.run(async (context) => {
+                context.workbook.close(Excel.CloseBehavior.skipSave);
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to save a workbook, both with and without a prompt to the user, and how to close the workbook.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="saveWithPrompt" class="ms-Button">
+                <span class="ms-Button-label">Save (with a first-save prompt)</span>
+            </button><p/>
+            <button id="saveWithoutPrompt" class="ms-Button">
+                <span class="ms-Button-label">Save (without any prompt)</span>
+            </button><p/>
+            <button id="closeWithSave" class="ms-Button">
+                <span class="ms-Button-label">Close the workbook (and save)</span>
+            </button><p/>
+                <button id="closeWithoutSave" class="ms-Button">
+                    <span class="ms-Button-label">Close the workbook (without saving)</span>
+                </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

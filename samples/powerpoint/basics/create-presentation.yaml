@@ -1,34 +1,31 @@
-order: 1000
+order: 2
 id: powerpoint-create-presentation
 name: Create presentation
 description: 'Creates a new, empty presentation and creates a new presentation by copying an existing one.'
 author: OfficeDev
 host: POWERPOINT
 api_set:
-    Selection: 1.1
+    PowerPoint: 1.1
 script:
     content: |
         $("#create-new-blank-presentation").click(() => tryCatch(createBlankPresentation));
         $("#file").change(() => tryCatch(createPresentationFromExisting));
 
         function createBlankPresentation() {
-                PowerPoint.createPresentation();
+            PowerPoint.createPresentation();
         }
 
         function createPresentationFromExisting() {
-            var myFile = <HTMLInputElement>document.getElementById("file");
-            var reader = new FileReader();
+            const myFile = <HTMLInputElement>document.getElementById("file");
+            const reader = new FileReader();
 
-            reader.onload = ((event) => {
-                Excel.run(context => {
-                    // strip off the metadata before the base64-encoded string
-                    var startIndex = (<FileReader>event.target).result.indexOf("base64,");
-                    var copyBase64 = (<FileReader>event.target).result.substr(startIndex + 7);
+            reader.onload = (event) => {
+                // strip off the metadata before the base64-encoded string
+                const startIndex = (<string>(<FileReader>event.target).result).indexOf("base64,");
+                const copyBase64 = (<string>(<FileReader>event.target).result).substr(startIndex + 7);
 
-                    PowerPoint.createPresentation(copyBase64);
-                    return context.sync();
-                });
-            });
+                PowerPoint.createPresentation(copyBase64);        
+            };
 
             // read in the file as a data URL so we can parse the base64-encoded string
             reader.readAsDataURL(myFile.files[0]);

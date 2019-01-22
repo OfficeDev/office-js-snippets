@@ -1,0 +1,90 @@
+order: 2
+id: powerpoint-create-presentation
+name: Create presentation
+description: 'Creates a new, empty presentation and creates a new presentation by copying an existing one.'
+author: OfficeDev
+host: POWERPOINT
+api_set:
+    PowerPoint: 1.1
+script:
+    content: |
+        $("#create-new-blank-presentation").click(() => tryCatch(createBlankPresentation));
+        $("#file").change(() => tryCatch(createPresentationFromExisting));
+
+        function createBlankPresentation() {
+            PowerPoint.createPresentation();
+        }
+
+        function createPresentationFromExisting() {
+            const myFile = <HTMLInputElement>document.getElementById("file");
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                // strip off the metadata before the base64-encoded string
+                const startIndex = (<string>(<FileReader>event.target).result).indexOf("base64,");
+                const copyBase64 = (<string>(<FileReader>event.target).result).substr(startIndex + 7);
+
+                PowerPoint.createPresentation(copyBase64);        
+            };
+
+            // read in the file as a data URL so we can parse the base64-encoded string
+            reader.readAsDataURL(myFile.files[0]);
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create a new, empty presentation and how to create a new presentation by copying an existing one.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p><b>Create empty presentation</b></p>
+            <button id="create-new-blank-presentation" class="ms-Button">
+                <span class="ms-Button-label">Create new blank presentation</span>
+            </button><p>
+            <p><b>Copy existing presentation</b></p>
+            <p>Select a PowerPoint presentation to copy and open in a new instance of PowerPoint.</p>
+            <form>
+                <input type="file" id="file" />
+            </form>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

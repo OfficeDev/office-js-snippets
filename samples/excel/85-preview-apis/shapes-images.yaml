@@ -1,0 +1,143 @@
+order: 6
+id: excel-shape-images
+name: Image Shapes
+description: Creates and adjusts image-based shapes.
+host: EXCEL
+api_set:
+    ExcelApi: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#selectedFile").change(() => tryCatch(readImageFromFile));
+        $("#flipImage").click(() => tryCatch(flipImage));
+        $("#getImageFormat").click(() => tryCatch(getImageFormat));
+        $("#writeOutImageString").click(() => tryCatch(writeOutImageString));
+
+        async function readImageFromFile() {
+            const myFile = <HTMLInputElement>document.getElementById("selectedFile");
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                Excel.run((context) => {
+                    const startIndex = (<string>(<FileReader>event.target).result).indexOf("base64,");
+                    const mybase64 = (<string>(<FileReader>event.target).result).substr(startIndex + 7);
+                    const sheet = context.workbook.worksheets.getItem("Shapes");
+                    const image = sheet.shapes.addImage(mybase64);
+                    image.name = "Image";
+                    return context.sync();
+                });
+            };
+
+            // Read in the image file as a data URL.
+            reader.readAsDataURL(myFile.files[0]);
+        }
+
+        async function flipImage() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.getItem("Image");
+                shape.incrementRotation(180);
+                await context.sync();
+            });
+        }
+
+        async function getImageFormat() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const image = sheet.shapes.getItem("Image").image;
+                image.load("format");
+                await context.sync();
+
+                console.log("The image's format is: " + image.format);
+                await context.sync();
+            });
+        }
+
+        async function writeOutImageString() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.getItem("Image");
+                const result = shape.saveAsPicture(Excel.PictureFormat.png);
+                await context.sync();
+
+                const imageString = result.value;
+                // Your add-in would save this string as a .png file.
+                console.log("The image's base64-encoded string: " + imageString);
+            });
+        }
+
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Shapes");
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create and use an image-based shape.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a worksheet</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Select an image file (JPEG or PNG).</p>
+            <input type="file" id="selectedFile"><p>
+            <p>Use the following buttons to work with the image shape.</p>
+            <button id="flipImage" class="ms-Button">
+                <span class="ms-Button-label">Flip image</span>
+            </button><p>
+            <button id="getImageFormat" class="ms-Button">
+                <span class="ms-Button-label">Get image format</span>
+            </button><p>
+            <button id="writeOutImageString" class="ms-Button">
+                <span class="ms-Button-label">Write image as string</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

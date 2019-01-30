@@ -1,32 +1,30 @@
-order: 7
-id: excel-worksheet-insert-external-worksheets
-name: Insert external worksheets
-description: Inserts worksheets from another workbook into the current workbook.
-host: EXCEL
+order: 2
+id: powerpoint-create-presentation
+name: Create presentation
+description: 'Creates a new, empty presentation and creates a new presentation by copying an existing one.'
+author: OfficeDev
+host: POWERPOINT
 api_set:
-    ExcelAPI: 1.9
+    PowerPoint: 1.1
 script:
     content: |
-        $("#file").change(() => tryCatch(insertSheets));
+        $("#create-new-blank-presentation").click(() => tryCatch(createBlankPresentation));
+        $("#file").change(() => tryCatch(createPresentationFromExisting));
 
-        async function insertSheets() {
+        function createBlankPresentation() {
+            PowerPoint.createPresentation();
+        }
+
+        function createPresentationFromExisting() {
             const myFile = <HTMLInputElement>document.getElementById("file");
             const reader = new FileReader();
 
             reader.onload = (event) => {
-                Excel.run((context) => {
-                    // strip off the metadata before the base64-encoded string
-                    const startIndex = (<string>(<FileReader>event.target).result).indexOf("base64,");
-                    const workbookContents = (<string>(<FileReader>event.target).result).substr(startIndex + 7);
+                // strip off the metadata before the base64-encoded string
+                const startIndex = (<string>(<FileReader>event.target).result).indexOf("base64,");
+                const copyBase64 = (<string>(<FileReader>event.target).result).substr(startIndex + 7);
 
-                    const sheets = context.workbook.worksheets;
-                    sheets.addFromBase64(
-                        workbookContents,
-                        null, // get all the worksheets 
-                        Excel.WorksheetPositionType.end // insert them after the current workbook's worksheets
-                        );
-                    return context.sync();
-                });
+                PowerPoint.createPresentation(copyBase64);        
             };
 
             // read in the file as a data URL so we can parse the base64-encoded string
@@ -46,12 +44,17 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to copy the worksheets from an existing workbook into the current workbook.</p>
+            <p>This sample shows how to create a new, empty presentation and how to create a new presentation by copying an existing one.</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <p>Select an Excel workbook to copy its worksheets into the current workbook.</p>
+            <p><b>Create empty presentation</b></p>
+            <button id="create-new-blank-presentation" class="ms-Button">
+                <span class="ms-Button-label">Create new blank presentation</span>
+            </button><p>
+            <p><b>Copy existing presentation</b></p>
+            <p>Select a PowerPoint presentation to copy and open in a new instance of PowerPoint.</p>
             <form>
                 <input type="file" id="file" />
             </form>
@@ -71,8 +74,8 @@ style:
         }
     language: css
 libraries: |
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
 
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css

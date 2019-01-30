@@ -1,0 +1,130 @@
+order: 1
+id: excel-shape-create-and-delete
+name: Create and delete geometric shapes
+description: Creates a few different geometric shapes and deletes them from the worksheet.
+host: EXCEL
+api_set:
+    ExcelApi: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#createHexagon").click(() => tryCatch(createHexagon));
+        $("#createTriangle").click(() => tryCatch(createTriangle));
+        $("#createSmileyFace").click(() => tryCatch(createSmileyFace));
+        $("#removeAll").click(() => tryCatch(removeAll));
+
+        async function createHexagon() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.hexagon, 5, 5, 225, 200);
+                await context.sync();
+            });
+        }
+
+        async function createTriangle() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.triangle, 100, 300, 150, 200);
+                shape.rotation = 45
+                shape.fill.clear();
+                await context.sync();
+            });
+        }
+
+        async function createSmileyFace() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.smileyFace, 300, 100, 100, 100);
+                shape.fill.foreColor = "yellow";
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Shapes");
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        async function removeAll() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shapes = sheet.shapes;
+
+                // load all the shapes in the collection without loading their properties
+                shapes.load("items/$none");
+                await context.sync();
+
+                shapes.items.forEach((shape) => shape.delete());
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to create different shapes, then delele them.</p>
+        </section>
+        <section class="setup ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create new worksheet</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="createHexagon" class="ms-Button">
+                <span class="ms-Button-label">Create hexagon</span>
+            </button><p/>
+            <button id="createTriangle" class="ms-Button">
+                <span class="ms-Button-label">Create triangle</span>
+            </button><p/>
+            <button id="createSmileyFace" class="ms-Button">
+                <span class="ms-Button-label">Create smiley face</span>
+            </button><p/>
+            <button id="removeAll" class="ms-Button">
+                <span class="ms-Button-label">Remove all shapes</span>
+            </button><p/>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

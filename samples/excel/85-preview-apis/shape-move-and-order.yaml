@@ -1,0 +1,159 @@
+order: 8
+id: excel-shape-move-and-order
+name: Move and order shapes
+description: Moves created shapes around the worksheet and adjusts their z-order.
+host: EXCEL
+api_set:
+    ExcelApi: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#moveLeft").click(() => tryCatch(moveLeft));
+        $("#moveDown").click(() => tryCatch(moveDown));
+        $("#rotate").click(() => tryCatch(rotate));
+        $("#scaleUp").click(() => tryCatch(scaleUp));
+        $("#moveZOrderDown").click(() => tryCatch(moveZOrderDown));
+        $("#createShapes").click(() => tryCatch(createShapes));
+
+        async function moveLeft() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.getItem("Square")
+                shape.incrementLeft(-25);
+                await context.sync();
+            });
+        }
+
+        async function moveDown() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.getItem("Pentagon")
+                shape.incrementTop(25);
+                await context.sync();
+            });
+        }
+
+        async function rotate() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.getItem("Pentagon")
+                shape.incrementRotation(30);
+                await context.sync();
+            });
+        }
+
+        async function scaleUp() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.getItem("Octagon")
+                shape.scaleHeight(1.25, Excel.ShapeScaleType.currentSize);
+                shape.scaleWidth(1.25, Excel.ShapeScaleType.currentSize);
+                await context.sync();
+            });
+        }
+
+        async function moveZOrderDown() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                const shape = sheet.shapes.getItem("Octagon")
+                shape.setZOrder(Excel.ShapeZOrder.sendBackward);
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Shapes");
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        async function createShapes() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                const rectangle = shapes.addGeometricShape(Excel.GeometricShapeType.rectangle, 100, 100, 150, 150);
+                rectangle.name = "Square";
+                rectangle.fill.setSolidColor("green");
+                const pentagon = shapes.addGeometricShape(Excel.GeometricShapeType.pentagon, 125, 125, 100, 100);
+                pentagon.name = "Pentagon";
+                pentagon.fill.setSolidColor("purple");
+                const octagon = shapes.addGeometricShape(Excel.GeometricShapeType.octagon, 150, 150, 50, 50);
+                octagon.name = "Octagon";
+                octagon.fill.setSolidColor("red");
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                OfficeHelpers.UI.notify(error);
+                OfficeHelpers.Utilities.log(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to change the position of shapes, both on the worksheet and their relative positioning when stacked.</p>
+        </section>
+        <section class="setup ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a worksheet</span>
+            </button><p/>
+          <button id="createShapes" class="ms-Button">
+                <span class="ms-Button-label">Create shapes</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="moveLeft" class="ms-Button">
+                <span class="ms-Button-label">Move square left</span>
+            </button><p/>
+            <button id="moveDown" class="ms-Button">
+                <span class="ms-Button-label">Move pentagon down</span>
+            </button><p/>
+            <button id="rotate" class="ms-Button">
+                <span class="ms-Button-label">Rotate the pentagon</span>
+            </button><p/>
+            <button id="scaleUp" class="ms-Button">
+                <span class="ms-Button-label">Resize the octagon</span>
+            </button><p/>
+            <button id="moveZOrderDown" class="ms-Button">
+                <span class="ms-Button-label">Move octagon down the z-order</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

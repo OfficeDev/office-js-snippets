@@ -10,10 +10,12 @@ script:
     content: |-
         $("#run").click(() => {
             $("#setup").hide();
-            tryCatch(run)
+            tryCatch(run);
         });
 
         $("#selectedFile").change(() => tryCatch(readImageFromFile));
+        $("#focusButton").click(() => tryCatch(focus));
+
 
         let backgroundPicture = getDefaultBackgroundPicture();
 
@@ -31,13 +33,17 @@ script:
             reader.readAsDataURL(myFile.files[0]);
         }
 
+        function focus() {
+            $("#container").focus();
+        }
+
         async function run() {
             await Excel.run(async (ctx) => {
                 const shapes = ctx.workbook.worksheets.getActiveWorksheet().shapes;
                 shapes.load("items/$none");
                 await ctx.sync();
 
-                shapes.items.forEach(shape => shape.delete());
+                shapes.items.forEach((shape) => shape.delete());
                 await ctx.sync();
 
                 const img = shapes.addImage(backgroundPicture);
@@ -617,6 +623,7 @@ script:
                 await run($("#container")[0], $("#sessionPane")[0]);
 
                 $("#container").focus();
+                $("#focus").show();
             });
         }
 
@@ -641,7 +648,6 @@ template:
         <div id="container" class="container">
             <section class="ms-font-m">
                 <p>This sample lets you repeatedly stack tetrominos, which are represented by Shapes. Select a background image (or leave blank for the default) and <b>Start!</b>. The controls will then be displayed.</p>
-                <p><b>Note:</b> Focus must be on the task pane to move the shapes.</p>
             </section>
 
             <section class="samples ms-font-m" id="setup">
@@ -655,6 +661,13 @@ template:
                 <div id="sessionPane">
                 </div>
             </section>
+            <p/>
+            <section class="samples ms-font-m" id="focus" hidden="true">
+                <p>Use the <b>Keyboard Focus</b> button if the keyboard controls aren't working (to regain focus on the task pane).</p>
+                <button id="focusButton" class="ms-Button" >
+                    <span class="ms-Button-label">Keyboard Focus</span>
+                </button>
+            <section class="samples ms-font-m" id="setup">
         </div>
     language: html
 style:

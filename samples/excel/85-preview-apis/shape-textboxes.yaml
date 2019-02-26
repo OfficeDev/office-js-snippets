@@ -1,0 +1,151 @@
+order: 14
+id: excel-shape-textboxes
+name: Textboxes
+description: Creates a textbox shape and works with the text in it and other shapes.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#createGeometricShape").click(() => tryCatch(createGeometricShape));
+        $("#createTextbox").click(() => tryCatch(createTextbox));
+        $("#centerTextbox").click(() => tryCatch(centerTextbox));
+        $("#autoSizeText").click(() => tryCatch(autoSizeText));
+        $("#deleteText").click(() => tryCatch(deleteText));
+
+
+        async function createTextbox() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                const textbox = shapes.addTextBox("A box with text");
+                textbox.left = 100;
+                textbox.top = 100;
+                textbox.height = 20;
+                textbox.width = 175;
+                textbox.name = "Textbox";
+                await context.sync();
+            });
+        }
+
+        async function createGeometricShape() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                const wave = shapes.addGeometricShape(Excel.GeometricShapeType.wave);
+                wave.left = 100;
+                wave.top = 400;
+                wave.height = 50;
+                wave.width = 150;
+                wave.name = "Wave";
+                wave.fill.setSolidColor("lightblue");
+                wave.textFrame.textRange.text = "A geometric shape";
+                await context.sync();
+            });
+        }
+
+        async function centerTextbox() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                const textbox = shapes.getItem("Textbox");
+                textbox.textFrame.horizontalAlignment = Excel.ShapeTextHorizontalAlignType.center;
+                await context.sync();
+            });
+        }
+
+        async function autoSizeText() {
+            await Excel.run(async (context) => {
+                // NOTE: This API not currently supported.
+
+                // const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                // const textbox = shapes.getItem("Textbox");
+                // textbox.textFrame.autoSize = Excel.ShapeAutoSize.autoSizeTextToFitShape;
+                // await context.sync();
+            });
+        }
+
+        async function deleteText() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                const textbox = shapes.getItem("Textbox");
+                textbox.textFrame.deleteText();
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Shapes");
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create and modify textboxes and other shapes with text.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a worksheet</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="createGeometricShape" class="ms-Button">
+                <span class="ms-Button-label">Create geometric shape with text</span>
+            </button><p/>
+            <button id="createTextbox" class="ms-Button">
+                <span class="ms-Button-label">Create textbox</span>
+            </button><p/>
+            <button id="centerTextbox" class="ms-Button">
+                <span class="ms-Button-label">Center textbox</span>
+            </button><p/>
+            <button id="autoSizeText" class="ms-Button">
+                <span class="ms-Button-label">Auto size text</span>
+            </button><p/>
+            <button id="deleteText" class="ms-Button">
+                <span class="ms-Button-label">Delete text</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

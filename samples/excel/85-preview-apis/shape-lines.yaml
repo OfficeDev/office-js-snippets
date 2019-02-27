@@ -1,0 +1,245 @@
+order: 8
+id: excel-shape-lines
+name: Lines
+description: Creates and modifies line shapes.
+host: EXCEL
+api_set:
+    ExcelAPI: 1.9
+script:
+    content: |-
+        $("#setup").click(() => tryCatch(setup));
+        $("#createShapes").click(() => tryCatch(createShapes));
+        $("#addStraightLine").click(() => tryCatch(addStraightLine));
+        $("#addCurvedLine").click(() => tryCatch(addCurvedLine));
+        $("#arrowLine").click(() => tryCatch(arrowLine));
+        $("#diamondLine").click(() => tryCatch(diamondLine));
+        $("#connectStraightLine").click(() => tryCatch(connectStraightLine));
+        $("#disconnectStraightLine").click(() => tryCatch(disconnectStraightLine));
+        $("#connectCurvedLine").click(() => tryCatch(connectCurvedLine));
+        $("#disconnectCurvedLine").click(() => tryCatch(disconnectCurvedLine));
+        $("#deleteLines").click(() => tryCatch(deleteLines));
+
+        async function addStraightLine() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                const line = shapes.addLine(200, 50, 300, 150, Excel.ConnectorType.straight);
+                line.name = "StraightLine";
+                await context.sync();
+            });
+        }
+
+        async function addCurvedLine() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                const line = shapes.addLine(200, 300, 300, 400, Excel.ConnectorType.curve);
+                line.name = "CurvedLine";
+                await context.sync();
+            });
+        }
+
+        async function arrowLine() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                const line = shapes.getItem("StraightLine").line;
+                line.beginArrowHeadLength = Excel.ArrowHeadLength.long;
+                line.beginArrowHeadWidth = Excel.ArrowHeadWidth.wide;
+                line.beginArrowHeadStyle = Excel.ArrowHeadStyle.oval;
+
+                line.endArrowHeadLength = Excel.ArrowHeadLength.long;
+                line.endArrowHeadWidth = Excel.ArrowHeadWidth.wide;
+                line.endArrowHeadStyle = Excel.ArrowHeadStyle.triangle;
+
+                await context.sync();
+            });
+        }
+
+        async function diamondLine() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                const line = shapes.getItem("CurvedLine").line;
+                line.beginArrowHeadLength = Excel.ArrowHeadLength.short;
+                line.beginArrowHeadWidth = Excel.ArrowHeadWidth.narrow;
+                line.beginArrowHeadStyle = Excel.ArrowHeadStyle.diamond;
+
+                line.endArrowHeadLength = Excel.ArrowHeadLength.short;
+                line.endArrowHeadWidth = Excel.ArrowHeadWidth.narrow;
+                line.endArrowHeadStyle = Excel.ArrowHeadStyle.diamond;
+                
+                await context.sync();
+            });
+        }
+
+        async function connectStraightLine() {
+            await Excel.run(async (context) => {
+                // NOTE: This API not currently supported.
+
+                // const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                // const line = shapes.getItem("StraightLine").line;
+                // line.beginConnect(shapes.getItem("Left"), 2);
+                // line.endConnect(shapes.getItem("Right"), 0);
+
+                // await context.sync();
+            });
+        }
+
+        async function disconnectStraightLine() {
+            await Excel.run(async (context) => {
+                // NOTE: This API not currently supported.
+
+                // const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                // const line = shapes.getItem("StraightLine").line;
+                // line.beginDisconnect();
+                // line.endDisconnect();
+
+                // await context.sync();
+            });
+        }
+
+        async function connectCurvedLine() {
+            await Excel.run(async (context) => {
+                // NOTE: This API not currently supported.
+
+                // const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                // const line = shapes.getItem("CurvedLine").line;
+                // line.beginConnect(shapes.getItem("Left"), 2);
+                // line.endConnect(shapes.getItem("Right"), 0);
+
+                // await context.sync();
+            });
+        }
+
+        async function disconnectCurvedLine() {
+            await Excel.run(async (context) => {
+                // NOTE: This API not currently supported.
+
+                // const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                // const line = shapes.getItem("CurvedLine").line;
+                // line.beginDisconnect();
+                // line.endDisconnect();
+
+                // await context.sync();
+            });
+        }
+
+        async function deleteLines() {
+            await Excel.run(async (context) => {
+                const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+                shapes.getItem("StraightLine").delete();
+                shapes.getItem("CurvedLine").delete();
+                
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Shapes");
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        async function createShapes() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Shapes");
+
+                const shape1 = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.diamond);
+                shape1.left = 5;
+                shape1.top = 5;
+                shape1.height = 100;
+                shape1.width = 100;
+                shape1.name = "Left";
+
+                const shape2 = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.cloud);
+                shape2.left = 400;
+                shape2.top = 300;
+                shape2.height = 100;
+                shape2.width = 100;
+                shape2.name = "Right";
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create and modify line shapes.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a worksheet</span>
+            </button><p/>
+            <button id="createShapes" class="ms-Button">
+                <span class="ms-Button-label">Create shapes</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="addStraightLine" class="ms-Button">
+                <span class="ms-Button-label">Add a straight line</span>
+            </button><p/>
+            <button id="addCurvedLine" class="ms-Button">
+                <span class="ms-Button-label">Add a curved line</span>
+            </button><p/>
+            <button id="arrowLine" class="ms-Button">
+                <span class="ms-Button-label">Turn into arrow</span>
+            </button><p/>
+            <button id="diamondLine" class="ms-Button">
+                <span class="ms-Button-label">Turn into diamond connector</span>
+            </button><p/>
+            <button id="connectStraightLine" class="ms-Button">
+                <span class="ms-Button-label">Connect straight line</span>
+            </button><p/>
+            <button id="disconnectStraightLine" class="ms-Button">
+                <span class="ms-Button-label">Disconnect straight line</span>
+            </button><p/>
+            <button id="connectCurvedLine" class="ms-Button">
+                <span class="ms-Button-label">Connect curved line</span>
+            </button><p/>
+            <button id="disconnectCurvedLine" class="ms-Button">
+                <span class="ms-Button-label">Disconnect curved line</span>
+            </button><p/>
+            <button id="deleteLines" class="ms-Button">
+                <span class="ms-Button-label">Delete lines</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -270,7 +270,6 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
 
         let snippetOfficeReferenceIsOk =
             officeJsReferences[0] === canonicalOfficeJsReference ||
-            host.toUpperCase() === 'OUTLOOK' /* for now, outlook does not want to use cannonical Office.js due to bug #65. */ ||
             (group.indexOf('preview-apis') >= 0 && officeJsReferences[0] === betaOfficeJsReference);
 
         if (!snippetOfficeReferenceIsOk) {

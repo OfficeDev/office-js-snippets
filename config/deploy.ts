@@ -16,7 +16,7 @@ interface IEnvironmentVariables {
     GH_TOKEN: string
 }
 
-const environmentVariables: IEnvironmentVariables = process.env;
+const environmentVariables: IEnvironmentVariables = process.env as any;
 
 (() => {
     try {

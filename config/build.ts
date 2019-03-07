@@ -15,9 +15,6 @@ import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
 import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
-import 'rxjs/add/operator/merge';
-import 'rxjs/add/operator/map';
-import 'rxjs/add/operator/filter';
 import escapeStringRegexp = require('escape-string-regexp');
 
 

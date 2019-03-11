@@ -162,7 +162,7 @@ function getExtractedDataFromSnippet(
         }
         catch (exception) {
             accumulatedErrors.push(`${row.snippetId}: ${exception.message || exception}`);
-        };
+        }
     } else {
         accumulatedErrors.push(`Could not find snippet id "${row.snippetId}" in mapping table`);
     }

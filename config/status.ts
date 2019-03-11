@@ -6,7 +6,7 @@ interface IStage {
     steps: any[];
     count: number;
     doneStep: (completed: boolean, message?: string) => void;
-};
+}
 
 export class Status {
     stages: IStage;
@@ -79,7 +79,7 @@ export class Status {
                 })
                 .filter(item => !isNil(item));
         }
-    };
+    }
 
     /**
      * Add a new stage and complete the previous stage.
@@ -88,8 +88,8 @@ export class Status {
     add(stage: string) {
         this.stages.steps.push(stage);
         this.steps[stage] = true;
-    };
-};
+    }
+}
 
 export const status = new Status();
 export const console = status.console;

@@ -37,7 +37,7 @@ const defaultApiSets = {
         'WordApi': 1.1
     }
 
-    /* any other hosts is allowed to have no API sets specified*/
+    // any other host is allowed to have no API sets specified
 };
 
 
@@ -224,7 +224,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
         const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1/hosted/office.js';
         const betaOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/beta/hosted/office.js';
         const officeDTS = '@types/office-js';
-        const betaOfficeDTS = '@microsoft/office-js@beta/dist/office.d.ts';
+        const betaOfficeDTS = '@types/office-js-preview';
 
         const officeJsReferences =
             snippet.libraries.split('\n')
@@ -234,9 +234,10 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
         const officeDtsReferences =
             snippet.libraries.split('\n')
                 .map(reference => reference.trim())
-                .filter(reference => reference.match(/.*((@types\/office-js)|(office\.d\.ts))$/gi));
+                .filter(reference => reference.match(/.*((@types\/office-js(-preview)?)|(office\.d\.ts))$/gi));
         /* Note: regex matches:
             - @types/office-js
+            - @types/office-js-preview
             - https://unpkg.com/etc/office.d.ts
            But not:
             - @types/office-jsfake

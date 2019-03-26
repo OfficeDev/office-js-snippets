@@ -2988,6 +2988,21 @@ Word.Body.search:
 
         await context.sync();
     });
+  - >-
+    async function searchAndCount(searchTerm: string, context:
+    Word.RequestContext) {
+      let results = context.document.body.search(searchTerm, { matchCase: true, matchWholeWord: true });
+      results.load("text");
+
+      await context.sync();
+
+      let length = 0;
+      if (results && results.items && results.items.length > 0) {
+        length = results.items.length;
+      }
+
+      console.log("Search term: " + searchTerm + " => Count: " + length);
+    }
 Word.Body.insertParagraph:
   - |-
     await Word.run(async (context) => {
@@ -3343,4 +3358,31 @@ Word.Paragraph.set:
       secondParagraph.set(firstParagraph);
 
       await context.sync();
+    });
+Word.Body.paragraphs:
+  - |-
+    await Word.run(async (context) => {
+      let paragraphs = context.document.body.paragraphs;
+      paragraphs.load("text");
+      await context.sync();
+
+      let text = [];
+      paragraphs.items.forEach((item) => {
+        let paragraph = item.text.trim();
+        if (paragraph) {
+          paragraph.split(" ").forEach((term) => {
+            let currentTerm = term.trim();
+            if (currentTerm) {
+              text.push(currentTerm);
+            }
+          });
+        }
+      });
+
+      let makeTextDistinct = new Set(text);
+      let distinctText = Array.from(makeTextDistinct);
+
+      for (let i = 0; i < distinctText.length; i++) {
+        await searchAndCount(distinctText[i], context);
+      }
     });

@@ -1,0 +1,173 @@
+order: 1
+id: excel-comment
+name: Comments
+description: 'Adds, edits, and removes comments and comment replies.'
+host: EXCEL
+api_set:
+    ExcelApi: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#addCommentToSelectedCell").click(() => tryCatch(addCommentToSelectedCell));
+        $("#addCommentToCell").click(() => tryCatch(addCommentToCell));
+        $("#addCommentReply").click(() => tryCatch(addCommentReply));
+        $("#getCommentMetadata").click(() => tryCatch(getCommentMetadata));
+        $("#editComment").click(() => tryCatch(editComment));
+        $("#editCommentReply").click(() => tryCatch(editCommentReply));
+        $("#deleteComment").click(() => tryCatch(deleteComment));
+        $("#deleteCommentReply").click(() => tryCatch(deleteCommentReply));
+
+        async function addCommentToSelectedCell() {
+            await Excel.run(async (context) => {
+                const selectedRange = context.workbook.getSelectedRange();
+                selectedRange.load(["rowIndex", "columnIndex"])
+                await context.sync();
+
+                // Note that an InvalidArgument error will be thrown if multiple cells are selected
+                const singleCell = selectedRange.getCell(selectedRange.rowIndex, selectedRange.columnIndex);
+                context.workbook.comments.add("TODO: add headers here.", singleCell);
+                await context.sync();
+            });
+        }
+        async function addCommentToCell() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                sheet.comments.add("TODO: add data.", "A2");
+                await context.sync();
+            });
+        }
+        async function addCommentReply() {
+            await Excel.run(async (context) => {
+                const comment = context.workbook.comments.getItemByCell("Comments!A1");
+                comment.replies.add("Do I have to?");
+                await context.sync();
+            });
+        }
+        async function getCommentMetadata() {
+            await Excel.run(async (context) => {
+                const comment = context.workbook.comments.getItemByCell("Comments!A1");
+                comment.load(["authorEmail", "authorName", "creationDate"]);
+                await context.sync();
+
+                console.log(`${comment.creationDate.toDateString()}: ${comment.authorName} (${comment.authorEmail})`);
+                await context.sync();
+            });
+        }
+        async function editComment() {
+            await Excel.run(async (context) => {
+                const comment = context.workbook.comments.getItemAt(0);
+                comment.content = "PLEASE add headers here.";
+                await context.sync();
+            });
+        }
+        async function editCommentReply() {
+            await Excel.run(async (context) => {
+                const comment = context.workbook.comments.getItemAt(0);
+                comment.load("replies");
+                await context.sync();
+
+                const reply = comment.replies.getItemAt(0);
+                reply.content = "new content for the reply";
+                await context.sync();
+            });
+        }
+        async function deleteComment() {
+            await Excel.run(async (context) => {
+                context.workbook.comments.getItemByCell("Comments!A2").delete();
+                await context.sync();
+            });
+        }
+        async function deleteCommentReply() {
+            await Excel.run(async (context) => {
+                var comment = context.workbook.comments.getItemAt(0);
+                comment.load("replies");
+                await context.sync();
+
+                comment.replies.getItemAt(0).delete();
+                await context.sync();
+            });
+        }
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Comments");
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                sheet.activate();
+                await context.sync();
+            });
+        }
+        /** Default helper for invoking an action and handling errors. */ async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to add and edit comments.</p>
+        </section>
+        <section class="setup ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a worksheet</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="addCommentToSelectedCell" class="ms-Button">
+                <span class="ms-Button-label">Add comment to selected cell</span>
+            </button><p/>
+            <button id="addCommentToCell" class="ms-Button">
+                <span class="ms-Button-label">Add comment to A2</span>
+            </button><p/>
+            <button id="addCommentReply" class="ms-Button">
+                <span class="ms-Button-label">Add comment reply</span>
+            </button><p/>
+            <button id="getCommentMetadata" class="ms-Button">
+                <span class="ms-Button-label">Get comment metadata</span>
+            </button><p/>
+            <button id="editComment" class="ms-Button">
+                <span class="ms-Button-label">Edit comment</span>
+            </button><p/>
+            <button id="editCommentReply" class="ms-Button">
+                <span class="ms-Button-label">Edit comment reply</span>
+            </button><p/>
+            <button id="deleteComment" class="ms-Button">
+                    <span class="ms-Button-label">Delete comment at A2</span>
+            </button><p/>
+            <button id="deleteCommentReply" class="ms-Button">
+                <span class="ms-Button-label">Delete comment reply</span>
+            </button><p/>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

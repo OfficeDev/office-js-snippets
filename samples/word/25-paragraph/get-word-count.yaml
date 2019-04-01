@@ -1,4 +1,3 @@
-order: 8
 id: word-paragraph-get-word-count
 name: Get word count
 description: Counts how many times a word or term appears in the document.
@@ -7,10 +6,10 @@ api_set:
     WordApi: 1.1
 script:
     content: |
-        $("#count").click(() => tryCatch(parseText));
+        $("#count").click(() => tryCatch(run));
         $("#setup").click(() => tryCatch(setup));
 
-        async function parseText() {
+        async function run() {
           await Word.run(async (context) => {
             let paragraphs = context.document.body.paragraphs;
             paragraphs.load("text");
@@ -31,41 +30,45 @@ script:
 
             let makeTextDistinct = new Set(text);
             let distinctText = Array.from(makeTextDistinct);
+            let allSearchResults = [];
 
             for (let i = 0; i < distinctText.length; i++) {
-              await searchAndCount(distinctText[i], context);
+              let results = context.document.body.search(distinctText[i], { matchCase: true, matchWholeWord: true });
+              results.load("text");
+
+              // Map search term with its results.
+              let correlatedResults = {
+                searchTerm: distinctText[i],
+                hits: results
+              };
+
+              allSearchResults.push(correlatedResults);
             }
+
+            await context.sync();
+
+            // Display counts.
+            allSearchResults.forEach((result) => {
+              let length = result.hits.items.length;
+
+              console.log("Search term: " + result.searchTerm + " => Count: " + length);
+            });
           });
-        }
-
-        async function searchAndCount(searchTerm: string, context: Word.RequestContext) {
-          let results = context.document.body.search(searchTerm, { matchCase: true, matchWholeWord: true });
-          results.load("text");
-
-          await context.sync();
-
-          let length = 0;
-          if (results && results.items && results.items.length > 0) {
-            length = results.items.length;
-          }
-
-          console.log("Search term: " + searchTerm + " => Count: " + length);
         }
 
         async function setup() {
           await Word.run(async (context) => {
-            // Let's insert a couple of paragraphs to illustrate the point.
+            // Insert a couple of paragraphs.
             context.document.body.clear();
-            context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
-            context.document.body.insertParagraph("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.", "End");
-
-            await context.sync();
-
-            context.document.body.paragraphs.getFirst().alignment = "Left";
-            context.document.body.paragraphs.getLast().alignment = "Left";
-
-            await context.sync();
-          })
+            context.document.body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            context.document.body.insertParagraph(
+              "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.",
+              "End"
+            );
+          });
         }
 
         /** Default helper for invoking an action and handling errors. */

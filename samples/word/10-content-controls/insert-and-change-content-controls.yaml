@@ -7,94 +7,95 @@ host: WORD
 api_set:
     WordApi: 1.1
 script:
-    content: |-
+    content: |
         $("#insert-controls").click(() => tryCatch(insertContentControls));
         $("#change-controls").click(() => tryCatch(modifyContentControls));
         $("#setup").click(() => tryCatch(setup));
 
-
         async function insertContentControls() {
-            // Traverses each paragraph of the document and wraps a content control on each with either a even or odd tags.
-            await Word.run(async (context) => {
-                let paragraphs = context.document.body.paragraphs;
-                paragraphs.load("$none"); // Don't need any properties; just wrap each paragraph with a content control.
+          // Traverses each paragraph of the document and wraps a content control on each with either a even or odd tags.
+          await Word.run(async (context) => {
+            let paragraphs = context.document.body.paragraphs;
+            paragraphs.load("$none"); // Don't need any properties; just wrap each paragraph with a content control.
 
-                await context.sync();
+            await context.sync();
 
-                for (let i = 0; i < paragraphs.items.length; i++) {
-                    let contentControl = paragraphs.items[i].insertContentControl();
-                    // For even, tag "even".
-                    if (i % 2 === 0) {
-                        contentControl.tag = "even";
-                    }
+            for (let i = 0; i < paragraphs.items.length; i++) {
+              let contentControl = paragraphs.items[i].insertContentControl();
+              // For even, tag "even".
+              if (i % 2 === 0) {
+                contentControl.tag = "even";
+              } else {
+                contentControl.tag = "odd";
+              }
+            }
+            console.log("Content controls inserted: " + paragraphs.items.length);
 
-                    else {
-                        contentControl.tag = "odd";
-                    }
-                }
-                console.log("Content controls inserted: " + paragraphs.items.length)
-
-                await context.sync();
-            });
-
+            await context.sync();
+          });
         }
 
         async function modifyContentControls() {
-            // Adds title and colors to odd and even content controls and changes their appearance.
-            await Word.run(async (context) => {
-                // Gets the complete sentence (as range) associated with the insertion point.
-                let evenContentControls = context.document.contentControls.getByTag("even");
-                let oddContentControls = context.document.contentControls.getByTag("odd");
-                evenContentControls.load("color,title,appearance");
-                oddContentControls.load("color,title,appearance");
+          // Adds title and colors to odd and even content controls and changes their appearance.
+          await Word.run(async (context) => {
+            // Gets the complete sentence (as range) associated with the insertion point.
+            let evenContentControls = context.document.contentControls.getByTag("even");
+            let oddContentControls = context.document.contentControls.getByTag("odd");
+            evenContentControls.load("color,title,appearance");
+            oddContentControls.load("color,title,appearance");
 
-                await context.sync();
+            await context.sync();
 
-                for (let i = 0; i < evenContentControls.items.length; i++) {
-                    // Change a few properties and append a paragraph
-                    evenContentControls.items[i].set({
-                        color: 'red',
-                        title: 'Odd ContentControl #' + (i + 1),
-                        appearance: 'Tags'
-                    });
-                    evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
-                }
+            for (let i = 0; i < evenContentControls.items.length; i++) {
+              // Change a few properties and append a paragraph
+              evenContentControls.items[i].set({
+                color: "red",
+                title: "Odd ContentControl #" + (i + 1),
+                appearance: "Tags"
+              });
+              evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
+            }
 
-                for (let j = 0; j < oddContentControls.items.length; j++) {
-                    // Change a few properties and append a paragraph
-                    oddContentControls.items[j].set({
-                        color: 'green',
-                        title: 'Even ContentControl #' + (j + 1),
-                        appearance: 'Tags'
-                    });
-                    oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
-                }
+            for (let j = 0; j < oddContentControls.items.length; j++) {
+              // Change a few properties and append a paragraph
+              oddContentControls.items[j].set({
+                color: "green",
+                title: "Even ContentControl #" + (j + 1),
+                appearance: "Tags"
+              });
+              oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
+            }
 
-                await context.sync();
-            });
+            await context.sync();
+          });
         }
 
         async function setup() {
-            await Word.run(async (context) => {
-                context.document.body.clear();
-                context.document.body.insertParagraph("One more paragraph. ", "Start");
-                context.document.body.insertParagraph("Inserting another paragraph. ", "Start");
-                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
-                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ", "Replace");
-
-                await context.sync();
-            });
+          await Word.run(async (context) => {
+            context.document.body.clear();
+            context.document.body.insertParagraph("One more paragraph. ", "Start");
+            context.document.body.insertParagraph("Inserting another paragraph. ", "Start");
+            context.document.body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            context.document.body.paragraphs
+              .getLast()
+              .insertText(
+                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ",
+                "Replace"
+              );
+          });
         }
 
         /** Default helper for invoking an action and handling errors. */
         async function tryCatch(callback) {
-            try {
-                await callback();
-            }
-            catch (error) {
-                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-                console.error(error);
-            }
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
         }
     language: typescript
 template:

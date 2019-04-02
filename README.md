@@ -40,7 +40,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 8. Create a new branch at the **office-js-snippets** root folder of your local repo by running the command `git checkout -b {name_of_your_new_branch}`. (This will create and checkout the new branch. *Stay in this branch for all the remaining steps.*) Each snippet should have its own branch. Suggestion: use the name of the yaml file that you created above (without the extension) as the branch name.
 9. Decide the folder where your snippet should be added. All snippet files must reside within the appropriate subfolder inside the `samples` folder. Within the `samples` folder, the structure of subfolders is as follows:
 
- - The base folders such as `excel`, `word`, etc. represent the various high-level host applications.
+ - The base folders such as `excel`, `word`, etc. primarily represent the various host applications.
  - Within each base folder, group folders organize snippets into various categories.
  - Within each group folder, each .yaml file represents a snippet.
 

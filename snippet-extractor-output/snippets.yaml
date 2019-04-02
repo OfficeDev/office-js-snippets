@@ -2905,16 +2905,16 @@ Excel.WorksheetProtection.unprotect:
 Word.InlinePicture.getBase64ImageSrc:
   - |-
     await Word.run(async (context) => {
-        const firstPicture = context.document.body.inlinePictures.getFirst();
-        firstPicture.load("width, height");
+      const firstPicture = context.document.body.inlinePictures.getFirst();
+      firstPicture.load("width, height");
 
-        await context.sync();
-        console.log(`Image dimensions: ${firstPicture.width} x ${firstPicture.height}`);
-        //To get the image encoded as base64:
-        const base64 = firstPicture.getBase64ImageSrc();
+      await context.sync();
+      console.log(`Image dimensions: ${firstPicture.width} x ${firstPicture.height}`);
+      // Get the image encoded as base64.
+      const base64 = firstPicture.getBase64ImageSrc();
 
-        await context.sync();
-        console.log(base64.value);
+      await context.sync();
+      console.log(base64.value);
     });
 Word.Section.getHeader:
   - |-
@@ -2927,17 +2927,17 @@ Word.Section.getHeader:
 Word.Paragraph.insertBreak:
   - |-
     Word.run(async (context) => {
-        context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "After");
+      context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "After");
 
-        await context.sync();
-        console.log("success");
+      await context.sync();
+      console.log("success");
     });
   - |-
     await Word.run(async (context) => {
-        context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "After");
+      context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "After");
 
-        await context.sync();
-        console.log("success");
+      await context.sync();
+      console.log("success");
     });
 Word.Paragraph.insertParagraph:
   - |-
@@ -2960,33 +2960,79 @@ Word.Paragraph.insertParagraph:
 Word.Body.search:
   - |-
     await Word.run(async (context) => {
-        let results = context.document.body.search("Online");
-        results.load("font/highlightColor");
+      let results = context.document.body.search("Online");
+      results.load("font/highlightColor");
 
-        await context.sync();
+      await context.sync();
 
-        // Let's traverse the search results... and highlight...
-        for (let i = 0; i < results.items.length; i++) {
-            results.items[i].font.highlightColor = "yellow";
-        }
+      // Let's traverse the search results... and highlight...
+      for (let i = 0; i < results.items.length; i++) {
+        results.items[i].font.highlightColor = "yellow";
+      }
 
-        await context.sync();
+      await context.sync();
     });
   - |-
     await Word.run(async (context) => {
-        // Check out how wildcard expression are built, also use the second parameter of the search method to include search modes (i.e. we are using wildcards).
-        let results = context.document.body.search("$*.[0-9][0-9]", { matchWildcards: true });
-        results.load("font/highlightColor, font/color");
+      // Check out how wildcard expression are built, also use the second parameter of the search method to include search modes
+      // (i.e. use wildcards).
+      let results = context.document.body.search("$*.[0-9][0-9]", { matchWildcards: true });
+      results.load("font/highlightColor, font/color");
 
-        await context.sync();
+      await context.sync();
 
-        // Let's traverse the search results... and highlight...
-        for (let i = 0; i < results.items.length; i++) {
-            results.items[i].font.highlightColor = "red";
-            results.items[i].font.color = "white";
+      // Let's traverse the search results... and highlight...
+      for (let i = 0; i < results.items.length; i++) {
+        results.items[i].font.highlightColor = "red";
+        results.items[i].font.color = "white";
+      }
+
+      await context.sync();
+    });
+  - |-
+    await Word.run(async (context) => {
+      let paragraphs = context.document.body.paragraphs;
+      paragraphs.load("text");
+      await context.sync();
+
+      let text = [];
+      paragraphs.items.forEach((item) => {
+        let paragraph = item.text.trim();
+        if (paragraph) {
+          paragraph.split(" ").forEach((term) => {
+            let currentTerm = term.trim();
+            if (currentTerm) {
+              text.push(currentTerm);
+            }
+          });
         }
+      });
 
-        await context.sync();
+      let makeTextDistinct = new Set(text);
+      let distinctText = Array.from(makeTextDistinct);
+      let allSearchResults = [];
+
+      for (let i = 0; i < distinctText.length; i++) {
+        let results = context.document.body.search(distinctText[i], { matchCase: true, matchWholeWord: true });
+        results.load("text");
+
+        // Map search term with its results.
+        let correlatedResults = {
+          searchTerm: distinctText[i],
+          hits: results
+        };
+
+        allSearchResults.push(correlatedResults);
+      }
+
+      await context.sync();
+
+      // Display counts.
+      allSearchResults.forEach((result) => {
+        let length = result.hits.items.length;
+
+        console.log("Search term: " + result.searchTerm + " => Count: " + length);
+      });
     });
 Word.Body.insertParagraph:
   - |-
@@ -3025,7 +3071,7 @@ Word.Range.insertContentControl:
         let results = context.document.body.search("Contractor");
         results.load("font/bold");
 
-        // check to make sure we haven't added these content controls yet
+        // Check to make sure these content controls haven't been added yet.
         let customerContentControls = context.document.contentControls.getByTag("customer");
         customerContentControls.load("text");
         await context.sync();
@@ -3065,107 +3111,105 @@ Word.Section.getFooter:
 Word.Paragraph.text:
   - |-
     await Word.run(async (context) => {
-        // The collection of paragraphs of the current selection returns the full paragraphs contanied on it. 
-        let paragraph = context.document.getSelection().paragraphs.getFirst();
-        paragraph.load("text");
+      // The collection of paragraphs of the current selection returns the full paragraphs contained in it.
+      let paragraph = context.document.getSelection().paragraphs.getFirst();
+      paragraph.load("text");
 
-        await context.sync();
-        console.log(paragraph.text);
+      await context.sync();
+      console.log(paragraph.text);
     });
 Word.Range.getTextRanges:
   - |-
     await Word.run(async (context) => {
-        // Gets the complete sentence (as range) associated with the insertion point.
-        let sentences = context.document.getSelection().getTextRanges(
-            ["."] /* Using the "." as delimiter */,
-            false /*means without trimming spaces*/);
-        sentences.load("$none");
-        await context.sync();
+      // Gets the complete sentence (as range) associated with the insertion point.
+      let sentences = context.document
+        .getSelection()
+        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+      sentences.load("$none");
+      await context.sync();
 
-        // Expands the range to the end of the paragraph to get all the complete sentences.
-        let sentencesToTheEndOfParagraph = sentences.items[0].getRange().expandTo(
-            context.document.getSelection().paragraphs.getFirst().getRange("End")).getTextRanges(
-                ["."],
-                 false /* Don't trim spaces*/);
-        sentencesToTheEndOfParagraph.load("text");
-        await context.sync();
-        
-        for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
-            console.log(sentencesToTheEndOfParagraph.items[i].text);
-        }
+      // Expands the range to the end of the paragraph to get all the complete sentences.
+      let sentencesToTheEndOfParagraph = sentences.items[0]
+        .getRange()
+        .expandTo(
+          context.document
+            .getSelection()
+            .paragraphs.getFirst()
+            .getRange("End")
+        )
+        .getTextRanges(["."], false /* Don't trim spaces*/);
+      sentencesToTheEndOfParagraph.load("text");
+      await context.sync();
+
+      for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
+        console.log(sentencesToTheEndOfParagraph.items[i].text);
+      }
     });
 Word.Paragraph.leftIndent:
   - |-
     await Word.run(async (context) => {
-        // Indents the first paragraph
-        context.document.body.paragraphs.
-            getFirst().leftIndent = 75; //units = points
+      // Indents the first paragraph.
+      context.document.body.paragraphs.getFirst().leftIndent = 75; //units = points
 
-        return context.sync();
+      return context.sync();
     });
 Word.Paragraph.lineSpacing:
   - |-
     await Word.run(async (context) => {
-        // Adjusts line spacing 
-        context.document.body.paragraphs
-            .getFirst().lineSpacing = 20;
+      // Adjusts line spacing.
+      context.document.body.paragraphs.getFirst().lineSpacing = 20;
 
-        await context.sync();
+      await context.sync();
     });
 Word.Paragraph.spaceAfter:
   - |-
     await Word.run(async (context) => {
-        //Adjust space between paragraphs
-        context.document.body.paragraphs
-            .getFirst().spaceAfter = 20;
+      // Adjust space between paragraphs.
+      context.document.body.paragraphs.getFirst().spaceAfter = 20;
 
-        await context.sync();
+      await context.sync();
     });
 Word.Paragraph.alignment:
   - |-
     await Word.run(async (context) => {
-        // Centers last paragraph alignment
-        context.document.body.paragraphs
-            .getLast().alignment = "Centered";
+      // Centers last paragraph alignment.
+      context.document.body.paragraphs.getLast().alignment = "Centered";
 
-        await context.sync();
+      await context.sync();
     });
 Word.Paragraph.insertText:
   - |-
     await Word.run(async (context) => {
-        // Here we insert to replace text
-        let range = context.document.body.paragraphs
-            .getLast().insertText("Just replaced the last paragraph!", "Replace");
-        range.font.highlightColor = "black";
-        range.font.color = "white";
+      // Replace the last paragraph.
+      let range = context.document.body.paragraphs.getLast().insertText("Just replaced the last paragraph!", "Replace");
+      range.font.highlightColor = "black";
+      range.font.color = "white";
 
-        await context.sync();
+      await context.sync();
     });
 Word.ContentControl.tag:
-  - >
+  - >-
     // Traverses each paragraph of the document and wraps a content control on
-    each with either a even or odd tags
+    each with either a even or odd tags.
 
     await Word.run(async (context) => {
-        let paragraphs = context.document.body.paragraphs;
-        paragraphs.load("$none"); //Don't need any properties, we'll just wrap each paragraph with a content control
+      let paragraphs = context.document.body.paragraphs;
+      paragraphs.load("$none"); // Don't need any properties; just wrap each paragraph with a content control.
 
-        await context.sync();
+      await context.sync();
 
-        for (let i = 0; i < paragraphs.items.length; i++) {
-            let contentControl = paragraphs.items[i].insertContentControl();
-            // For even we tag "even"
-            if (i % 2 === 0) {
-                contentControl.tag = "even";
-            }
-
-            else {
-                contentControl.tag = "odd";
-            }
+      for (let i = 0; i < paragraphs.items.length; i++) {
+        let contentControl = paragraphs.items[i].insertContentControl();
+        // For even, tag "even".
+        if (i % 2 === 0) {
+          contentControl.tag = "even";
+        } else {
+          contentControl.tag = "odd";
         }
-        console.log("Content controls inserted: " + paragraphs.items.length)
+      }
+      console.log("Content controls inserted: " + paragraphs.items.length);
 
-        await context.sync();
+      await context.sync();
     });
 Word.ContentControl.set:
   - >-
@@ -3173,70 +3217,69 @@ Word.ContentControl.set:
     appearance.
 
     await Word.run(async (context) => {
-        // Gets the complete sentence  (as range) associated with the insertion point.
-        let evenContentControls = context.document.contentControls.getByTag("even");
-        let oddContentControls = context.document.contentControls.getByTag("odd");
-        evenContentControls.load("color,title,appearance");
-        oddContentControls.load("color,title,appearance");
+      // Gets the complete sentence (as range) associated with the insertion point.
+      let evenContentControls = context.document.contentControls.getByTag("even");
+      let oddContentControls = context.document.contentControls.getByTag("odd");
+      evenContentControls.load("color,title,appearance");
+      oddContentControls.load("color,title,appearance");
 
-        await context.sync();
+      await context.sync();
 
-        for (let i = 0; i < evenContentControls.items.length; i++) {
-            // Change a few properties and append a paragraph
-            evenContentControls.items[i].set({
-                color: 'red',
-                title: 'Odd ContentControl #' + (i + 1),
-                appearance: 'Tags'
-            });
-            evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
-        }
+      for (let i = 0; i < evenContentControls.items.length; i++) {
+        // Change a few properties and append a paragraph
+        evenContentControls.items[i].set({
+          color: "red",
+          title: "Odd ContentControl #" + (i + 1),
+          appearance: "Tags"
+        });
+        evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
+      }
 
-        for (let j = 0; j < oddContentControls.items.length; j++) {
-            // Change a few properties and append a paragraph
-            oddContentControls.items[j].set({
-                color: 'green',
-                title: 'Even ContentControl #' + (j + 1),
-                appearance: 'Tags'
-            });
-            oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
-        }
+      for (let j = 0; j < oddContentControls.items.length; j++) {
+        // Change a few properties and append a paragraph
+        oddContentControls.items[j].set({
+          color: "green",
+          title: "Even ContentControl #" + (j + 1),
+          appearance: "Tags"
+        });
+        oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
+      }
 
-        await context.sync();
+      await context.sync();
     });
 Word.Paragraph.select:
   - |-
     await Word.run(async (context) => {
-        // If select is called, with no parameters it selects the object.
-        context.document.body.paragraphs.getLast().select();
+      // If select is called with no parameters, it selects the object.
+      context.document.body.paragraphs.getLast().select();
 
-        await context.sync();
+      await context.sync();
     });
   - |-
     await Word.run(async (context) => {
-        //Select can be at the start or end of a range, this by definition moves the insertion point without selecting the range. 
-        context.document.body.paragraphs.getLast().select("End");
+      // Select can be at the start or end of a range; this by definition moves the insertion point without selecting the range.
+      context.document.body.paragraphs.getLast().select("End");
 
-        await context.sync();
+      await context.sync();
     });
 Word.Paragraph.split:
   - |-
     await Word.run(async (context) => {
-        let paragraph = context.document.body.paragraphs.getFirst();
-        let words = paragraph.split(
-            [" "], true /* trimDelimiters*/, true /* trimSpaces */);
-        words.load("text");
+      let paragraph = context.document.body.paragraphs.getFirst();
+      let words = paragraph.split([" "], true /* trimDelimiters*/, true /* trimSpaces */);
+      words.load("text");
+
+      await context.sync();
+
+      for (let i = 0; i < words.items.length; i++) {
+        if (i >= 1) {
+          words.items[i - 1].font.highlightColor = "#FFFFFF";
+        }
+        words.items[i].font.highlightColor = "#FFFF00";
 
         await context.sync();
-
-        for (let i = 0; i < words.items.length; i++) {
-            if (i >= 1) {
-                words.items[i - 1].font.highlightColor = "#FFFFFF";
-            }
-            words.items[i].font.highlightColor = "#FFFF00";
-
-            await context.sync();
-            await pause(200);
-        }
+        await pause(200);
+      }
     });
 Word.Table.getCell:
   - |-
@@ -3250,7 +3293,7 @@ Word.Table.getCell:
 Word.Body.insertTable:
   - |-
     await Word.run(async (context) => {
-      // We need a 2D array to hold the initial table values
+      // Use a two-dimensional array to hold the initial table values.
       let data = [
         ["Tokyo", "Beijing", "Seattle"],
         ["Apple", "Orange", "Pineapple"]
@@ -3263,26 +3306,26 @@ Word.Body.insertTable:
     });
 Word.Paragraph.startNewList:
   - |-
-    //This example starts a new list stating with the second paragraph.
+    // This example starts a new list stating with the second paragraph.
     await Word.run(async (context) => {
-        let paragraphs = context.document.body.paragraphs;
-        paragraphs.load("$none"); //We need no properties.
+      let paragraphs = context.document.body.paragraphs;
+      paragraphs.load("$none"); // No properties needed.
 
-        await context.sync();
+      await context.sync();
 
-        var list = paragraphs.items[1].startNewList(); //Indicates new list to be started in the second paragraph.
-        list.load("$none"); //We need no properties.
+      var list = paragraphs.items[1].startNewList(); // Indicates new list to be started in the second paragraph.
+      list.load("$none"); // No properties needed.
 
-        await context.sync();
+      await context.sync();
 
-        //To add new items to the list use start/end on the insert location parameter.
-        list.insertParagraph('New list item on top of the list', 'Start');
-        let paragraph = list.insertParagraph('New list item at the end of the list (4th level)', 'End');
-        paragraph.listItem.level = 4; //Sets up list level for the lsit item.
-        //To add paragraphs outside the list use before/after:
-        list.insertParagraph('New paragraph goes after (not part of the list)', 'After');
+      // To add new items to the list use start/end on the insert location parameter.
+      list.insertParagraph("New list item on top of the list", "Start");
+      let paragraph = list.insertParagraph("New list item at the end of the list (4th level)", "End");
+      paragraph.listItem.level = 4; // Sets up list level for the lsit item.
+      // To add paragraphs outside the list use before/after:
+      list.insertParagraph("New paragraph goes after (not part of the list)", "After");
 
-        await context.sync();
+      await context.sync();
     });
 Word.CustomPropertyCollection.add:
   - |-
@@ -3343,4 +3386,50 @@ Word.Paragraph.set:
       secondParagraph.set(firstParagraph);
 
       await context.sync();
+    });
+Word.Body.paragraphs:
+  - |-
+    await Word.run(async (context) => {
+      let paragraphs = context.document.body.paragraphs;
+      paragraphs.load("text");
+      await context.sync();
+
+      let text = [];
+      paragraphs.items.forEach((item) => {
+        let paragraph = item.text.trim();
+        if (paragraph) {
+          paragraph.split(" ").forEach((term) => {
+            let currentTerm = term.trim();
+            if (currentTerm) {
+              text.push(currentTerm);
+            }
+          });
+        }
+      });
+
+      let makeTextDistinct = new Set(text);
+      let distinctText = Array.from(makeTextDistinct);
+      let allSearchResults = [];
+
+      for (let i = 0; i < distinctText.length; i++) {
+        let results = context.document.body.search(distinctText[i], { matchCase: true, matchWholeWord: true });
+        results.load("text");
+
+        // Map search term with its results.
+        let correlatedResults = {
+          searchTerm: distinctText[i],
+          hits: results
+        };
+
+        allSearchResults.push(correlatedResults);
+      }
+
+      await context.sync();
+
+      // Display counts.
+      allSearchResults.forEach((result) => {
+        let length = result.hits.items.length;
+
+        console.log("Search term: " + result.searchTerm + " => Count: " + length);
+      });
     });

@@ -1,0 +1,135 @@
+order: 8
+id: word-paragraph-get-word-count
+name: Get word count
+description: Counts how many times a word or term appears in the document.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: 1.1
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#count").click(() => tryCatch(run));
+
+        async function run() {
+          await Word.run(async (context) => {
+            let paragraphs = context.document.body.paragraphs;
+            paragraphs.load("text");
+            await context.sync();
+
+            let text = [];
+            paragraphs.items.forEach((item) => {
+              let paragraph = item.text.trim();
+              if (paragraph) {
+                paragraph.split(" ").forEach((term) => {
+                  let currentTerm = term.trim();
+                  if (currentTerm) {
+                    text.push(currentTerm);
+                  }
+                });
+              }
+            });
+
+            let makeTextDistinct = new Set(text);
+            let distinctText = Array.from(makeTextDistinct);
+            let allSearchResults = [];
+
+            for (let i = 0; i < distinctText.length; i++) {
+              let results = context.document.body.search(distinctText[i], { matchCase: true, matchWholeWord: true });
+              results.load("text");
+
+              // Map search term with its results.
+              let correlatedResults = {
+                searchTerm: distinctText[i],
+                hits: results
+              };
+
+              allSearchResults.push(correlatedResults);
+            }
+
+            await context.sync();
+
+            // Display counts.
+            allSearchResults.forEach((result) => {
+              let length = result.hits.items.length;
+
+              console.log("Search term: " + result.searchTerm + " => Count: " + length);
+            });
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            context.document.body.clear();
+            context.document.body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            context.document.body.insertParagraph(
+              "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.",
+              "End"
+            );
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          This sample demonstrates how to get the count for words and terms in the document body.
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <span class="ms-font-m">Get the word/term count.</span>
+          <p>
+            <button id="count" class="ms-Button">
+              <span class="ms-Button-label">Get word count</span>
+            </button>
+          </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

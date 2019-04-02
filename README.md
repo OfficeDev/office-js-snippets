@@ -38,17 +38,17 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 6. Save the file **somewhere outside of the office-js-snippets project**. (You will move it into the project in a later step.) The file name must have a ".yaml" extension and it must be in [`kebab-case`](http://wiki.c2.com/?KebabCase). For examples, see the existing *.yaml files in the subfolders of the `samples` folder of the project.
 7. Make sure the master branch of your fork is in sync with the master branch of the upstream \OfficeDev\office-js-snippets repo by following the steps in [Syncing a fork](https://help.github.com/articles/syncing-a-fork/).
 8. Create a new branch at the **office-js-snippets** root folder of your local repo by running the command `git checkout -b {name_of_your_new_branch}`. (This will create and checkout the new branch. *Stay in this branch for all the remaining steps.*) Each snippet should have its own branch. Suggestion: use the name of the yaml file that you created above (without the extension) as the branch name.
-9. Decide the project folder to which your snippet should be added. All snippets must be inside the `samples` folder. The structure of the subfolders is:
+9. Decide the folder where your snippet should be added. All snippet files must reside within the appropriate subfolder inside the `samples` folder. Within the `samples` folder, the structure of subfolders is as follows:
 
- - The base folders such as `Excel`, `Word`, etc. are all the various broad-level categories.
- - Inside of each base folder, there are group folders for the group in which a snippet belongs.
- - Inside of each group folder, there are `.yaml` files that each represents a snippet.
+ - The base folders such as `excel`, `word`, etc. represent the various high-level host applications.
+ - Within each base folder, group folders organize snippets into various categories.
+ - Within each group folder, each .yaml file represents a snippet.
 
  > **Note**: If your snippet doesn't fit well with any existing group folder, you may want to create a new group folder inside the base folder. If the existing folders in the base folder begin with numbers, such as `03-range`, then your new folder should also begin with a number. The numbers determine the sequence of the groups in Script Lab, so use a number that is between the numbers of the groups between which you want the new folder to appear.
 
 10. Open one of the `.yaml` files already in the group folder. If it has an `order` property near the top, then the snippets in the group folder are ordered in a particular sequence in Script Lab. Add an `order` property to the top of your `.yaml` file and give it a number that is between the order numbers of the snippets between which you want it to appear.
 11. Copy your `.yaml` file to the chosen group folder.
-12. Run `npm start`. If there are no problems, the output will end with a `Done!`. If there are errors, review the output to check what caused the build validation to fail, and fix as needed. See [**Known errors and fixes**](#known-errors-and-fixes-in-the-build-tool) below.
+12. Run `npm start`. If there are no problems, the output will end with a `Done!`. If there are errors, review the output to check what caused the build validation to fail, and fix as needed. See [**Known errors and fixes**](#known-errors-and-fixes-in-the-build-tool) for more information.
 
  > **Note**: The `npm start` command adds an `id` property to the top of the file.
 
@@ -67,7 +67,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
     git push --set-upstream origin {name_of_your_new_branch}
     ```
 
-17. You now create a [pull request](https://help.github.com/articles/about-pull-requests/). In your fork on GitHub, *switch to your new branch*. 
+17. You now create a [pull request](https://help.github.com/articles/about-pull-requests/). In your fork on GitHub, *switch to your new branch*.
 18. Choose **New pull request**.
 19. On the **Open a pull request** page, verify that:
 

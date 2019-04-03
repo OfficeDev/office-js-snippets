@@ -1,0 +1,122 @@
+order: 4
+id: excel-data-change-event-details
+name: Data change details
+description: Uses the onChanged event of a table to determine the specifics of changes.
+host: EXCEL
+api_set:
+    ExcelApi: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#register-handler").click(() => tryCatch(registerChangeEventHandler));
+
+        async function registerChangeEventHandler() {
+            await Excel.run(async (context) => {
+                const expensesTable = context.workbook.worksheets.getActiveWorksheet().tables.getItem("ExpensesTable");
+
+                // This event fires when a user edits a cell in the table.
+                expensesTable.onChanged.add(onTableChanged);
+                await context.sync();
+
+                console.log("Added onChanged handler");
+            });
+        }
+
+        async function onTableChanged(eventArgs: Excel.TableChangedEventArgs) {
+            await Excel.run(async (context) => {
+                const details = eventArgs.details;
+                const address = eventArgs.address;
+
+                console.log(
+                    `Change at ${address}: was ${details.valueBefore}(${details.valueTypeBefore}), now is ${
+                        details.valueAfter
+                    }(${details.valueTypeAfter})`
+                );
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
+                expensesTable.name = "ExpensesTable";
+
+                expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+                expensesTable.rows.add(null /*add at the end*/, [
+                    ["4/1/2017", "The Phone Company", "Communications", "$120"],
+                    ["4/2/2017", "Northwind Electric Cars", "Transportation", "$142"],
+                    ["4/5/2017", "Best For You Organics Company", "Groceries", "$27"],
+                    ["4/10/2017", "Coho Vineyard", "Restaurant", "$33"],
+                    ["4/11/2017", "Bellows College", "Education", "$350"],
+                    ["4/15/2017", "Trey Research", "Other", "$135"],
+                    ["4/15/2017", "Best For You Organics Company", "Groceries", "$97"]
+                ]);
+
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to use table changed events.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="register-handler" class="ms-Button">
+                <span class="ms-Button-label">Register data change handler</span>
+            </button>
+          <p />
+          <p>Edit individual cells in the table to trigger the event and see the console output.</p>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

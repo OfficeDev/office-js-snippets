@@ -417,13 +417,22 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
     }
 
     function validateTabsInsteadOfSpaces(snippet: ISnippet, messages: any[]): void {
-        const codeFields = [snippet.template.content, snippet.script.content, snippet.style.content, snippet.libraries];
-        if (codeFields.findIndex(code => code.indexOf('\t') >= 0) >= 0) {
-            snippet.template.content = snippet.template.content.replace(/\t/g, '    ');
-            snippet.script.content = snippet.script.content.replace(/\t/g, '    ');
-            snippet.style.content = snippet.style.content.replace(/\t/g, '    ');
-            snippet.libraries = snippet.libraries.replace(/\t/g, '    ');
+        let replacedTabs = false;
+        ['template', 'script', 'style'].forEach(fieldName => {
+            if (snippet[fieldName]) {
+                if (snippet[fieldName].content.indexOf('\t') >= 0) {
+                    replacedTabs = true;
+                    snippet[fieldName].content = snippet[fieldName].content.replace(/\t/g, '    ');
+                }
+            }
+        });
 
+        if (snippet.libraries.indexOf('\t') >= 0) {
+            replacedTabs = true;
+            snippet.libraries = snippet.libraries.replace(/\t/g, '    ');
+        }
+
+        if (replacedTabs) {
             messages.push('Snippet had one or more fields (template/script/style/libraries) ' +
                 'that contained tabs instead of spaces. Replacing everything with 4 spaces.');
         }

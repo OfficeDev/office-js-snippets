@@ -7,71 +7,74 @@ host: WORD
 api_set:
     WordApi: 1.1
 script:
-    content: |-
+    content: |
         $("#get-paragraph").click(() => tryCatch(getParagraph));
         $("#get-sentences").click(() => tryCatch(getSentences));
         $("#setup").click(() => tryCatch(setup));
 
-
         async function getParagraph() {
-            await Word.run(async (context) => {
-                // The collection of paragraphs of the current selection returns the full paragraphs contanied on it. 
-                let paragraph = context.document.getSelection().paragraphs.getFirst();
-                paragraph.load("text");
+          await Word.run(async (context) => {
+            // The collection of paragraphs of the current selection returns the full paragraphs contained in it.
+            let paragraph = context.document.getSelection().paragraphs.getFirst();
+            paragraph.load("text");
 
-                await context.sync();
-                console.log(paragraph.text);
-            });
+            await context.sync();
+            console.log(paragraph.text);
+          });
         }
 
         async function getSentences() {
-            await Word.run(async (context) => {
-                // Gets the complete sentence (as range) associated with the insertion point.
-                let sentences = context.document.getSelection().getTextRanges(
-                    ["."] /* Using the "." as delimiter */,
-                    false /*means without trimming spaces*/);
-                sentences.load("$none");
-                await context.sync();
+          await Word.run(async (context) => {
+            // Gets the complete sentence (as range) associated with the insertion point.
+            let sentences = context.document
+              .getSelection()
+              .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+            sentences.load("$none");
+            await context.sync();
 
-                // Expands the range to the end of the paragraph to get all the complete sentences.
-                let sentencesToTheEndOfParagraph = sentences.items[0].getRange().expandTo(
-                    context.document.getSelection().paragraphs.getFirst().getRange("End")).getTextRanges(
-                        ["."],
-                         false /* Don't trim spaces*/);
-                sentencesToTheEndOfParagraph.load("text");
-                await context.sync();
-                
-                for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
-                    console.log(sentencesToTheEndOfParagraph.items[i].text);
-                }
-            });
+            // Expands the range to the end of the paragraph to get all the complete sentences.
+            let sentencesToTheEndOfParagraph = sentences.items[0]
+              .getRange()
+              .expandTo(
+                context.document
+                  .getSelection()
+                  .paragraphs.getFirst()
+                  .getRange("End")
+              )
+              .getTextRanges(["."], false /* Don't trim spaces*/);
+            sentencesToTheEndOfParagraph.load("text");
+            await context.sync();
+
+            for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
+              console.log(sentencesToTheEndOfParagraph.items[i].text);
+            }
+          });
         }
 
         async function setup() {
-            await Word.run(async (context) => {
-                // Let's insert a couple of paragraphs to illustrate the point..
-                context.document.body.clear();
-                context.document.body.insertParagraph("Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.", "Start");
-                context.document.body.paragraphs.getLast().insertText("To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.", "Replace");
-
-                await context.sync();
-
-                context.document.body.paragraphs.getFirst().alignment = "Left";
-                context.document.body.paragraphs.getLast().alignment = "Left";
-
-                await context.sync();
-            })
+          await Word.run(async (context) => {
+            context.document.body.clear();
+            context.document.body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            context.document.body.paragraphs
+              .getLast()
+              .insertText(
+                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.",
+                "Replace"
+              );
+          });
         }
 
         /** Default helper for invoking an action and handling errors. */
         async function tryCatch(callback) {
-            try {
-                await callback();
-            }
-            catch (error) {
-                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-                console.error(error);
-            }
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
         }
     language: typescript
 template:

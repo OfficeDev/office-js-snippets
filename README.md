@@ -22,7 +22,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 
 ### Adding a new sample
 
-> For the git tasks in this procedure, the instructions assume that you are using a CLI. You are welcome to use a GUI git client. Consult the client's help to learn how to carry out the same tasks.
+> For the git tasks in this procedure, the instructions assume that you're using a CLI. You are welcome to use a GUI git client. Consult the client's help to learn how to carry out the same tasks.
 
 1. Create a snippet using [Script Lab](https://github.com/OfficeDev/script-lab/blob/master/README.md#what-is).  Ensure that the name and description are what you want to be shown publicly. Use standard TypeScript indentation. Improper indentation can cause a failure of the build that you run in a later step. See also the [**Style guidelines**](#style-guidelines) section below.
 2. Choose the Share icon, and then choose **Copy to Clipboard**.
@@ -44,7 +44,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
  - Within each base folder, group folders organize snippets into various categories.
  - Within each group folder, each .yaml file represents a snippet.
 
- > **Note**: If your snippet doesn't fit well with any existing group folder, you may want to create a new group folder inside the base folder. If the existing folders in the base folder begin with numbers, such as `03-range`, then your new folder should also begin with a number. The numbers determine the sequence of the groups in Script Lab, so use a number that is between the numbers of the groups between which you want the new folder to appear.
+ > **Note**: If your snippet doesn't fit with any existing group folder, create a new group folder inside the base folder. If the existing folders in the base folder begin with numbers, such as `03-range`, then your new folder should also begin with a number. Since the numbers determine the sequence of the groups in Script Lab, use a number between the numbers of the groups between which you want the new folder to appear.
 
 10. Open one of the `.yaml` files already in the group folder. If it has an `order` property near the top, then the snippets in the group folder are ordered in a particular sequence in Script Lab. Add an `order` property to the top of your `.yaml` file and give it a number that is between the order numbers of the snippets between which you want it to appear.
 11. Copy your `.yaml` file to the chosen group folder.
@@ -124,10 +124,10 @@ async function tryCatch(callback) {
 A few style rules to observe:
 
 * Use standard TypeScript indentation.
-* For each button, define a corresponding `async` function that is to be executed when the button is clicked. The `async` function can be called "run" if there is only one button on the page -- otherwise, name it as you will.
+* For each button, define a corresponding `async` function to be run when the button is clicked. The `async` function can be called "run" if there is only one button on the page -- otherwise, name it as you will.
 * Each button-click handler should invoke the `tryCatch` function, passing in the name of the `async` function to be executed when the button is clicked.
 * All HTML IDs should be `all-lower-case-and-hyphenated`.
-* Unless you are explicitly showing pretty UI, I wouldn't do the popup notification except for one or two samples.  It's a lot of HTML & JS code, and it's also not strictly Fabric-y (there is a more "correct" way of doing this with components).
+* Unless you are explicitly showing pretty UI, you don't have to do the popup notification except for one or two samples.  It's a lot of HTML & JS code, and also not strictly Fabric-y (there is a more "correct" way of doing this with components).
 * Strings should be in double-quotes.
 * Don't forget the semicolons.
 * `Libraries` in snippets must have a specific version. Eg. `jquery@3.1.1`.

@@ -20,15 +20,13 @@ script:
         async function addCommentToSelectedCell() {
             await Excel.run(async (context) => {
                 const selectedRange = context.workbook.getSelectedRange();
-                selectedRange.load(["rowIndex", "columnIndex"])
-                await context.sync();
 
                 // Note that an InvalidArgument error will be thrown if multiple cells are selected
-                const singleCell = selectedRange.getCell(selectedRange.rowIndex, selectedRange.columnIndex);
-                context.workbook.comments.add("TODO: add headers here.", singleCell);
+                context.workbook.comments.add("TODO: add headers here.", selectedRange);
                 await context.sync();
             });
         }
+
         async function addCommentToCell() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Comments");
@@ -36,16 +34,18 @@ script:
                 await context.sync();
             });
         }
+
         async function addCommentReply() {
             await Excel.run(async (context) => {
-                const comment = context.workbook.comments.getItemByCell("Comments!A1");
+                const comment = context.workbook.comments.getItemByCell("Comments!A2");
                 comment.replies.add("Do I have to?");
                 await context.sync();
             });
         }
+
         async function getCommentMetadata() {
             await Excel.run(async (context) => {
-                const comment = context.workbook.comments.getItemByCell("Comments!A1");
+                const comment = context.workbook.comments.getItemByCell("Comments!A2");
                 comment.load(["authorEmail", "authorName", "creationDate"]);
                 await context.sync();
 
@@ -53,6 +53,7 @@ script:
                 await context.sync();
             });
         }
+
         async function editComment() {
             await Excel.run(async (context) => {
                 const comment = context.workbook.comments.getItemAt(0);
@@ -60,6 +61,7 @@ script:
                 await context.sync();
             });
         }
+
         async function editCommentReply() {
             await Excel.run(async (context) => {
                 const comment = context.workbook.comments.getItemAt(0);
@@ -71,12 +73,7 @@ script:
                 await context.sync();
             });
         }
-        async function deleteComment() {
-            await Excel.run(async (context) => {
-                context.workbook.comments.getItemByCell("Comments!A2").delete();
-                await context.sync();
-            });
-        }
+
         async function deleteCommentReply() {
             await Excel.run(async (context) => {
                 var comment = context.workbook.comments.getItemAt(0);
@@ -87,6 +84,14 @@ script:
                 await context.sync();
             });
         }
+
+        async function deleteComment() {
+            await Excel.run(async (context) => {
+                context.workbook.comments.getItemByCell("Comments!A2").delete();
+                await context.sync();
+            });
+        }
+
         async function setup() {
             await Excel.run(async (context) => {
                 await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Comments");
@@ -135,11 +140,11 @@ template:
             <button id="editCommentReply" class="ms-Button">
                 <span class="ms-Button-label">Edit comment reply</span>
             </button><p/>
-            <button id="deleteComment" class="ms-Button">
-                    <span class="ms-Button-label">Delete comment at A2</span>
-            </button><p/>
             <button id="deleteCommentReply" class="ms-Button">
                 <span class="ms-Button-label">Delete comment reply</span>
+            </button><p/>
+            <button id="deleteComment" class="ms-Button">
+                    <span class="ms-Button-label">Delete comment at A2</span>
             </button><p/>
         </section>
     language: html

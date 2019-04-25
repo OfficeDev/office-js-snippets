@@ -26,6 +26,16 @@ Excel.Application.suspendScreenUpdatingUntilNextSync:
 
         console.log(`Ending. Adding ${rowCount * columnCount} cells took ${Date.now() - startTime} milliseconds`);
     });
+Excel.AutoFilter.apply:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        const farmData = sheet.getUsedRange();
+
+        // This filter will only show the rows with the top 25% of values in column 3.
+        sheet.autoFilter.apply(farmData, 3, { criterion1: "25", filterOn: Excel.FilterOn.topPercent });
+        await context.sync();
+    });
 Excel.Binding.onDataChanged:
   - |-
     await Excel.run(async (context) => {
@@ -2292,6 +2302,56 @@ Excel.ShowAsRule.baseItem:
         wholesaleDataHierarchy.showAs = wholesaleShowAs;
         await context.sync();
     });
+Excel.Slicer.style:
+  - |-
+    await Excel.run(async (context) => {
+        const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+        slicer.style = "SlicerStyleLight6";
+        await context.sync();
+    });
+Excel.Slicer.selectItems:
+  - |-
+    await Excel.run(async (context) => {
+        const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+        slicer.selectItems(["Lemon", "Lime", "Orange"]);
+        await context.sync();
+    });
+Excel.Slicer.clearFilters:
+  - |-
+    await Excel.run(async (context) => {
+        const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+        slicer.clearFilters();
+        await context.sync();
+    });
+Excel.Slicer.delete:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        sheet.slicers.getItemAt(0).delete();
+        await context.sync();
+    });
+Excel.SlicerCollection.add:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Pivot");
+        const slicer = sheet.slicers.add(
+            "Farm Sales", /* The slicer data source. For PivotTables, this can be the PivotTable object reference or name. */
+            "Type" /* The data source to filter by. For PivotTables, this can be a PivotField object reference or ID. */
+        );
+        slicer.name = "Fruit Slicer";
+        await context.sync();
+    });
+Excel.SlicerCollection.getItem:
+  - |-
+    await Excel.run(async (context) => {
+        const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+        slicer.caption = "Fruit Types";
+        slicer.left = 395;
+        slicer.top = 15;
+        slicer.height = 135;
+        slicer.width = 150;
+        await context.sync();
+    });
 Excel.Style.delete:
   - |-
     await Excel.run(async (context) => {
@@ -2441,6 +2501,17 @@ Excel.TableChangedEventArgs.worksheetId:
             console.log("Handler for table collection onChanged event has been triggered. Data changed address: " + event.address);
             console.log("Table Id : " + event.tableId);
             console.log("Worksheet Id : " + worksheet.name);
+        });
+    }
+Excel.TableChangedEventArgs.details:
+  - |-
+    async function onTableChanged(eventArgs: Excel.TableChangedEventArgs) {
+        await Excel.run(async (context) => {
+            const details = eventArgs.details;
+            const address = eventArgs.address;
+
+            console.log(`Change at ${address}: was ${details.valueBefore}(${details.valueTypeBefore}),`
+              + ` now is ${details.valueAfter}(${details.valueTypeAfter})`);
         });
     }
 Excel.TableCollection.onChanged:
@@ -2701,6 +2772,27 @@ Excel.Worksheet.tabColor:
 
         await context.sync();
     });
+Excel.Worksheet.autoFilter:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        const farmData = sheet.getUsedRange();
+
+        // This filter will only show the rows with the top 25% of values in column 3.
+        sheet.autoFilter.apply(farmData, 3, { criterion1: "25", filterOn: Excel.FilterOn.topPercent });
+        await context.sync();
+    });
+Excel.Worksheet.slicers:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Pivot");
+        const slicer = sheet.slicers.add(
+            "Farm Sales", /* The slicer data source. For PivotTables, this can be the PivotTable object reference or name. */
+            "Type" /* The data source to filter by. For PivotTables, this can be a PivotField object reference or ID. */
+        );
+        slicer.name = "Fruit Slicer";
+        await context.sync();
+    });
 Excel.WorksheetAddedEventArgs.worksheetId:
   - |-
     async function onWorksheetAdd(event) {
@@ -2903,37 +2995,6 @@ Excel.WorksheetProtection.unprotect:
     await Excel.run(async (context) => {
         let activeSheet = context.workbook.worksheets.getActiveWorksheet();
         activeSheet.protection.unprotect(password);
-    });
-Excel.TableChangedEventArgs.details:
-  - |-
-    async function onTableChanged(eventArgs: Excel.TableChangedEventArgs) {
-        await Excel.run(async (context) => {
-            const details = eventArgs.details;
-            const address = eventArgs.address;
-
-            console.log(`Change at ${address}: was ${details.valueBefore}(${details.valueTypeBefore}),`
-              + ` now is ${details.valueAfter}(${details.valueTypeAfter})`);
-        });
-    }
-Excel.Worksheet.autoFilter:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        const farmData = sheet.getUsedRange();
-
-        // This filter will only show the rows with the top 25% of values in column 3.
-        sheet.autoFilter.apply(farmData, 3, { criterion1: "25", filterOn: Excel.FilterOn.topPercent });
-        await context.sync();
-    });
-Excel.AutoFilter.apply:
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        const farmData = sheet.getUsedRange();
-
-        // This filter will only show the rows with the top 25% of values in column 3.
-        sheet.autoFilter.apply(farmData, 3, { criterion1: "25", filterOn: Excel.FilterOn.topPercent });
-        await context.sync();
     });
 Word.InlinePicture.getBase64ImageSrc:
   - |-

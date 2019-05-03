@@ -8,21 +8,22 @@ api_set:
 script:
     content: |
         /** @CustomFunction 
-        *  @description Increments the cell with a given amount at a specified interval in milliseconds.
-        * @param amount - The amount to add to the cell value on each increment.
-        * @param interval - The time in milliseconds to wait before the next increment on the cell.
-        * @returns An incrementing value.
-        * @streaming
-        */
-        function increment(amount: number, interval: number, handler: CustomFunctions.StreamingInvocation<number>): void {
+         * @description Increments the cell with a given amount at a specified interval in milliseconds.
+         * @param {number} amount - The amount to add to the cell value on each increment.
+         * @param {number} interval - The time in milliseconds to wait before the next increment on the cell.
+         * @param {CustomFunctions.StreamingInvocation<number>} invocation - Parameter to send results to Excel
+         *     or respond to the user canceling the function.
+         * @returns An incrementing value.
+         */
+        function increment(amount: number, interval: number, invocation: CustomFunctions.StreamingInvocation<number>): void {
           let result = 0;
-          const timer = setInterval( () => {
+          const timer = setInterval(() => {
             result += amount;
-            handler.setResult(result);
+            invocation.setResult(result);
           }, interval);
 
-          handler.onCanceled = () => {
-          clearInterval(timer);
+          invocation.onCanceled = () => {
+            clearInterval(timer);
           }
         }
     language: typescript

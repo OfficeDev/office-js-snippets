@@ -1,62 +1,53 @@
-order: 11
-id: excel-shape-move-and-order
-name: Move and order shapes
-description: Moves created shapes around the worksheet and adjusts their z-order.
+order: 5
+id: excel-shape-groups
+name: Shape groups
+description: Groups and ungroups shapes.
 host: EXCEL
 api_set:
     ExcelApi: 1.9
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#moveLeft").click(() => tryCatch(moveLeft));
-        $("#moveDown").click(() => tryCatch(moveDown));
-        $("#rotate").click(() => tryCatch(rotate));
-        $("#scaleUp").click(() => tryCatch(scaleUp));
-        $("#moveZOrderDown").click(() => tryCatch(moveZOrderDown));
         $("#createShapes").click(() => tryCatch(createShapes));
+        $("#groupShapes").click(() => tryCatch(groupShapes));
+        $("#moveGroup").click(() => tryCatch(moveGroup));
+        $("#ungroupShapes").click(() => tryCatch(ungroupShapes));
 
-        async function moveLeft() {
+        async function groupShapes() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Shapes");
-                const shape = sheet.shapes.getItem("Square")
-                shape.incrementLeft(-25);
+                const square = sheet.shapes.getItem("Square");
+                const pentagon = sheet.shapes.getItem("Pentagon");
+                const octagon = sheet.shapes.getItem("Octagon");
+
+                const shapeGroup = sheet.shapes.addGroup([square, pentagon, octagon]);
+                shapeGroup.name = "Group";
+                console.log("Shapes grouped");
+
                 await context.sync();
             });
         }
 
-        async function moveDown() {
+        async function moveGroup() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Shapes");
-                const shape = sheet.shapes.getItem("Pentagon")
-                shape.incrementTop(25);
+
+                const shapeGroup = sheet.shapes.getItem("Group");
+                shapeGroup.incrementLeft(50);
+                shapeGroup.incrementTop(50);
+
                 await context.sync();
             });
         }
 
-        async function rotate() {
+        async function ungroupShapes() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Shapes");
-                const shape = sheet.shapes.getItem("Pentagon")
-                shape.incrementRotation(30);
-                await context.sync();
-            });
-        }
 
-        async function scaleUp() {
-            await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Shapes");
-                const shape = sheet.shapes.getItem("Octagon")
-                shape.lockAspectRatio = true;
-                shape.scaleHeight(1.25, Excel.ShapeScaleType.currentSize);
-                await context.sync();
-            });
-        }
+                const shapeGroup = sheet.shapes.getItem("Group").group;
+                shapeGroup.ungroup();
+                console.log("Shapes ungrouped");
 
-        async function moveZOrderDown() {
-            await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Shapes");
-                const shape = sheet.shapes.getItem("Octagon")
-                shape.setZOrder(Excel.ShapeZOrder.sendBackward);
                 await context.sync();
             });
         }
@@ -96,7 +87,7 @@ script:
                 octagon.width = 50;
                 octagon.name = "Octagon";
                 octagon.fill.setSolidColor("red");
-                
+
                 await context.sync();
             });
         }
@@ -114,7 +105,7 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to change the position of shapes, both on the worksheet and their relative positioning when stacked.</p>
+            <p>This sample shows how to group and upgroup shapes in a worksheet.</p>
         </section>
         <section class="setup ms-font-m">
           <h3>Setup</h3>
@@ -127,21 +118,15 @@ template:
         </section>
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="moveLeft" class="ms-Button">
-                <span class="ms-Button-label">Move square left</span>
+            <button id="groupShapes" class="ms-Button">
+                <span class="ms-Button-label">Group shapes together</span>
             </button><p/>
-            <button id="moveDown" class="ms-Button">
-                <span class="ms-Button-label">Move pentagon down</span>
+            <button id="moveGroup" class="ms-Button">
+                <span class="ms-Button-label">Move shape group</span>
             </button><p/>
-            <button id="rotate" class="ms-Button">
-                <span class="ms-Button-label">Rotate the pentagon</span>
+            <button id="ungroupShapes" class="ms-Button">
+                <span class="ms-Button-label">Ungroup shapes</span>
             </button><p/>
-            <button id="scaleUp" class="ms-Button">
-                <span class="ms-Button-label">Resize the octagon</span>
-            </button><p/>
-            <button id="moveZOrderDown" class="ms-Button">
-                <span class="ms-Button-label">Move octagon down the z-order</span>
-            </button>
         </section>
     language: html
 style:
@@ -158,8 +143,8 @@ style:
         }
     language: css
 libraries: |
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-    @types/office-js-preview
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
 
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css

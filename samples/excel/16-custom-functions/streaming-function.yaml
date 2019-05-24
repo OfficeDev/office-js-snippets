@@ -1,0 +1,33 @@
+order: 2
+id: excel-custom-functions-streaming
+name: Streaming function
+description: A streaming function that continuously increments the cell value.
+host: EXCEL
+api_set:
+    CustomFunctionsRuntime: 1.1
+script:
+    content: |
+        /** @CustomFunction 
+         * @description Increments the cell with a given amount at a specified interval in milliseconds.
+         * @param {number} amount - The amount to add to the cell value on each increment.
+         * @param {number} interval - The time in milliseconds to wait before the next increment on the cell.
+         * @param {CustomFunctions.StreamingInvocation<number>} invocation - Parameter to send results to Excel
+         *     or respond to the user canceling the function.
+         * @returns An incrementing value.
+         */
+        function increment(amount: number, interval: number, invocation: CustomFunctions.StreamingInvocation<number>): void {
+          let result = 0;
+          const timer = setInterval(() => {
+            result += amount;
+            invocation.setResult(result);
+          }, interval);
+
+          invocation.onCanceled = () => {
+            clearInterval(timer);
+          }
+        }
+    language: typescript
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+    core-js@2.4.1/client/core.min.js

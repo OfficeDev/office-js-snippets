@@ -1,0 +1,215 @@
+order: 4
+id: excel-pivottable-slicer
+name: Slicer
+description: Adds a slicer to a PivotTable.
+host: EXCEL
+api_set:
+    ExcelApi: 2
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#add-pivot-table").click(() => tryCatch(addPivotTable));
+        $("#add-slicer").click(() => tryCatch(addSlicer));
+        $("#format-slicer").click(() => tryCatch(formatSlicer));
+        $("#apply-style").click(() => tryCatch(applyStyle));
+        $("#add-filters").click(() => tryCatch(addFilters));
+        $("#remove-filters").click(() => tryCatch(removeFilters));
+        $("#remove-slicer").click(() => tryCatch(removeSlicer));
+
+        async function addSlicer() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Pivot");
+                const slicer = sheet.slicers.add(
+                    "Farm Sales", /* The slicer data source. For PivotTables, this can be the PivotTable object reference or name. */
+                    "Type" /* The field in the data source to filter by. For PivotTables, this can be a PivotField object reference or ID. */
+                );
+                slicer.name = "Fruit Slicer";
+                await context.sync();
+            });
+        }
+
+        async function formatSlicer() {
+            await Excel.run(async (context) => {
+                const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+                slicer.caption = "Fruit Types";
+                slicer.left = 395;
+                slicer.top = 15;
+                slicer.height = 135;
+                slicer.width = 150;
+                await context.sync();
+            });
+        }
+
+        async function applyStyle() {
+            await Excel.run(async (context) => {
+                const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+                slicer.style = "SlicerStyleLight6";
+                await context.sync();
+            });
+        }
+
+        async function addFilters() {
+            await Excel.run(async (context) => {
+                const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+                slicer.selectItems(["Lemon", "Lime", "Orange"]);
+                await context.sync();
+            });
+        }
+
+        async function removeFilters() {
+            await Excel.run(async (context) => {
+                const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+                slicer.clearFilters();
+                await context.sync();
+            });
+        }
+
+        async function removeSlicer() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                sheet.slicers.getItemAt(0).delete();
+                await context.sync();
+            });
+        }
+
+        async function addPivotTable() {
+            await Excel.run(async (context) => {
+                const rangeToAnalyze = context.workbook.worksheets.getItem("Data").getRange("A1:E21");
+                const rangeToPlacePivot = context.workbook.worksheets.getItem("Pivot").getRange("A2");
+
+                const pivotTable = context.workbook.worksheets
+                    .getItem("Pivot")
+                    .pivotTables.add("Farm Sales", rangeToAnalyze, rangeToPlacePivot);
+
+                pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+
+                pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+                pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const sheetData = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Data");
+                const sheetPivot = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Pivot");
+
+                const data = [
+                    ["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"],
+                    ["A Farms", "Lime", "Organic", 300, 2000],
+                    ["A Farms", "Lemon", "Organic", 250, 1800],
+                    ["A Farms", "Orange", "Organic", 200, 2200],
+                    ["B Farms", "Lime", "Conventional", 80, 1000],
+                    ["B Farms", "Lemon", "Conventional", 75, 1230],
+                    ["B Farms", "Orange", "Conventional", 25, 800],
+                    ["B Farms", "Orange", "Organic", 20, 500],
+                    ["B Farms", "Lemon", "Organic", 10, 770],
+                    ["B Farms", "Kiwi", "Conventional", 30, 300],
+                    ["B Farms", "Lime", "Organic", 50, 400],
+                    ["C Farms", "Apple", "Organic", 275, 220],
+                    ["C Farms", "Kiwi", "Organic", 200, 120],
+                    ["D Farms", "Apple", "Conventional", 100, 3000],
+                    ["D Farms", "Apple", "Organic", 80, 2800],
+                    ["E Farms", "Lime", "Conventional", 160, 2700],
+                    ["E Farms", "Orange", "Conventional", 180, 2000],
+                    ["E Farms", "Apple", "Conventional", 245, 2200],
+                    ["E Farms", "Kiwi", "Conventional", 200, 1500],
+                    ["F Farms", "Kiwi", "Organic", 100, 150],
+                    ["F Farms", "Lemon", "Conventional", 150, 270]
+                ];
+
+                const range = sheetData.getRange("A1:E21");
+                range.values = data;
+                range.format.autofitColumns();
+
+                sheetPivot.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to work with a slicer on a PivotTable.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add data</span>
+            </button>
+          <p />
+          <button id="add-pivot-table" class="ms-Button">
+            <span class="ms-Button-label">Add pivot table</span>
+          </button>
+        </section>
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>  
+          <p>Add the slicer, then try out the formatting and filtering options.</p>
+          <button id="add-slicer" class="ms-Button">
+              <span class="ms-Button-label">Add slicer</span>
+            </button>
+          <p />
+          <h4>Formatting</h4>
+          <button id="format-slicer" class="ms-Button">
+              <span class="ms-Button-label">Format slicer</span>
+            </button>
+          <p />
+          <button id="apply-style" class="ms-Button">
+              <span class="ms-Button-label">Apply style to slicer</span>
+            </button>
+          <p />
+          <h4>Data</h4>
+          <button id="add-filters" class="ms-Button">
+              <span class="ms-Button-label">Add filters</span>
+            </button>
+          <p />
+          <button id="remove-filters" class="ms-Button">
+              <span class="ms-Button-label">Remove fitlers</span>
+            </button>
+          <p />
+          <h4>Clean up</h4>
+          <button id="remove-slicer" class="ms-Button">
+            <span class="ms-Button-label">Remove slicer</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

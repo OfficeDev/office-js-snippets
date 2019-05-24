@@ -1,0 +1,163 @@
+order: 3
+id: excel-worksheet-auto-filter
+name: AutoFilter
+description: Adds an AutoFilter to a worksheet.
+host: EXCEL
+api_set:
+    ExcelApi: 1.9
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#add-auto-filter").click(() => tryCatch(addAutoFilter));
+        $("#randomize-data").click(() => tryCatch(randomizeData));
+        $("#refresh-auto-filter").click(() => tryCatch(refreshAutoFilter));
+        $("#remove-auto-filter").click(() => tryCatch(removeAutoFilter));
+
+        async function addAutoFilter() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const farmData = sheet.getUsedRange();
+
+                // This filter will only show the rows with the top 25% of values in column 3.
+                sheet.autoFilter.apply(farmData, 3, { criterion1: "25", filterOn: Excel.FilterOn.topPercent });
+                await context.sync();
+            });
+        }
+
+        async function randomizeData() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const farmData = sheet.getUsedRange();
+                farmData.load("rowCount");
+                await context.sync();
+
+                for (let i = 1; i < farmData.rowCount; i++) {
+                    farmData.getCell(i, 3).values = [[Math.round(Math.random() * 5000)]];
+                }
+
+                await context.sync();
+            });
+        }
+
+        async function refreshAutoFilter() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                sheet.autoFilter.reapply();
+                await context.sync();
+            });
+        }
+
+        async function removeAutoFilter() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                sheet.autoFilter.remove();
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                const dataSheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+
+                const data = [
+                    ["Farm", "Type", "Classification", "Crates Sold Wholesale"],
+                    ["A Farms", "Lime", "Organic", 2000],
+                    ["A Farms", "Lemon", "Organic", 1800],
+                    ["A Farms", "Orange", "Organic", 2200],
+                    ["B Farms", "Lime", "Conventional", 1000],
+                    ["B Farms", "Lemon", "Conventional", 1230],
+                    ["B Farms", "Orange", "Conventional", 800],
+                    ["B Farms", "Orange", "Organic", 500],
+                    ["B Farms", "Lemon", "Organic", 770],
+                    ["B Farms", "Kiwi", "Conventional", 300],
+                    ["B Farms", "Lime", "Organic", 400],
+                    ["C Farms", "Apple", "Organic", 220],
+                    ["C Farms", "Kiwi", "Organic", 120],
+                    ["D Farms", "Apple", "Conventional", 3000],
+                    ["D Farms", "Apple", "Organic", 2800],
+                    ["E Farms", "Lime", "Conventional", 2700],
+                    ["E Farms", "Orange", "Conventional", 2000],
+                    ["E Farms", "Apple", "Conventional", 2200],
+                    ["E Farms", "Kiwi", "Conventional", 1500],
+                    ["F Farms", "Kiwi", "Organic", 150],
+                    ["F Farms", "Lemon", "Conventional", 270]
+                ];
+                const range = dataSheet.getRange("A1:D21");
+                range.values = data;
+                dataSheet.getRange("A1:D1").format.font.bold = true;
+                range.format.autofitColumns();
+                dataSheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to work with an AutoFilter on a worksheet.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add data</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="add-auto-filter" class="ms-Button">
+                <span class="ms-Button-label">Add AutoFilter</span>
+            </button>
+          <p />
+          <button id="randomize-data" class="ms-Button">
+              <span class="ms-Button-label">Randomize data</span>
+            </button>
+          <p />
+          <p>When the data in the worksheet or table changes, the AutoFilter needs to be refreshed by your add-in.</p>
+          <button id="refresh-auto-filter" class="ms-Button">
+            <span class="ms-Button-label">Refresh AutoFilter</span>
+          </button>
+          <p />
+          <button id="remove-auto-filter" class="ms-Button">
+            <span class="ms-Button-label">Remove AutoFilter</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

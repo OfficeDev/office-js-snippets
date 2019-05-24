@@ -26,6 +26,16 @@ Excel.Application.suspendScreenUpdatingUntilNextSync:
 
         console.log(`Ending. Adding ${rowCount * columnCount} cells took ${Date.now() - startTime} milliseconds`);
     });
+Excel.AutoFilter.apply:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        const farmData = sheet.getUsedRange();
+
+        // This filter will only show the rows with the top 25% of values in column 3.
+        sheet.autoFilter.apply(farmData, 3, { criterion1: "25", filterOn: Excel.FilterOn.topPercent });
+        await context.sync();
+    });
 Excel.Binding.onDataChanged:
   - |-
     await Excel.run(async (context) => {
@@ -381,7 +391,7 @@ Excel.Comment.delete:
 Excel.Comment.load_2:
   - |-
     await Excel.run(async (context) => {
-        const comment = context.workbook.comments.getItemByCell("Comments!A1");
+        const comment = context.workbook.comments.getItemByCell("Comments!A2");
         comment.load(["authorEmail", "authorName", "creationDate"]);
         await context.sync();
 
@@ -392,6 +402,8 @@ Excel.CommentCollection.add:
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Comments");
+
+        // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
         sheet.comments.add("TODO: add data.", "A2");
         await context.sync();
     });
@@ -415,7 +427,7 @@ Excel.CommentReply.delete:
 Excel.CommentReplyCollection.add:
   - |-
     await Excel.run(async (context) => {
-        const comment = context.workbook.comments.getItemByCell("Comments!A1");
+        const comment = context.workbook.comments.getItemAt(0);
         comment.replies.add("Do I have to?");
         await context.sync();
     });
@@ -2290,6 +2302,56 @@ Excel.ShowAsRule.baseItem:
         wholesaleDataHierarchy.showAs = wholesaleShowAs;
         await context.sync();
     });
+Excel.Slicer.style:
+  - |-
+    await Excel.run(async (context) => {
+        const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+        slicer.style = "SlicerStyleLight6";
+        await context.sync();
+    });
+Excel.Slicer.selectItems:
+  - |-
+    await Excel.run(async (context) => {
+        const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+        slicer.selectItems(["Lemon", "Lime", "Orange"]);
+        await context.sync();
+    });
+Excel.Slicer.clearFilters:
+  - |-
+    await Excel.run(async (context) => {
+        const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+        slicer.clearFilters();
+        await context.sync();
+    });
+Excel.Slicer.delete:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        sheet.slicers.getItemAt(0).delete();
+        await context.sync();
+    });
+Excel.SlicerCollection.add:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Pivot");
+        const slicer = sheet.slicers.add(
+            "Farm Sales", /* The slicer data source. For PivotTables, this can be the PivotTable object reference or name. */
+            "Type" /* The field in the data source to filter by. For PivotTables, this can be a PivotField object reference or ID. */
+        );
+        slicer.name = "Fruit Slicer";
+        await context.sync();
+    });
+Excel.SlicerCollection.getItem:
+  - |-
+    await Excel.run(async (context) => {
+        const slicer = context.workbook.slicers.getItem("Fruit Slicer");
+        slicer.caption = "Fruit Types";
+        slicer.left = 395;
+        slicer.top = 15;
+        slicer.height = 135;
+        slicer.width = 150;
+        await context.sync();
+    });
 Excel.Style.delete:
   - |-
     await Excel.run(async (context) => {
@@ -2439,6 +2501,17 @@ Excel.TableChangedEventArgs.worksheetId:
             console.log("Handler for table collection onChanged event has been triggered. Data changed address: " + event.address);
             console.log("Table Id : " + event.tableId);
             console.log("Worksheet Id : " + worksheet.name);
+        });
+    }
+Excel.TableChangedEventArgs.details:
+  - |-
+    async function onTableChanged(eventArgs: Excel.TableChangedEventArgs) {
+        await Excel.run(async (context) => {
+            const details = eventArgs.details;
+            const address = eventArgs.address;
+
+            console.log(`Change at ${address}: was ${details.valueBefore}(${details.valueTypeBefore}),`
+              + ` now is ${details.valueAfter}(${details.valueTypeAfter})`);
         });
     }
 Excel.TableCollection.onChanged:
@@ -2699,6 +2772,27 @@ Excel.Worksheet.tabColor:
 
         await context.sync();
     });
+Excel.Worksheet.autoFilter:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        const farmData = sheet.getUsedRange();
+
+        // This filter will only show the rows with the top 25% of values in column 3.
+        sheet.autoFilter.apply(farmData, 3, { criterion1: "25", filterOn: Excel.FilterOn.topPercent });
+        await context.sync();
+    });
+Excel.Worksheet.slicers:
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Pivot");
+        const slicer = sheet.slicers.add(
+            "Farm Sales", /* The slicer data source. For PivotTables, this can be the PivotTable object reference or name. */
+            "Type" /* The field in the data source to filter by. For PivotTables, this can be a PivotField object reference or ID. */
+        );
+        slicer.name = "Fruit Slicer";
+        await context.sync();
+    });
 Excel.WorksheetAddedEventArgs.worksheetId:
   - |-
     async function onWorksheetAdd(event) {
@@ -2902,17 +2996,19 @@ Excel.WorksheetProtection.unprotect:
         let activeSheet = context.workbook.worksheets.getActiveWorksheet();
         activeSheet.protection.unprotect(password);
     });
-Excel.TableChangedEventArgs.details:
+Excel.RangeAreas.format:
   - |-
-    async function onTableChanged(eventArgs: Excel.TableChangedEventArgs) {
-        await Excel.run(async (context) => {
-            const details = eventArgs.details;
-            const address = eventArgs.address;
+    await Excel.run(async (context) => {
 
-            console.log(`Change at ${address}: was ${details.valueBefore}(${details.valueTypeBefore}),`
-              + ` now is ${details.valueAfter}(${details.valueTypeAfter})`);
-        });
-    }
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        const usedRange = sheet.getUsedRange();
+
+        // Find the ranges with formulas
+        const formulaRanges = usedRange.getSpecialCells("Formulas");
+        formulaRanges.format.fill.color = "lightgreen";
+
+        await context.sync();
+    });
 Word.InlinePicture.getBase64ImageSrc:
   - |-
     await Word.run(async (context) => {
@@ -2972,7 +3068,7 @@ Word.Body.search:
   - |-
     await Word.run(async (context) => {
       let results = context.document.body.search("Online");
-      results.load("font/highlightColor");
+      results.load("length");
 
       await context.sync();
 
@@ -2988,7 +3084,7 @@ Word.Body.search:
       // Check out how wildcard expression are built, also use the second parameter of the search method to include search modes
       // (i.e. use wildcards).
       let results = context.document.body.search("$*.[0-9][0-9]", { matchWildcards: true });
-      results.load("font/highlightColor, font/color");
+      results.load("length");
 
       await context.sync();
 
@@ -3231,8 +3327,8 @@ Word.ContentControl.set:
       // Gets the complete sentence (as range) associated with the insertion point.
       let evenContentControls = context.document.contentControls.getByTag("even");
       let oddContentControls = context.document.contentControls.getByTag("odd");
-      evenContentControls.load("color,title,appearance");
-      oddContentControls.load("color,title,appearance");
+      evenContentControls.load("length");
+      oddContentControls.load("length");
 
       await context.sync();
 

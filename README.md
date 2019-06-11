@@ -48,11 +48,11 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 
 10. Open one of the `.yaml` files already in the group folder. If it has an `order` property near the top, then the snippets in the group folder are ordered in a particular sequence in Script Lab. Add an `order` property to the top of your `.yaml` file and give it a number that is between the order numbers of the snippets between which you want it to appear.
 11. Copy your `.yaml` file to the chosen group folder.
-12. Run `npm start`. If there are no problems, the output will end with a `Done!`. If there are errors, review the output to check what caused the build validation to fail, and fix as needed. See [**Known errors and fixes**](#known-errors-and-fixes-in-the-build-tool) for more information.
+12. Run `yarn start`. If there are no problems, the output will end with a `Done!`. If there are errors, review the output to check what caused the build validation to fail, and fix as needed. See [**Known errors and fixes**](#known-errors-and-fixes-in-the-build-tool) for more information.
 
- > **Note**: The `npm start` command adds an `id` property to the top of the file.
+ > **Note**: The `yarn start` command adds an `id` property to the top of the file.
 
-13. Re-run `npm start`, and fix errors, until the build succeeds.
+13. Re-run `yarn start`, and fix errors, until the build succeeds.
 14. Run `git status`. You should see that, in addition to your new `.yaml` file (or possibly new folder), a `playlist\{host}.yaml` file (where `{host}` is `excel`, `word`, etc.) has also been changed. This is expected. The build tool you just ran added a reference to your new snippet to this file.
 15. Run the following two commands. The commit message should be a brief description of what the snippet demonstrates; for example, `"shows how to use getWhatever method"`.
 

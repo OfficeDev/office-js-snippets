@@ -41,12 +41,12 @@ script:
         /** Create a new table with some sample data */
         async function setup() {
             await Excel.run(async (context) => {
-                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-
-                const sheet = context.workbook.worksheets.getItem("Sample");
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet = context.workbook.worksheets.add("Sample");
+                await context.sync();
 
                 const expensesTable = sheet.tables.add('A1:D1', true /*hasHeaders*/);
-                 expensesTable.name = "ExpensesTable";
+                expensesTable.name = "ExpensesTable";
 
                 expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
 
@@ -125,9 +125,6 @@ libraries: |
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

@@ -102,8 +102,10 @@ script:
 
         async function setup() {
             await Excel.run(async (context) => {
-                const decisionSheet = await OfficeHelpers.ExcelUtilities
-                    .forceCreateSheet(context.workbook, "Decision");
+                context.workbook.worksheets.getItemOrNullObject("Decision").delete();
+                const decisionSheet = context.workbook.worksheets.add("Decision");
+                await context.sync();
+
                 const optionsTable = decisionSheet.tables.add("A1:C4", true /*hasHeaders*/);
                 optionsTable.name = "NameOptionsTable";
                 optionsTable.showBandedRows = false;
@@ -115,12 +117,12 @@ script:
 
                 // The names that will be allowed in the Baby Name column are 
                 // listed in a range on the Names sheet. 
-                const namesSheet = await OfficeHelpers.ExcelUtilities
-                    .forceCreateSheet(context.workbook, "Names");
+                context.workbook.worksheets.getItemOrNullObject("Names").delete();
+                const namesSheet = context.workbook.worksheets.add("Names");
+                await context.sync();
+
                 namesSheet.getRange("A1:A3").values = [["Sue"], ["Ricky"], ["Liz"]];
-
                 decisionSheet.activate();
-
                 await context.sync();
             });
         }
@@ -187,9 +189,6 @@ libraries: |
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

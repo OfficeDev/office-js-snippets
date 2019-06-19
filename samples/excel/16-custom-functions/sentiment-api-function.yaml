@@ -1,0 +1,86 @@
+order: 5
+id: excel-custom-functions-sentiment-api
+name: Call sentiment analysis API
+description: Passes a text string to cognitive services API for analysis. Return value varies from 0 (negative) to 1 (positive).
+host: EXCEL
+api_set:
+    ExcelApi: 1.1
+script:
+    content: |-
+        /** @customfunction 
+         * 
+         * Passes a text string to cognitive services API for analysis. Return value varies from 0 (negative) to 1 (positive).
+         * @param text string The text to run sentiment analysis on.
+         * @return number The sentiment value. Values closer to 0 are negative. Values closer to 1 are positive.
+         * 
+        */
+        async function getSentiment(text: string): Promise<number> {
+          // NOTE: Get your own cognitive services key by:
+          // 1. Going to https://azure.microsoft.com/try/cognitive-services/
+          // 2. Choose "Language APIs"
+          // 3. Choose "Get API Key" under "Text Analytics"
+          // 4. Provide both the key AND the url in the next two lines:
+          const key = "<your key>";
+          const baseUrl = "<your base url>"
+          const body = {
+            "documents": [
+              {
+                "language": "en",
+                "id": 1,
+                "text": text
+              }
+            ]
+          };
+          const url = baseUrl + "/sentiment";
+          try {
+            // Call the sentiment API
+            let response: ICognitiveServicesResponse = await $.ajax({
+              url: url,
+              beforeSend: function (xhrObj) {
+                xhrObj.setRequestHeader("Content-Type", "application/json");
+                xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", key);
+              },
+              type: "POST",
+              data: JSON.stringify(body),
+            });
+
+            // Check for any potential errors
+            if (response.errors && response.errors.length > 0) {
+              throw new Error(response.errors[0]);
+            }
+
+            //Return the sentiment score
+            return response.documents[0].score;
+          } catch (e) {
+            console.error(e);
+
+            // -1 is an error. If you see this value returned, double-check that the key and url are correct.
+            return -1;
+          }
+
+        }
+        interface ICognitiveServicesResponse {
+          "documents": [
+            {
+              "score": number
+              "id": string
+            }
+          ],
+          "errors": any[] | null
+        }
+    language: typescript
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

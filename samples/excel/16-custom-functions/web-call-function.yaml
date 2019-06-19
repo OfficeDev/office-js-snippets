@@ -1,0 +1,38 @@
+order: 4
+id: excel-custom-functions-web-call
+name: Web request to GitHub API
+description: Calls the GitHub API to get the star count for an org/user and repository.
+host: EXCEL
+api_set:
+    CustomFunctionsRuntime: 1.1
+script:
+    content: |
+        /**
+         * Gets the star count for a given org/user and repo. Try =GETSTARCOUNT("officedev","office-js")
+         * @customfunction
+         * @param userName string name of org or user
+         * @param repoName string name of the repo
+         * @return number of stars.
+         */
+        async function getStarCount(userName: string, repoName: string) {
+          try {
+            //You can change this URL to any web request you want to work with.
+            const url = "https://api.github.com/repos/" + userName + "/" + repoName;
+            const response = await fetch(url);
+
+            //Expect that status code is in 200-299 range
+            if (!response.ok) {
+              throw new Error(response.statusText);
+            }
+            const jsonResponse = await response.json();
+
+            return jsonResponse.watchers_count;
+          } catch (error) {
+            return error;
+          }
+        }
+    language: typescript
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+    core-js@2.4.1/client/core.min.js

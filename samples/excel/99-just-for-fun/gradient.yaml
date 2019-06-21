@@ -5,7 +5,7 @@ description: Uses range formatting and external libraries to draw a colorful gra
 author: AlexanderZlatkovski
 host: EXCEL
 api_set:
-    ExcelApi: 1.2
+    ExcelApi: 1.4
 script:
     content: |-
         initializeColorPickers();
@@ -22,7 +22,7 @@ script:
                 await Excel.run(drawGradientHelper);
             }
             catch (error) {
-                OfficeHelpers.Utilities.log(error);
+                console.log(error);
             }
 
             $drawButton.prop("disabled", false);
@@ -30,8 +30,8 @@ script:
 
         /** Helper function to do the actual gradient-drawing */
         async function drawGradientHelper(context: Excel.RequestContext) {
-            const sheet = await OfficeHelpers.ExcelUtilities
-                .forceCreateSheet(context.workbook, "Gradient", true /*clearOnly*/);
+            context.workbook.worksheets.getItemOrNullObject("Gradient").delete();
+            const sheet = context.workbook.worksheets.add("Gradient");
 
             sheet.getRange().untrack().format.set({
                 rowHeight: 15,
@@ -200,9 +200,6 @@ libraries: |-
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

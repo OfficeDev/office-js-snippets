@@ -5,7 +5,7 @@ description: Filters table data.
 author: OfficeDev
 host: EXCEL
 api_set:
-    ExcelApi: 1.1
+    ExcelApi: 1.4
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
@@ -49,10 +49,8 @@ script:
         /** Create a new table with sample data */
         async function setup() {
             await Excel.run(async (context) => {
-
-                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-
-                const sheet = context.workbook.worksheets.getItem("Sample");
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet = context.workbook.worksheets.add("Sample");
 
                 const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
                  expensesTable.name = "ExpensesTable";
@@ -69,13 +67,10 @@ script:
                     ["1/15/2017", "Best For You Organics Company", "Groceries", "$97"]
                 ]);
 
-                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
-                    sheet.getUsedRange().format.autofitColumns();
-                    sheet.getUsedRange().format.autofitRows();
-                }
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.getUsedRange().format.autofitRows();
 
                 sheet.activate();
-
                 await context.sync();
             });
         }
@@ -136,9 +131,6 @@ libraries: |
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

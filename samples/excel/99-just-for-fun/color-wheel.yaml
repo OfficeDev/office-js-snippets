@@ -5,7 +5,7 @@ description: Uses chart formatting to draw a wheel with changing colors. Contrib
 author: AlexanderZlatkovski
 host: EXCEL
 api_set:
-    ExcelApi: 1.1
+    ExcelApi: 1.4
 script:
     content: |
         $("#wheel").click(wheelGo);
@@ -22,7 +22,8 @@ script:
                     isStopped = false;
 
                     // Create a hidden sheet which will contain data for the color wheel chart:
-                    const sheetSettings = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Color Wheel Settings", true /*clearOnly*/);
+                    context.workbook.worksheets.getItemOrNullObject("Color Wheel Settings").delete();
+                    const sheetSettings = context.workbook.worksheets.add("Color Wheel Settings");
                     sheetSettings.visibility = Excel.SheetVisibility.hidden;
                     const dataRange = sheetSettings.getRange("A1:A" + numberOfSlices);
                     const matrix = new Array();
@@ -35,7 +36,8 @@ script:
                     dataRange.values = matrix;
 
                     // Create a sheet for the color wheel and format it
-                    const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Color Wheel", true /*clearOnly*/);
+                    context.workbook.worksheets.getItemOrNullObject("Color Wheel").delete();
+                    const sheet = context.workbook.worksheets.add("Color Wheel");
                     
                     sheet.charts.load("id");
                     sheet.activate();
@@ -81,7 +83,6 @@ script:
                 // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
                 console.error(error);
             }
-        }
         }
 
         async function loopThroughColors(points: Excel.ChartPointsCollection, max, colorGenerator: (i: number) => string) {
@@ -150,9 +151,6 @@ libraries: |
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

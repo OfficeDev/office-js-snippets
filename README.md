@@ -4,7 +4,7 @@
 
 A collection of code snippets built with [Script Lab](//github.com/OfficeDev/script-lab)
 
-![Script Lab import gallery screenshot](.github/images/addin-samples-gallery-screenshot.jpg)
+![Script Lab import gallery screenshot](.github/images/addin-samples-gallery-screenshot.png)
 
 ## To contribute:
 

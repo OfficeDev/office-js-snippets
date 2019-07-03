@@ -46,7 +46,19 @@ script:
             if (Office.context.requirements.isSetSupported("ExcelApi", 1.9)) {
                 // ExcelApi 1.9 introduced the setCellProperties APIs to efficiently set different properties
                 // across a range without needing to iterate cell-by-cell.
-                sheet.getRangeByIndexes(1, 1, originalSize, originalSize).setCellProperties(colors2D);
+                const cellProperties: Excel.SettableCellProperties[][] =
+                colors2D.map(row =>
+                    row.map(color =>
+                        ({
+                            format: {
+                                fill: {
+                                    color: color
+                                }
+                            }
+                        })
+                    )
+                );
+                sheet.getRangeByIndexes(1, 1, originalSize, originalSize).setCellProperties(cellProperties);
             } else {
                 let range = sheet.getCell(1, 1).untrack().getResizedRange(originalSize - 1, originalSize - 1).untrack();
                 for (let row = 0; row < originalSize; row++) {
@@ -60,7 +72,7 @@ script:
             await context.sync();
         }
 
-        function createColorArray(size: number): any[][] {
+        function createColorArray(size: number): string[][] {
             // Create a 2D in-memory array to hold the colors
             let colors2D = Array(size);
             for (let row = 0; row < size; row++) {
@@ -79,25 +91,10 @@ script:
                 size
             );
 
-            if (Office.context.requirements.isSetSupported("ExcelApi", 1.9)) {
-                for (let col = 0; col < size; col++) {
-                    const columnColors = getColorsArray(topColors[col], bottomColors[col], size);
-                    for (let row = 0; row < size; row++) {
-                        colors2D[row][col] = {
-                            format: {
-                                fill: {
-                                    color: tinycolor(columnColors[row]).toHexString()
-                                }
-                            }
-                        };
-                    }
-                }
-            } else {
-                for (let col = 0; col < size; col++) {
-                    const columnColors = getColorsArray(topColors[col], bottomColors[col], size);
-                    for (let row = 0; row < size; row++) {
-                        colors2D[row][col] = tinycolor(columnColors[row]).toHexString();
-                    }
+            for (let col = 0; col < size; col++) {
+                const columnColors = getColorsArray(topColors[col], bottomColors[col], size);
+                for (let row = 0; row < size; row++) {
+                    colors2D[row][col] = tinycolor(columnColors[row]).toHexString();
                 }
             }
 

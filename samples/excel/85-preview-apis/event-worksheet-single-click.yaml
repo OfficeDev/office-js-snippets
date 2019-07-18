@@ -1,0 +1,77 @@
+order: 4
+id: excel-event-worksheet-single-click
+name: Single Click Event
+description: Registers an event handler that runs when a single-click event occurs in the current worksheet.
+host: EXCEL
+api_set:
+    ExcelApi: '1.10'
+script:
+    content: |-
+        $("#register-click-handler").click(() => tryCatch(registerClickHandler)); 
+
+        async function registerClickHandler() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                sheet.onSingleClicked.add((event) => {
+                    return Excel.run((context) => {
+                        console.log(`Click detected at ${event.address} (pixel offset from upper-left cell corner: ${event.offsetX}, ${event.offsetY})`);
+                        return context.sync();
+                    });
+                });
+
+                console.log("The worksheet click handler is registered.");
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to register and use a handler for the data-changed event.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <p>Use the button below to register the event handler. Then, left-click around the worksheet and check the console.
+          </p>
+          <button id="register-click-handler" class="ms-Button">
+            <span class="ms-Button-label">Register click handler</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

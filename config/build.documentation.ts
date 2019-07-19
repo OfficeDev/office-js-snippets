@@ -78,21 +78,17 @@ async function buildSnippetExtractsPerHost(
                 // Remove the first line, since it's the header line
                 rows.splice(0, 1);
 
-                resolve(
-                    rows
-                        .map((row: string[]) => {
-                            if (row.find(text => text.startsWith('//'))) {
-                                return null;
-                            }
+                resolve(rows.map((row: string[]) => {
+                    if (row.find(text => text.startsWith('//'))) {
+                        return null;
+                    }
 
-                            let result: MappingFileRowData = {} as any;
-                            row.forEach((column: string, index) => {
-                                result[headerNames[index]] = column;
-                            });
-                            return result;
-                        })
-                        .filter(item => item)
-                );
+                    let result: MappingFileRowData = {} as any;
+                    row.forEach((column: string, index) => {
+                        result[headerNames[index]] = column;
+                    });
+                    return result;
+                }).filter(item => item));
             });
         });
 
@@ -102,7 +98,7 @@ async function buildSnippetExtractsPerHost(
         .filter(item => item)
         .forEach((text, index) => {
             const row = lines[index];
-            const fullName = `${hostName}.${row.class}.${row.member}`;
+            const fullName = `${hostName}.${row.class.trim()}.${row.member.trim()}`;
             if (!allSnippetData[fullName]) {
                 allSnippetData[fullName] = [];
             }

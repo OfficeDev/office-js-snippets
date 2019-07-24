@@ -7,19 +7,17 @@ import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
     getDestinationBranch, followsNamingGuidelines, isCUID,
-    rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails
+    rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails, Dictionary
 } from './helpers';
 import { buildReferenceDocSnippetExtracts } from './build.documentation';
 import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
-import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
 import escapeStringRegexp = require('escape-string-regexp');
 
 
 const { GH_ACCOUNT, GH_REPO, TRAVIS_BRANCH } = process.env;
-const PRIVATE_SAMPLES = 'private-samples';
 const PUBLIC_SAMPLES = 'samples';
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
@@ -65,13 +63,11 @@ const defaultApiSets = {
 
 async function processSnippets(processedSnippets: Dictionary<SnippetProcessedData>) {
     banner('Loading & processing snippets');
-    let files: SnippetFileInput[] = []
-        .concat(getFiles(path.resolve(PRIVATE_SAMPLES)))
-        .concat(getFiles(path.resolve(PUBLIC_SAMPLES)));
+    let files: SnippetFileInput[] = getFiles(path.resolve(PUBLIC_SAMPLES));
 
     (await Promise.all(files.map(file => processAndValidateSnippet(file))))
         .filter(file => file !== null)
-        .map(file => processedSnippets.add(file.rawUrl, file));
+        .map(file => processedSnippets.set(file.rawUrl, file));
 
 
     // Helpers:
@@ -80,9 +76,8 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
         const messages: Array<string | Error> = [];
         try {
             status.add(`Processing ${file.relativePath}`);
-            let dir = file.isPublic ? PUBLIC_SAMPLES : PRIVATE_SAMPLES;
 
-            const fullPath = path.resolve(dir, file.relativePath);
+            const fullPath = path.resolve(PUBLIC_SAMPLES, file.relativePath);
             const originalFileContents = (await loadFileContents(fullPath)).trim();
             let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
 
@@ -125,7 +120,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
 
             const rawUrl = `https://raw.githubusercontent.com/` +
                 `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${getDestinationBranch(TRAVIS_BRANCH) || '<BRANCH>'}` +
-                `/${dir}/${file.host}/${file.group}/${file.file_name}`;
+                `/${PUBLIC_SAMPLES}/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
@@ -151,8 +146,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
                 rawUrl: rawUrl,
                 group: groupName,
                 order: (typeof (snippet as any).order === 'undefined') ? 100 /* nominally 100 */ : (snippet as any).order,
-                api_set: snippet.api_set,
-                isPublic: file.isPublic
+                api_set: snippet.api_set
             };
         } catch (exception) {
             messages.push(exception);
@@ -488,9 +482,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
 
     let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
     for (let processedSnippet of processedSnippets.values()) {
-        if (processedSnippet.isPublic) {
-            processedPublicSnippets.add(processedSnippet.rawUrl, processedSnippet);
-        }
+        processedPublicSnippets.set(processedSnippet.rawUrl, processedSnippet);
     }
 
     /* Creating playlists directory */

@@ -23,6 +23,7 @@ export interface SnippetFileInput {
     fullPath: string;
     host: string;
     group: string;
+    isPublic: boolean;
 }
 
 export interface SnippetProcessedData {
@@ -39,6 +40,7 @@ export interface SnippetProcessedData {
     api_set: {
         [index: string]: number
     };
+    isPublic: boolean
 }
 
 /**
@@ -212,6 +214,7 @@ export function getFileMetadata(fullPath: string, root: string): SnippetFileInpu
     return {
         relativePath: relativePath,
         fullPath,
+        isPublic: !(/[\\/]private-samples$/.test(root)),
         host,
         group,
         file_name
@@ -219,7 +222,7 @@ export function getFileMetadata(fullPath: string, root: string): SnippetFileInpu
 }
 
 /**
- * Recurrsively crawl through a folder and return all the files in it.
+ * Recursively crawl through a folder and return all the files in it.
  * @param root An absolute path to the directory.
  */
 export function getFiles(root: string): SnippetFileInput[] {

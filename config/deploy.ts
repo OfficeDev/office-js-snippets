@@ -32,7 +32,7 @@ const environmentVariables: IEnvironmentVariables = process.env as any;
             shell.exec('git checkout --orphan newbranch');
             shell.exec('git reset');
 
-            execCommand('git add -f samples playlists view snippet-extractor-output README.md');
+            execCommand('git add -f samples private-samples playlists view snippet-extractor-output README.md');
             execCommand(`git commit -m "Travis auto-deploy of ${environmentVariables.TRAVIS_COMMIT_MESSAGE.replace(/\W/g, '_')} [skip ci]"`);
 
             const tokenizedGitHubGitUrl = `https://<<<token>>>@github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}.git`;

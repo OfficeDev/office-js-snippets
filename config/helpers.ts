@@ -40,7 +40,7 @@ export interface SnippetProcessedData {
     api_set: {
         [index: string]: number
     };
-    isPublic: boolean
+    isPublic: boolean;
 }
 
 /**

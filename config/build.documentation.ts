@@ -1,10 +1,11 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as jsyaml from 'js-yaml';
-import { Dictionary } from '@microsoft/office-js-helpers';
+import { Dictionary } from './helpers';
 
 import { SnippetProcessedData, banner, readDir, officeHostsToAppNames, writeFile, rmRf, mkDir } from './helpers';
 import { status } from './status';
+import parseXlsx from 'excel';
 
 const SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME = 'snippet-extractor-metadata';
 
@@ -12,7 +13,7 @@ interface MappingFileRowData {
     class: string; member: string; snippetId: string; snippetFunction: string
 }
 const headerNames: (keyof MappingFileRowData)[] =
-    ['class', 'member', 'snippetId', 'snippetFunction'];
+   ['class', 'member', 'snippetId', 'snippetFunction'];
 
 
 export async function buildReferenceDocSnippetExtracts(
@@ -51,22 +52,16 @@ async function buildSnippetExtractsPerHost(
 
     const lines: MappingFileRowData[] =
         await new Promise((resolve: (data: MappingFileRowData[]) => void, reject) => {
-            const parseXlsx = require('excel');
-
             const fullFilePath = path.join(
                 path.resolve(SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME),
                 filename
             );
-            parseXlsx(fullFilePath, (err, rows: any[][]) => {
-                if (err) {
-                    reject(err);
-                }
-
-                if (rows.length < 2) {
+            parseXlsx(fullFilePath).then((data) => {
+                if (data.length < 2) {
                     reject(new Error('No data rows found'));
                 }
 
-                if (rows[0].length !== headerNames.length) {
+                if (data[0].length !== headerNames.length) {
                     reject(
                         new Error('Unexpected number of columns. Expecting the following ' +
                             headerNames.length + ' columns: ' +
@@ -76,23 +71,19 @@ async function buildSnippetExtractsPerHost(
                 }
 
                 // Remove the first line, since it's the header line
-                rows.splice(0, 1);
+                data.splice(0, 1);
 
-                resolve(
-                    rows
-                        .map((row: string[]) => {
-                            if (row.find(text => text.startsWith('//'))) {
-                                return null;
-                            }
+                resolve(data.map((row: string[]) => {
+                    if (row.find(text => text.startsWith('//'))) {
+                        return null;
+                    }
 
-                            let result: MappingFileRowData = {} as any;
-                            row.forEach((column: string, index) => {
-                                result[headerNames[index]] = column;
-                            });
-                            return result;
-                        })
-                        .filter(item => item)
-                );
+                    let result: MappingFileRowData = {} as any;
+                    row.forEach((column: string, index) => {
+                        result[headerNames[index]] = column;
+                    });
+                    return result;
+                }).filter(item => item));
             });
         });
 
@@ -102,7 +93,7 @@ async function buildSnippetExtractsPerHost(
         .filter(item => item)
         .forEach((text, index) => {
             const row = lines[index];
-            const fullName = `${hostName}.${row.class}.${row.member}`;
+            const fullName = `${hostName}.${row.class.trim()}.${row.member.trim()}`;
             if (!allSnippetData[fullName]) {
                 allSnippetData[fullName] = [];
             }

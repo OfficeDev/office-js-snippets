@@ -7,13 +7,12 @@ import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
     getDestinationBranch, followsNamingGuidelines, isCUID,
-    rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails
+    rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails, Dictionary
 } from './helpers';
 import { buildReferenceDocSnippetExtracts } from './build.documentation';
 import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
-import { Dictionary } from '@microsoft/office-js-helpers';
 import * as jsyaml from 'js-yaml';
 import escapeStringRegexp = require('escape-string-regexp');
 
@@ -71,7 +70,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
 
     (await Promise.all(files.map(file => processAndValidateSnippet(file))))
         .filter(file => file !== null)
-        .map(file => processedSnippets.add(file.rawUrl, file));
+        .map(file => processedSnippets.set(file.rawUrl, file));
 
 
     // Helpers:
@@ -489,7 +488,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
     let processedPublicSnippets = new Dictionary<SnippetProcessedData>();
     for (let processedSnippet of processedSnippets.values()) {
         if (processedSnippet.isPublic) {
-            processedPublicSnippets.add(processedSnippet.rawUrl, processedSnippet);
+            processedPublicSnippets.set(processedSnippet.rawUrl, processedSnippet);
         }
     }
 

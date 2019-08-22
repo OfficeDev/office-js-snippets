@@ -31,7 +31,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 
     ```yaml
     api_set:
-        ExcelApi: 1.5
+        ExcelApi: '1.5'
     ```
 
 5. Check the name and description property values, also near the top of the file, and edit as needed.

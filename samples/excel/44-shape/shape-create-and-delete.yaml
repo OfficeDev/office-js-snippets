@@ -4,7 +4,7 @@ name: Create and delete geometric shapes
 description: Creates a few different geometric shapes and deletes them from the worksheet.
 host: EXCEL
 api_set:
-    ExcelApi: 1.9
+    ExcelApi: '1.9'
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
@@ -54,8 +54,9 @@ script:
 
         async function setup() {
             await Excel.run(async (context) => {
-                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Shapes");
-                const sheet = context.workbook.worksheets.getItem("Shapes");
+                context.workbook.worksheets.getItemOrNullObject("Shapes").delete();
+                const sheet = context.workbook.worksheets.add("Shapes");
+
                 sheet.activate();
                 await context.sync();
             });
@@ -63,7 +64,9 @@ script:
 
         async function removeAll() {
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Shapes");
+                context.workbook.worksheets.getItemOrNullObject("Shapes").delete();
+                const sheet = context.workbook.worksheets.add("Shapes");
+
                 const shapes = sheet.shapes;
 
                 // load all the shapes in the collection without loading their properties
@@ -134,9 +137,6 @@ libraries: |
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

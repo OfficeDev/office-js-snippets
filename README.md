@@ -31,7 +31,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 
     ```yaml
     api_set:
-        ExcelApi: 1.5
+        ExcelApi: '1.5'
     ```
 
 5. Check the name and description property values, also near the top of the file, and edit as needed.
@@ -134,9 +134,8 @@ A few style rules to observe:
 
 ## Debugging the build script
 
-* The scripts for building/validating the snippets are under the `config` folder -- in particular, under `build.ts`. There is also a `deploy.ts` for copying the built files to their final location.)
+* The scripts for building/validating the snippets are under the `config` folder -- in particular, under `build.ts`. There is also a `deploy.ts` for copying the built files to their final location.
 
 > **Note**: If debugging in Visual Studio Code, you can use "F5" to attach the debugger, but be sure to run `npm run tsc` before you do (and after any code change!). `F5` is not set to recompile!
 
-<br>
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.

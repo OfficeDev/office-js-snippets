@@ -4,7 +4,7 @@ name: Chart events
 description: Registers event handlers on an individual chart that run when the chart is activated or deactivated.
 host: EXCEL
 api_set:
-    ExcelApi: 1.8
+    ExcelApi: '1.8'
 script:
     content: |-
         $("#setup").click(() => tryCatch(setup));
@@ -40,8 +40,8 @@ script:
 
         async function setup() {
             await Excel.run(async (context) => {
-                await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
-                const sheet = context.workbook.worksheets.getItem("Sample");
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet = context.workbook.worksheets.add("Sample");
 
                 let expensesTable = sheet.tables.add('A1:E1', true);
                 expensesTable.name = "SalesTable";
@@ -57,10 +57,8 @@ script:
                     ["Spokes", 6005, 7634, 4589, 8765]
                 ]);
 
-                if (Office.context.requirements.isSetSupported("ExcelApi", 1.2)) {
-                    sheet.getUsedRange().format.autofitColumns();
-                    sheet.getUsedRange().format.autofitRows();
-                }
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.getUsedRange().format.autofitRows();
 
                 createPieChart();
                 createCylinderChart();
@@ -168,9 +166,6 @@ libraries: |
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

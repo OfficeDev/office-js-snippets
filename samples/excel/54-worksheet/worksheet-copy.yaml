@@ -4,7 +4,7 @@ name: Copy worksheet
 description: Copies the active worksheet to the specified location.
 host: EXCEL
 api_set:
-    ExcelApi: 1.7
+    ExcelApi: '1.7'
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
@@ -28,8 +28,9 @@ script:
 
         async function setup() {
             await Excel.run(async (context) => {
-                const sheet = await OfficeHelpers.ExcelUtilities
-                    .forceCreateSheet(context.workbook, "Sample");
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet = context.workbook.worksheets.add("Sample");
+
                 let expensesTable = sheet.tables.add('A1:E1', true);
                 expensesTable.name = "SalesTable";
 
@@ -44,13 +45,10 @@ script:
                     ["Spokes", 6005, 7634, 4589, 8765]
                 ]);
 
-                if (Office.context.requirements.isSetSupported("ExcelApi", 1.7)) {
-                    sheet.getUsedRange().format.autofitColumns();
-                    sheet.getUsedRange().format.autofitRows();
-                }
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.getUsedRange().format.autofitRows();
 
                 sheet.activate();
-
                 await context.sync();
             });
         }
@@ -108,9 +106,6 @@ libraries: |
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

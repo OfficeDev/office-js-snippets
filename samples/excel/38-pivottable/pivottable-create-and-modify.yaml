@@ -5,7 +5,7 @@ description: Creates and modifies a PivotTable.
 author: OfficeDev
 host: EXCEL
 api_set:
-    ExcelApi: 1.8
+    ExcelApi: '1.8'
 script:
     content: |-
         $("#deletePivot").click(() => tryCatch(deletePivot));
@@ -145,10 +145,10 @@ script:
 
         async function setup() {
             await Excel.run(async (context) => {
-                const sheetData = await OfficeHelpers.ExcelUtilities
-                    .forceCreateSheet(context.workbook, "Data");
-                const sheetPivot = await OfficeHelpers.ExcelUtilities
-                    .forceCreateSheet(context.workbook, "Pivot");
+                context.workbook.worksheets.getItemOrNullObject("Data").delete();
+                const dataSheet = context.workbook.worksheets.add("Data");
+                context.workbook.worksheets.getItemOrNullObject("Pivot").delete();
+                const pivotSheet = context.workbook.worksheets.add("Pivot");
 
                 const data = [["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"],
                 ["A Farms", "Lime", "Organic", 300, 2000],
@@ -172,11 +172,11 @@ script:
                 ["F Farms", "Kiwi", "Organic", 100, 150],
                 ["F Farms", "Lemon", "Conventional", 150, 270]];
 
-                const range = sheetData.getRange("A1:E21");
+                const range = dataSheet.getRange("A1:E21");
                 range.values = data;
                 range.format.autofitColumns();
 
-                sheetPivot.activate();
+                pivotSheet.activate();
 
                 await context.sync();
             });
@@ -273,9 +273,6 @@ libraries: |
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

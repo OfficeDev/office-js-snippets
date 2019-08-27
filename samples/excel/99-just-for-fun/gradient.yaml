@@ -5,7 +5,7 @@ description: Uses range formatting and external libraries to draw a colorful gra
 author: AlexanderZlatkovski
 host: EXCEL
 api_set:
-    ExcelApi: 1.2
+    ExcelApi: '1.4'
 script:
     content: |-
         initializeColorPickers();
@@ -20,9 +20,8 @@ script:
 
             try {
                 await Excel.run(drawGradientHelper);
-            }
-            catch (error) {
-                OfficeHelpers.Utilities.log(error);
+            } catch (error) {
+                console.log(error);
             }
 
             $drawButton.prop("disabled", false);
@@ -30,8 +29,8 @@ script:
 
         /** Helper function to do the actual gradient-drawing */
         async function drawGradientHelper(context: Excel.RequestContext) {
-            const sheet = await OfficeHelpers.ExcelUtilities
-                .forceCreateSheet(context.workbook, "Gradient", true /*clearOnly*/);
+            context.workbook.worksheets.getItemOrNullObject("Gradient").delete();
+            const sheet = context.workbook.worksheets.add("Gradient");
 
             sheet.getRange().untrack().format.set({
                 rowHeight: 15,
@@ -41,22 +40,31 @@ script:
                 }
             });
 
-            let originalSize = parseInt($('#size').val() as string);
+            let originalSize = parseInt($("#size").val() as string);
+            const colors2D = createColorArray(originalSize);
 
-            // Create a 2D in-memory array to hold the colors
-            const colors2D = Array(originalSize);
-            for (let row = 0; row < originalSize; row++) {
-                colors2D[row] = Array(originalSize);
-            }
-
-            fillInColors(colors2D, originalSize);
-
-            let range = sheet.getCell(1, 1).untrack().getResizedRange(
-                originalSize - 1, originalSize - 1).untrack();
-            for (let row = 0; row < originalSize; row++) {
-                for (let col = 0; col < originalSize; col++) {
-                    range.getCell(row, col).untrack().format.fill.color =
-                        colors2D[row][col];
+            if (Office.context.requirements.isSetSupported("ExcelApi", "1.9")) {
+                // ExcelApi 1.9 introduced the setCellProperties APIs to efficiently set different properties
+                // across a range without needing to iterate cell-by-cell.
+                const cellProperties: Excel.SettableCellProperties[][] =
+                colors2D.map(row =>
+                    row.map(color =>
+                        ({
+                            format: {
+                                fill: {
+                                    color: color
+                                }
+                            }
+                        })
+                    )
+                );
+                sheet.getRangeByIndexes(1, 1, originalSize, originalSize).setCellProperties(cellProperties);
+            } else {
+                let range = sheet.getCell(1, 1).untrack().getResizedRange(originalSize - 1, originalSize - 1).untrack();
+                for (let row = 0; row < originalSize; row++) {
+                    for (let col = 0; col < originalSize; col++) {
+                        range.getCell(row, col).untrack().format.fill.color = colors2D[row][col];
+                    }
                 }
             }
 
@@ -64,25 +72,33 @@ script:
             await context.sync();
         }
 
-        function fillInColors(colors2D: string[][], size: number) {
+        function createColorArray(size: number): string[][] {
+            // Create a 2D in-memory array to hold the colors
+            let colors2D = Array(size);
+            for (let row = 0; row < size; row++) {
+                colors2D[row] = Array(size);
+            }
+
             const topColors = getColorsArray(
                 $("#top-left").spectrum("get").toRgb(),
                 $("#top-right").spectrum("get").toRgb(),
-                size);
+                size
+            );
 
             const bottomColors = getColorsArray(
                 $("#bottom-left").spectrum("get").toRgb(),
                 $("#bottom-right").spectrum("get").toRgb(),
-                size);
+                size
+            );
 
             for (let col = 0; col < size; col++) {
-                const columnColors = getColorsArray(
-                    topColors[col], bottomColors[col], size);
+                const columnColors = getColorsArray(topColors[col], bottomColors[col], size);
                 for (let row = 0; row < size; row++) {
-                    colors2D[row][col] =
-                        tinycolor(columnColors[row]).toHexString();
+                    colors2D[row][col] = tinycolor(columnColors[row]).toHexString();
                 }
             }
+
+            return colors2D;
         }
 
         /** Helper function to get an array of colors */
@@ -94,7 +110,7 @@ script:
                     r: color1.r + (color2.r - color1.r) * fraction,
                     g: color1.g + (color2.g - color1.g) * fraction,
                     b: color1.b + (color2.b - color1.b) * fraction
-                }
+                };
             }
             return result;
         }
@@ -107,10 +123,9 @@ script:
         }
 
         function randomizeColors() {
-            $("#color-table input[type='text']")
-                .each((index, element) => {
-                    $(element).spectrum("set", tinycolor.random().toHexString());
-                });
+            $("#color-table input[type='text']").each((index, element) => {
+                $(element).spectrum("set", tinycolor.random().toHexString());
+            });
         }
     language: typescript
 template:
@@ -200,9 +215,6 @@ libraries: |-
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

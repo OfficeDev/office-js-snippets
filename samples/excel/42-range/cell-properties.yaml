@@ -1,0 +1,193 @@
+order: 5
+id: excel-range-cell-properties
+name: Get and set cell properties
+description: Sets different properties across a range then retrieves those properties.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: '1.9'
+script:
+    content: |
+        $("#set-cell-properties").click(() => tryCatch(setCellProperties));
+        $("#get-cell-properties").click(() => tryCatch(getCellProperties));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function setCellProperties() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Creating the SettableCellProperties objects to use for the range.
+                // In your add-in, these should be created once, outside the function.
+                const topHeaderProps: Excel.SettableCellProperties = {
+                    // The style property takes a string matching the name of an Excel style.
+                    // Note that a style will overwrite any formatting,
+                    // so do not use the format property with the style property.
+                    style: "Heading1"
+                };
+
+                const headerProps: Excel.SettableCellProperties = {
+                    // Any subproperties of format that are not set will not be changed when these cell properties are set.
+                    format: {
+                        fill: {
+                            color: "Blue"
+                        },
+                        font: {
+                            color: "White",
+                            bold: true
+                        }
+                    }
+                };
+
+                const nonApplicableProps: Excel.SettableCellProperties = {
+                    format: {
+                        fill: {
+                            pattern: Excel.FillPattern.gray25
+                        },
+                        font: {
+                            color: "Gray",
+                            italic: true
+                        }
+                    }
+                };
+
+                const matchupScoreProps: Excel.SettableCellProperties = {
+                    format: {
+                        borders: {
+                            bottom: {
+                                style: Excel.BorderLineStyle.continuous
+                            },
+                            left: {
+                                style: Excel.BorderLineStyle.continuous
+                            },
+                            right: {
+                                style: Excel.BorderLineStyle.continuous
+                            },
+                            top: {
+                                style: Excel.BorderLineStyle.continuous
+                            }
+                        }
+                    }
+                };
+
+                const range = sheet.getRange("A1:E5");
+
+                // You can use empty JSON objects to avoid changing a cell's properties.
+                range.setCellProperties([
+                    [topHeaderProps, {}, {}, {}, {}],
+                    [{}, {}, headerProps, headerProps, headerProps],
+                    [{}, headerProps, nonApplicableProps, matchupScoreProps, matchupScoreProps],
+                    [{}, headerProps, matchupScoreProps, nonApplicableProps, matchupScoreProps],
+                    [{}, headerProps, matchupScoreProps, matchupScoreProps, nonApplicableProps]
+                ]);
+
+                sheet.getUsedRange().format.autofitColumns();
+                await context.sync();
+            });
+        }
+
+        async function getCellProperties() {
+            await Excel.run(async (context) => {
+                const cell = context.workbook.getActiveCell();
+
+                // Define the cell properties to get by setting the matching LoadOptions to true.
+                const propertiesToGet = cell.getCellProperties({
+                    address: true,
+                    format: {
+                        fill: {
+                            color: true
+                        },
+                        font: {
+                            color: true
+                        }
+                    },
+                    style: true
+                });
+
+                // Sync to get the data from the workbook.
+                await context.sync();
+                const cellProperties = propertiesToGet.value[0][0];
+                console.log(
+                    `Address: ${cellProperties.address}\nStyle: ${cellProperties.style}\nFill Color: ${cellProperties.format.fill.color}\nFont Color: ${cellProperties.format.font.color}`);
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet = context.workbook.worksheets.add("Sample");
+
+                const data = [
+                    ["Matchups", " ", " ", " ", " "],
+                    [" ", " ", "SEA", "POR", "VAN"],
+                    [" ", "SEA", "N/A", -1, 2],
+                    [" ", "POR", 1, "N/A", 4],
+                    [" ", "VAN", -2, -4, "N/A"]
+                ];
+
+                const range = sheet.getRange("A1:E5");
+                range.values = data;
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to format a range.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="set-cell-properties" class="ms-Button">
+                <span class="ms-Button-label">Set cell properties</span>
+            </button><p>
+          <p>Select a cell and press the following button to display some of the cell properties.</p>
+          <button id="get-cell-properties" class="ms-Button">
+            <span class="ms-Button-label">Get selected cell properties</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

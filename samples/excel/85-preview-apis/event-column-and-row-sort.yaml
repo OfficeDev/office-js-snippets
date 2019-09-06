@@ -1,0 +1,201 @@
+order: 1
+id: excel-event-column-and-row-sort
+name: Column and row sort events
+description: Registers event handlers that run when column or row sorting events occur in the current worksheet.
+host: EXCEL
+api_set:
+    ExcelApi: '1.10'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup)); $("#register-sort-handlers").click(() => tryCatch(registerSortHandlers)); $("#register-row-sort-handler").click(() => tryCatch(registerRowSortHandler)); $("#register-column-sort-handler").click(() => tryCatch(registerColumnSortHandler)); $("#sort-q1").click(() => tryCatch(sortTopToBottom, "Q1")); $("#sort-q3").click(() => tryCatch(sortTopToBottom, "Q3")); $("#sort-apples").click(() => tryCatch(sortLeftToRight, "Apples")); $("#sort-quinces").click(() => tryCatch(sortLeftToRight, "Quinces"));
+        async function registerSortHandlers() {
+            registerRowSortHandler();
+            registerColumnSortHandler();
+        }
+        async function registerRowSortHandler() {
+            await Excel.run(async (context) => {
+                console.log("Adding row handler");
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // This will fire whenever a row has been moved as the result of a sort action.
+                sheet.onRowSorted.add((event) => {
+                    return Excel.run((context) => {
+                        console.log("Row sorted: " + event.address);
+                        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                        // Clear formatting for section, then highlight the sorted area.
+                        sheet.getRange("A1:E5").format.fill.clear();
+                        if (event.address !== "") {
+                            sheet.getRanges(event.address).format.fill.color = "yellow";
+                        }
+
+                        return context.sync();
+                    });
+                });
+            });
+        }
+
+        async function registerColumnSortHandler() {
+            await Excel.run(async (context) => {
+                console.log("Adding column handler");
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // This will fire whenever a column has been moved as the result of a sort action.
+                sheet.onColumnSorted.add((event) => {
+                    return Excel.run((context) => {
+                        console.log("Column sorted: " + event.address);
+                        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                        // Clear formatting for section, then highlight the sorted area.
+                        sheet.getRange("A1:E5").format.fill.clear();
+                        if (event.address !== "") {
+                            sheet.getRanges(event.address).format.fill.color = "yellow";
+                        }
+
+                        return context.sync();
+                    });
+                });
+            });
+        }
+
+        async function sortTopToBottom(criteria: string) {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const range = sheet.getRange("A1:E5");
+
+                // Find the column header that provides the sort criteria.
+                const header = range.find(criteria, {});
+                header.load("columnIndex");
+                await context.sync();
+
+                range.sort.apply(
+                    [
+                        {
+                            key: header.columnIndex,
+                            sortOn: Excel.SortOn.value
+                        }
+                    ],
+                    false /*matchCase*/,
+                    true /*hasHeaders*/,
+                    Excel.SortOrientation.rows
+                );
+                await context.sync();
+            });
+        }
+
+        async function sortLeftToRight(criteria: string) {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const range = sheet.getRange("A1:E5");
+
+                // Find the row header that provides the sort criteria.
+                const header = range.find(criteria, {});
+                header.load("rowIndex");
+                await context.sync();
+
+                range.sort.apply(
+                    [
+                        {
+                            key: header.rowIndex,
+                            sortOn: Excel.SortOn.value
+                        }
+                    ],
+                    false /*matchCase*/,
+                    true /*hasHeaders*/,
+                    Excel.SortOrientation.columns
+                );
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet = context.workbook.worksheets.add("Sample");
+
+                const data = [
+                    ["Fruit Sales", "Q1", "Q2", "Q3", "Q4"],
+                    ["Apples", 5000, 2000, 1000, 7500],
+                    ["Pears", 2000, 900, 550, 1800],
+                    ["Quinces", 500, 800, 400, 100],
+                    ["Plums", 600, 700, 8000, 900]
+                ];
+
+                sheet.getRanges("A1:E1,A2:A5").format.font.bold = true;
+                const range = sheet.getRange("A1:E5");
+                range.values = data;
+                range.format.autofitColumns();
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback, option?) {
+            try {
+                await callback(option);
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to register and use handlers for the column and row sorting events.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add sample data</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="register-sort-handlers" class="ms-Button">
+              <span class="ms-Button-label">Register event handlers</span>
+            </button>
+          <p>The event handlers will highlight any rows or columns moved as part of a sorting operation.</p>
+          <button id="sort-q1" class="ms-Button">
+            <span class="ms-Button-label">Sort for Q1 Sales (top-to-bottom)</span>
+          </button>
+          <button id="sort-q3" class="ms-Button">
+              <span class="ms-Button-label">Sort for Q3 Sales (top-to-bottom)</span>
+          </button>
+          <button id="sort-apples" class="ms-Button">
+            <span class="ms-Button-label">Sort for Apple Sales (left-to-right)</span>
+          </button>
+          <button id="sort-quinces" class="ms-Button">
+            <span class="ms-Button-label">Sort for Quince Sales (left-to-right)</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

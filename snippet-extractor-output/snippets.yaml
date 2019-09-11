@@ -36,7 +36,7 @@
         sheet.autoFilter.apply(farmData, 3, { criterion1: "25", filterOn: Excel.FilterOn.topPercent });
         await context.sync();
     });
-'Excel.Binding#onDataChanged:member(1)':
+'Excel.Binding#onDataChanged:member':
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");    
@@ -307,7 +307,7 @@
 
         console.log("The vertical axis display unit is: " + valueAxis.displayUnit);
     });
-'Excel.ChartAxis#showDisplayUnitLabel:member(1)':
+'Excel.ChartAxis#showDisplayUnitLabel:member':
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
@@ -724,7 +724,7 @@
 
         await context.sync();
     });
-'Excel.ConditionalFormat#getRange:member':
+'Excel.ConditionalFormat#getRange:member(1)':
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
@@ -2254,6 +2254,32 @@
         console.log(
             `Address: ${cellProperties.address}\nStyle: ${cellProperties.style}\nFill Color: ${cellProperties.format.fill.color}\nFont Color: ${cellProperties.format.font.color}`);
     });
+'Excel.Range#sort:member':
+  - |-
+    async function sortTopToBottom(criteria: string) {
+        await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            const range = sheet.getRange("A1:E5");
+
+            // Find the column header that provides the sort criteria.
+            const header = range.find(criteria, {});
+            header.load("columnIndex");
+            await context.sync();
+
+            range.sort.apply(
+                [
+                    {
+                        key: header.columnIndex,
+                        sortOn: Excel.SortOn.value
+                    }
+                ],
+                false /*matchCase*/,
+                true /*hasHeaders*/,
+                Excel.SortOrientation.rows
+            );
+            await context.sync();
+        });
+    }
 'Excel.RangeAreas#format:member':
   - |-
     await Excel.run(async (context) => {
@@ -2396,7 +2422,7 @@
         console.log(deleteResult.removed + " entries with duplicate names removed.");
         console.log(deleteResult.uniqueRemaining + " entries with unique names remain in the range.");
     });
-'Excel.Runtime#enableEvents:member(1)':
+'Excel.Runtime#enableEvents:member':
   - |-
     await Excel.run(async (context) => {
         context.runtime.load("enableEvents");
@@ -3221,7 +3247,7 @@
         await context.sync();
         console.log("A handler has been registered for the onChanged event.");
     });
-'Excel.Worksheet#showGridlines:member(1)':
+'Excel.Worksheet#showGridlines:member':
   - |-
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getActiveWorksheet();
@@ -3257,6 +3283,65 @@
         );
         slicer.name = "Fruit Slicer";
         await context.sync();
+    });
+'Excel.Worksheet#onSingleClicked:member':
+  - |-
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        sheet.onSingleClicked.add((event) => {
+            return Excel.run((context) => {
+                console.log(`Click detected at ${event.address} (pixel offset from upper-left cell corner: ${event.offsetX}, ${event.offsetY})`);
+                return context.sync();
+            });
+        });
+
+        console.log("The worksheet click handler is registered.");
+
+        await context.sync();
+    });
+'Excel.Worksheet#onRowSorted:member':
+  - |-
+    await Excel.run(async (context) => {
+        console.log("Adding row handler");
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        // This will fire whenever a row has been moved as the result of a sort action.
+        sheet.onRowSorted.add((event) => {
+            return Excel.run((context) => {
+                console.log("Row sorted: " + event.address);
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Clear formatting for section, then highlight the sorted area.
+                sheet.getRange("A1:E5").format.fill.clear();
+                if (event.address !== "") {
+                    sheet.getRanges(event.address).format.fill.color = "yellow";
+                }
+
+                return context.sync();
+            });
+        });
+    });
+'Excel.Worksheet#onColumnSorted:member':
+  - |-
+    await Excel.run(async (context) => {
+        console.log("Adding column handler");
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        // This will fire whenever a column has been moved as the result of a sort action.
+        sheet.onColumnSorted.add((event) => {
+            return Excel.run((context) => {
+                console.log("Column sorted: " + event.address);
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Clear formatting for section, then highlight the sorted area.
+                sheet.getRange("A1:E5").format.fill.clear();
+                if (event.address !== "") {
+                    sheet.getRanges(event.address).format.fill.color = "yellow";
+                }
+
+                return context.sync();
+            });
+        });
     });
 'Excel.WorksheetAddedEventArgs#worksheetId:member':
   - |-
@@ -3476,147 +3561,6 @@
 
         await context.sync();
     });
-'Excel.Worksheet#onSingleClicked:member':
-  - |-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        sheet.onSingleClicked.add((event) => {
-            return Excel.run((context) => {
-                console.log(`Click detected at ${event.address} (pixel offset from upper-left cell corner: ${event.offsetX}, ${event.offsetY})`);
-                return context.sync();
-            });
-        });
-
-        console.log("The worksheet click handler is registered.");
-
-        await context.sync();
-    });
-'Excel.Range#sort:member(1)':
-  - |-
-    async function sortTopToBottom(criteria: string) {
-        await Excel.run(async (context) => {
-            const sheet = context.workbook.worksheets.getActiveWorksheet();
-            const range = sheet.getRange("A1:E5");
-
-            // Find the column header that provides the sort criteria.
-            const header = range.find(criteria, {});
-            header.load("columnIndex");
-            await context.sync();
-
-            range.sort.apply(
-                [
-                    {
-                        key: header.columnIndex,
-                        sortOn: Excel.SortOn.value
-                    }
-                ],
-                false /*matchCase*/,
-                true /*hasHeaders*/,
-                Excel.SortOrientation.rows
-            );
-            await context.sync();
-        });
-    }
-'Excel.Worksheet#onRowSorted:member':
-  - |-
-    await Excel.run(async (context) => {
-        console.log("Adding row handler");
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-        // This will fire whenever a row has been moved as the result of a sort action.
-        sheet.onRowSorted.add((event) => {
-            return Excel.run((context) => {
-                console.log("Row sorted: " + event.address);
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-                // Clear formatting for section, then highlight the sorted area.
-                sheet.getRange("A1:E5").format.fill.clear();
-                if (event.address !== "") {
-                    sheet.getRanges(event.address).format.fill.color = "yellow";
-                }
-
-                return context.sync();
-            });
-        });
-    });
-'Excel.Worksheet#onColumnSorted:member':
-  - |-
-    await Excel.run(async (context) => {
-        console.log("Adding column handler");
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-        // This will fire whenever a column has been moved as the result of a sort action.
-        sheet.onColumnSorted.add((event) => {
-            return Excel.run((context) => {
-                console.log("Column sorted: " + event.address);
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-                // Clear formatting for section, then highlight the sorted area.
-                sheet.getRange("A1:E5").format.fill.clear();
-                if (event.address !== "") {
-                    sheet.getRanges(event.address).format.fill.color = "yellow";
-                }
-
-                return context.sync();
-            });
-        });
-    });
-'Word.InlinePicture#getBase64ImageSrc:member':
-  - |-
-    await Word.run(async (context) => {
-      const firstPicture = context.document.body.inlinePictures.getFirst();
-      firstPicture.load("width, height");
-
-      await context.sync();
-      console.log(`Image dimensions: ${firstPicture.width} x ${firstPicture.height}`);
-      // Get the image encoded as base64.
-      const base64 = firstPicture.getBase64ImageSrc();
-
-      await context.sync();
-      console.log(base64.value);
-    });
-'Word.Section#getHeader:member':
-  - |-
-    await Word.run(async (context) => {
-      context.document.sections.getFirst().getHeader("Primary")
-        .insertParagraph("This is a header", "End");
-
-      await context.sync();
-    });
-'Word.Paragraph#insertBreak:member':
-  - |-
-    Word.run(async (context) => {
-      context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "After");
-
-      await context.sync();
-      console.log("success");
-    });
-'Word.Paragraph#insertBreak:member(1)':
-  - |-
-    await Word.run(async (context) => {
-      context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "After");
-
-      await context.sync();
-      console.log("success");
-    });
-'Word.Paragraph#insertParagraph:member(1)':
-  - |-
-    await Word.run(async (context) => {
-      // Second sentence, let's insert it as a paragraph after the previously inserted one.
-      let secondSentence = context.document.body.insertParagraph(
-        "This is the first text with a custom style.",
-        "End"
-      );
-      secondSentence.font.set({
-        bold: false,
-        italic: true,
-        name: "Berlin Sans FB",
-        color: "blue",
-        size: 30
-      });
-
-      await context.sync();
-    });
 'Word.Body#search:member(1)':
   - |-
     await Word.run(async (context) => {
@@ -3725,231 +3669,6 @@
 
         await context.sync();
     });
-'Word.Range#insertContentControl:member(1)':
-  - |-
-    await Word.run(async (context) => {
-        let results = context.document.body.search("Contractor");
-        results.load("font/bold");
-
-        // Check to make sure these content controls haven't been added yet.
-        let customerContentControls = context.document.contentControls.getByTag("customer");
-        customerContentControls.load("text");
-        await context.sync();
-
-      if (customerContentControls.items.length === 0) {
-        for (var i = 0; i < results.items.length; i++) { 
-            results.items[i].font.bold = true;
-            var cc = results.items[i].insertContentControl();
-            cc.tag = "customer";  // This value is used in the next step of this sample.
-            cc.title = "Customer Name " + i;
-        }
-      }
-        await context.sync();
-    });
-'Word.ContentControlCollection#getByTag:member(1)':
-  - |-
-    await Word.run(async (context) => {
-        let contentControls = context.document.contentControls.getByTag("customer");
-        contentControls.load("text");
-
-        await context.sync();
-
-        for (let i = 0; i < contentControls.items.length; i++) {
-          contentControls.items[i].insertText("Fabrikam", "Replace");
-        }
-
-        await context.sync();
-    });
-'Word.Section#getFooter:member(1)':
-  - |-
-    await Word.run(async (context) => {
-      context.document.sections.getFirst().getFooter("Primary")
-        .insertParagraph("This is a footer", "End");
-
-      await context.sync();
-    });
-'Word.Paragraph#text:member':
-  - |-
-    await Word.run(async (context) => {
-      // The collection of paragraphs of the current selection returns the full paragraphs contained in it.
-      let paragraph = context.document.getSelection().paragraphs.getFirst();
-      paragraph.load("text");
-
-      await context.sync();
-      console.log(paragraph.text);
-    });
-'Word.Range#getTextRanges:member(1)':
-  - |-
-    await Word.run(async (context) => {
-      // Gets the complete sentence (as range) associated with the insertion point.
-      let sentences = context.document
-        .getSelection()
-        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
-      sentences.load("$none");
-      await context.sync();
-
-      // Expands the range to the end of the paragraph to get all the complete sentences.
-      let sentencesToTheEndOfParagraph = sentences.items[0]
-        .getRange()
-        .expandTo(
-          context.document
-            .getSelection()
-            .paragraphs.getFirst()
-            .getRange("End")
-        )
-        .getTextRanges(["."], false /* Don't trim spaces*/);
-      sentencesToTheEndOfParagraph.load("text");
-      await context.sync();
-
-      for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
-        console.log(sentencesToTheEndOfParagraph.items[i].text);
-      }
-    });
-'Word.Paragraph#leftIndent:member':
-  - |-
-    await Word.run(async (context) => {
-      // Indents the first paragraph.
-      context.document.body.paragraphs.getFirst().leftIndent = 75; //units = points
-
-      return context.sync();
-    });
-'Word.Paragraph#lineSpacing:member':
-  - |-
-    await Word.run(async (context) => {
-      // Adjusts line spacing.
-      context.document.body.paragraphs.getFirst().lineSpacing = 20;
-
-      await context.sync();
-    });
-'Word.Paragraph#spaceAfter:member':
-  - |-
-    await Word.run(async (context) => {
-      // Adjust space between paragraphs.
-      context.document.body.paragraphs.getFirst().spaceAfter = 20;
-
-      await context.sync();
-    });
-'Word.Paragraph#alignment:member':
-  - |-
-    await Word.run(async (context) => {
-      // Centers last paragraph alignment.
-      context.document.body.paragraphs.getLast().alignment = "Centered";
-
-      await context.sync();
-    });
-'Word.Paragraph#insertText:member(1)':
-  - |-
-    await Word.run(async (context) => {
-      // Replace the last paragraph.
-      let range = context.document.body.paragraphs.getLast().insertText("Just replaced the last paragraph!", "Replace");
-      range.font.highlightColor = "black";
-      range.font.color = "white";
-
-      await context.sync();
-    });
-'Word.ContentControl#tag:member':
-  - >-
-    // Traverses each paragraph of the document and wraps a content control on
-    each with either a even or odd tags.
-
-    await Word.run(async (context) => {
-      let paragraphs = context.document.body.paragraphs;
-      paragraphs.load("$none"); // Don't need any properties; just wrap each paragraph with a content control.
-
-      await context.sync();
-
-      for (let i = 0; i < paragraphs.items.length; i++) {
-        let contentControl = paragraphs.items[i].insertContentControl();
-        // For even, tag "even".
-        if (i % 2 === 0) {
-          contentControl.tag = "even";
-        } else {
-          contentControl.tag = "odd";
-        }
-      }
-      console.log("Content controls inserted: " + paragraphs.items.length);
-
-      await context.sync();
-    });
-'Word.ContentControl#set:member':
-  - >-
-    // Adds title and colors to odd and even content controls and changes their
-    appearance.
-
-    await Word.run(async (context) => {
-      // Gets the complete sentence (as range) associated with the insertion point.
-      let evenContentControls = context.document.contentControls.getByTag("even");
-      let oddContentControls = context.document.contentControls.getByTag("odd");
-      evenContentControls.load("length");
-      oddContentControls.load("length");
-
-      await context.sync();
-
-      for (let i = 0; i < evenContentControls.items.length; i++) {
-        // Change a few properties and append a paragraph
-        evenContentControls.items[i].set({
-          color: "red",
-          title: "Odd ContentControl #" + (i + 1),
-          appearance: "Tags"
-        });
-        evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
-      }
-
-      for (let j = 0; j < oddContentControls.items.length; j++) {
-        // Change a few properties and append a paragraph
-        oddContentControls.items[j].set({
-          color: "green",
-          title: "Even ContentControl #" + (j + 1),
-          appearance: "Tags"
-        });
-        oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
-      }
-
-      await context.sync();
-    });
-'Word.Paragraph#select:member':
-  - |-
-    await Word.run(async (context) => {
-      // If select is called with no parameters, it selects the object.
-      context.document.body.paragraphs.getLast().select();
-
-      await context.sync();
-    });
-  - |-
-    await Word.run(async (context) => {
-      // Select can be at the start or end of a range; this by definition moves the insertion point without selecting the range.
-      context.document.body.paragraphs.getLast().select("End");
-
-      await context.sync();
-    });
-'Word.Paragraph#split:member':
-  - |-
-    await Word.run(async (context) => {
-      let paragraph = context.document.body.paragraphs.getFirst();
-      let words = paragraph.split([" "], true /* trimDelimiters*/, true /* trimSpaces */);
-      words.load("text");
-
-      await context.sync();
-
-      for (let i = 0; i < words.items.length; i++) {
-        if (i >= 1) {
-          words.items[i - 1].font.highlightColor = "#FFFFFF";
-        }
-        words.items[i].font.highlightColor = "#FFFF00";
-
-        await context.sync();
-        await pause(200);
-      }
-    });
-'Word.Table#getCell:member(1)':
-  - |-
-    await Word.run(async (context) => {
-      let firstCell = context.document.body.tables.getFirst().getCell(0, 0).body;
-      firstCell.load("text");
-
-      await context.sync();
-      console.log("First cell text is " + firstCell.text);
-    });
 'Word.Body#insertTable:member(1)':
   - |-
     await Word.run(async (context) => {
@@ -3961,89 +3680,6 @@
       let table = context.document.body.insertTable(2, 3, "Start", data);
       table.styleBuiltIn = Word.Style.gridTable5Dark_Accent2;
       table.styleFirstColumn = false;
-
-      await context.sync();
-    });
-'Word.Paragraph#startNewList:member(1)':
-  - |-
-    // This example starts a new list stating with the second paragraph.
-    await Word.run(async (context) => {
-      let paragraphs = context.document.body.paragraphs;
-      paragraphs.load("$none"); // No properties needed.
-
-      await context.sync();
-
-      var list = paragraphs.items[1].startNewList(); // Indicates new list to be started in the second paragraph.
-      list.load("$none"); // No properties needed.
-
-      await context.sync();
-
-      // To add new items to the list use start/end on the insert location parameter.
-      list.insertParagraph("New list item on top of the list", "Start");
-      let paragraph = list.insertParagraph("New list item at the end of the list (4th level)", "End");
-      paragraph.listItem.level = 4; // Sets up list level for the lsit item.
-      // To add paragraphs outside the list use before/after:
-      list.insertParagraph("New paragraph goes after (not part of the list)", "After");
-
-      await context.sync();
-    });
-'Word.CustomPropertyCollection#add:member(1)':
-  - |-
-    await Word.run(async (context) => {
-        context.document.properties.customProperties.add("Numeric Property", 1234);
-
-        await context.sync();
-        console.log("Property added");
-    });
-  - |-
-    await Word.run(async (context) => {
-        context.document.properties.customProperties.add("String Property", "Hello World!");
-
-        await context.sync();
-        console.log("Property added");
-    });
-'Word.CustomPropertyCollection#items:member':
-  - |-
-    await Word.run(async (context) => {
-        let properties = context.document.properties.customProperties;
-        properties.load("key,type,value");
-
-        await context.sync();
-        for (var i = 0; i < properties.items.length; i++)
-            console.log("Property Name:" + properties.items[i].key + "; Type=" + properties.items[i].type + "; Property Value=" + properties.items[i].value);
-    });
-'Word.Document#properties:member':
-  - |-
-    await Word.run(async (context) => {
-        let builtInProperties = context.document.properties;
-        builtInProperties.load("*"); // Let's get all!
-
-        await context.sync();
-        console.log(JSON.stringify(builtInProperties, null, 4));
-    });
-'Word.Paragraph#set:member(1)':
-  - |-
-    await Word.run(async (context) => {
-      const paragraph = context.document.body.paragraphs.getFirst();
-      paragraph.set({
-        leftIndent: 30,
-        font: {
-          bold: true,
-          color: "red"
-        }
-      });
-
-      await context.sync();
-    });
-  - |-
-    await Word.run(async (context) => {
-      const firstParagraph = context.document.body.paragraphs.getFirst();
-      const secondParagraph = firstParagraph.getNext();
-      firstParagraph.load("text, font/color, font/bold, leftIndent");
-
-      await context.sync();
-
-      secondParagraph.set(firstParagraph);
 
       await context.sync();
     });
@@ -4092,4 +3728,368 @@
 
         console.log("Search term: " + result.searchTerm + " => Count: " + length);
       });
+    });
+'Word.ContentControl#tag:member':
+  - >-
+    // Traverses each paragraph of the document and wraps a content control on
+    each with either a even or odd tags.
+
+    await Word.run(async (context) => {
+      let paragraphs = context.document.body.paragraphs;
+      paragraphs.load("$none"); // Don't need any properties; just wrap each paragraph with a content control.
+
+      await context.sync();
+
+      for (let i = 0; i < paragraphs.items.length; i++) {
+        let contentControl = paragraphs.items[i].insertContentControl();
+        // For even, tag "even".
+        if (i % 2 === 0) {
+          contentControl.tag = "even";
+        } else {
+          contentControl.tag = "odd";
+        }
+      }
+      console.log("Content controls inserted: " + paragraphs.items.length);
+
+      await context.sync();
+    });
+'Word.ContentControl#set:member(1)':
+  - >-
+    // Adds title and colors to odd and even content controls and changes their
+    appearance.
+
+    await Word.run(async (context) => {
+      // Gets the complete sentence (as range) associated with the insertion point.
+      let evenContentControls = context.document.contentControls.getByTag("even");
+      let oddContentControls = context.document.contentControls.getByTag("odd");
+      evenContentControls.load("length");
+      oddContentControls.load("length");
+
+      await context.sync();
+
+      for (let i = 0; i < evenContentControls.items.length; i++) {
+        // Change a few properties and append a paragraph
+        evenContentControls.items[i].set({
+          color: "red",
+          title: "Odd ContentControl #" + (i + 1),
+          appearance: "Tags"
+        });
+        evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
+      }
+
+      for (let j = 0; j < oddContentControls.items.length; j++) {
+        // Change a few properties and append a paragraph
+        oddContentControls.items[j].set({
+          color: "green",
+          title: "Even ContentControl #" + (j + 1),
+          appearance: "Tags"
+        });
+        oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
+      }
+
+      await context.sync();
+    });
+'Word.ContentControlCollection#getByTag:member(1)':
+  - |-
+    await Word.run(async (context) => {
+        let contentControls = context.document.contentControls.getByTag("customer");
+        contentControls.load("text");
+
+        await context.sync();
+
+        for (let i = 0; i < contentControls.items.length; i++) {
+          contentControls.items[i].insertText("Fabrikam", "Replace");
+        }
+
+        await context.sync();
+    });
+'Word.CustomPropertyCollection#add:member(1)':
+  - |-
+    await Word.run(async (context) => {
+        context.document.properties.customProperties.add("Numeric Property", 1234);
+
+        await context.sync();
+        console.log("Property added");
+    });
+  - |-
+    await Word.run(async (context) => {
+        context.document.properties.customProperties.add("String Property", "Hello World!");
+
+        await context.sync();
+        console.log("Property added");
+    });
+'Word.CustomPropertyCollection#items:member':
+  - |-
+    await Word.run(async (context) => {
+        let properties = context.document.properties.customProperties;
+        properties.load("key,type,value");
+
+        await context.sync();
+        for (var i = 0; i < properties.items.length; i++)
+            console.log("Property Name:" + properties.items[i].key + "; Type=" + properties.items[i].type + "; Property Value=" + properties.items[i].value);
+    });
+'Word.Document#properties:member':
+  - |-
+    await Word.run(async (context) => {
+        let builtInProperties = context.document.properties;
+        builtInProperties.load("*"); // Let's get all!
+
+        await context.sync();
+        console.log(JSON.stringify(builtInProperties, null, 4));
+    });
+'Word.InlinePicture#getBase64ImageSrc:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      const firstPicture = context.document.body.inlinePictures.getFirst();
+      firstPicture.load("width, height");
+
+      await context.sync();
+      console.log(`Image dimensions: ${firstPicture.width} x ${firstPicture.height}`);
+      // Get the image encoded as base64.
+      const base64 = firstPicture.getBase64ImageSrc();
+
+      await context.sync();
+      console.log(base64.value);
+    });
+'Word.Paragraph#insertBreak:member(1)':
+  - |-
+    Word.run(async (context) => {
+      context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "After");
+
+      await context.sync();
+      console.log("success");
+    });
+  - |-
+    await Word.run(async (context) => {
+      context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "After");
+
+      await context.sync();
+      console.log("success");
+    });
+'Word.Paragraph#insertParagraph:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      // Second sentence, let's insert it as a paragraph after the previously inserted one.
+      let secondSentence = context.document.body.insertParagraph(
+        "This is the first text with a custom style.",
+        "End"
+      );
+      secondSentence.font.set({
+        bold: false,
+        italic: true,
+        name: "Berlin Sans FB",
+        color: "blue",
+        size: 30
+      });
+
+      await context.sync();
+    });
+'Word.Paragraph#text:member':
+  - |-
+    await Word.run(async (context) => {
+      // The collection of paragraphs of the current selection returns the full paragraphs contained in it.
+      let paragraph = context.document.getSelection().paragraphs.getFirst();
+      paragraph.load("text");
+
+      await context.sync();
+      console.log(paragraph.text);
+    });
+'Word.Paragraph#leftIndent:member':
+  - |-
+    await Word.run(async (context) => {
+      // Indents the first paragraph.
+      context.document.body.paragraphs.getFirst().leftIndent = 75; //units = points
+
+      return context.sync();
+    });
+'Word.Paragraph#lineSpacing:member':
+  - |-
+    await Word.run(async (context) => {
+      // Adjusts line spacing.
+      context.document.body.paragraphs.getFirst().lineSpacing = 20;
+
+      await context.sync();
+    });
+'Word.Paragraph#spaceAfter:member':
+  - |-
+    await Word.run(async (context) => {
+      // Adjust space between paragraphs.
+      context.document.body.paragraphs.getFirst().spaceAfter = 20;
+
+      await context.sync();
+    });
+'Word.Paragraph#alignment:member':
+  - |-
+    await Word.run(async (context) => {
+      // Centers last paragraph alignment.
+      context.document.body.paragraphs.getLast().alignment = "Centered";
+
+      await context.sync();
+    });
+'Word.Paragraph#insertText:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      // Replace the last paragraph.
+      let range = context.document.body.paragraphs.getLast().insertText("Just replaced the last paragraph!", "Replace");
+      range.font.highlightColor = "black";
+      range.font.color = "white";
+
+      await context.sync();
+    });
+'Word.Paragraph#select:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      // If select is called with no parameters, it selects the object.
+      context.document.body.paragraphs.getLast().select();
+
+      await context.sync();
+    });
+'Word.Paragraph#select:member':
+  - |-
+    await Word.run(async (context) => {
+      // Select can be at the start or end of a range; this by definition moves the insertion point without selecting the range.
+      context.document.body.paragraphs.getLast().select("End");
+
+      await context.sync();
+    });
+'Word.Paragraph#split:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      let paragraph = context.document.body.paragraphs.getFirst();
+      let words = paragraph.split([" "], true /* trimDelimiters*/, true /* trimSpaces */);
+      words.load("text");
+
+      await context.sync();
+
+      for (let i = 0; i < words.items.length; i++) {
+        if (i >= 1) {
+          words.items[i - 1].font.highlightColor = "#FFFFFF";
+        }
+        words.items[i].font.highlightColor = "#FFFF00";
+
+        await context.sync();
+        await pause(200);
+      }
+    });
+'Word.Paragraph#startNewList:member(1)':
+  - |-
+    // This example starts a new list stating with the second paragraph.
+    await Word.run(async (context) => {
+      let paragraphs = context.document.body.paragraphs;
+      paragraphs.load("$none"); // No properties needed.
+
+      await context.sync();
+
+      var list = paragraphs.items[1].startNewList(); // Indicates new list to be started in the second paragraph.
+      list.load("$none"); // No properties needed.
+
+      await context.sync();
+
+      // To add new items to the list use start/end on the insert location parameter.
+      list.insertParagraph("New list item on top of the list", "Start");
+      let paragraph = list.insertParagraph("New list item at the end of the list (4th level)", "End");
+      paragraph.listItem.level = 4; // Sets up list level for the lsit item.
+      // To add paragraphs outside the list use before/after:
+      list.insertParagraph("New paragraph goes after (not part of the list)", "After");
+
+      await context.sync();
+    });
+'Word.Paragraph#set:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      const paragraph = context.document.body.paragraphs.getFirst();
+      paragraph.set({
+        leftIndent: 30,
+        font: {
+          bold: true,
+          color: "red"
+        }
+      });
+
+      await context.sync();
+    });
+  - |-
+    await Word.run(async (context) => {
+      const firstParagraph = context.document.body.paragraphs.getFirst();
+      const secondParagraph = firstParagraph.getNext();
+      firstParagraph.load("text, font/color, font/bold, leftIndent");
+
+      await context.sync();
+
+      secondParagraph.set(firstParagraph);
+
+      await context.sync();
+    });
+'Word.Range#insertContentControl:member(1)':
+  - |-
+    await Word.run(async (context) => {
+        let results = context.document.body.search("Contractor");
+        results.load("font/bold");
+
+        // Check to make sure these content controls haven't been added yet.
+        let customerContentControls = context.document.contentControls.getByTag("customer");
+        customerContentControls.load("text");
+        await context.sync();
+
+      if (customerContentControls.items.length === 0) {
+        for (var i = 0; i < results.items.length; i++) { 
+            results.items[i].font.bold = true;
+            var cc = results.items[i].insertContentControl();
+            cc.tag = "customer";  // This value is used in the next step of this sample.
+            cc.title = "Customer Name " + i;
+        }
+      }
+        await context.sync();
+    });
+'Word.Range#getTextRanges:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      // Gets the complete sentence (as range) associated with the insertion point.
+      let sentences = context.document
+        .getSelection()
+        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+      sentences.load("$none");
+      await context.sync();
+
+      // Expands the range to the end of the paragraph to get all the complete sentences.
+      let sentencesToTheEndOfParagraph = sentences.items[0]
+        .getRange()
+        .expandTo(
+          context.document
+            .getSelection()
+            .paragraphs.getFirst()
+            .getRange("End")
+        )
+        .getTextRanges(["."], false /* Don't trim spaces*/);
+      sentencesToTheEndOfParagraph.load("text");
+      await context.sync();
+
+      for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
+        console.log(sentencesToTheEndOfParagraph.items[i].text);
+      }
+    });
+'Word.Section#getHeader:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      context.document.sections.getFirst().getHeader("Primary")
+        .insertParagraph("This is a header", "End");
+
+      await context.sync();
+    });
+'Word.Section#getFooter:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      context.document.sections.getFirst().getFooter("Primary")
+        .insertParagraph("This is a footer", "End");
+
+      await context.sync();
+    });
+'Word.Table#getCell:member(1)':
+  - |-
+    await Word.run(async (context) => {
+      let firstCell = context.document.body.tables.getFirst().getCell(0, 0).body;
+      firstCell.load("text");
+
+      await context.sync();
+      console.log("First cell text is " + firstCell.text);
     });

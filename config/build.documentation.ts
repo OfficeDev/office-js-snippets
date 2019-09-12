@@ -10,10 +10,10 @@ import parseXlsx from 'excel';
 const SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME = 'snippet-extractor-metadata';
 
 interface MappingFileRowData {
-    class: string; member: string; snippetId: string; snippetFunction: string
+    class: string; member: string; memberId: string, snippetId: string; snippetFunction: string
 }
 const headerNames: (keyof MappingFileRowData)[] =
-   ['class', 'member', 'snippetId', 'snippetFunction'];
+   ['class', 'member', 'memberId', 'snippetId', 'snippetFunction'];
 
 
 export async function buildReferenceDocSnippetExtracts(
@@ -93,7 +93,10 @@ async function buildSnippetExtractsPerHost(
         .filter(item => item)
         .forEach((text, index) => {
             const row = lines[index];
-            const fullName = `${hostName}.${row.class.trim()}.${row.member.trim()}`;
+            let fullName = `${hostName}.${row.class.trim()}#${row.member.trim()}:member`;
+            if (row.memberId) {
+                fullName += `(${row.memberId})`;
+            }
             if (!allSnippetData[fullName]) {
                 allSnippetData[fullName] = [];
             }

@@ -1,0 +1,240 @@
+order: 4
+id: excel-outline
+name: Outline
+description: Creates an outline by grouping rows and columns.
+host: EXCEL
+api_set:
+    ExcelApi: '1.10'
+script:
+    content: |
+        $("#setup-data").click(() => tryCatch(setupData));
+        $("#setup-totals").click(() => tryCatch(setupTotals));
+        $("#group-rows").click(() => tryCatch(groupRows));
+        $("#group-columns").click(() => tryCatch(groupColumns));
+        $("#collapse-outline").click(() => tryCatch(collapseOutline));
+        $("#expand-outline").click(() => tryCatch(expandOutline));
+        $("#ungroup").click(() => tryCatch(ungroup));
+
+        async function groupRows() {
+            Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                
+                // Group the larger, main level. Note that the outline controls
+                // will be on row 10, meaning 4-9 will collapse and expand.
+                sheet.getRange("4:9").group(Excel.GroupOption.byRows);
+
+                // Group the smaller, sublevels. Note that the outline controls
+                // will be on rows 6 and 9, meaning 4-5 and 7-8 will collapse and expand.
+                sheet.getRange("4:5").group(Excel.GroupOption.byRows);
+                sheet.getRange("7:8").group(Excel.GroupOption.byRows);
+                await context.sync();
+            });
+        }
+
+        async function groupColumns() {
+            Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Group the larger, main level. Note that the outline controls
+                // will be on column R, meaning C-Q will collapse and expand.
+                sheet.getRange("C:Q").group(Excel.GroupOption.byColumns);
+
+                // Group the smaller, sublevels. Note that the outline controls
+                // will be on columns G, L, and R, meaning C-F, H-K, and M-P will collapse and expand.
+                sheet.getRange("C:F").group(Excel.GroupOption.byColumns);
+                sheet.getRange("H:K").group(Excel.GroupOption.byColumns);
+                sheet.getRange("M:P").group(Excel.GroupOption.byColumns);
+                await context.sync();
+            });
+        }
+
+        async function collapseOutline() {
+            Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // This collapses the entire outline.
+                sheet.showOutlineLevels(1, 1);
+                await context.sync();
+            });
+        }
+
+        async function expandOutline() {
+            Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // This shows the top 3 outline levels; collapsing any additional sublevels
+                sheet.showOutlineLevels(3, 3);
+                await context.sync();
+            });
+        }
+
+        async function ungroup() {
+            Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                
+                // This removes two levels of groups from the "A1-R10" range.
+                // Any groups at the same level on the same dimension will be removed by a single call.
+                sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byRows);
+                sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byRows);
+                sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byColumns);
+                sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byColumns);
+                await context.sync();
+            });
+        }
+
+        async function setupData() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet = context.workbook.worksheets.add("Sample");
+
+                const data = [
+                    ["Category", "Type", "Q1", "Q2", "Q3", "Q4", "Q1", "Q2", "Q3", "Q4", "Q1", "Q2", "Q3", "Q4"],
+                    ["Stone Fruit", "Peaches", 500, 2000, 5000, 1500, 600, 2200, 5400, 1300, 300, 1500, 4300, 1200],
+                    [, "Plums", 700, 900, 1300, 800, 800, 1000, 2000, 700, 300, 600, 1100, 700],
+                    ["Citrus", "Lemons", 8000, 3000, 4500, 7500, 8900, 4000, 3500, 4500, 6000, 2500, 4500, 9500],
+                    [, "Limes", 12000, 7000, 8000, 13000, 16000, 10000, 8500, 12000, 11000, 5600, 6500, 11000]
+                ];
+
+                sheet.getRange("A3:N7").values = data;
+                sheet.getRange("A1").values = [["Fruit Sales"]];
+                sheet.getRange("A1").style = "Heading1";
+                sheet.getRanges("C2:N3,A3:B7").format.font.bold = true;
+
+                sheet.getRange("A1:N7").format.autofitColumns();
+                sheet.activate();
+
+                await context.sync();
+            });
+        }
+
+        async function setupTotals() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const subtotalColumns = ["G", "L", "Q"];
+                const subtotalRows = ["6", "9"];
+                let year = 2017;
+                for (let column of subtotalColumns) {
+                    sheet.getRange(`${column}:${column}`).insert(Excel.InsertShiftDirection.right);
+                    sheet.getRange(`${column}3`).values = [["Year Total"]];
+                    sheet.getRange(`${column}3`).getRowsAbove(1).values = [[`${year++}`]];
+                }
+
+                for (let row of subtotalRows) {
+                    sheet.getRange(`${row}:${row}`).insert(Excel.InsertShiftDirection.down);
+                    sheet.getRange(`B${row}`).values = [["Category Total"]];
+                }
+
+                for (let column of subtotalColumns) {
+                    const totalRange = sheet.getRange(`${column}4`);
+                    const precedingRange = totalRange.getColumnsBefore(4);
+                    precedingRange.load("address");
+                    await context.sync();
+                    totalRange.formulas = [[`=SUM(${precedingRange.address})`]];
+                    totalRange.format.font.italic = true;
+                    totalRange.format.fill.color = "LightBlue";
+                    totalRange.autoFill(`${column}4:${column}9`);
+                }
+
+                for (let row of subtotalRows) {
+                    const totalRange = sheet.getRange(`C${row}`);
+                    const precedingRange = totalRange.getRowsAbove(2);
+                    precedingRange.load("address");
+                    await context.sync();
+                    totalRange.formulas = [[`=SUM(${precedingRange.address})`]];
+                    totalRange.format.font.italic = true;
+                    totalRange.format.fill.color = "LightBlue";
+                    totalRange.autoFill(`C${row}:Q${row}`);
+                }
+
+                sheet.getRange("R3").values = [["Grand Total"]];
+                sheet.getRange("R4").formulas = [["=SUM(G4,K4,Q4)"]];
+                sheet.getRange("R4").autoFill("R4:R9");
+
+                sheet.getRange("B10").values = [["Grand Total"]];
+                sheet.getRange("C10").formulas = [["=SUM(C6,C9)"]];
+                sheet.getRange("C10").autoFill("C10:R10");
+
+                sheet.getRange("A1:R9").format.autofitColumns();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback, option?) {
+            try {
+                await callback(option);
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to group and ungroup rows and columns for an outline.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup-data" class="ms-Button">
+            <span class="ms-Button-label">Add sample data</span>
+        </button>
+            <p />
+            <button id="setup-totals" class="ms-Button">
+            <span class="ms-Button-label">Add subtotal and total cells</span>
+        </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="group-rows" class="ms-Button">
+            <span class="ms-Button-label">Group rows</span>
+            </button>
+            <p />
+            <button id="group-columns" class="ms-Button">
+                <span class="ms-Button-label">Group columns</span>
+            </button>
+            <p />
+            <p>Use the Excel UI to expand or collapse parts of the outline. The following buttons will expand or collapse the
+                entire outline.</p>
+            <button id="collapse-outline" class="ms-Button">
+                <span class="ms-Button-label">Collapse outline</span>
+            </button>
+            <p />
+            <button id="expand-outline" class="ms-Button">
+                <span class="ms-Button-label">Expand outline</span>
+            </button>
+            <p />
+            <p>When you are finished exploring the grouping functionality, use the following button to ungroup the rows and
+                columns.</p>
+            <button id="ungroup" class="ms-Button">
+                <span class="ms-Button-label">Ungroup all</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

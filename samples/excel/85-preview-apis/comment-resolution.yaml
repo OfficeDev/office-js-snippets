@@ -1,4 +1,4 @@
-order: 3
+order: 6
 id: excel-comment-resolution
 name: Comment resolution
 description: Resolves and reactivates a comment.
@@ -6,83 +6,108 @@ host: EXCEL
 api_set:
     ExcelApi: '1.10'
 script:
-  content: |
-    $("#setup").click(() => tryCatch(setup));
-    $("#add-comment").click(() => tryCatch(addCommentToCell));
-    $("#resolve-comment").click(() => tryCatch(resolveComment));
-    $("#reactivate-comment").click(() => tryCatch(reactivateComment));
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#add-comment").click(() => tryCatch(addComment));
+        $("#resolve-comment").click(() => tryCatch(resolveComment));
+        $("#reactivate-comment").click(() => tryCatch(reactivateComment));
 
-    async function addCommentToCell() {
-        await Excel.run(async (context) => {
-            const sheet = context.workbook.worksheets.getItem("Comments");
+        async function addComment() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Comments");
 
-            // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
-            sheet.comments.add("A1", "TODO: add data.");
-            await context.sync();
-        });
-    }
-
-    async function resolveComment() {
-        await Excel.run(async (context) => {
-            const sheet = context.workbook.worksheets.getItem("Comments");
-            sheet.comments.getItemAt(0).resolved = true;
-            await context.sync();
-        });
-    }
-
-    async function reactivateComment() {
-        await Excel.run(async (context) => {
-            const sheet = context.workbook.worksheets.getItem("Comments");
-            sheet.comments.getItemAt(0).resolved = false;
-            await context.sync();
-        });
-    }
-
-    async function setup() {
-        await Excel.run(async (context) => {
-            context.workbook.worksheets.getItemOrNullObject("Comments").delete();
-            const sheet = context.workbook.worksheets.add("Comments");
-
-            sheet.activate();
-            await context.sync();
-        });
-    }
-
-    /** Default helper for invoking an action and handling errors. */
-    async function tryCatch(callback) {
-        try {
-            await callback();
-        } catch (error) {
-            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-            console.error(error);
+                // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
+                sheet.comments.add("A1", "TODO: add data.");
+                await context.sync();
+            });
         }
-    }
-  language: typescript
+
+        async function resolveComment() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                sheet.comments.getItemAt(0).resolved = true;
+                await context.sync();
+            });
+        }
+
+        async function reactivateComment() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                sheet.comments.getItemAt(0).resolved = false;
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Comments").delete();
+                const sheet = context.workbook.worksheets.add("Comments");
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
 template:
-  content: "<section class=\"ms-font-m\">\n\t<p>This sample shows how to add, edit, and remove comments.</p>\n</section>\n<section class=\"setup ms-font-m\">\n\t<h3>Setup</h3>\n\t<button id=\"setup\" class=\"ms-Button\">\n        <span class=\"ms-Button-label\">Create a worksheet</span>\n    </button>\n</section>\n<section class=\"samples ms-font-m\">\n\t<h3>Try it out</h3>\n\t<p>To better view the comment changes, open the <b>Show Comments</b> pane from the <b>Review</b> tab.</p>\n\t<p />\n\t<button id=\"add-comment\" class=\"ms-Button\">\n        <span class=\"ms-Button-label\">Add comment</span>\n    </button>\n\t<p />\n\t<button id=\"resolve-comment\" class=\"ms-Button\">\n        <span class=\"ms-Button-label\">Resolve comment</span>\n    </button>\n\t<p />\n\t<button id=\"reactivate-comment\" class=\"ms-Button\">\n\t        <span class=\"ms-Button-label\">Reactivate comment</span>\n\t    </button>\n</section>"
-  language: html
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to add, edit, and remove comments.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a worksheet</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>To better view the comment changes, open the <b>Show Comments</b> pane from the <b>Review</b> tab.</p>
+            <p />
+            <button id="add-comment" class="ms-Button">
+                <span class="ms-Button-label">Add comment</span>
+            </button>
+            <p />
+            <button id="resolve-comment" class="ms-Button">
+                <span class="ms-Button-label">Resolve comment</span>
+            </button>
+            <p />
+            <button id="reactivate-comment" class="ms-Button">
+                    <span class="ms-Button-label">Reactivate comment</span>
+                </button>
+        </section>
+    language: html
 style:
-  content: |-
-    section.samples {
-        margin-top: 20px;
-    }
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
 
-    section.samples .ms-Button, section.setup .ms-Button {
-        display: block;
-        margin-bottom: 5px;
-        margin-left: 20px;
-        min-width: 80px;
-    }
-  language: css
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
 libraries: |
-  https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-  @types/office-js-preview
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
 
-  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
-  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
 
-  core-js@2.4.1/client/core.min.js
-  @types/core-js
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
 
-  jquery@3.1.1
-  @types/jquery@3.3.1
+    jquery@3.1.1
+    @types/jquery@3.3.1

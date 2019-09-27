@@ -1,4 +1,4 @@
-order: 3
+order: 5
 id: excel-comment-replies
 name: Comment replies
 description: 'Adds, edits, and removes comment replies.'
@@ -7,99 +7,99 @@ api_set:
     ExcelApi: '1.10'
 script:
     content: |
-      $("#setup").click(() => tryCatch(setup));
-      $("#add-first-comment-reply").click(() => tryCatch(addFirstCommentReply));
-      $("#add-second-comment-reply").click(() => tryCatch(addSecondCommentReply));
-      $("#get-comment-reply-metadata").click(() => tryCatch(getCommentReplyMetadata));
-      $("#edit-comment-reply").click(() => tryCatch(editCommentReply));
-      $("#delete-comment-reply").click(() => tryCatch(deleteCommentReply));
+        $("#setup").click(() => tryCatch(setup));
+        $("#add-first-comment-reply").click(() => tryCatch(addFirstCommentReply));
+        $("#add-second-comment-reply").click(() => tryCatch(addSecondCommentReply));
+        $("#get-comment-reply-metadata").click(() => tryCatch(getCommentReplyMetadata));
+        $("#edit-comment-reply").click(() => tryCatch(editCommentReply));
+        $("#delete-comment-reply").click(() => tryCatch(deleteCommentReply));
 
-      async function addFirstCommentReply() {
-          await Excel.run(async (context) => {
-              // Adds a reply to the first comment in this worksheet.
-              const sheet = context.workbook.worksheets.getItem("Comments");
-              const comment = sheet.comments.getItemAt(0);
-              comment.replies.add("Add content to this worksheet.");
-              await context.sync();
-          });
-      }
+        async function addFirstCommentReply() {
+            await Excel.run(async (context) => {
+                // Adds a reply to the first comment in this worksheet.
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
+                comment.replies.add("Add content to this worksheet.");
+                await context.sync();
+            });
+        }
 
-      async function addSecondCommentReply() {
-          await Excel.run(async (context) => {
-              // Adds a reply to the first comment in this worksheet. 
-              const sheet = context.workbook.worksheets.getItem("Comments");
-              const comment = sheet.comments.getItemAt(0);
-              comment.replies.add("You can do it. Believe in yourself!");
-              await context.sync();
-          });
-      }
+        async function addSecondCommentReply() {
+            await Excel.run(async (context) => {
+                // Adds a reply to the first comment in this worksheet. 
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
+                comment.replies.add("You can do it. Believe in yourself!");
+                await context.sync();
+            });
+        }
 
-      async function getCommentReplyMetadata() {
-          await Excel.run(async (context) => {
-              const comment = context.workbook.comments.getItemByCell("Comments!A1");
-              const replyCount = comment.replies.getCount();
-              // Sync to get the current number of comment replies.
-              await context.sync();
+        async function getCommentReplyMetadata() {
+            await Excel.run(async (context) => {
+                const comment = context.workbook.comments.getItemByCell("Comments!A1");
+                const replyCount = comment.replies.getCount();
+                // Sync to get the current number of comment replies.
+                await context.sync();
 
-              // Get the last comment reply in the comment thread.
-              const reply = comment.replies.getItemAt(replyCount.value - 1);
-              reply.load(["authorEmail", "authorName", "creationDate"]);
-              // Sync to load the reply metadata.
-              await context.sync();
+                // Get the last comment reply in the comment thread.
+                const reply = comment.replies.getItemAt(replyCount.value - 1);
+                reply.load(["authorEmail", "authorName", "creationDate"]);
+                // Sync to load the reply metadata.
+                await context.sync();
 
-              console.log(`Latest reply: ${reply.creationDate.toDateString()}: ${reply.authorName} ${reply.authorEmail})`);
-              await context.sync();
-          });
-      }
+                console.log(`Latest reply: ${reply.creationDate.toDateString()}: ${reply.authorName} ${reply.authorEmail})`);
+                await context.sync();
+            });
+        }
 
-      async function editCommentReply() {
-          await Excel.run(async (context) => {
-              const sheet = context.workbook.worksheets.getItem("Comments");
-              const comment = sheet.comments.getItemAt(0);
-              const reply = comment.replies.getItemAt(0);
-              reply.load("content");
-              // Sync to load the content of the comment reply.
-              await context.sync();
+        async function editCommentReply() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
+                const reply = comment.replies.getItemAt(0);
+                reply.load("content");
+                // Sync to load the content of the comment reply.
+                await context.sync();
 
-              // Append "Please!" to the end of the comment reply.
-              reply.content += " Please!";
-              await context.sync();
-          });
-      }
+                // Append "Please!" to the end of the comment reply.
+                reply.content += " Please!";
+                await context.sync();
+            });
+        }
 
-      async function deleteCommentReply() {
-          await Excel.run(async (context) => {
-              // Remove the first comment reply from this worksheet's first comment.
-              const sheet = context.workbook.worksheets.getItem("Comments");
-              const comment = sheet.comments.getItemAt(0);
-              comment.replies.getItemAt(0).delete();
-              await context.sync();
-          });
-      }
+        async function deleteCommentReply() {
+            await Excel.run(async (context) => {
+                // Remove the first comment reply from this worksheet's first comment.
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
+                comment.replies.getItemAt(0).delete();
+                await context.sync();
+            });
+        }
 
-      async function setup() {
-          await Excel.run(async (context) => {
-              context.workbook.worksheets.getItemOrNullObject("Comments").delete();
-              const sheet = context.workbook.worksheets.add("Comments");
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Comments").delete();
+                const sheet = context.workbook.worksheets.add("Comments");
 
-              // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
-              sheet.comments.add("A1", "TODO: add data.");
-              await context.sync();
+                // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
+                sheet.comments.add("A1", "TODO: add data.");
+                await context.sync();
 
-              sheet.activate();
-              await context.sync();
-          });
-      }
+                sheet.activate();
+                await context.sync();
+            });
+        }
 
-      /** Default helper for invoking an action and handling errors. */
-      async function tryCatch(callback) {
-          try {
-              await callback();
-          } catch (error) {
-              // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-              console.error(error);
-          }
-      }
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
     language: typescript
 template:
     content: |-

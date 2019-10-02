@@ -1,0 +1,102 @@
+order: 4
+id: excel-comment-mentions
+name: Comment mentions
+description: Mentions someone in a comment.
+host: EXCEL
+api_set:
+    ExcelApi: '1.10'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#add-comment-with-mention").click(() => tryCatch(addCommentWithMention));
+
+        async function addCommentWithMention() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const mention = {
+                    email: "kakri@contoso.com",
+                    id: 0,
+                    name: "Kate Kristensen"
+                };
+
+                // This will tag the mention's name using the '@' syntax.
+                // They will be notified via email.
+                const commentBody = {
+                    mentions: [mention],
+                    richContent: '<at id="0">' + mention.name + "</at> -  Can you take a look?"
+                };
+
+                // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
+                sheet.comments.add("A1", commentBody, Excel.ContentType.mention);
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Comments").delete();
+                const sheet = context.workbook.worksheets.add("Comments");
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to mention someone in a comment.</p>
+        </section>
+        <section class="setup ms-font-m">
+          <p><b>IMPORTANT</b>: This sample is currently only supported by Excel on the web.</p>
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a worksheet</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <p>To better view the comment changes, open the Comments pane by selecting <b>Show Comments</b> from the <b>Review</b> tab.</p>
+          <p />
+          <button id="add-comment-with-mention" class="ms-Button">
+                <span class="ms-Button-label">Mention someone in a comment</span>
+          </button>
+          <p />
+          <p>Change the email and name fields in the <code>addCommentWithMention</code> method to test the notification functionality.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

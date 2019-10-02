@@ -1,28 +1,25 @@
 order: 2
-id: excel-comment
-name: Comments
-description: 'Adds, edits, and removes comments and comment replies.'
+id: excel-comment-basics
+name: Comment basics
+description: 'Adds, edits, and removes comments.'
 host: EXCEL
 api_set:
     ExcelApi: '1.10'
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#addCommentToSelectedCell").click(() => tryCatch(addCommentToSelectedCell));
-        $("#addCommentToCell").click(() => tryCatch(addCommentToCell));
-        $("#addCommentReply").click(() => tryCatch(addCommentReply));
-        $("#getCommentMetadata").click(() => tryCatch(getCommentMetadata));
-        $("#editComment").click(() => tryCatch(editComment));
-        $("#editCommentReply").click(() => tryCatch(editCommentReply));
-        $("#deleteComment").click(() => tryCatch(deleteComment));
-        $("#deleteCommentReply").click(() => tryCatch(deleteCommentReply));
+        $("#add-comment-to-selected-cell").click(() => tryCatch(addCommentToSelectedCell));
+        $("#add-comment-to-cell").click(() => tryCatch(addCommentToCell));
+        $("#get-comment-metadata").click(() => tryCatch(getCommentMetadata));
+        $("#edit-comment").click(() => tryCatch(editComment));
+        $("#delete-comment").click(() => tryCatch(deleteComment));
 
         async function addCommentToSelectedCell() {
             await Excel.run(async (context) => {
                 const selectedRange = context.workbook.getSelectedRange();
 
                 // Note that an InvalidArgument error will be thrown if multiple cells are selected.
-                context.workbook.comments.add("TODO: add headers here.", selectedRange);
+                context.workbook.comments.add(selectedRange, "TODO: add headers here.");
                 await context.sync();
             });
         }
@@ -32,15 +29,7 @@ script:
                 const sheet = context.workbook.worksheets.getItem("Comments");
 
                 // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
-                sheet.comments.add("TODO: add data.", "A2");
-                await context.sync();
-            });
-        }
-
-        async function addCommentReply() {
-            await Excel.run(async (context) => {
-                const comment = context.workbook.comments.getItemAt(0);
-                comment.replies.add("Do I have to?");
+                sheet.comments.add("A2", "TODO: add data.");
                 await context.sync();
             });
         }
@@ -58,31 +47,9 @@ script:
 
         async function editComment() {
             await Excel.run(async (context) => {
-                const comment = context.workbook.comments.getItemAt(0);
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
                 comment.content = "PLEASE add headers here.";
-                await context.sync();
-            });
-        }
-
-        async function editCommentReply() {
-            await Excel.run(async (context) => {
-                const comment = context.workbook.comments.getItemAt(0);
-                comment.load("replies");
-                await context.sync();
-
-                const reply = comment.replies.getItemAt(0);
-                reply.content = "new content for the reply";
-                await context.sync();
-            });
-        }
-
-        async function deleteCommentReply() {
-            await Excel.run(async (context) => {
-                var comment = context.workbook.comments.getItemAt(0);
-                comment.load("replies");
-                await context.sync();
-
-                comment.replies.getItemAt(0).delete();
                 await context.sync();
             });
         }
@@ -117,7 +84,7 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to add and edit comments.</p>
+            <p>This sample shows how to add, edit, and remove comments.</p>
         </section>
         <section class="setup ms-font-m">
             <h3>Setup</h3>
@@ -127,39 +94,26 @@ template:
         </section>
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <p> Press the buttons in order to add, edit, and remove comments and replies. Check the worksheet after each button to see the effects.</p>
-            <button id="addCommentToSelectedCell" class="ms-Button">
+            <p>To better view the comment changes, open the Comments pane by selecting <b>Show Comments</b> from the <b>Review</b> tab.</p>
+            <button id="add-comment-to-selected-cell" class="ms-Button">
                 <span class="ms-Button-label">Add comment to selected cell</span>
             </button>
             <p />
-            <button id="addCommentToCell" class="ms-Button">
+            <button id="add-comment-to-cell" class="ms-Button">
                 <span class="ms-Button-label">Add comment to A2</span>
             </button>
             <p />
-            <button id="addCommentReply" class="ms-Button">
-                <span class="ms-Button-label">Add comment reply to first comment</span>
-            </button>
-            <p />
-            <button id="getCommentMetadata" class="ms-Button">
+            <button id="get-comment-metadata" class="ms-Button">
                 <span class="ms-Button-label">Get comment metadata</span>
             </button>
             <p />
-            <button id="editComment" class="ms-Button">
+            <button id="edit-comment" class="ms-Button">
                 <span class="ms-Button-label">Edit first comment</span>
             </button>
             <p />
-            <button id="editCommentReply" class="ms-Button">
-                <span class="ms-Button-label">Edit first comment reply</span>
+            <button id="delete-comment" class="ms-Button">
+                <span class="ms-Button-label">Remove comment at A2</span>
             </button>
-            <p />
-            <button id="deleteCommentReply" class="ms-Button">
-                <span class="ms-Button-label">Delete first comment reply</span>
-            </button>
-            <p />
-            <button id="deleteComment" class="ms-Button">
-                <span class="ms-Button-label">Delete comment at A2</span>
-            </button>
-            <p />
         </section>
     language: html
 style:

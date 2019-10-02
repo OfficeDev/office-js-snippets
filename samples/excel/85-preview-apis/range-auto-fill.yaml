@@ -1,0 +1,156 @@
+order: 1
+id: excel-range-auto-fill
+name: Auto fill
+description: Writes to cells with the auto fill feature.
+host: EXCEL
+api_set:
+    ExcelApi: '1.10'
+script:
+    content: |
+        $("#setup-data").click(() => tryCatch(setupData));
+        $("#setup-first-sums").click(() => tryCatch(setupFirstSums));
+        $("#auto-fill-values").click(() => tryCatch(autoFillValues));
+        $("#auto-fill-formats").click(() => tryCatch(autoFillFormats));
+        $("#auto-fill-copy").click(() => tryCatch(autoFillCopy));
+
+        async function autoFillValues() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            const sumCell = sheet.getRange("F4");
+
+            // Copy only the values and formulas, not the formatting. The formulas will be contextually updated based on their new locations.
+            sumCell.autoFill("F4:F7", Excel.AutoFillType.fillValues);
+            sumCell.format.autofitColumns();
+            await context.sync();
+          });
+        }
+
+        async function autoFillFormats() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            const sumCell = sheet.getRange("K4");
+
+            // Copy only the formatting, not the values and formulas.
+            sumCell.autoFill("K4:K7", Excel.AutoFillType.fillFormats);
+            sumCell.format.autofitColumns();
+            await context.sync();
+          });
+        }
+
+        async function autoFillCopy() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            const sumCell = sheet.getRange("P4");
+            
+            // Copy everything. The formulas will be contextually updated based on their new locations.
+            sumCell.autoFill("P4:P7", Excel.AutoFillType.fillCopy);
+            sumCell.format.autofitColumns();
+            await context.sync();
+          });
+        }
+
+        async function setupData() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+
+            const data = [
+              ["Fruit", "Q1", "Q2", "Q3", "Q4", 2017, "Q1", "Q2", "Q3", "Q4", 2018, "Q1", "Q2", "Q3", "Q4", 2019],
+              ["Quinces", 500, 2000, 5000, 1500, , 600, 2200, 5400, 1300, , 300, 1500, 4300, 1200, ""],
+              ["Plums", 700, 900, 1300, 800, , 800, 1000, 2000, 700, , 300, 600, 1100, 700, ""],
+              ["Apples", 8000, 3000, 4500, 7500, , 8900, 4000, 3500, 4500, , 6000, 2500, 4500, 9500, ""],
+              ["Peaches", 12000, 7000, 8000, 13000, , 16000, 10000, 8500, 12000, , 11000, 5600, 6500, 11000, ""]
+            ];
+
+            sheet.getRange("A3:P7").values = data;
+            sheet.getRange("A1").values = [["Fruit Sales"]];
+            sheet.getRange("A1").style = "Heading1";
+            sheet.getRanges("B2:P3,A3:A7").format.font.bold = true;
+
+            sheet.getRange("A1:P7").format.autofitColumns();
+            sheet.activate();
+
+            await context.sync();
+          });
+        }
+
+        async function setupFirstSums() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            const sumRange = sheet.getRange("F4");
+            sumRange.formulas = [["=SUM(B4:E4)"]];
+            sumRange.format.fill.color = "LightBlue";
+            sumRange.format.font.bold = true;
+            sheet.getRanges("K4,P4").copyFrom("F4", Excel.RangeCopyType.all);
+            sheet.getRanges("F4,K4,P4").format.autofitColumns();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback, option?) {
+          try {
+            await callback(option);
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to provide cell data for surrounding cells using auto fill.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup-data" class="ms-Button">
+            <span class="ms-Button-label">Add sample data</span>
+        </button>
+          <p />
+          <button id="setup-first-sums" class="ms-Button">
+            <span class="ms-Button-label">Add first sum cells</span>
+        </button>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="auto-fill-values" class="ms-Button">
+            <span class="ms-Button-label">Auto fill values in column F</span>
+          </button>
+          <p />
+          <button id="auto-fill-formats" class="ms-Button">
+            <span class="ms-Button-label">Auto fill formats in column K</span>
+          </button>
+          <p />
+          <button id="auto-fill-copy" class="ms-Button">
+            <span class="ms-Button-label">Auto fill everything in column P</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

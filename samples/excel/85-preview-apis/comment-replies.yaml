@@ -1,0 +1,164 @@
+order: 5
+id: excel-comment-replies
+name: Comment replies
+description: 'Adds, edits, and removes comment replies.'
+host: EXCEL
+api_set:
+    ExcelApi: '1.10'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#add-first-comment-reply").click(() => tryCatch(addFirstCommentReply));
+        $("#add-second-comment-reply").click(() => tryCatch(addSecondCommentReply));
+        $("#get-comment-reply-metadata").click(() => tryCatch(getCommentReplyMetadata));
+        $("#edit-comment-reply").click(() => tryCatch(editCommentReply));
+        $("#delete-comment-reply").click(() => tryCatch(deleteCommentReply));
+
+        async function addFirstCommentReply() {
+            await Excel.run(async (context) => {
+                // Adds a reply to the first comment in this worksheet.
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
+                comment.replies.add("Add content to this worksheet.");
+                await context.sync();
+            });
+        }
+
+        async function addSecondCommentReply() {
+            await Excel.run(async (context) => {
+                // Adds a reply to the first comment in this worksheet. 
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
+                comment.replies.add("You can do it. Believe in yourself!");
+                await context.sync();
+            });
+        }
+
+        async function getCommentReplyMetadata() {
+            await Excel.run(async (context) => {
+                const comment = context.workbook.comments.getItemByCell("Comments!A1");
+                const replyCount = comment.replies.getCount();
+                // Sync to get the current number of comment replies.
+                await context.sync();
+
+                // Get the last comment reply in the comment thread.
+                const reply = comment.replies.getItemAt(replyCount.value - 1);
+                reply.load(["authorEmail", "authorName", "creationDate"]);
+                // Sync to load the reply metadata.
+                await context.sync();
+
+                console.log(`Latest reply: ${reply.creationDate.toDateString()}: ${reply.authorName} ${reply.authorEmail})`);
+                await context.sync();
+            });
+        }
+
+        async function editCommentReply() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
+                const reply = comment.replies.getItemAt(0);
+                reply.load("content");
+                // Sync to load the content of the comment reply.
+                await context.sync();
+
+                // Append "Please!" to the end of the comment reply.
+                reply.content += " Please!";
+                await context.sync();
+            });
+        }
+
+        async function deleteCommentReply() {
+            await Excel.run(async (context) => {
+                // Remove the first comment reply from this worksheet's first comment.
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
+                comment.replies.getItemAt(0).delete();
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Comments").delete();
+                const sheet = context.workbook.worksheets.add("Comments");
+
+                // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
+                sheet.comments.add("A1", "TODO: add data.");
+                await context.sync();
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to add, edit, and remove comment replies.</p>
+        </section>
+        <section class="setup ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a worksheet</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <p>To better view the comment changes, open the Comments pane by selecting <b>Show Comments</b> from the <b>Review</b> tab.</p>
+          <button id="add-first-comment-reply" class="ms-Button">
+                <span class="ms-Button-label">Add a comment reply</span>
+            </button>
+          <p />
+          <button id="add-second-comment-reply" class="ms-Button">
+                <span class="ms-Button-label">Add another comment reply</span>
+            </button>
+          <p />
+          <button id="get-comment-reply-metadata" class="ms-Button">
+                <span class="ms-Button-label">Get last comment reply metadata</span>
+            </button>
+          <p />
+          <button id="edit-comment-reply" class="ms-Button">
+                <span class="ms-Button-label">Edit first comment reply</span>
+            </button>
+          <p />
+          <button id="delete-comment-reply" class="ms-Button">
+                <span class="ms-Button-label">Delete first comment reply</span>
+            </button>
+          <p />
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -159,32 +159,6 @@ export const isDir = (path: string) =>
         });
     });
 
-
-/**
- * Load the contents of the YAML file.
- * @param path Absolute to the yaml file.
- */
-export const loadFileContents = (path: string) =>
-    new Promise<string>(async (resolve, reject) => {
-        let pathIsDirectory = await isDir(path);
-        if (pathIsDirectory) {
-            return reject(new Error(`Cannot open a directory @ ${chalk.bold.red(path)}`));
-        }
-        else {
-            fs.readFile(path, 'UTF8', (err, contents) => {
-                try {
-                    if (err) {
-                        return reject(err);
-                    }
-                    return resolve(contents);
-                }
-                catch (err) {
-                    reject(err);
-                }
-            });
-        }
-    });
-
 /**
  * Check the file path against validations and return a 'File' object.
  * @param fullPath An absolute path to the file.

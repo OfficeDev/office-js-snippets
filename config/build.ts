@@ -7,7 +7,7 @@ import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
     getDestinationBranch, followsNamingGuidelines, isCUID,
-    rmRf, mkDir, getFiles, writeFile, loadFileContents, banner, getPrintableDetails, Dictionary
+    rmRf, mkDir, getFiles, writeFile, banner, getPrintableDetails, Dictionary
 } from './helpers';
 import { buildReferenceDocSnippetExtracts } from './build.documentation';
 import { getShareableYaml } from './snippet.helpers';
@@ -15,6 +15,7 @@ import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
 import * as jsyaml from 'js-yaml';
 import escapeStringRegexp = require('escape-string-regexp');
+import * as fsx from 'fs-extra';
 
 
 const { GH_ACCOUNT, GH_REPO, TRAVIS_BRANCH } = process.env;
@@ -82,7 +83,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
             let dir = file.isPublic ? PUBLIC_SAMPLES : PRIVATE_SAMPLES;
 
             const fullPath = path.resolve(dir, file.relativePath);
-            const originalFileContents = (await loadFileContents(fullPath)).trim();
+            const originalFileContents = fsx.readFileSync(fullPath).toString().trim();
             let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
 
             // Do validations & auto-corrections
@@ -119,7 +120,6 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
                 messages.push(chalk.bold.yellow('Final snippet != original snippet. Queueing to write in new changes.'));
                 snippetFilesToUpdate.push({ path: fullPath, contents: finalFileContents });
             }
-
             status.complete(true /*success*/, `Processing ${file.relativePath}`, messages);
 
             const rawUrl = `https://raw.githubusercontent.com/` +

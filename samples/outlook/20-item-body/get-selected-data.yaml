@@ -1,22 +1,20 @@
-order: 4
-id: outlook-recipients-and-attendees-get-to-message-compose
-name: Get to (Message Compose)
-description: Gets the To line recipients of the message in Compose mode.
+order: 1
+id: outlook-item-body-get-selected-data
+name: Get selected text (Compose)
+description: Gets the selected text in the item body or subject in Compose mode.
 host: OUTLOOK
 api_set:
     Mailbox: '1.1'
 script:
     content: |
-        $("#get-to").click(getTo);
+        $("#get-selected-data").click(getSelectedData);
 
-        function getTo() {
-          Office.context.mailbox.item.to.getAsync(function(asyncResult) {
+        function getSelectedData() {
+          Office.context.mailbox.item.getSelectedDataAsync(Office.CoercionType.Text, function(asyncResult) {
             if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
-              var msgTo = asyncResult.value;
-              console.log("Message being sent to:");
-              for (var i = 0; i < msgTo.length; i++) {
-                console.log(msgTo[i].displayName + " (" + msgTo[i].emailAddress + ")");
-              }
+              var text = asyncResult.value.data;
+              var prop = asyncResult.value.sourceProperty;
+              console.log("Selected text in " + prop + ": " + text);
             } else {
               console.error(asyncResult.error);
             }
@@ -26,14 +24,15 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p class="ms-font-m">This sample shows how to get the <b>To</b> line recipients of the email.</p>
-            <p><b>Required mode</b>: Message Compose</p>
+            <p class="ms-font-m">This sample shows how to get the selected text in the item body or subject/title.</p>
+            <p><b>Required mode</b>: Compose</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="get-to" class="ms-Button">
-            <span class="ms-Button-label">Who is this to?</span>
+            <p>Select text in the item body or subject then choose the <b>Get selected text</b> button.</p>
+            <button id="get-selected-data" class="ms-Button">
+            <span class="ms-Button-label">Get selected text</span>
           </button>
         </section>
     language: html

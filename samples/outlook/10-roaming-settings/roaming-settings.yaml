@@ -1,0 +1,89 @@
+id: outlook-roaming-settings-roaming-settings
+name: Use add-in settings
+description: 'Gets, sets, and saves add-in roaming settings'
+host: OUTLOOK
+api_set:
+    Mailbox: '1.1'
+script:
+    content: |
+        $("#get").click(get);
+        $("#set").click(set);
+        $("#save").click(save);
+
+        function get() {
+          var settingName = $("#settingName").val();
+          var settingValue = Office.context.roamingSettings.get(settingName);
+          $("#settingValue").val(settingValue);
+          console.log(`The value of setting "${settingName}" is "${settingValue}".`);
+        }
+          
+        function set() {
+          var settingName = $("#settingName").val();
+          var settingValue = $("#settingValue").val();
+          Office.context.roamingSettings.set(settingName, settingValue);
+          console.log(`Setting "${settingName}" set to value "${settingValue}".`);
+        }
+          
+        function save() {
+          // Save settings in the mailbox to make it available in future sessions.
+          Office.context.roamingSettings.saveAsync(function(result) {
+            if (result.status !== Office.AsyncResultStatus.Succeeded) {
+              console.error(`Action failed with message ${result.error.message}`);
+            } else {
+              console.log(`Settings saved with status: ${result.status}`);
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+          <p>This sample shows how to set, save, and get add-in properties that can be accessed the next time the add-in is opened.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <div class="ms-TextField">
+            <label class="ms-Label">Setting name:</label>
+            <input id="settingName" class="ms-TextField-field" type="text" value="hello" placeholder="">
+          </div>
+          <div class="ms-TextField">
+            <label class="ms-Label">Setting value:</label>
+            <input id="settingValue" class="ms-TextField-field" type="text" value="world" placeholder="">
+          </div>
+          <button id="set" class="ms-Button">
+            <div class="ms-Button-label">Set</div>
+          </button>
+          <button id="get" class="ms-Button">
+            <div class="ms-Button-label">Get</div>
+          </button>
+          <button id="save" class="ms-Button">
+            <div class="ms-Button-label">Save all</div>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

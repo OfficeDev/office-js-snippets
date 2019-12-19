@@ -13,8 +13,9 @@ script:
         $("#copyFormulaResult").click(() => tryCatch(copyFormulaResult));
         $("#copySingleAcrossRange").click(() => tryCatch(copySingleAcrossRange));
         $("#copyOnlyFormat").click(() => tryCatch(copyOnlyFormat));
-        $("#transpose").click(() => tryCatch(transpose));
         $("#skipBlanks").click(() => tryCatch(skipBlanks));
+        $("#transpose").click(() => tryCatch(transpose));
+        $("#move").click(() => tryCatch(move));
 
         async function copyAll() {
             await Excel.run(async (context) => {
@@ -110,12 +111,23 @@ script:
             });
         }
 
+        async function move() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange("F12").values = [["Moved Range"]];
+                sheet.getRange("F12").format.autofitColumns();
+
+                // move a range from a range to the specified location
+                sheet.getRange("A1:E1").moveTo("G12");
+                await context.sync();
+            });
+        }
+
         async function setup() {
             await Excel.run(async (context) => {
                 context.workbook.worksheets.getItemOrNullObject("Sample").delete();
-                const sheet = context.workbook.worksheets.add("Sample");
 
-                const sheet = context.workbook.worksheets.getItem("Sample");
+                const sheet = context.workbook.worksheets.add("Sample");
                 sheet.getRange("A1:D1").values = [["3", "5", "7", ""]];
                 sheet.getRange("A1:D1").format.font.italic = true;
                 sheet.getRange("A1:D1").format.font.color = "DarkMagenta";
@@ -142,7 +154,7 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to copy data and formatting from one range to another.</p>
+            <p>This sample shows how to copy data and formatting from one range (<b>A1:E1</b>) to another.</p>
         </section>
         <section class="setup ms-font-m">
             <h3>Setup</h3>
@@ -179,7 +191,11 @@ template:
             <button id="transpose" class="ms-Button">
                 <span class="ms-Button-label">Transpose copy range</span>
             </button>
-        </section>
+            <p />
+            <button id="move" class="ms-Button">
+                <span class="ms-Button-label">Move a range</span>
+            </button>
+         </section>
     language: html
 style:
     content: |-

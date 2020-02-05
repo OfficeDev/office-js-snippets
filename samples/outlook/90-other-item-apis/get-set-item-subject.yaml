@@ -1,6 +1,6 @@
-id: outlook-compose-basics-get-set-selected-text
-name: 'Gets, Sets Selected Text'
-description: 'Gets, sets the text selected from either the body or subject.'
+id: outlook-other-item-apis-get-set-item-subject
+name: 'Gets, Sets Item Subject'
+description: 'Gets, sets the subject of a compose item'
 host: OUTLOOK
 api_set: {}
 script:
@@ -10,29 +10,32 @@ script:
 
         function get() {
             let item = Office.context.mailbox.item as Office.ItemCompose;
-            item.getSelectedDataAsync(Office.CoercionType.Text, (result: Office.AsyncResult) => {
-                if (result.status === Office.AsyncResultStatus.Failed) {
-                    console.error(`Action failed with error: ${result.error.message}`);
+            item.subject.getAsync((result: Office.AsyncResult) => {
+                if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                    console.error(`Action failed with message ${result.error.message}`);
                     return;
                 }
-                console.log(`Selected Text: ${result.value.data}`);
+                console.log(`Subject is ${result.value}`);
             })
         }
 
         function set() {
             let item = Office.context.mailbox.item as Office.ItemCompose;
-            let text = 'Hello World!';
-            item.setSelectedDataAsync("Hello World!", (result: Office.AsyncResult) => {
-                if (result.status === Office.AsyncResultStatus.Failed) {
-                    console.error(`Action failed with error: ${result.error.message}`)
+            let subject = 'Hello World!';
+            item.subject.setAsync(subject, (result: Office.AsyncResult) => {
+                if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                console.error(`Action failed with message ${result.error.message}`);
+                return;
                 }
-                console.log(`Selected Text set to ${text}`);
-            })
+                console.log(`Subject is ${subject}`);
+            });
         }
     language: typescript
 template:
     content: |
-        <label class="ms-Label">Select some text in either the body or the subject of the email and click get or set to retrieve or set it</label>
+        <section class="ms-font-m">
+          <p>This sample shows how to set and get the subject of a compose item.</p>
+        </section>
         <section class="samples ms-font-m">
           <h3>Try it out</h3>
           <button id="get" class="ms-Button">
@@ -44,7 +47,7 @@ template:
         </section> 
     language: html
 style:
-    content: |
+    content: |-
         section.samples {
             margin-top: 20px;
         }

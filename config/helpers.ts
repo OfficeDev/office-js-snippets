@@ -11,7 +11,7 @@ export const officeHostsToAppNames = {
     'ACCESS': 'Access',
     'EXCEL': 'Excel',
     'ONENOTE': 'OneNote',
-    'OUTLOOK': 'Outlook',
+    'OUTLOOK': 'Office',
     'POWERPOINT': 'PowerPoint',
     'PROJECT': 'Project',
     'WORD': 'Word'

@@ -1,0 +1,145 @@
+id: outlook-attachments-attachments-compose
+name: Manipulate attachments (Item Compose)
+description: 'Adds, gets, and removes attachments from a message or an appointment in Compose mode.'
+host: OUTLOOK
+api_set:
+    Mailbox: '1.1'
+script:
+    content: |
+        $("#add").click(add);
+        $("#addItemAttachment").click(addItemAttachment);
+        $("#addBase64").click(addBase64);
+        $("#get").click(get);
+        $("#remove").click(remove);
+
+        function add() {
+            var attachmentUrl = $("#attachmentUrl").val();
+            Office.context.mailbox.item.addFileAttachmentAsync(
+                attachmentUrl,
+                getFileName(attachmentUrl),
+                { "asyncContext" : { var1: 1, var2: true } },
+                function(result) { console.log(result); });
+        }
+
+        function addItemAttachment() {
+            var attachmentItemId = $("#attachmentItemId").val();
+            Office.context.mailbox.item.addItemAttachmentAsync(
+                attachmentItemId,
+                "My attachment",
+                { "asyncContext" : { var3: 3, var4: false } },
+                function(result) { console.log(result); });
+        }
+
+        function addBase64() {
+            base64String = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsSAAALEgHS3X78AAACRUlEQVRYw82XzXHbMBCFP2F8tzsQc8Ixyh0zoiuIXIGdCsxUYKqC0B04FdiuwMoM7mGOOIXqQGoAymXhgSX+itJM9kIRFLAP+3YXD5Pdbscx5oxaAIW8Ztr6l2PWmQwF4IyaieP53qdfAqQ8CwBn1JU4vpWhrbxXQA5MZfynANmcDIAzKgcy4FKGXsVJFf3nLgKyBQptfT4KQMRz2N0fcbxqmRMDWXflx0VPnrdArq0vekQ1Dv0UeHZGNebHhwjU8AzwKM43RyZnbAf58Q6ghudeWd0Aus0+5EcMIIRi3beua0D3Nm39BEAx3i7HTK4DEBJn5YxKOnaRA5+ErpMBWMpzDvx1RuXCcxOISlufAjfC7zgAsqsvUvMAD0ApPaEtGi9AIlUzKgJo60tt/SyKRkzLrAXERluf7W1gOICWaMyB386oooOWsIHvXbSoHuUSFovtHqicUVnH3EJoeT0aQEf5/XBGlc6otIOWBXAtPeZkAIJ9Bt6cUU9tZautX2nrk3MACHYr1ZKProKRtDw4o8pzAPjWo+NtpXTTvoteDDg8noDAcwbcRedAkGdFXyk2GEDcegVAFp2gyVDHjRQ4o6q2smoqtR5Hd+qMqtoALCWUUymr1m43QMZfOaMK4C0SrMsDANJ2E5FNcbdbjHC+ENl+H0myJFbLtaq4Rt8dyPBYRQV1E40nMv9rl7xrOw3DGb+Whcqu3i/OM6CUOWvgRlufNmnLYy4m77uJI7AXtdNcTDrU71LEyv7v01/N/ovL6bmu5/8A1tNWZldH0W4AAAAASUVORK5CYII=";
+            Office.context.mailbox.item.addFileAttachmentFromBase64Async(
+                base64String,
+                "logo.png",
+                { isInline: false },
+                function(result) { console.log(result); });
+        }
+
+        function get() {
+            Office.context.mailbox.item.getAttachmentsAsync(function (result) {
+                if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                    console.error(result.error.message);
+                } else {
+                    if (result.value.length > 0) {
+                        for (var i = 0; i < result.value.length; i++) {
+                            var attachment = result.value[i];
+                            console.log(`${attachment.id}. Name: ${attachment.name}, size: ${attachment.size}, isInline: ${attachment.isInline}`);
+                        }
+                    }
+                    else {
+                        console.log("No attachments on this message.");
+                    }
+                }
+            });
+        }
+
+        function remove() {
+            Office.context.mailbox.item.removeAttachmentAsync(
+                $("#attachmentId").val(),
+                { asyncContext : null },
+                function(result)
+                {
+                    if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                        console.error(`${result.error.message}`);
+                    } else {
+                        console.log(`Attachment removed successfully.`);
+                    }
+                }
+            );
+        }
+
+        function getFileName(url) {
+            var lastIndex = url.lastIndexOf('/');
+            if (lastIndex >= 0) {
+                return url.substring(lastIndex + 1);
+            }
+            return url;
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+          <p>This sample shows how to add, get, and remove attachments from a message or an appointment in Compose mode.</p>
+          <p><b>Required mode</b>: Item Compose</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <div class="ms-TextField">
+            <label class="ms-Label">URL of attachment to add:</label>
+            <input id="attachmentUrl" class="ms-TextField-field" type="text" value="http://script-lab-react.azurewebsites.net/assets/images/icon-32.png" placeholder="">
+          </div>
+          <button id="add" class="ms-Button">
+            <div class="ms-Button-label">Add attachment</div>
+          </button>
+          <div class="ms-TextField">
+            <label class="ms-Label">ID of item attachment to add:</label>
+            <input id="attachmentItemId" class="ms-TextField-field" type="text" value="" placeholder="">
+          </div>
+          <button id="addItemAttachment" class="ms-Button">
+            <div class="ms-Button-label">Add item attachment</div>
+          </button>
+          <button id="addBase64" class="ms-Button">
+            <div class="ms-Button-label">Add attachment from Base64</div>
+          </button>
+          <button id="get" class="ms-Button">
+            <div class="ms-Button-label">Get attachments</div>
+          </button>
+          <div class="ms-TextField">
+            <label class="ms-Label">ID of attachment to remove:</label>
+            <input id="attachmentId" class="ms-TextField-field" type="text" value="0" placeholder="">
+          </div>
+          <button id="remove" class="ms-Button">
+            <div class="ms-Button-label">Remove attachment</div>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

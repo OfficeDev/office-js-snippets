@@ -1,0 +1,83 @@
+id: outlook-entities-and-regex-matches-contextual
+name: 'Entities and Regex matches (Item Read, contextual)'
+description: Gets extracted entities and regex matches when the add-in is opened as a contextual add-in.
+host: OUTLOOK
+api_set:
+    Mailbox: '1.1'
+script:
+    content: |
+        $("#getFilteredEntitiesByName").click(getFilteredEntitiesByName);
+        $("#getRegExMatches").click(getRegExMatches);
+        $("#getRegExMatchesByName").click(getRegExMatchesByName);
+
+        function getFilteredEntitiesByName() {
+            // This API would only work when you click on highlighted physical address that has the word "Way" in it.
+            console.log(Office.context.mailbox.item.getFilteredEntitiesByName("sampleFilterName"));
+        }
+
+        function getRegExMatches() {
+            // This API would only work when you click on highlighted word "ScriptLab".
+            console.log(Office.context.mailbox.item.getRegExMatches());
+        }
+
+        function getRegExMatchesByName() {
+            // This API would only work when you click on highlighted word "ScriptLab".
+            console.log(Office.context.mailbox.item.getRegExMatchesByName("sampleRegexName"));
+        }
+
+        // This add-in declares extension point rules copied below. To see it activated contextually
+        // for address entity, try running it on an email that has "1 Microsoft Way, Redmond, WA 98052" in its content;
+        // for regex match, try running it on an email that has "ScriptLab" in its content.
+        // 
+        // <ExtensionPoint xsi:type="DetectedEntity">
+        //     <Rule xsi:type="RuleCollection" Mode="Or">
+        //         <Rule xsi:type="ItemHasKnownEntity" FilterName="sampleFilterName" RegExFilter="Way" EntityType="Address" Highlight="all" />
+        //         <Rule xsi:type="ItemHasRegularExpressionMatch" RegExName="sampleRegexName" RegExValue="ScriptLab" PropertyName="BodyAsPlaintext" IgnoreCase="true" Highlight="All" />
+        //     </Rule>
+        // </ExtensionPoint>
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+          <p>This sample shows how to get extracted entities and regex matches.</p>
+          <p><b>Required mode</b>: Item Read, contextual add-in</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out while running this as a <a target="_blank" href="https://docs.microsoft.com/outlook/add-ins/contextual-outlook-add-ins">contextual add-in</a></h3>
+          <button id="getFilteredEntitiesByName" class="ms-Button">
+            <div class="ms-Button-label">Get filtered entities by name</div>
+          </button>
+          <button id="getRegExMatches" class="ms-Button">
+            <div class="ms-Button-label">Get regex matches</div>
+          </button>
+          <button id="getRegExMatchesByName" class="ms-Button">
+            <div class="ms-Button-label">Get regex matches by name</div>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

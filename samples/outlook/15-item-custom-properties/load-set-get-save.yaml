@@ -1,0 +1,123 @@
+id: outlook-item-custom-properties-load-set-get-save
+name: Work with item custom properties
+description: 'Gets the custom properties that the add-in placed on the current item, sets a new one, gets it, removes it, and saves all custom properties back to the item.'
+host: OUTLOOK
+api_set:
+    Mailbox: '1.1'
+script:
+    content: |
+        var customProps;
+
+        $("#load").click(load);
+        $("#get").click(get);
+        $("#set").click(set);
+        $("#remove").click(remove);
+        $("#save").click(save);
+          
+        function load() {
+          Office.context.mailbox.item.loadCustomPropertiesAsync(function (result) {
+            if (result.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("Loaded following custom properties:");
+              customProps = result.value;
+              var dataKey = Object.keys(customProps)[0];
+              var data = customProps[dataKey];
+              for (var propertyName in data)
+              {
+                var propertyValue = data[propertyName];
+                console.log(`${propertyName}: ${propertyValue}`);
+              }              
+            }
+            else {
+              console.error(`loadCustomPropertiesAsync failed with message ${result.error.message}`);
+            }
+          });
+        }
+
+        function get() {
+          var propertyName = $("#propertyName").val();
+          var propertyValue = customProps.get(propertyName);
+          $("#propertyValue").val(propertyValue);
+          console.log(`The value of custom property "${propertyName}" is "${propertyValue}".`);
+        }
+
+        function set() {
+          var propertyName = $("#propertyName").val();
+          var propertyValue = $("#propertyValue").val();
+          customProps.set(propertyName, propertyValue);
+          console.log(`Custom property "${propertyName}" set to value "${propertyValue}".`);
+        }
+
+        function remove() {
+          var propertyName = $("#propertyName").val();
+          customProps.remove(propertyName);
+          console.log(`Custom property "${propertyName}" removed.`);
+        }
+
+        function save() {
+          customProps.saveAsync(function(result) {
+            if (result.status !== Office.AsyncResultStatus.Succeeded) {
+              console.error(`saveAsync failed with message ${result.error.message}`);
+            } else {
+              console.log(`Custom properties saved with status: ${result.status}`);
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+          <p>This sample shows how to set, save, and get add-in's per-item properties that can be accessed the next time the add-in is opened for the same item.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <div class="ms-TextField">
+            <label class="ms-Label">Property name:</label>
+            <input id="propertyName" class="ms-TextField-field" type="text" value="hello" placeholder="">
+          </div>
+          <div class="ms-TextField">
+            <label class="ms-Label">Property value:</label>
+            <input id="propertyValue" class="ms-TextField-field" type="text" value="world" placeholder="">
+          </div>
+          <button id="load" class="ms-Button">
+            <div class="ms-Button-label">Load all</div>
+          </button>
+          <button id="set" class="ms-Button">
+            <div class="ms-Button-label">Set</div>
+          </button>
+          <button id="get" class="ms-Button">
+            <div class="ms-Button-label">Get</div>
+          </button>
+          <button id="remove" class="ms-Button">
+            <div class="ms-Button-label">Remove</div>
+          </button>
+          <button id="save" class="ms-Button">
+            <div class="ms-Button-label">Save all</div>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

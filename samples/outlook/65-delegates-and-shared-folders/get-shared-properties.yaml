@@ -1,0 +1,105 @@
+id: outlook-delegates-and-shared-folders-get-shared-properties
+name: Perform an operation as delegate
+description: 'Gets shared properties for an item, checks delegate permissions and performs an operation as delegate.'
+host: OUTLOOK
+api_set:
+    Mailbox: '1.8'
+script:
+    content: |
+        $("#get").click(get);
+        $("#run").click(run);
+
+        function get() {
+          if (!Office.context.mailbox.item.getSharedPropertiesAsync) {
+            console.error("Try this sample on a message from a shared folder.");
+            return;
+          }
+
+          Office.context.mailbox.item.getSharedPropertiesAsync(function(result) {
+            console.log(result.value);
+          });
+        }
+
+        function run() {
+          if (!Office.context.mailbox.item.getSharedPropertiesAsync) {
+            console.error("Try this sample on a message from a shared folder.");
+            return;
+          }
+
+          Office.context.mailbox.getCallbackTokenAsync({ isRest: true }, function(result) {
+            if (result.status === Office.AsyncResultStatus.Succeeded && result.value !== "") {
+              Office.context.mailbox.item.getSharedPropertiesAsync(
+                {
+                  // Pass auth token along.
+                  asyncContext: result.value
+                },
+                function(result2) {
+                  let sharedProperties = result2.value;
+                  let delegatePermissions = sharedProperties.delegatePermissions;
+
+                  // Determine if user can do the expected operation, e.g., do they have Write permission?
+                  if ((delegatePermissions & Office.MailboxEnums.DelegatePermissions.Read) != 0) {
+                    var ewsId = Office.context.mailbox.item.itemId;
+                    var restId = Office.context.mailbox.convertToRestId(ewsId, Office.MailboxEnums.RestVersion.v2_0);
+                    let rest_url =
+                      sharedProperties.targetRestUrl + "/v2.0/users/" + sharedProperties.targetMailbox + "/messages/" + restId;
+
+                    $.ajax({
+                      url: rest_url,
+                      dataType: "json",
+                      headers: { Authorization: "Bearer " + result2.asyncContext }
+                    })
+                      .done(function(response) {
+                        console.log(response);
+                      })
+                      .fail(function(error) {
+                        console.error(error);
+                      });
+                  }
+                }
+              );
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+          <p>This sample shows how to perform an operation as delegate.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out <u>on a message from a shared folder</u>.</h3>
+          <button id="get" class="ms-Button">
+            <div class="ms-Button-label">Get shared properties</div>
+          </button>
+          <button id="run" class="ms-Button">
+            <div class="ms-Button-label">Run operation as delegate</div>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

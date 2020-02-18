@@ -1,0 +1,118 @@
+id: outlook-entities-and-regex-matches-selected
+name: 'Selected entities and Regex matches (Item Read, contextual)'
+description: Gets selected entities and regex matches.
+host: OUTLOOK
+api_set:
+    Mailbox: '1.6'
+script:
+    content: |
+        $("#getSelectedEntities").click(getSelectedEntities);
+        $("#getSelectedRegExMatches").click(getSelectedRegExMatches);
+
+        function getSelectedEntities() {
+            var entities = Office.context.mailbox.item.getSelectedEntities();
+            var entityTypesFound = 0;
+            if (entities.addresses.length > 0) {
+                console.warn("physical addresses: ");
+                console.log(entities.addresses);
+                entityTypesFound++;
+            }
+            if (entities.contacts.length > 0) {
+                console.warn("contacts: ");
+                entities.contacts.forEach(function (contact) { console.log(contact.personName); })
+                entityTypesFound++;
+            }
+            if (entities.emailAddresses.length > 0) {
+                console.warn("email addresses: ");
+                console.log(entities.emailAddresses);
+                entityTypesFound++;
+            }
+            if (entities.meetingSuggestions.length > 0) {
+                console.warn("meetings suggestions: ");
+                entities.meetingSuggestions.forEach(function (meetingSuggestion) { console.log(meetingSuggestion.meetingString); })
+                entityTypesFound++;
+            }
+            if (entities.phoneNumbers.length > 0) {
+                console.warn("phone numbers: ");
+                entities.phoneNumbers.forEach(function (phoneNumber) { console.log(phoneNumber.originalPhoneString); })
+                entityTypesFound++;
+            }
+            if (entities.taskSuggestions.length > 0) {
+                console.warn("task suggestions: ");
+                entities.taskSuggestions.forEach(function (taskSuggestion) { console.log(taskSuggestion.taskString); })
+                entityTypesFound++;
+            }
+            if (entities.urls.length > 0) {
+                console.warn("URLs: ");
+                console.log(entities.urls);
+                entityTypesFound++;
+            }
+            if (entityTypesFound == 0)
+            {
+                console.error("Open add-in by clicking on a highlighted entity, for this API to return something useful.");
+            }
+        }
+
+        function getSelectedRegExMatches() {
+            var matches = Office.context.mailbox.item.getSelectedRegExMatches();
+            if (matches) {
+                console.log(matches);
+            }
+            else {
+                console.error("Open add-in by clicking on a highlighted regex match, for this API to return something useful.");
+            }
+        }
+
+        // This add-in declares extension point rules copied below. To see it activated contextually
+        // for address entity, try running it on an email that has "1 Microsoft Way, Redmond, WA 98052" in its content;
+        // for regex match, try running it on an email that has "ScriptLab" in its content.
+        // 
+        // <ExtensionPoint xsi:type="DetectedEntity">
+        //     <Rule xsi:type="RuleCollection" Mode="Or">
+        //         <Rule xsi:type="ItemHasKnownEntity" FilterName="sampleFilterName" RegExFilter="Way" EntityType="Address" Highlight="all" />
+        //         <Rule xsi:type="ItemHasRegularExpressionMatch" RegExName="sampleRegexName" RegExValue="ScriptLab" PropertyName="BodyAsPlaintext" IgnoreCase="true" Highlight="All" />
+        //     </Rule>
+        // </ExtensionPoint>        
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+          <p>This sample shows how to get selected entities and regex matches.</p>
+          <p><b>Required mode</b>: Item Read</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out while running this as a <a target="_blank" href="https://docs.microsoft.com/outlook/add-ins/contextual-outlook-add-ins">contextual add-in</a></h3>
+          <button id="getSelectedEntities" class="ms-Button">
+            <div class="ms-Button-label">Get selected entities</div>
+          </button>
+          <button id="getSelectedRegExMatches" class="ms-Button">
+            <div class="ms-Button-label">Get selected regex matches</div>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

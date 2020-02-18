@@ -1,0 +1,101 @@
+id: outlook-entities-and-regex-matches-basic-entities
+name: Entities (Item Read)
+description: Gets extracted entities.
+host: OUTLOOK
+api_set:
+    Mailbox: '1.1'
+script:
+    content: |
+        $("#getEntities").click(getEntities);
+        $("#getEntitiesByType").click(getEntitiesByType);
+
+        function getEntities() {
+            var entities = Office.context.mailbox.item.getEntities();
+            var entityTypesFound = 0;
+            if (entities.addresses.length > 0) {
+                console.warn("physical addresses: ");
+                console.log(entities.addresses);
+                entityTypesFound++;
+            }
+            if (entities.contacts.length > 0) {
+                console.warn("contacts: ");
+                entities.contacts.forEach(function (contact) { console.log(contact.personName); })
+                entityTypesFound++;
+            }
+            if (entities.emailAddresses.length > 0) {
+                console.warn("email addresses: ");
+                console.log(entities.emailAddresses);
+                entityTypesFound++;
+            }
+            if (entities.meetingSuggestions.length > 0) {
+                console.warn("meetings suggestions: ");
+                entities.meetingSuggestions.forEach(function (meetingSuggestion) { console.log(meetingSuggestion.meetingString); })
+                entityTypesFound++;
+            }
+            if (entities.phoneNumbers.length > 0) {
+                console.warn("phone numbers: ");
+                entities.phoneNumbers.forEach(function (phoneNumber) { console.log(phoneNumber.originalPhoneString); })
+                entityTypesFound++;
+            }
+            if (entities.taskSuggestions.length > 0) {
+                console.warn("task suggestions: ");
+                entities.taskSuggestions.forEach(function (taskSuggestion) { console.log(taskSuggestion.taskString); })
+                entityTypesFound++;
+            }
+            if (entities.urls.length > 0) {
+                console.warn("URLs: ");
+                console.log(entities.urls);
+                entityTypesFound++;
+            }
+            if (entityTypesFound == 0)
+            {
+                console.log("No entities found on this item.");
+            }
+        }
+
+        function getEntitiesByType() {
+            console.log(Office.context.mailbox.item.getEntitiesByType(Office.MailboxEnums.EntityType.Address));
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+          <p>This sample shows how to get extracted entities.</p>
+          <p><b>Required mode</b>: Item Read</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="getEntities" class="ms-Button">
+            <div class="ms-Button-label">Get all entities</div>
+          </button>
+          <button id="getEntitiesByType" class="ms-Button">
+            <div class="ms-Button-label">Get entities by type (e.g., Address)</div>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

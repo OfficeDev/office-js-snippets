@@ -1,0 +1,86 @@
+id: outlook-attachments-get-attachment-content
+name: Get attachment content
+description: Gets the attachment content.
+host: OUTLOOK
+api_set:
+    Mailbox: '1.8'
+script:
+    content: |
+        $("#run").click(run);
+
+        function run() {
+            var item = Office.context.mailbox.item;
+            var options = {asyncContext: {currentItem: item}};
+            item.getAttachmentsAsync(options, callback);
+
+            function callback(result) {
+                if (result.value.length > 0) {
+                    for (i = 0 ; i < result.value.length ; i++) {
+                        result.asyncContext.currentItem.getAttachmentContentAsync(result.value[i].id, handleAttachmentsCallback);
+                    }
+                }
+            }
+
+            function handleAttachmentsCallback(result) {
+                // Parse string to be a url, an .eml file, a base64-encoded string, or an .icalendar file.
+                switch (result.value.format) {
+                    case Office.MailboxEnums.AttachmentContentFormat.Base64:
+                        // Handle file attachment.
+                        console.log(result.value.content);
+                        break;
+                    case Office.MailboxEnums.AttachmentContentFormat.Eml:
+                        // Handle email item attachment.
+                        console.log("Attachment is a message.");
+                        break;
+                    case Office.MailboxEnums.AttachmentContentFormat.ICalendar:
+                        // Handle .icalender attachment.
+                        console.log("Attachment is a calendar item.");
+                        break;
+                    case Office.MailboxEnums.AttachmentContentFormat.Url:
+                        // Handle cloud attachment.
+                        console.log("Attachment is a cloud attachment.");
+                        break;
+                    default:
+                        // Handle attachment formats that are not supported.
+                }
+            }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+          <p>This sample shows how to get the attachment content from a message or an appointment.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="run" class="ms-Button">
+            <div class="ms-Button-label">Get attachment content</div>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

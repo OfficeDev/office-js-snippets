@@ -1,0 +1,132 @@
+order: 5
+id: excel-scenarios-currency-converter
+name: Currency Converter
+description: 'Reads rows and update base currency column, based on value date.'
+author: cakriwut
+host: EXCEL
+api_set:
+    ExcelApi: '1.4'
+script:
+    content: |
+        declare var moment: any;
+        $("#convert").click(() => tryCatch(convert));
+        $("#setup").click(() => tryCatch(setupSample));
+        async function convert() {
+          await Excel.run(async (context) => {
+            var range = context.workbook.getSelectedRange();
+            // A = Product, B = CCY, C = Orig, D = Date, E = SGD
+            range.load("address,text");
+            await context.sync();
+            let data = {};
+            if (range.text.toString() !== "") {
+              var row = getRowIndex(range.address);
+              range = context.workbook.worksheets.getActiveWorksheet().getRange("B" + row + ":E" + row);
+              range.load("values");
+              context.sync().then(async function() {
+                var dateMoment = moment.fromOADate(range.values[0][2]);
+                var period = dateMoment.format("YYYY-MM-DD");
+                //console.log(datse);
+                var queryUrl = convertValue(range.values[0][0], range.values[0][0], period, period);
+                let response = await fetch(queryUrl);
+                if (response.ok) {
+                  let result = await response.json();
+                  let converted = range.values[0][1] * result.rates["SGD"];
+                  range = context.workbook.worksheets.getActiveWorksheet().getRange("E" + row);
+                  range.values = [[converted]];
+                  context.sync();
+                }
+              });
+            }
+          });
+        }
+        function getRowIndex(address) {
+          var matches = address.match(/(\d+)/);
+          if (matches) {
+            return matches[0];
+          }
+        }
+        function convertValue(ccyOrig, ccyBase, start, end) {
+          // GET https://api.exchangeratesapi.io/latest?symbols=SGD,USD&base=SGD&start_at=2019-10-05&end_at=2019-10-05
+          const baseUrl = "https://api.exchangeratesapi.io/latest";
+          let query = "?base=" + ccyBase + "&symbols=SGD," + ccyOrig + "&start_at=" + start + "&end_at=" + end;
+          return baseUrl + query;
+        }
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+        async function setupSample() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+            let salesTable = sheet.tables.add("A1:E1", true);
+            salesTable.name = "SalesTable";
+            salesTable.getHeaderRowRange().values = [["Product", "CCY", "Price (CCY)", "Trx Date", "Price (SGD)"]];
+            salesTable.rows.add(null, [
+              ["Frames", "MYR", 5000, "2019-10-05", null],
+              ["Chains", "CNY", 12000, "2019-10-04", null]
+            ]);
+            sheet.activate();
+          });
+        }
+    language: typescript
+template:
+    content: |+
+        <header class="ms-welcome__header ms-bgColor-neutralLighter" style='text-align: center'>
+            <h1 class="ms-font-su">Simple Currency Converter</h1>
+        </header>
+
+        <section class="ms-font-m">
+            <p>Simple currency converter shows how to read data from a cell, call currency converter API and update the result
+                in adjecent cell.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>The price conversion will be provide by conversion API. Select on empty price cell in price column, and click "Convert"</p>
+            <ol>
+              <li>Select on empty cell in "Price (SGD)" column</li>
+                <li>Click Convert button: <br /><br />
+                 <button id="convert" class="ms-Button">
+                    <span class="ms-Button-label">Convert</span>
+                </button>
+                </li>
+            </ol>
+        </section>
+
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+    jquery@3.1.1
+    @types/jquery@3.3.1
+    moment@2.18.1 
+    moment-msdate@0.2.2

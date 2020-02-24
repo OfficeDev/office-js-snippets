@@ -8,72 +8,118 @@ api_set:
     ExcelApi: '1.4'
 script:
     content: |
-        declare var moment: any;
-        $("#convert").click(() => tryCatch(convert));
-        $("#setup").click(() => tryCatch(setupSample));
-        async function convert() {
-          await Excel.run(async (context) => {
-            var range = context.workbook.getSelectedRange();
-            // A = Product, B = CCY, C = Orig, D = Date, E = SGD
-            range.load("address,text");
+      /*
+       * Copyright (c) Riwut Libinuko. All rights reserved. Licensed under the MIT license.
+      */
+
+      declare let moment: any;
+      let tblSetup: Record<string, number> = {};
+
+      $("#convert").click(() => tryCatch(convert));
+      $("#setup").click(() => tryCatch(setupSample));      
+
+      /** Main converting function **/
+      async function convert() {
+        await Excel.run(async (context) => {
+          let range = context.workbook.getSelectedRange(); 
+          // Check if any cell inside table is selected.
+          let table = range.getTables();
+          table.load("items")    
+          await context.sync();
+          if(table.items.length == 0){
+            console.error("Error: Please select any cell inside table.");
+            return;
+          }
+          
+          let selectedTable = table.getFirst();
+          selectedTable.columns.load("items");
+          await context.sync();
+          if(!IsTableValid(selectedTable.columns.items)) {
+            console.error('Error: Some of default table header is missing. Required headers: \r\n"CCY","Price (CCY)","Trx Date","Base","Price in Base"')
+            return;
+          }
+          selectedTable.rows.load("items,values");
+          await context.sync();
+          selectedTable.rows.items.forEach(async (row,idx,arr) => {
+            let priceBaseRange = row.getRange().getCell(0, tblSetup['Price in Base']);
+            priceBaseRange.load("address,text");
             await context.sync();
-            let data = {};
-            if (range.text.toString() !== "") {
-              var row = getRowIndex(range.address);
-              range = context.workbook.worksheets.getActiveWorksheet().getRange("B" + row + ":E" + row);
-              range.load("values");
-              context.sync().then(async function() {
-                var dateMoment = moment.fromOADate(range.values[0][2]);
-                var period = dateMoment.format("YYYY-MM-DD");
-                //console.log(datse);
-                var queryUrl = convertValue(range.values[0][0], range.values[0][0], period, period);
+              let priceInBase = row.values[0][tblSetup['Price in Base']];
+              let priceInCcy = row.values[0][tblSetup['Price (CCY)']];
+              let trxDate = row.values[0][tblSetup['Trx Date']]
+              let ccy = row.values[0][tblSetup['CCY']];
+              let baseCcy = row.values[0][tblSetup['Base']]
+              if (priceInBase === "") {
+                let dateMoment = moment.fromOADate(trxDate);
+                let period = dateMoment.format("YYYY-MM-DD");
+                let queryUrl = convertValue(ccy, baseCcy, period, period);
                 let response = await fetch(queryUrl);
                 if (response.ok) {
                   let result = await response.json();
-                  let converted = range.values[0][1] * result.rates["SGD"];
-                  range = context.workbook.worksheets.getActiveWorksheet().getRange("E" + row);
-                  range.values = [[converted]];
+                  let converted = priceInCcy * result.rates[baseCcy];
+                  priceBaseRange.values = [[converted]];
                   context.sync();
                 }
-              });
-            }
+              } else {
+                console.info('Row: ' + idx + ' has been converted. Skipped.')
+              }
           });
+          
+        });
+      }
+
+      /** Check if Table is Valid, ie has all required column **/
+      function IsTableValid(items: Excel.TableColumn[]) {
+        // Build the column index, search table header
+        // CCY - origin currency
+        // Price (CCY) - price in origin currency
+        // Trx Date - transaction date
+        // Base  - home currency
+        // Price in Base - price in base currency
+        items.forEach((col, idx, arr) => {
+          tblSetup[col.name] = idx;
+        });
+        if (tblSetup['CCY'] === undefined || tblSetup['Price (CCY)'] === undefined || tblSetup['Trx Date'] === undefined || tblSetup['Base'] === undefined || tblSetup['Price in Base'] === undefined) {
+          return false;
         }
-        function getRowIndex(address) {
-          var matches = address.match(/(\d+)/);
-          if (matches) {
-            return matches[0];
-          }
+        
+        return true;
+      }
+
+      /** Request currency exchange on specific date **/      
+      function convertValue(ccyOrig, ccyBase, start, end) {
+        // GET https://api.exchangeratesapi.io/latest?symbols=SGD,USD&base=SGD&start_at=2019-10-05&end_at=2019-10-05
+        const baseUrl = "https://api.exchangeratesapi.io/latest";
+        let query = "?base=" + ccyOrig + "&symbols=" + ccyBase + "," + ccyOrig + "&start_at=" + start + "&end_at=" + end;
+        return baseUrl + query;
+      }
+
+      /** Default helper for invoking an action and handling errors. */
+      async function tryCatch(callback) {
+        try {
+          await callback();
+        } catch (error) {
+          // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+          console.error(error);
         }
-        function convertValue(ccyOrig, ccyBase, start, end) {
-          // GET https://api.exchangeratesapi.io/latest?symbols=SGD,USD&base=SGD&start_at=2019-10-05&end_at=2019-10-05
-          const baseUrl = "https://api.exchangeratesapi.io/latest";
-          let query = "?base=" + ccyBase + "&symbols=SGD," + ccyOrig + "&start_at=" + start + "&end_at=" + end;
-          return baseUrl + query;
-        }
-        /** Default helper for invoking an action and handling errors. */
-        async function tryCatch(callback) {
-          try {
-            await callback();
-          } catch (error) {
-            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-            console.error(error);
-          }
-        }
-        async function setupSample() {
-          await Excel.run(async (context) => {
-            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
-            const sheet = context.workbook.worksheets.add("Sample");
-            let salesTable = sheet.tables.add("A1:E1", true);
-            salesTable.name = "SalesTable";
-            salesTable.getHeaderRowRange().values = [["Product", "CCY", "Price (CCY)", "Trx Date", "Price (SGD)"]];
-            salesTable.rows.add(null, [
-              ["Frames", "MYR", 5000, "2019-10-05", null],
-              ["Chains", "CNY", 12000, "2019-10-04", null]
-            ]);
-            sheet.activate();
-          });
-        }
+      }
+      /* Create sample data */
+      /* Default header */
+      /* "CCY","Price (CCY)","Trx Date","Base","Price in Base" */
+      async function setupSample() {
+        await Excel.run(async (context) => {
+          context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+          const sheet = context.workbook.worksheets.add("Sample");
+          let salesTable = sheet.tables.add("A1:F1", true);
+          salesTable.name = "SalesTable";
+          salesTable.getHeaderRowRange().values = [["Product", "CCY", "Price (CCY)", "Trx Date", "Base", "Price in Base"]];
+          salesTable.rows.add(null, [
+            ["Frames", "MYR", 5000, "2019-10-05", "SGD", null],
+            ["Chains", "CNY", 12000, "2019-10-04", "SGD",null]
+          ]);
+          sheet.activate();
+        });
+      }
     language: typescript
 template:
     content: |+
@@ -97,12 +143,12 @@ template:
             <h3>Try it out</h3>
             <p>The price conversion will be provide by conversion API. Select on empty price cell in price column, and click "Convert"</p>
             <ol>
-              <li>Select on empty cell in "Price (SGD)" column</li>
-                <li>Click Convert button: <br /><br />
+              <li>Select any cell in the table.</li>
+              <li>Click Convert button: <br /><br />
                  <button id="convert" class="ms-Button">
                     <span class="ms-Button-label">Convert</span>
                 </button>
-                </li>
+              </li>
             </ol>
         </section>
 

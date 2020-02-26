@@ -21,9 +21,9 @@ script:
       /** Main converting function **/
       async function convert() {
         await Excel.run(async (context) => {
-          let range = context.workbook.getSelectedRange(); 
+          const range = context.workbook.getSelectedRange(); 
           // Check if any cell inside table is selected.
-          let table = range.getTables();
+          const table = range.getTables();
           table.load("items")    
           await context.sync();
           if(table.items.length == 0){
@@ -35,28 +35,28 @@ script:
           selectedTable.columns.load("items");
           await context.sync();
           if(!IsTableValid(selectedTable.columns.items)) {
-            console.error('Error: Some of default table header is missing. Required headers: \r\n"CCY","Price (CCY)","Trx Date","Base","Price in Base"')
+            console.error('Error: Some of default table header is missing. Required headers: \r\n"Currency","Price (Currency)","Transaction Date","Base","Price in Base"')
             return;
           }
           selectedTable.rows.load("items,values");
           await context.sync();
           selectedTable.rows.items.forEach(async (row,idx,arr) => {
-            let priceBaseRange = row.getRange().getCell(0, tblSetup['Price in Base']);
+            const priceBaseRange = row.getRange().getCell(0, tblSetup['Price in Base']);
             priceBaseRange.load("address,text");
             await context.sync();
-              let priceInBase = row.values[0][tblSetup['Price in Base']];
-              let priceInCcy = row.values[0][tblSetup['Price (CCY)']];
-              let trxDate = row.values[0][tblSetup['Trx Date']]
-              let ccy = row.values[0][tblSetup['CCY']];
-              let baseCcy = row.values[0][tblSetup['Base']]
+              const priceInBase = row.values[0][tblSetup['Price in Base']];
+              const priceInCurrency = row.values[0][tblSetup['Price (Currency)']];
+              const TransactionDate = row.values[0][tblSetup['Transaction Date']]
+              const Currency = row.values[0][tblSetup['Currency']];
+              const baseCurrency = row.values[0][tblSetup['Base']]
               if (priceInBase === "") {
-                let dateMoment = moment.fromOADate(trxDate);
-                let period = dateMoment.format("YYYY-MM-DD");
-                let queryUrl = convertValue(ccy, baseCcy, period, period);
-                let response = await fetch(queryUrl);
+                const dateMoment = moment.fromOADate(TransactionDate);
+                const period = dateMoment.format("YYYY-MM-DD");
+                const queryUrl = convertValue(Currency, baseCurrency, period, period);
+                const response = await fetch(queryUrl);
                 if (response.ok) {
-                  let result = await response.json();
-                  let converted = priceInCcy * result.rates[baseCcy];
+                  const result = await response.json();
+                  const converted = priceInCurrency * result.rates[baseCurrency];
                   priceBaseRange.values = [[converted]];
                   context.sync();
                 }
@@ -71,15 +71,15 @@ script:
       /** Check if Table is Valid, ie has all required column **/
       function IsTableValid(items: Excel.TableColumn[]) {
         // Build the column index, search table header
-        // CCY - origin currency
-        // Price (CCY) - price in origin currency
-        // Trx Date - transaction date
+        // Currency - origin currency
+        // Price (Currency) - price in origin currency
+        // Transaction Date - transaction date
         // Base  - home currency
         // Price in Base - price in base currency
         items.forEach((col, idx, arr) => {
           tblSetup[col.name] = idx;
         });
-        if (tblSetup['CCY'] === undefined || tblSetup['Price (CCY)'] === undefined || tblSetup['Trx Date'] === undefined || tblSetup['Base'] === undefined || tblSetup['Price in Base'] === undefined) {
+        if (tblSetup['Currency'] === undefined || tblSetup['Price (Currency)'] === undefined || tblSetup['Transaction Date'] === undefined || tblSetup['Base'] === undefined || tblSetup['Price in Base'] === undefined) {
           return false;
         }
         
@@ -87,10 +87,10 @@ script:
       }
 
       /** Request currency exchange on specific date **/      
-      function convertValue(ccyOrig, ccyBase, start, end) {
+      function convertValue(CurrencyOrig, CurrencyBase, start, end) {
         // GET https://api.exchangeratesapi.io/latest?symbols=SGD,USD&base=SGD&start_at=2019-10-05&end_at=2019-10-05
         const baseUrl = "https://api.exchangeratesapi.io/latest";
-        let query = "?base=" + ccyOrig + "&symbols=" + ccyBase + "," + ccyOrig + "&start_at=" + start + "&end_at=" + end;
+        const query = "?base=" + CurrencyOrig + "&symbols=" + CurrencyBase + "," + CurrencyOrig + "&start_at=" + start + "&end_at=" + end;
         return baseUrl + query;
       }
 
@@ -105,14 +105,14 @@ script:
       }
       /* Create sample data */
       /* Default header */
-      /* "CCY","Price (CCY)","Trx Date","Base","Price in Base" */
+      /* "Currency","Price (Currency)","Transaction Date","Base","Price in Base" */
       async function setupSample() {
         await Excel.run(async (context) => {
           context.workbook.worksheets.getItemOrNullObject("Sample").delete();
           const sheet = context.workbook.worksheets.add("Sample");
           const salesTable = sheet.tables.add("A1:F1", true);
           salesTable.name = "SalesTable";
-          salesTable.getHeaderRowRange().values = [["Product", "CCY", "Price (CCY)", "Trx Date", "Base", "Price in Base"]];
+          salesTable.getHeaderRowRange().values = [["Product", "Currency", "Price (Currency)", "Transaction Date", "Base", "Price in Base"]];
           salesTable.rows.add(null, [
             ["Frames", "MYR", 5000, "2019-10-05", "SGD", null],
             ["Chains", "CNY", 12000, "2019-10-04", "SGD",null]

@@ -1,7 +1,7 @@
 order: 5
 id: excel-scenarios-currency-converter
 name: Currency Converter
-description: 'Reads rows and update base currency column, based on value date.'
+description: 'Uses an exchange rate API to convert currency values based on their original transaction times.'
 author: cakriwut
 host: EXCEL
 api_set:
@@ -110,14 +110,15 @@ script:
         await Excel.run(async (context) => {
           context.workbook.worksheets.getItemOrNullObject("Sample").delete();
           const sheet = context.workbook.worksheets.add("Sample");
-          let salesTable = sheet.tables.add("A1:F1", true);
+          const salesTable = sheet.tables.add("A1:F1", true);
           salesTable.name = "SalesTable";
           salesTable.getHeaderRowRange().values = [["Product", "CCY", "Price (CCY)", "Trx Date", "Base", "Price in Base"]];
           salesTable.rows.add(null, [
             ["Frames", "MYR", 5000, "2019-10-05", "SGD", null],
             ["Chains", "CNY", 12000, "2019-10-04", "SGD",null]
           ]);
-          sheet.activate();
+          salesTable.getRange().format.autofitColumns();
+          sheet.activate();          
         });
       }
     language: typescript

@@ -1,0 +1,237 @@
+order: 1
+id: powerpoint-scenarios-searches-wikipedia-api
+name: Search Wikipedia
+description: Searches Wikipedia based on the selected text in the presentation.
+author: cakriwut
+host: POWERPOINT
+api_set: {}
+script:
+    content: |
+        /*
+         * Copyright (c) Riwut Libinuko. All rights reserved. Licensed under the MIT license.
+        */
+
+        declare let moment: any;
+        $("#search").click(run);
+
+        async function run() {
+          Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, {}, getSelectedText);
+        }
+
+        /* Extract selected text and call SearchWiki */
+        function getSelectedText(result) {
+          $("#result").empty();
+          $("#result").append('<ul class="ms-List"></ul>');
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
+            searchWiki(result.value);
+          } else {
+            console.error(result.error.message);
+          } 
+        }
+
+        /* Searching Wiki */
+
+        function searchWiki(pattern) {
+          let url = build_wiki_search_url(pattern);
+
+          fetch(url)
+            .then((response) => {
+              return response.json();
+            })
+            .then((data) => {
+              $.each(data.query.search, function(i, val) {
+                let date = moment(val.timestamp).format("YYYY-MM-DD hh:mm A");
+                let listItem = build_list_item(val.title, val.pageid, val.snippet, date);
+                $(".ms-List").append(listItem);
+              });
+              return data.query;
+            })
+            .then(function(data) {
+              $(".ms-ListItem").each(function(i, item) {
+                if ($(this).find(".listItem-link a").length === 0) {
+                  getWikiLink($(this).data("pageid"), $(this));
+                }
+              });
+            });
+        }
+
+        // Search for Wiki Page link based on the given pageId
+        // Update itemHTML from the returned result
+
+        function getWikiLink(pageid, itemHTML) {
+          let pageinfo = build_wiki_pageinfo(pageid);
+          fetch(pageinfo)
+            .then((response) => {
+              return response.json();
+            })
+            .then((data) => {
+              let itemUrl = data.query.pages[pageid].fullurl;
+              let images = data.query.pages[pageid].images;
+              let title = $(itemHTML)
+                .find(".listItem-link")
+                .html();
+              $(itemHTML)
+                .find(".listItem-link")
+                .html('<a href="' + itemUrl + '">' + title + "</a>");
+              if (typeof images !== "undefined") {
+                $(itemHTML)
+                  .find(".ms-ListItem-image")
+                  .attr("data-image", images[0].title);
+              }
+            })
+            .then((data) => {
+              getWikiImages(pageid, itemHTML);
+            });
+        }
+
+        // Search for Wiki image based on the given pageId, first image
+        // Update itemHTML from the returned result
+
+        function getWikiImages(pageid, itemHTML) {
+          let pageInfo = build_wiki_image_search(pageid);
+          fetch(pageInfo)
+            .then((response) => {
+              return response.json();
+            })
+            .then(async (data) => {
+              if (typeof data.query.pages[pageid].original !== "undefined") {
+                let img = data.query.pages[pageid].original.source;
+                $(itemHTML)
+                  .find(".ms-ListItem-image")
+                  .append('<img width="70px" src="' + img + '" />');
+                return true;
+              } else {
+                let img = $(itemHTML)
+                  .find(".ms-ListItem-image")
+                  .data("image");
+                pageInfo = build_wiki_file_search(img);
+                let pageInfoResult = await fetch(pageInfo);
+                return pageInfoResult.json();
+              }
+            })
+            .then((data) => {
+              if (typeof data.query !== "undefined") {
+                let key = Object.keys(data.query.pages)[0];
+                if (data.query.pages[key].title !== "Undefined") {
+                  let img = data.query.pages[key].thumbnail.source;
+                  $(itemHTML)
+                    .find(".ms-ListItem-image")
+                    .append('<img width="70px" src="' + img + '" />');
+                }
+              }
+            });
+        }
+
+        /* Wikipedia API query */
+        function wiki_base(pattern) {
+          const base_url = "https://en.wikipedia.org/w/api.php";
+          const base_query = "?origin=*&action=query&format=json&prop=";
+          return base_url + base_query + pattern;
+        }
+
+        /* Wikipedia Search Query pattern */
+        function build_wiki_search_url(pattern) {
+          let qry = "pageimages&list=search&srsearch=";
+          return wiki_base(qry + pattern);
+        }
+
+        /* Wikipedia Image Query pattern */
+        function build_wiki_image_search(pattern) {
+          let qry = "pageimages&piprop=original&pilicense=any&pageids=";
+          return wiki_base(qry + pattern);
+        }
+
+        /* Wikipedia File Query pattern */
+        function build_wiki_file_search(pattern) {
+          let qry = "pageimages|pageterms&pilicense=any&titles=";
+          return wiki_base(qry + pattern);
+        }
+
+        /* Wikipedia Page Info Query pattern */
+        function build_wiki_pageinfo(pattern) {
+          let qry = "info|images&inprop=url&pageids=";
+          return wiki_base(qry + pattern);
+        }
+
+        /* Render */
+        function build_list_item(title, pageid, summary, ts) {
+          return (
+            '<li class="ms-ListItem ms-ListItem--image" tabindex="0" data-pageid="' +
+            pageid +
+            '">' +
+            '<div class="ms-ListItem-image" ></div>' +
+            '<span class="ms-ListItem-secondaryText listItem-link">' +
+            title +
+            "</span>" +
+            "<span>" +
+            summary +
+            "</span>" +
+            '<div class="ms-ListItem-selectionTarget" > </div>' +
+            '<div class="ms-ListItem-actions" >' +
+            '<div class="ms-ListItem-action" >' +
+            '<i class="ms-Icon ms-Icon--Flag" > </i>' +
+            "</div>" +
+            '<div class="ms-ListItem-action" >' +
+            '<i class="ms-Icon ms-Icon--Pinned" > </i>' +
+            "</div>" +
+            "</div>" +
+            "</li>"
+          );
+        }
+    language: typescript
+template:
+    content: |-
+        <header class="ms-welcome__header ms-bgColor-neutralLighter" style="text-align: center">
+          <h1 class="ms-font-su">Search Wikipedia</h1>
+        </header>
+
+        <section class="ms-font-m">
+          <p>This sample shows how to query external API (Wikipedia) with the text currently selected in the presentation.</p>
+         </section>
+
+        <section class="setup ms-font-m">
+          <h3>Try it out</h3>
+          <p>Select any text in the presentation and press <b>Search</b> to see related Wikipedia entries.</p>
+          <p>The search result will be provided by Wikipedia API. </p>
+          <ol>
+            <li>Click Search button: <br /><br />
+              <button id="search" class="ms-Button">
+                <span class="ms-Button-label">Search</span>
+              </button>
+            </li>
+          </ol>
+        </section>
+
+        <section class="sample ms-font-m">
+          <h3>Result</h3>
+          <div id="result">
+          </div>
+        </section>   
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1
+
+    https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.js

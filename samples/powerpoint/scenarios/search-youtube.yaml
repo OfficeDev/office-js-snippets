@@ -5,3 +5,157 @@ description: Searches Youtube video based on the selected text in the presentati
 author: cakriwut
 host: POWERPOINT
 api_set: {}
+script:
+  content: |
+    $("#search").click(run);
+    declare const gapi: any;
+    const gApiKey = "AIzaSyCwqsiJTQyoIph5s6p2GYIJQBM6QU5rOR0";
+    //const gApiKey = "PLEASE CHANGE THIS";
+    function run() {
+      Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.error(`${asyncResult.error.name}: ${asyncResult.error.message}`);
+        } else {
+          searchYoutube(asyncResult.value);
+        }
+      });
+    }
+    /** Search YouTube video **/
+    function searchYoutube(queries: any) {
+      $("#result")
+        .children()
+        .remove();
+      var searchOptions = {
+        part: "snippet",
+        type: "video",
+        order: "viewCount",
+        maxResults: 10,
+        q: queries
+      };
+      gapi.client.youtube.search.list(searchOptions).then(
+        function(response) {
+          const listItems = response.result.items;
+          if (listItems) {
+            listItems.forEach((item) => {
+              const link = `https://www.youtube.com/embed/${item.id.videoId}`;
+              const frame = `<div class='video'><div class='videoTitle'>${
+                item.snippet.title
+              }</div><iframe class="videoPlayer" src="${link}" frameborder="0" allowfullscreen></iframe></div>`;
+              $("#result").append($(frame));
+            });
+          }
+        },
+        function(err) {
+          console.error("Execute error", err);
+        }
+      );
+    }
+    /** Initiate API Authentication **/
+    function loadClient() {
+      if (gApiKey === "PLEASE CHANGE THIS") {
+        $(".setup").hide();
+        $(".sample").hide();
+        $(".info").show();
+        console.error("Update gApiKey in script.");
+        return;
+      }
+      $(".info").hide();
+      gapi.client.setApiKey(gApiKey);
+      return gapi.client.load("https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest").then(
+        function() {
+          console.log("GAPI client loaded for API");
+        },
+        function(err) {
+          console.error("Error loading GAPI client for API", err);
+        }
+      );
+    }
+    /* Load Client */
+    gapi.load("client", loadClient);
+  language: typescript
+template:
+  content: |-
+    <header class="ms-welcome__header ms-bgColor-neutralLighter" style='text-align: center'>
+      <h1 class="ms-font-su">Search YouTube</h1>
+    </header>
+
+    <section class="ms-font-m">
+      <p>This sample shows how to query external API (YouTube Data API) with the text currently selected in the
+        presentation.</p>
+    </section>
+
+    <section class="info ms-font-m">
+      <p>This sample requires YouTube Data Api auth credentials that you can <a
+          href="https://developers.google.com/youtube/registering_an_application">obtain here</a>.</p>
+      <p>Open the <b>Script</b> tab, and update following line<br/>
+        <div style="background-color:lightgray;height:30px;padding:5px">
+          <code>&nbsp;<font color="light-blue">const</font> gApiKey =<font color="brown"> "PLEASE CHANGE THIS"</font>;</code>
+        </div>
+      </p>
+    </section>
+
+    <section class="setup ms-font-m">
+      <h3>Try it out</h3>
+      <p>Select any text in the presentation and press <b>Search</b> to get list of related YouTube videos</p>
+      <p>The search result will be provided by YouTube Data API.</p>
+      <ol>
+        <li>Click Search button: <br /><br />
+          <button id="search" class="ms-Button">
+            <span class="ms-Button-label">Search</span>
+          </button>
+        </li>
+      </ol>
+    </section>
+
+    <section class="sample ms-font-m">
+      <h3>Result</h3>
+      <div id="result"></div>
+    </section>
+  language: html
+style:
+  content: |-
+    section.samples {
+        margin-top: 20px;
+    }
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+    div.video {
+      margin: 5px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      background-color: rgb(247, 244, 244);
+      float: left;
+      align-content: center;
+      width: 325px;
+    }
+    div.videoTitle {
+      margin-left: 10px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    div.video:hover {
+      border: 2px solid #777;
+    }
+    .videoPlayer{
+        border: 2px solid #1D740C;
+        margin-left: 10px;  
+    } 
+  language: css
+libraries: >-
+  https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+  @types/office-js
+
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
+
+  jquery@3.1.1
+  @types/jquery@3.3.1
+
+  https://apis.google.com/js/api.js

@@ -15,7 +15,7 @@ script:
         declare let moment: any;
         const tableName = "TransactionTable";
 
-        let tblSetup: Record<string, number> = {};
+        let tableSetup: Record<string, number> = {};
 
         $("#convert").click(() => tryCatch(convert));
         $("#setup").click(() => tryCatch(setupSample));
@@ -33,45 +33,47 @@ script:
 
             table.rows.load("items,values");
             await context.sync();
-            asyncForEach(table.rows.items, async (row,idx,arr) => {
-            const priceBaseRange = row.getRange().getCell(0, tblSetup['Price in Base']);
+            forEachItem(table.rows.items, async (row,idx,arr) => {
+              const priceBaseRange = row.getRange().getCell(0, tableSetup['Price in Base']);
 
-            priceBaseRange.load("address,text");
-            context.trackedObjects.add(priceBaseRange);
-            await context.sync();
-            const priceInBase = row.values[0][tblSetup['Price in Base']];
-            const priceInCurrency = row.values[0][tblSetup['Price (Currency)']];
-            const transactionDate = row.values[0][tblSetup['Transaction Date']]
-            const currency = row.values[0][tblSetup['Currency']];
-            const baseCurrency = row.values[0][tblSetup['Base']]
-            
-            if (priceInBase === "") {
-              const dateMoment = moment.fromOADate(transactionDate);
-              const period = dateMoment.format("YYYY-MM-DD");
-              const queryUrl = convertValue(currency, baseCurrency, period, period);
-              const response = await fetch(queryUrl);
-              if (response.ok) {
-                const result = await response.json();
-                const converted = priceInCurrency * result.rates[baseCurrency];
-                priceBaseRange.values = [[converted]];
-                await context.sync();
-                context.trackedObjects.remove(priceBaseRange);
-              }
-            } else {
-                console.info(`Row: ${idx} has been converted. Skipped.`)
+              priceBaseRange.load("address,text");
+              context.trackedObjects.add(priceBaseRange);
+              await context.sync();
+              const priceInBase = row.values[0][tableSetup['Price in Base']];
+              const priceInCurrency = row.values[0][tableSetup['Price (Currency)']];
+              const transactionDate = row.values[0][tableSetup['Transaction Date']]
+              const currency = row.values[0][tableSetup['Currency']];
+              const baseCurrency = row.values[0][tableSetup['Base']]
+              
+              if (priceInBase === "") {
+                const dateMoment = moment.fromOADate(transactionDate);
+                const period = dateMoment.format("YYYY-MM-DD");
+                const queryUrl = convertValue(currency, baseCurrency, period, period);
+                const response = await fetch(queryUrl);
+                if (response.ok) {
+                  const result = await response.json();
+                  const converted = priceInCurrency * result.rates[baseCurrency];
+                  priceBaseRange.values = [[converted]];
+                  await context.sync();
+                  context.trackedObjects.remove(priceBaseRange);
+                }
+              } else {
+                  console.info(`Row: ${idx} has been converted. Skipped.`)
               }
             });
           });
         }
 
         /** Async ForEeach */
-        async function asyncForEach(array: Array<any>, callback) {
+        async function forEachItem(array: Array<any>, callback) {
           for(let idx = 0; idx < array.length; idx++) {
             await callback(array[idx],idx, array);
           }
         }
 
-        /** Check if Table is Valid, ie has all required column **/
+        /** Check if the table contains the necessary columns. 
+        *** These columns can be in any order within the
+        **/
         function IsTableValid(items: Excel.TableColumn[]) {
           // Build the column index, search table header
           // Currency - origin currency
@@ -80,9 +82,9 @@ script:
           // Base  - home currency
           // Price in Base - price in base currency
           items.forEach((col, idx, arr) => {
-            tblSetup[col.name] = idx;
+            tableSetup[col.name] = idx;
           });
-          if (tblSetup['Currency'] === undefined || tblSetup['Price (Currency)'] === undefined || tblSetup['Transaction Date'] === undefined || tblSetup['Base'] === undefined || tblSetup['Price in Base'] === undefined) {
+          if (tableSetup['Currency'] === undefined || tableSetup['Price (Currency)'] === undefined || tableSetup['Transaction Date'] === undefined || tableSetup['Base'] === undefined || tableSetup['Price in Base'] === undefined) {
             return false;
           }
           return true;

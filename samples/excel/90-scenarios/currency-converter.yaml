@@ -35,28 +35,42 @@ script:
               return;
             }
 
+            const convertedCurrency = await Promise.all( 
+                table.rows.items.map( async (row,idx) => {
+                    const priceInBase = row.values[0][tableSetup["Price in Base"]];
+                    const priceInCurrency = row.values[0][tableSetup["Price (Currency)"]];
+                    const transactionDate = row.values[0][tableSetup["Transaction Date"]];
+                    const currency = row.values[0][tableSetup["Currency"]];
+                    const baseCurrency = row.values[0][tableSetup["Base"]];
+
+                    if (priceInBase === "") {
+                    const dateMoment = moment.fromOADate(transactionDate);
+                    const period = dateMoment.format("YYYY-MM-DD");
+                    const queryUrl = convertValue(currency, baseCurrency, period, period);
+
+                    const result = await fetch(queryUrl).then(response => response.json());
+                    if(result !== typeof(undefined)){
+                        const converted = priceInCurrency * result.rates[baseCurrency];
+                        return converted;
+                    } else {
+                      return 0;
+                    }      
+                  } else {
+                    return -1;
+                  }     
+                })
+              );
+              
+            let index =0;
             for (let row of table.rows.items) {
               const priceBaseRange = row.getRange().getCell(0, tableSetup["Price in Base"]);
-              const priceInBase = row.values[0][tableSetup["Price in Base"]];
-              const priceInCurrency = row.values[0][tableSetup["Price (Currency)"]];
-              const transactionDate = row.values[0][tableSetup["Transaction Date"]];
-              const currency = row.values[0][tableSetup["Currency"]];
-              const baseCurrency = row.values[0][tableSetup["Base"]];
-
-              if (priceInBase === "") {
-                const dateMoment = moment.fromOADate(transactionDate);
-                const period = dateMoment.format("YYYY-MM-DD");
-                const queryUrl = convertValue(currency, baseCurrency, period, period);
-
-                const result = await fetch(queryUrl).then(response => response.json());
-                if(result !== typeof(undefined)){
-                    const converted = priceInCurrency * result.rates[baseCurrency];
-                    priceBaseRange.values = [[converted]];
-                }        
+              if (convertedCurrency[index] == -1) {
+                console.info(`Row: ${index+1} has been converted. Skipped.`);        
               } else {
-                console.info(`Row: ${row.index} has been converted. Skipped.`);
+                priceBaseRange.values = [[convertedCurrency[index]]]
               }
-            };
+              index++;
+            }
           });
         }
 

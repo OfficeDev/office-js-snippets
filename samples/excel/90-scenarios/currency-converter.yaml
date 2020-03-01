@@ -23,42 +23,38 @@ script:
         /** Main converting function **/
         async function convert() {
           await Excel.run(async (context) => {
-            const table = context.workbook.tables.getItem(tableName)
+            const table = context.workbook.tables.getItem(tableName);
             table.columns.load("items");
+            table.rows.load("items,value");
             await context.sync();
-            if (!IsTableValid(table.columns.items)) {
-              console.error('Error: Some of default table header is missing. Required headers: \r\n"Currency","Price (Currency)","Transaction Date","Base","Price in Base"')
+
+            if (!isTableValid(table.columns.items)) {
+              console.error(
+                'Error: Some of default table header is missing. Required headers: \r\n"Currency","Price (Currency)","Transaction Date","Base","Price in Base"'
+              );
               return;
             }
 
-            table.rows.load("items,values");
-            await context.sync();
-            for(let row of table.rows.items) {
-              const priceBaseRange = row.getRange().getCell(0, tableSetup['Price in Base']);
+            for (let row of table.rows.items) {
+              const priceBaseRange = row.getRange().getCell(0, tableSetup["Price in Base"]);
+              const priceInBase = row.values[0][tableSetup["Price in Base"]];
+              const priceInCurrency = row.values[0][tableSetup["Price (Currency)"]];
+              const transactionDate = row.values[0][tableSetup["Transaction Date"]];
+              const currency = row.values[0][tableSetup["Currency"]];
+              const baseCurrency = row.values[0][tableSetup["Base"]];
 
-              priceBaseRange.load("address,text");
-              context.trackedObjects.add(priceBaseRange);
-              await context.sync();
-              const priceInBase = row.values[0][tableSetup['Price in Base']];
-              const priceInCurrency = row.values[0][tableSetup['Price (Currency)']];
-              const transactionDate = row.values[0][tableSetup['Transaction Date']]
-              const currency = row.values[0][tableSetup['Currency']];
-              const baseCurrency = row.values[0][tableSetup['Base']]
-              
               if (priceInBase === "") {
                 const dateMoment = moment.fromOADate(transactionDate);
                 const period = dateMoment.format("YYYY-MM-DD");
                 const queryUrl = convertValue(currency, baseCurrency, period, period);
-                const response = await fetch(queryUrl);
-                if (response.ok) {
-                  const result = await response.json();
-                  const converted = priceInCurrency * result.rates[baseCurrency];
-                  priceBaseRange.values = [[converted]];
-                  await context.sync();
-                  context.trackedObjects.remove(priceBaseRange);
-                }
+
+                const result = await fetch(queryUrl).then(response => response.json());
+                if(result !== typeof(undefined)){
+                    const converted = priceInCurrency * result.rates[baseCurrency];
+                    priceBaseRange.values = [[converted]];
+                }        
               } else {
-                  console.info(`Row: ${row.index} has been converted. Skipped.`)
+                console.info(`Row: ${row.index} has been converted. Skipped.`);
               }
             };
           });
@@ -67,7 +63,7 @@ script:
         /** Check if the table contains the necessary columns. 
         *** These columns can be in any order within the
         **/
-        function IsTableValid(items: Excel.TableColumn[]) {
+        function isTableValid(items: Excel.TableColumn[]) {
           // Build the column index, search table header
           // Currency - origin currency
           // Price (Currency) - price in origin currency
@@ -84,10 +80,11 @@ script:
         }
 
         /** Request currency exchange on specific date **/
-        function convertValue(CurrencyOrig, CurrencyBase, start, end) {
+        function convertValue(currencyOrig, currencyBase, start, end) {
           // GET https://api.exchangeratesapi.io/latest?symbols=SGD,USD&base=SGD&start_at=2019-10-05&end_at=2019-10-05
           const baseUrl = "https://api.exchangeratesapi.io/latest";
-          const query = "?base=" + CurrencyOrig + "&symbols=" + CurrencyBase + "," + CurrencyOrig + "&start_at=" + start + "&end_at=" + end;
+          const query =
+            "?base=" + currencyOrig + "&symbols=" + currencyBase + "," + currencyOrig + "&start_at=" + start + "&end_at=" + end;
           return baseUrl + query;
         }
 

@@ -1,0 +1,194 @@
+order: 5
+id: excel-scenarios-currency-converter
+name: Currency Converter
+description: Uses an exchange rate API to convert currency values based on their original transaction times.
+author: cakriwut
+host: EXCEL
+api_set:
+    ExcelApi: '1.4'
+script:
+    content: |
+        /*
+        * Copyright (c) Riwut Libinuko. All rights reserved. Licensed under the MIT license.
+        */
+
+        declare let moment: any;
+        const tableName = "TransactionTable";
+
+        let tableSetup: Record<string, number> = {};
+
+        $("#convert").click(() => tryCatch(convert));
+        $("#setup").click(() => tryCatch(setupSample));
+
+        /** Main converting function **/
+        async function convert() {
+          await Excel.run(async (context) => {
+            const table = context.workbook.tables.getItem(tableName);
+            table.columns.load("items");
+            table.rows.load("items,value");
+            await context.sync();
+
+            if (!isTableValid(table.columns.items)) {
+              console.error(
+                'Error: Some of default table header is missing. Required headers: \r\n"Currency","Price (Currency)","Transaction Date","Base","Price in Base"'
+              );
+              return;
+            }
+
+            const convertedCurrency = await Promise.all( 
+                table.rows.items.map( (row,idx) => {
+                    const priceInBase = row.values[0][tableSetup["Price in Base"]];
+                    const priceInCurrency = row.values[0][tableSetup["Price (Currency)"]];
+                    const transactionDate = row.values[0][tableSetup["Transaction Date"]];
+                    const currency = row.values[0][tableSetup["Currency"]];
+                    const baseCurrency = row.values[0][tableSetup["Base"]];
+
+                    if (priceInBase === "") {
+                        const dateMoment = moment.fromOADate(transactionDate);
+                        const period = dateMoment.format("YYYY-MM-DD");
+                        const queryUrl = convertValue(currency, baseCurrency, period, period);
+
+                        const result = fetch(queryUrl).then(response => response.json());
+                        return result;     
+                    } else {
+                      return -1;
+                    }     
+                })
+              );
+              
+            let index =0;
+            let skippedRows = [];
+            for (let row of table.rows.items) {
+              const priceBaseRange = row.getRange().getCell(0, tableSetup["Price in Base"]);
+              const priceInCurrency = row.values[0][tableSetup["Price (Currency)"]];
+              const baseCurrency = row.values[0][tableSetup["Base"]];
+
+              if (convertedCurrency[index] == -1) {
+                skippedRows.push(index+1);    
+              } else {
+                const converted = convertedCurrency[index].rates[baseCurrency] * priceInCurrency;
+                priceBaseRange.values = [[converted]];
+              }
+              index++;
+            }
+            
+            if(skippedRows.length > 0) {
+              if(skippedRows.length == 1) {
+                console.info(`Row: ${skippedRows.join(',')} has been converted. Skipped.`);
+              } else {
+                console.info(`Rows: ${skippedRows.join(',')} have been converted. Skipped.`);
+              }
+            }
+
+            await context.sync();
+          });
+        }
+
+        /** Check if the table contains the necessary columns. 
+        *** These columns can be in any order within the
+        **/
+        function isTableValid(items: Excel.TableColumn[]) {
+          // Build the column index, search table header
+          // Currency - origin currency
+          // Price (Currency) - price in origin currency
+          // Transaction Date - transaction date
+          // Base  - home currency
+          // Price in Base - price in base currency
+          items.forEach((col, idx, arr) => {
+            tableSetup[col.name] = idx;
+          });
+          if (tableSetup['Currency'] === undefined || tableSetup['Price (Currency)'] === undefined || tableSetup['Transaction Date'] === undefined || tableSetup['Base'] === undefined || tableSetup['Price in Base'] === undefined) {
+            return false;
+          }
+          return true;
+        }
+
+        /** Request currency exchange on specific date **/
+        function convertValue(currencyOrig, currencyBase, start, end) {
+          // GET https://api.exchangeratesapi.io/latest?symbols=SGD,USD&base=SGD&start_at=2019-10-05&end_at=2019-10-05
+          const baseUrl = "https://api.exchangeratesapi.io/latest";
+          const query =
+            "?base=" + currencyOrig + "&symbols=" + currencyBase + "," + currencyOrig + "&start_at=" + start + "&end_at=" + end;
+          return baseUrl + query;
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+        /* Create sample data */
+        /* Default header */
+        /* "Currency","Price (Currency)","Transaction Date","Base","Price in Base" */
+        async function setupSample() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+            const transactionTable = sheet.tables.add("A1:F1", true);
+            transactionTable.name = tableName;
+            transactionTable.getHeaderRowRange().values = [["Product", "Currency", "Price (Currency)", "Transaction Date", "Base", "Price in Base"]];
+            transactionTable.rows.add(null, [
+              ["Frames", "MYR", 5000, "2019-10-05", "SGD", null],
+              ["Chains", "CNY", 12000, "2019-10-04", "SGD", null]
+            ]);
+            transactionTable.getRange().format.autofitColumns();
+            sheet.activate();
+          });
+        }
+    language: typescript
+template:
+    content: |
+        <header class="ms-welcome__header ms-bgColor-neutralLighter" style='text-align: center'>
+          <h1 class="ms-font-su">Simple Currency Converter</h1>
+        </header>
+
+        <section class="ms-font-m">
+          <p>Simple currency converter shows how to read data from a transaction table, and uses currency converter API to
+            calculate the amount in base currency. </p>
+          <p>The code also performs table validation and identify if the table has predefined headers. You can try to to rearrange the the
+            column, and see by yourself! </p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <p>The currency conversion is provided by <a href="https://exchangeratesapi.io">exchangeratesapi.io</a> which uses
+            exchange rate data published by the European Central Bank. Click "Convert"</p>
+          <button id="convert" class="ms-Button">
+                <span class="ms-Button-label">Convert</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+    jquery@3.1.1
+    @types/jquery@3.3.1
+    moment@2.18.1 
+    moment-msdate@0.2.2

@@ -36,7 +36,7 @@ script:
             }
 
             const convertedCurrency = await Promise.all( 
-                table.rows.items.map( async (row,idx) => {
+                table.rows.items.map( (row,idx) => {
                     const priceInBase = row.values[0][tableSetup["Price in Base"]];
                     const priceInCurrency = row.values[0][tableSetup["Price (Currency)"]];
                     const transactionDate = row.values[0][tableSetup["Transaction Date"]];
@@ -44,20 +44,15 @@ script:
                     const baseCurrency = row.values[0][tableSetup["Base"]];
 
                     if (priceInBase === "") {
-                    const dateMoment = moment.fromOADate(transactionDate);
-                    const period = dateMoment.format("YYYY-MM-DD");
-                    const queryUrl = convertValue(currency, baseCurrency, period, period);
+                        const dateMoment = moment.fromOADate(transactionDate);
+                        const period = dateMoment.format("YYYY-MM-DD");
+                        const queryUrl = convertValue(currency, baseCurrency, period, period);
 
-                    const result = await fetch(queryUrl).then(response => response.json());
-                    if(result !== typeof(undefined)){
-                        const converted = priceInCurrency * result.rates[baseCurrency];
-                        return converted;
+                        const result = fetch(queryUrl).then(response => response.json());
+                        return result;     
                     } else {
-                      return 0;
-                    }      
-                  } else {
-                    return -1;
-                  }     
+                      return -1;
+                    }     
                 })
               );
               
@@ -65,10 +60,14 @@ script:
             let skippedRows = [];
             for (let row of table.rows.items) {
               const priceBaseRange = row.getRange().getCell(0, tableSetup["Price in Base"]);
+              const priceInCurrency = row.values[0][tableSetup["Price (Currency)"]];
+              const baseCurrency = row.values[0][tableSetup["Base"]];
+
               if (convertedCurrency[index] == -1) {
                 skippedRows.push(index+1);    
               } else {
-                priceBaseRange.values = [[convertedCurrency[index]]];
+                const converted = convertedCurrency[index].rates[baseCurrency] * priceInCurrency;
+                priceBaseRange.values = [[converted]];
               }
               index++;
             }

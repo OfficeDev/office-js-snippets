@@ -1,0 +1,194 @@
+order: 1
+id: excel-workbook-calculation
+name: Calculations
+description: 'Demonstrates the calculation APIs of the workbook: worksheet-level calculation events and application-level calculation controls.'
+host: EXCEL
+api_set:
+    ExcelApi: '1.11'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup)); $("#register-onCalculated-handler").click(() => tryCatch(registerOnCalculatedHandler)); $("#recalculate-single").click(() => tryCatch(recalculateSingle)); $("#recalculate-column").click(() => tryCatch(recalculateColumn)); $("#manual-calculations").click(() => tryCatch(switchToManualCalculations)); $("#automatic-calculations").click(() => tryCatch(switchToAutomaticCalculations)); $("#force-calculation").click(() => tryCatch(forceCalculation));
+        async function registerOnCalculatedHandler() {
+          await Excel.run(async (context) => {
+            let sheet = context.workbook.worksheets.getItem("Sample");
+            sheet.onCalculated.add(onCalculated);
+            await context.sync();
+
+            console.log("Added worksheet selection changed event handler.");
+          });
+        }
+
+        async function onCalculated(event: Excel.WorksheetCalculatedEventArgs) {
+          await Excel.run(async (context) => {
+            // `event.address` returns the address of the range that completed calculation.
+            // If multiple ranges completed calculation, the string is a comma-separated list of those range addresses.
+            console.log(`The Range ${event.address} has recalculated.`);
+          });
+        }
+
+        async function recalculateSingle() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const randomRow = Math.floor(Math.random() * 6);
+            const randomColumn = Math.floor(Math.random() * 4);
+            const randomResult = Math.floor(Math.random() * 10000);
+
+            const cellToChange = sheet.getRange("B2:E7").getCell(randomRow, randomColumn);
+
+            cellToChange.load("address");
+            await context.sync();
+            console.log(`Changing cell ${cellToChange.address}`);
+
+            cellToChange.values = [[randomResult]];
+            await context.sync();
+          });
+        }
+
+        async function recalculateColumn() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const columnToChange = sheet.getRange("B2:B7");
+            columnToChange.load("address");
+            await context.sync();
+
+            console.log(`Changing Range ${columnToChange.address}`);
+
+            columnToChange.values = [
+              [Math.floor(Math.random() * 10000)],
+              [Math.floor(Math.random() * 10000)],
+              [Math.floor(Math.random() * 10000)],
+              [Math.floor(Math.random() * 10000)],
+              [Math.floor(Math.random() * 10000)],
+              [Math.floor(Math.random() * 10000)]
+            ];
+            await context.sync();
+          });
+        }
+
+        async function switchToManualCalculations(event: Excel.WorksheetCalculatedEventArgs) {
+          await Excel.run(async (context) => {
+            context.application.calculationMode = Excel.CalculationMode.manual;
+            context.application.load("calculationMode");
+            await context.sync();
+
+            console.log("Current calculation mode: " + context.application.calculationMode);
+          });
+        }
+
+        async function switchToAutomaticCalculations(event: Excel.WorksheetCalculatedEventArgs) {
+          await Excel.run(async (context) => {
+            context.application.calculationMode = Excel.CalculationMode.automatic;
+            context.application.load("calculationMode");
+            await context.sync();
+
+            console.log("Current calculation mode: " + context.application.calculationMode);
+          });
+        }
+
+        async function forceCalculation(event: Excel.WorksheetCalculatedEventArgs) {
+          await Excel.run(async (context) => {
+            context.application.calculate(Excel.CalculationType.recalculate);
+            await context.sync();
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+
+            let salesTable = sheet.tables.add("A1:F1", true);
+            salesTable.name = "SalesTable";
+
+            salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4", "Total"]];
+
+            salesTable.rows.add(null, [
+              ["Frames", 5000, 7000, 6544, 4377, "=SUM(B2:E2)"],
+              ["Saddles", 400, 323, 276, 651, "=SUM(B3:E3)"],
+              ["Brake levers", 12000, 8766, 8456, 9812, "=SUM(B4:E4)"],
+              ["Chains", 1550, 1088, 692, 853, "=SUM(B5:E5)"],
+              ["Mirrors", 225, 600, 923, 544, "=SUM(B6:E6)"],
+              ["Spokes", 6005, 7634, 4589, 8765, "=SUM(B7:E7)"]
+            ]);
+
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */ 
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to use the calculation APIs.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Add sample data</span>
+          </button>
+        </section>
+              
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+
+            <p><b>Calculation events</b></p>
+            <button id="register-onCalculated-handler" class="ms-Button">
+              <span class="ms-Button-label">Register onCalculated event handler</span>
+            </button>
+            <p>Use these buttons to change data in the table or manually edit the worksheet.</p>
+            <button id="recalculate-single" class="ms-Button">
+              <span class="ms-Button-label">Change a single table value</span>
+            </button>
+            <button id="recalculate-column" class="ms-Button">
+              <span class="ms-Button-label">Change a whole table column</span>
+            </button>
+
+            <p><b>Manual calculations</b></p>
+            <p>Try switching to manual calculation, then editing the workbook.</p> 
+            <button id="manual-calculations" class="ms-Button">
+              <span class="ms-Button-label">Switch to manual calculations</span>
+            </button>
+            <button id="automatic-calculations" class="ms-Button">
+              <span class="ms-Button-label">Switch to automatic calculations</span>
+            </button>
+            <button id="force-calculation" class="ms-Button">
+              <span class="ms-Button-label">Recalculate the workbook</span>
+            </button>
+          </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

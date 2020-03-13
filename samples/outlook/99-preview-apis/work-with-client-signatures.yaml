@@ -1,0 +1,120 @@
+id: outlook-work-with-client-signatures
+name: Work With Client Signatures (Compose)
+description: 'Check if the client signature is enabled, disable the client signature, get the compose type, and set a signature in Compose mode.'
+host: OUTLOOK
+api_set:
+    Mailbox: preview
+script:
+    content: |
+        $("#isClientSignatureEnabled").click(isClientSignatureEnabled);
+        $("#disableClientSignature").click(disableClientSignature);
+        $("#getComposeType").click(getComposeType);
+        $("#setSignature").click(setSignature);
+
+        function isClientSignatureEnabled() {
+          // Check if the client signature is currently enabled.
+          Office.context.mailbox.item.isClientSignatureEnabledAsync(function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("isClientSignatureEnabledAsync succeeded with result: " + asyncResult.value);
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
+
+        function disableClientSignature() {
+          // Disable the client signature.
+          Office.context.mailbox.item.disableClientSignatureAsync(function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("disableClientSignatureAsync succeeded");
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
+
+        function getComposeType() {
+          // Get the compose type of the current item (mail only).
+          Office.context.mailbox.item.getComposeTypeAsync(function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log(
+                "getComposeTypeAsync succeeded with composeType: " +
+                  asyncResult.value.composeType +
+                  " and coercionType: " +
+                  asyncResult.value.coercionType
+              );
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
+
+        function setSignature() {
+          // Set the signature for the current item.
+          var signature = $("#signature").val();
+          console.log(`Setting signature to "${signature}".`);
+          Office.context.mailbox.item.body.setSignatureAsync(signature, function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("setSignatureAsync succeeded");
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to check if the client signature is enabled, disable the client signature, get the compose
+                type, and set the signature.
+                <p>
+                    <b>Required mode</b>: Compose
+                </p>
+            </p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="isClientSignatureEnabled" class="ms-Button">
+                <div class="ms-Button-label">isClientSignatureEnabled</div>
+            </button>
+            <button id="disableClientSignature" class="ms-Button">
+                <div class="ms-Button-label">disableClientSignature</div>
+            </button>
+            <button id="getComposeType" class="ms-Button">
+                <div class="ms-Button-label">getComposeType</div>
+            </button>
+            <div class="ms-TextField">
+                <label class="ms-Label">Signature:</label>
+                <input id="signature" class="ms-TextField-field" type="text" value="This is my signature" placeholder="">
+            </div>
+                <button id="setSignature" class="ms-Button">
+                <div class="ms-Button-label">setSignature</div>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

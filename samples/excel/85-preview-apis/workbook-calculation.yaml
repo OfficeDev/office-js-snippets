@@ -1,7 +1,7 @@
 order: 1
 id: excel-workbook-calculation
 name: Calculations
-description: 'Demonstrates the calculation APIs of the workbook: worksheet-level calulcation events and application-level calculation controls.'
+description: 'Demonstrates the calculation APIs of the workbook: worksheet-level calculation events and application-level calculation controls.'
 host: EXCEL
 api_set:
     ExcelApi: '1.11'
@@ -13,14 +13,19 @@ script:
             let sheet = context.workbook.worksheets.getItem("Sample");
             sheet.onCalculated.add(onCalculated);
             await context.sync();
+
             console.log("Added worksheet selection changed event handler.");
           });
         }
+
         async function onCalculated(event: Excel.WorksheetCalculatedEventArgs) {
           await Excel.run(async (context) => {
+            // `event.address` returns the address of the range that completed calculation.
+            // If multiple ranges completed calculation, the string is a comma-separated list of those range addresses.
             console.log(`The Range ${event.address} has recalculated.`);
           });
         }
+
         async function recalculateSingle() {
           await Excel.run(async (context) => {
             const sheet = context.workbook.worksheets.getItem("Sample");
@@ -35,16 +40,17 @@ script:
             console.log(`Changing cell ${cellToChange.address}`);
 
             cellToChange.values = [[randomResult]];
+            await context.sync();
           });
         }
+
         async function recalculateColumn() {
           await Excel.run(async (context) => {
             const sheet = context.workbook.worksheets.getItem("Sample");
-
             const columnToChange = sheet.getRange("B2:B7");
-
             columnToChange.load("address");
             await context.sync();
+
             console.log(`Changing Range ${columnToChange.address}`);
 
             columnToChange.values = [
@@ -55,30 +61,36 @@ script:
               [Math.floor(Math.random() * 10000)],
               [Math.floor(Math.random() * 10000)]
             ];
+            await context.sync();
           });
         }
+
         async function switchToManualCalculations(event: Excel.WorksheetCalculatedEventArgs) {
           await Excel.run(async (context) => {
             context.application.calculationMode = Excel.CalculationMode.manual;
             context.application.load("calculationMode");
             await context.sync();
+
             console.log("Current calculation mode: " + context.application.calculationMode);
           });
         }
+
         async function switchToAutomaticCalculations(event: Excel.WorksheetCalculatedEventArgs) {
           await Excel.run(async (context) => {
             context.application.calculationMode = Excel.CalculationMode.automatic;
             context.application.load("calculationMode");
             await context.sync();
+
             console.log("Current calculation mode: " + context.application.calculationMode);
           });
         }
+
         async function forceCalculation(event: Excel.WorksheetCalculatedEventArgs) {
           await Excel.run(async (context) => {
             context.application.calculate(Excel.CalculationType.recalculate);
             await context.sync();
           });
-        }
+        }\
         async function setup() {
           await Excel.run(async (context) => {
             context.workbook.worksheets.getItemOrNullObject("Sample").delete();
@@ -103,7 +115,8 @@ script:
           });
         }
 
-        /** Default helper for invoking an action and handling errors. */ async function tryCatch(callback) {
+        /** Default helper for invoking an action and handling errors. */ 
+        async function tryCatch(callback) {
           try {
             await callback();
           } catch (error) {

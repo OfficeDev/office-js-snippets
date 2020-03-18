@@ -1,0 +1,159 @@
+order: 4
+id: excel-culture-info
+name: Culture info
+description: This sample shows how to apply the cultural settings APIs to help normalize data.
+host: EXCEL
+api_set:
+    ExcelApi: '1.11'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#display-culture-info").click(() => tryCatch(displayCultureInfo));
+        $("#write-decimal").click(() => tryCatch(writeDecimal));
+        $("#write-big-number").click(() => tryCatch(writeBigNumber));
+
+        async function displayCultureInfo() {
+          await Excel.run(async (context) => {
+            context.application.load("decimalSeparator,thousandsSeparator");
+            context.application.cultureInfo.numberFormat.load("numberDecimalSeparator,numberGroupSeparator");
+            await context.sync();
+
+            // Local settings are set under the "Options > Advanced" menu.
+            const localDecimalSeparator = context.application.decimalSeparator;
+            const localThousandsSeparator = context.application.thousandsSeparator;
+
+            const systemDecimalSeparator = context.application.cultureInfo.numberFormat.numberDecimalSeparator;
+            const systemThousandsSeparator = context.application.cultureInfo.numberFormat.numberGroupSeparator;
+
+            console.log("Local character settings: ");
+            console.log(`  Local decimal separator: ${localDecimalSeparator}`);
+            console.log(`  Local thousands separator: ${localThousandsSeparator}`);
+
+            console.log("System culture settings: ");
+            console.log(`  System decimal separator: ${systemDecimalSeparator}`);
+            console.log(`  System thousands separator: ${systemThousandsSeparator}`);
+            console.log(`  `);
+
+            await context.sync();
+          });
+        }
+
+        async function writeDecimal() {
+            // This will convert a number like "14,37" to "14.37"
+            // (assuming the system decimal separator is ".").
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const decimalSource = sheet.getRange("B2");
+            decimalSource.load("values");
+            context.application.cultureInfo.numberFormat.load("numberDecimalSeparator");
+            await context.sync();
+
+            const systemDecimalSeparator = context.application.cultureInfo.numberFormat.numberDecimalSeparator;
+            const oldDecimalString: string = decimalSource.values[0][0];
+            
+            // This assumes the input column is standardized to use "," as the decimal separator. 
+            const newDecimalString = oldDecimalString.replace(",", systemDecimalSeparator);
+
+            const resultRange = sheet.getRange("C2");
+            resultRange.values = [[newDecimalString]];
+            resultRange.format.autofitColumns();
+            await context.sync();
+          });
+        }
+
+        async function writeBigNumber() {
+          await Excel.run(async (context) => {
+            // This will convert a number like "123-456-789" to "123,456,789"
+            // (assuming the system thousands separator is ",").
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const bigNumberSource = sheet.getRange("B3");
+            bigNumberSource.load("values");
+            context.application.cultureInfo.numberFormat.load("numberGroupSeparator");
+            await context.sync();
+
+            const systemThousandsSeparator = context.application.cultureInfo.numberFormat.numberGroupSeparator;
+            const oldBigNumberString: string = bigNumberSource.values[0][0];
+            
+            // This assumes the input column is standardized to use "-" as the number group separator. 
+            const newBigNumberString = oldBigNumberString.replace(/-/g, systemThousandsSeparator);
+
+            const resultRange = sheet.getRange("C3");
+            resultRange.values = [[newBigNumberString]];
+            resultRange.format.autofitColumns();
+            await context.sync();
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+            const range = sheet.getRange("A1:C3");
+            range.values = [["", "Stored", "Converted"], ["Decimal", "14,37", ""], ["Large Number", "123-456-789", ""]];
+            range.format.autofitColumns();
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to apply the cultural settings APIs to help normalize data.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Setup</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="display-culture-info" class="ms-Button">
+              <span class="ms-Button-label">Display culture settings</span>
+            </button>
+          <button id="write-decimal" class="ms-Button">
+              <span class="ms-Button-label">Write culturally-consistent decimal</span>
+            </button>
+          <button id="write-big-number" class="ms-Button">
+                <span class="ms-Button-label">Write culturally-consistent large number</span>
+              </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

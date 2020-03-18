@@ -26,6 +26,31 @@
 
         console.log(`Ending. Adding ${rowCount * columnCount} cells took ${Date.now() - startTime} milliseconds`);
     });
+'Excel.Application#decimalSeparator:member':
+  - |-
+    await Excel.run(async (context) => {
+      context.application.load("decimalSeparator,thousandsSeparator");
+      context.application.cultureInfo.numberFormat.load("numberDecimalSeparator,numberGroupSeparator");
+      await context.sync();
+
+      // Local settings are set under the "Options > Advanced" menu.
+      const localDecimalSeparator = context.application.decimalSeparator;
+      const localThousandsSeparator = context.application.thousandsSeparator;
+
+      const systemDecimalSeparator = context.application.cultureInfo.numberFormat.numberDecimalSeparator;
+      const systemThousandsSeparator = context.application.cultureInfo.numberFormat.numberGroupSeparator;
+
+      console.log("Local character settings: ");
+      console.log(`  Local decimal separator: ${localDecimalSeparator}`);
+      console.log(`  Local thousands separator: ${localThousandsSeparator}`);
+
+      console.log("System culture settings: ");
+      console.log(`  System decimal separator: ${systemDecimalSeparator}`);
+      console.log(`  System thousands separator: ${systemThousandsSeparator}`);
+      console.log(`  `);
+
+      await context.sync();
+    });
 'Excel.AutoFilter#apply:member(1)':
   - |-
     await Excel.run(async (context) => {
@@ -1099,6 +1124,66 @@
         conditionalFormat.textComparison.rule = { operator: Excel.ConditionalTextOperator.contains, text: "Delayed" };
 
         await context.sync();
+    });
+'Excel.CultureInfo#decimalSeparator:member':
+  - >-
+    // This will convert a number like "14,37" to "14.37"
+
+    // (assuming the system decimal separator is ".").
+      await Excel.run(async (context) => {
+    const sheet = context.workbook.worksheets.getItem("Sample");
+
+    const decimalSource = sheet.getRange("B2");
+
+    decimalSource.load("values");
+
+    context.application.cultureInfo.numberFormat.load("numberDecimalSeparator");
+
+    await context.sync();
+
+
+    const systemDecimalSeparator =
+    context.application.cultureInfo.numberFormat.numberDecimalSeparator;
+
+    const oldDecimalString: string = decimalSource.values[0][0];
+
+
+    // This assumes the input column is standardized to use "," as the decimal
+    separator. 
+
+    const newDecimalString = oldDecimalString.replace(",",
+    systemDecimalSeparator);
+
+
+    const resultRange = sheet.getRange("C2");
+
+    resultRange.values = [[newDecimalString]];
+
+    resultRange.format.autofitColumns();
+
+    await context.sync();
+      });
+'Excel.CultureInfo#numberGroupSeparator:member':
+  - |-
+    await Excel.run(async (context) => {
+      // This will convert a number like "123-456-789" to "123,456,789"
+      // (assuming the system thousands separator is ",").
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const bigNumberSource = sheet.getRange("B3");
+      bigNumberSource.load("values");
+      context.application.cultureInfo.numberFormat.load("numberGroupSeparator");
+      await context.sync();
+
+      const systemThousandsSeparator = context.application.cultureInfo.numberFormat.numberGroupSeparator;
+      const oldBigNumberString: string = bigNumberSource.values[0][0];
+      
+      // This assumes the input column is standardized to use "-" as the number group separator. 
+      const newBigNumberString = oldBigNumberString.replace(/-/g, systemThousandsSeparator);
+
+      const resultRange = sheet.getRange("C3");
+      resultRange.values = [[newBigNumberString]];
+      resultRange.format.autofitColumns();
+      await context.sync();
     });
 'Excel.CustomConditionalFormat#format:member':
   - |-

@@ -1,0 +1,189 @@
+order: 1
+id: reading-views
+name: Reading views
+description: Three different reading views for reading excel sheets.
+host: EXCEL
+api_set:
+    ExcelApi: '1.9'
+script:
+    content: |
+        $("#balanced-rows").click(() => tryCatch(balancedRows));
+        $("#collapse-rows").click(() => tryCatch(collapseRows));
+        $("#expand-rows").click(() => tryCatch(expandRows));
+
+        async function balancedRows() {
+          await Excel.run(async (context) => {
+            // Initialize lastCheckedRow as the first row of Excel.
+            var lastCheckedRow = 1;
+            console.log("lastCheckedRow:" + lastCheckedRow);
+
+            // Get last used row in the sheet
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            var usedRange = sheet.getUsedRange(false);
+            usedRange.load("rowCount, format");
+            await context.sync();
+            var lastRow = usedRange.rowCount;
+            console.log("lastRow:" + lastRow);
+
+            // Get first row from where you want the view to compress and row height
+            var firstRow = $("#startRow").val();
+            console.log("Starting row:" + firstRow);
+
+            var height = $("#rowSize").val();
+            console.log("desired row height:" + height);
+
+            // As long as you are in the balanced view range, keep creating the view
+            do {
+              // Get current active cell row value (i.e. if user moved to another cell or not)
+              var activeRange = context.workbook.getActiveCell();
+              activeRange.load(["address", "values", "rowIndex"]);
+              await context.sync().then(function() {
+                // console.log("active cell rowNumber:" + Number(activeRange.rowIndex + 1) );
+              });
+
+              var currentRow = activeRange.rowIndex + 1;
+              // console.log("currentRow:" + currentRow);
+
+              // If user didnt move out of the row, wait for some more time for him to make a move.
+              if (currentRow == lastCheckedRow) {
+                // Allow user to navigate in same row before checking again
+                var waitOver = false;
+                timeOut(waitOver, 2);
+              } else if (currentRow > lastRow) {
+                // If user moved out of last checked row but the row is outside reading range (exit).
+                console.log(
+                  "current row is out of reading range. Go to used rows and trigger this add in again for a balanced reading view!"
+                );
+
+                // Set the lastCheckedRow as currentRow
+                lastCheckedRow = currentRow;
+              } else if (currentRow != lastCheckedRow) {
+                // If user moved out of last checked row and the row is within reading range.
+                console.log("current row is different than last checked row. Change View.");
+                console.log("currentRow:" + currentRow);
+                console.log("lastCheckedRow:" + lastCheckedRow);
+
+                // Collapse all rows (for now copy code here until I find out how to use functions in java script)
+                var selectRange = sheet.getRange(firstRow + ":" + lastRow);
+                selectRange.format.rowHeight = Number(height);
+
+                // Expand current Row
+                var selectedRange = sheet.getRange(currentRow + ":" + currentRow);
+                selectedRange.format.autofitRows();
+
+                // Set the lastCheckedRow as currentRow
+                lastCheckedRow = currentRow;
+              } else {
+                console.log("This is interesting! I am curious to know how this happened!");
+              }
+            } while (lastCheckedRow <= lastRow);
+            console.log("Exiting balanced view function!");
+          });
+        }
+
+        function timeOut(waitOver, waitInSeconds) {
+          if (waitOver) {
+            // console.log("wait over");
+          } else {
+            window.setTimeout(timeOut, waitInSeconds);
+            waitOver = true;
+          }
+        }
+
+        async function collapseRows() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            var usedRange = sheet.getUsedRange(false);
+
+            usedRange.load("rowCount, format");
+            await context.sync();
+
+            var lastRow = usedRange.rowCount;
+            console.log("Total rowCount:" + lastRow);
+
+            var firstRow = $("#startRow").val();
+            console.log("Starting row:" + firstRow);
+
+            var selectRange = sheet.getRange(firstRow + ":" + lastRow);
+
+            var height = $("#rowSize").val();
+            console.log("desired row height:" + height);
+
+            selectRange.format.rowHeight = Number(height);
+            console.log("changed row height:" + selectRange.format.rowHeight);
+          });
+        }
+
+        function expandRows() {
+          return Excel.run(function(context) {
+            var sheet = context.workbook.worksheets.getActiveWorksheet();
+            var range = sheet.getUsedRange(false);
+
+            range.format.autofitRows();
+
+            range.load("rowCount");
+            return context.sync().then(function() {
+              console.log(range.rowCount);
+            });
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p class="ms-font-m">This is a addin to give you different reading options for excel sheets</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Reading views</h3>
+            <p class="ms-font-m">Go to the worksheet where you want to have a reading view and, then press one of the buttons
+                below:</p>
+            <button id="balanced-rows" class="ms-Button">
+                <span class="ms-Button-label">Balanced Rows</span>
+          </button>
+            <input type="number" id="rowSize" value=12>Enter Row height (default=12)</input><br/><br/>
+            <input type="number" id="startRow" value=3>Specify Start Row (default=3)</input><br/><br/>
+            <button id="collapse-rows" class="ms-Button">
+                        <span class="ms-Button-label">Collapse Rows</span>
+            </button>
+            <button id="expand-rows" class="ms-Button">
+                            <span class="ms-Button-label">Expand Rows</span>
+            </button>
+            <img src='http://mspoweruser.com/wp-content/uploads/msn/2015/07/Windows-10-Ninja-Cat-TRex.gif'>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

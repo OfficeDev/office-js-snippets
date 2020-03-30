@@ -1,13 +1,14 @@
 order: 4
 id: outlook-recipients-and-attendees-get-to-message-compose
-name: Get to (Message Compose)
-description: Gets the To line recipients of the message in Compose mode.
+name: Get and set to (Message Compose)
+description: Gets and sets the To line recipients of the message in Compose mode.
 host: OUTLOOK
 api_set:
     Mailbox: '1.1'
 script:
     content: |
         $("#get-to").click(getTo);
+        $("#set-to").click(setTo);
 
         function getTo() {
           Office.context.mailbox.item.to.getAsync(function(asyncResult) {
@@ -22,18 +23,39 @@ script:
             }
           });
         }
+
+        function setTo() {
+          var email = $("#emailTo")
+            .val()
+            .toString();
+          var emailArray = [email];
+          Office.context.mailbox.item.to.setAsync(emailArray, function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("Succeeded in setting To field.");
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
     language: typescript
 template:
     content: |-
         <section class="ms-font-m">
-            <p class="ms-font-m">This sample shows how to get the <b>To</b> line recipients of the email.</p>
+            <p class="ms-font-m">This sample shows how to get and set the <b>To</b> line recipients of the email.</p>
             <p><b>Required mode</b>: Message Compose</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
+            <div class="ms-TextField">
+                <label class="ms-Label">Email address</label>
+                <input id="emailTo" class="ms-TextField-field" type="text" value="" placeholder="Who do you want to send this to?">
+          </div>
+            <button id="set-to" class="ms-Button">
+            <span class="ms-Button-label">Set "To"</span>
+          </button>
             <button id="get-to" class="ms-Button">
-            <span class="ms-Button-label">Who is this to?</span>
+            <span class="ms-Button-label">Get who this is to</span>
           </button>
         </section>
     language: html

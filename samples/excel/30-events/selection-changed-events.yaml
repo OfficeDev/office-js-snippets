@@ -1,0 +1,160 @@
+order: 7
+id: excel-selection-changed-events
+name: Selection change events
+description: Registers handlers all the different `onSelectionChanged` events and displays how each event reports the selected addresses.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: '1.7'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#register-event-handlers").click(() => tryCatch(registerEventHandlers));
+
+        async function registerEventHandlers() {
+          await Excel.run(async (context) => {
+            // Add a selection changed event handler for the binding.
+            let binding = context.workbook.bindings.getItemAt(0);
+            binding.onSelectionChanged.add(onBindingSelectionChange);
+
+            // Add a selection changed event handler for the table.
+            let table = context.workbook.tables.getItemAt(0);
+            table.onSelectionChanged.add(onTableSelectionChange);
+
+            // Add a selection changed event handler for the worksheet.
+            let sheet = context.workbook.worksheets.getItem("Sample");
+            sheet.onSelectionChanged.add(onWorksheetSelectionChange);
+
+            // Add a selection changed event handler for the worksheet collection.
+            context.workbook.worksheets.onSelectionChanged.add(onWorksheetCollectionSelectionChange);
+
+            await context.sync();
+          });
+        }
+
+        async function onBindingSelectionChange(args: Excel.BindingSelectionChangedEventArgs) {
+          await Excel.run(async (context) => {
+            console.log(`Binding event: The new selection is\nStarting Column: ${args.startColumn}\nStarting Row: ${args.startRow}\nColumn Count: ${args.columnCount}\nRow Count: ${args.rowCount}`);
+          });
+        }
+
+        async function onTableSelectionChange(args: Excel.TableSelectionChangedEventArgs) {
+          await Excel.run(async (context) => {
+            console.log(`Table event: The address of new selection is: ${args.address}`);
+          });
+        }
+
+        async function onWorksheetSelectionChange(args: Excel.WorksheetSelectionChangedEventArgs) {
+          await Excel.run(async (context) => {
+            console.log(`Worksheet event: The address of new selection is: ${args.address}`);
+          });
+        }
+
+        async function onWorksheetCollectionSelectionChange(args: Excel.WorksheetSelectionChangedEventArgs) {
+          await Excel.run(async (context) => {
+            console.log(`WorksheetCollection event: The address of new selection is: ${args.address}`);
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+
+            // Highlight an area and create a binding there.
+            let bindingRange = sheet.getRange("A15:D20");
+            bindingRange.format.fill.color = "yellow";
+            sheet.getRange("A15").values = [["Binding range"]];
+            context.workbook.bindings.add(bindingRange, Excel.BindingType.range, "YellowBinding");
+
+            // Create a table.
+            let salesTable = sheet.tables.add("A1:E1", true);
+            salesTable.name = "SalesTable";
+
+            salesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+            salesTable.rows.add(null, [
+              ["Frames", 5000, 7000, 6544, 4377],
+              ["Saddles", 400, 323, 276, 651],
+              ["Brake levers", 12000, 8766, 8456, 9812],
+              ["Chains", 1550, 1088, 692, 853],
+              ["Mirrors", 225, 600, 923, 544],
+              ["Spokes", 6005, 7634, 4589, 8765]
+            ]);
+
+            sheet.getUsedRange().format.autofitColumns();
+            sheet.getUsedRange().format.autofitRows();
+
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |+
+        <section class="ms-font-m">
+            <p>This sample shows how to register and use event handlers for table <code>onChanged</code> and <code>onSelectionChanged</code> events.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample data</span>
+            </button>
+            <button id="register-event-handlers" class="ms-Button">
+                <span class="ms-Button-label">Register event handlers</span>
+            </button>
+            <p>The <code>onSelectionChanged</code> events being listened for are:</p>
+            <ul>
+              <li><code>Binding</code></li>
+              <li><code>Table</code></li>
+              <li><code>Worksheet</code></li>
+              <li><code>WorksheetCollection</code></li>
+            </ul>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+        </section>
+
+        <section class="samples ms-font-m">
+            <p>The console will log the addresses reported by the different <code>onSelectionChanged</code> events. Change the cell or cells selected in the worksheet to see the results. Try selecting single cells, multiple cells, and multiple discontiguous cells.</p>
+        </section>
+
+
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -1,0 +1,109 @@
+order: 3
+id: outlook-recurrence-get-set-recurrence-appointment-organizer
+name: Get and set recurrence (Appointment Organizer)
+description: Gets and sets the recurrence pattern in Appointment Organizer mode.
+host: OUTLOOK
+api_set:
+    Mailbox: '1.7'
+script:
+    content: |
+        $("#get").click(get);
+        $("#set").click(set);
+
+        function get() {
+          Office.context.mailbox.item.recurrence.getAsync(function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              var recurrence = asyncResult.value;
+              if (recurrence === null) {
+                console.log("This is a single appointment.");
+              } else {
+                console.log(`Recurrence pattern: ${JSON.stringify(recurrence)}`);
+              }
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
+
+        function set() {
+          // Important: Can only set the recurrence pattern of an appointment series.
+
+          var currentDate = new Date();
+          let seriesTimeObject : Office.SeriesTime;
+          // Set series start date to tomorrow.
+          seriesTimeObject.setStartDate(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            currentDate.getDay() + 1
+          );
+          // Set series end date to 1 month from now.
+          seriesTimeObject.setEndDate(
+            currentDate.getFullYear(),
+            currentDate.getMonth() + 1,
+            currentDate.getDay()
+          );
+          // Set start time to 1:30 PM.
+          seriesTimeObject.setStartTime(13, 30);
+          // Set duration to 30 minutes.
+          seriesTimeObject.setDuration(30);
+
+          let pattern : Office.Recurrence = {
+            seriesTime: seriesTimeObject,
+            recurrenceType: "weekly",
+            recurrenceProperties: { interval: 1, days: ["tue", "thu"], firstDayOfWeek: "sun" },
+            recurrenceTimeZone: { name: "Pacific Standard Time" }
+          };
+
+          Office.context.mailbox.item.recurrence.setAsync(pattern, (asyncResult) => {
+            if (asyncResult.status !== Office.AsyncResultStatus.Succeeded) {
+              console.error(`Failed to set recurrence. Error: ${asyncResult.error.message}`);
+              return;
+            }
+            console.log(`Succeeded in setting recurrence pattern ${JSON.stringify(pattern)}`);
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p class="ms-font-m">This sample shows how to get and set the item's recurrence pattern, if any.</p>
+            <p><b>Required mode</b>: Appointment Organizer</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get" class="ms-Button">
+            <span class="ms-Button-label">Get the recurrence pattern</span>
+          </button>
+            <p><b>Note</b>: You can only set the recurrence pattern on a series.
+                <button id="set" class="ms-Button">
+                <span class="ms-Button-label">Set the recurrence pattern</span>
+              </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -6377,6 +6377,23 @@
       }
       console.log(`Successfully set start date and time to ${start}`);
     });
+  - |-
+    Office.context.mailbox.item.start.getAsync((result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Get start date failed with message ${result.error.message}`);
+        return;
+      }
+
+      var end = result.value; // Set end to current start date and time.
+      end.setDate(end.getDate() + 1); // Set end as 1 day later than start date.
+      Office.context.mailbox.item.end.setAsync(end, (result) => {
+        if (result.status !== Office.AsyncResultStatus.Succeeded) {
+          console.error(`Set end date failed with message ${result.error.message}`);
+          return;
+        }
+        console.log(`Successfully set end date and time to ${end}`);
+      });
+    });
 'Office.AppointmentRead#normalizedSubject:member':
   - >-
     console.log(`Normalized subject:
@@ -6409,6 +6426,220 @@
   - >-
     console.log(`Date and time item last modified:
     ${Office.context.mailbox.item.dateTimeModified}`);
+'Office.AppointmentRead#end:member':
+  - 'console.log(`Appointment ends: ${Office.context.mailbox.item.end}`);'
+'Office.MessageRead#end:member':
+  - 'console.log(`Appointment ends: ${Office.context.mailbox.item.end}`);'
+'Office.AppointmentCompose#end:member':
+  - |-
+    Office.context.mailbox.item.end.getAsync((result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Action failed with message ${result.error.message}`);
+        return;
+      }
+      console.log(`Appointment ends: ${result.value}`);
+    });
+  - |-
+    Office.context.mailbox.item.start.getAsync((result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Get start date failed with message ${result.error.message}`);
+        return;
+      }
+
+      var end = result.value; // Set end to current start date and time.
+      end.setDate(end.getDate() + 1); // Set end as 1 day later than start date.
+      Office.context.mailbox.item.end.setAsync(end, (result) => {
+        if (result.status !== Office.AsyncResultStatus.Succeeded) {
+          console.error(`Set end date failed with message ${result.error.message}`);
+          return;
+        }
+        console.log(`Successfully set end date and time to ${end}`);
+      });
+    });
+'Office.AppointmentRead#location:member':
+  - >-
+    console.log(`Appointment location:
+    ${Office.context.mailbox.item.location}`);
+'Office.MessageRead#location:member':
+  - >-
+    console.log(`Appointment location:
+    ${Office.context.mailbox.item.location}`);
+'Office.AppointmentCompose#location:member':
+  - |-
+    Office.context.mailbox.item.location.getAsync((result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Action failed with message ${result.error.message}`);
+        return;
+      }
+      console.log(`Appointment location: ${result.value}`);
+    });
+  - |-
+    var location = "my office";
+    Office.context.mailbox.item.location.setAsync(location, (result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Action failed with message ${result.error.message}`);
+        return;
+      }
+      console.log(`Successfully set location to ${location}`);
+    });
+'Office.Location#getAsync:member(2)':
+  - |-
+    Office.context.mailbox.item.location.getAsync((result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Action failed with message ${result.error.message}`);
+        return;
+      }
+      console.log(`Appointment location: ${result.value}`);
+    });
+'Office.Location#setAsync:member(2)':
+  - |-
+    var location = "my office";
+    Office.context.mailbox.item.location.setAsync(location, (result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Action failed with message ${result.error.message}`);
+        return;
+      }
+      console.log(`Successfully set location to ${location}`);
+    });
+'Office.AppointmentCompose#enhancedLocation:member':
+  - |-
+    Office.context.mailbox.item.enhancedLocation.getAsync((result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Failed to get locations. Error message: ${result.error.message}`);
+        return;
+      }
+      var places = result.value;
+      if (places && places.length > 0) {
+        result.value.forEach(function(place) {
+          console.log(`Location: ${place.displayName} (type: ${place.locationIdentifier.type})`);
+          if (place.locationIdentifier.type === Office.MailboxEnums.LocationType.Room) {
+            console.log("Email address: " + place.emailAddress);
+          }
+        });
+      } else {
+        console.log("There are no locations.");
+      }
+    });
+  - >-
+    var locations = [
+      {
+        id: "Contoso",
+        type: Office.MailboxEnums.LocationType.Custom
+      },
+      {
+        id: "room500@test.com",
+        type: Office.MailboxEnums.LocationType.Room
+      }
+    ];
+
+    Office.context.mailbox.item.enhancedLocation.addAsync(locations, (result) =>
+    {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        console.log(`Successfully added locations ${JSON.stringify(locations)}`);
+      } else {
+        console.error(`Failed to add locations. Error message: ${result.error.message}`);
+      }
+    });
+  - >-
+    var locations = [
+      {
+        id: "Contoso",
+        type: Office.MailboxEnums.LocationType.Custom
+      },
+      {
+        id: "room500@test.com",
+        type: Office.MailboxEnums.LocationType.Room
+      }
+    ];
+
+    Office.context.mailbox.item.enhancedLocation.removeAsync(locations, (result)
+    => {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        console.log(`Successfully removed locations ${JSON.stringify(locations)}`);
+      } else {
+        console.error(`Failed to remove locations. Error message: ${result.error.message}`);
+      }
+    });
+'Office.AppointmentRead#enhancedLocation:member':
+  - |-
+    Office.context.mailbox.item.enhancedLocation.getAsync((result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Failed to get locations. Error message: ${result.error.message}`);
+        return;
+      }
+      var places = result.value;
+      if (places && places.length > 0) {
+        result.value.forEach(function(place) {
+          console.log(`Location: ${place.displayName} (type: ${place.locationIdentifier.type})`);
+          if (place.locationIdentifier.type === Office.MailboxEnums.LocationType.Room) {
+            console.log("Email address: " + place.emailAddress);
+          }
+        });
+      } else {
+        console.log("There are no locations.");
+      }
+    });
+'Office.EnhancedLocation#getAsync:member(2)':
+  - |-
+    Office.context.mailbox.item.enhancedLocation.getAsync((result) => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Failed to get locations. Error message: ${result.error.message}`);
+        return;
+      }
+      var places = result.value;
+      if (places && places.length > 0) {
+        result.value.forEach(function(place) {
+          console.log(`Location: ${place.displayName} (type: ${place.locationIdentifier.type})`);
+          if (place.locationIdentifier.type === Office.MailboxEnums.LocationType.Room) {
+            console.log("Email address: " + place.emailAddress);
+          }
+        });
+      } else {
+        console.log("There are no locations.");
+      }
+    });
+'Office.EnhancedLocation#addAsync:member(2)':
+  - >-
+    var locations = [
+      {
+        id: "Contoso",
+        type: Office.MailboxEnums.LocationType.Custom
+      },
+      {
+        id: "room500@test.com",
+        type: Office.MailboxEnums.LocationType.Room
+      }
+    ];
+
+    Office.context.mailbox.item.enhancedLocation.addAsync(locations, (result) =>
+    {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        console.log(`Successfully added locations ${JSON.stringify(locations)}`);
+      } else {
+        console.error(`Failed to add locations. Error message: ${result.error.message}`);
+      }
+    });
+'Office.EnhancedLocation#removeAsync:member(2)':
+  - >-
+    var locations = [
+      {
+        id: "Contoso",
+        type: Office.MailboxEnums.LocationType.Custom
+      },
+      {
+        id: "room500@test.com",
+        type: Office.MailboxEnums.LocationType.Room
+      }
+    ];
+
+    Office.context.mailbox.item.enhancedLocation.removeAsync(locations, (result)
+    => {
+      if (result.status === Office.AsyncResultStatus.Succeeded) {
+        console.log(`Successfully removed locations ${JSON.stringify(locations)}`);
+      } else {
+        console.error(`Failed to remove locations. Error message: ${result.error.message}`);
+      }
+    });
 'Word.Body#search:member(1)':
   - |-
     await Word.run(async (context) => {

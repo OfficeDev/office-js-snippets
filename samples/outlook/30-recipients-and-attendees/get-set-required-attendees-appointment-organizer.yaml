@@ -1,13 +1,14 @@
 order: 10
-id: outlook-recipients-and-attendees-get-required-attendees-appointment-organizer
-name: Get required attendees (Appointment Organizer)
-description: Gets the required attendees in Appointment Organizer mode.
+id: outlook-recipients-and-attendees-get-set-required-attendees-appointment-organizer
+name: Get and set required attendees (Appointment Organizer)
+description: Gets and sets the required attendees in Appointment Organizer mode.
 host: OUTLOOK
 api_set:
     Mailbox: '1.1'
 script:
     content: |
         $("#get-required-attendees").click(getRequiredAttendees);
+        $("#set-required-attendees").click(setRequiredAttendees);
 
         function getRequiredAttendees() {
           Office.context.mailbox.item.requiredAttendees.getAsync(function(asyncResult) {
@@ -28,18 +29,39 @@ script:
             }
           });
         }
+
+        function setRequiredAttendees() {
+          var email = $("#emailRequired")
+            .val()
+            .toString();
+          var emailArray = [email];
+          Office.context.mailbox.item.requiredAttendees.setAsync(emailArray, function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("Succeeded in setting required attendees field.");
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
     language: typescript
 template:
     content: |-
         <section class="ms-font-m">
-            <p class="ms-font-m">This sample shows how to get the <b>required attendees</b>.</p>
+            <p class="ms-font-m">This sample shows how to get and set the <b>required attendees</b>.</p>
             <p><b>Required mode</b>: Appointment Organizer</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
+            <div class="ms-TextField">
+              <label class="ms-Label">Email address</label>
+                <input id="emailRequired" class="ms-TextField-field" type="text" value="" placeholder="Who do you want to invite as a required attendee?">
+            </div>
+            <button id="set-required-attendees" class="ms-Button">
+              <span class="ms-Button-label">Set required attendees</span>
+            </button>
             <button id="get-required-attendees" class="ms-Button">
-            <span class="ms-Button-label">Who are the required attendees?</span>
+            <span class="ms-Button-label">Get required attendees</span>
           </button>
         </section>
     language: html

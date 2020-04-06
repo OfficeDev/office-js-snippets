@@ -1,13 +1,14 @@
 order: 12
-id: outlook-recipients-and-attendees-get-optional-attendees-appointment-organizer
-name: Get optional attendees (Appointment Organizer)
-description: Gets the optional attendees in Appointment Organizer mode.
+id: outlook-recipients-and-attendees-get-set-optional-attendees-appointment-organizer
+name: Get and set optional attendees (Appointment Organizer)
+description: Gets and sets the optional attendees in Appointment Organizer mode.
 host: OUTLOOK
 api_set:
     Mailbox: '1.1'
 script:
     content: |
         $("#get-optional-attendees").click(getOptionalAttendees);
+        $("#set-optional-attendees").click(setOptionalAttendees);
 
         function getOptionalAttendees() {
           Office.context.mailbox.item.optionalAttendees.getAsync(function(asyncResult) {
@@ -28,18 +29,39 @@ script:
             }
           });
         }
+
+        function setOptionalAttendees() {
+          var email = $("#emailOptional")
+            .val()
+            .toString();
+          var emailArray = [email];
+          Office.context.mailbox.item.optionalAttendees.setAsync(emailArray, function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("Succeeded in setting optional attendees field.");
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
     language: typescript
 template:
     content: |-
         <section class="ms-font-m">
-            <p class="ms-font-m">This sample shows how to get the <b>optional attendees</b>.</p>
+            <p class="ms-font-m">This sample shows how to get and set the <b>optional attendees</b>.</p>
             <p><b>Required mode</b>: Appointment Organizer</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="get-optional-attendees" class="ms-Button">
-            <span class="ms-Button-label">Who are the optional attendees?</span>
+            <div class="ms-TextField">
+                <label class="ms-Label">Email address</label>
+                <input id="emailOptional" class="ms-TextField-field" type="text" value="" placeholder="Who do you want to invite as an optional attendee?">
+            </div>
+                <button id="set-optional-attendees" class="ms-Button">
+              <span class="ms-Button-label">Set optional attendees</span>
+            </button>
+                <button id="get-optional-attendees" class="ms-Button">
+            <span class="ms-Button-label">Get optional attendees</span>
           </button>
         </section>
     language: html

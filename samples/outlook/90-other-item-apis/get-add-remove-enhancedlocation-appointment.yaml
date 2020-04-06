@@ -1,0 +1,120 @@
+order: 12
+id: outlook-other-item-apis-get-add-remove-enhancedlocation-appointment
+name: Manage the locations of an appointment
+description: 'Gets, adds, and removes locations on an appointment (enhancedLocation API).'
+host: OUTLOOK
+api_set:
+    Mailbox: '1.8'
+script:
+    content: |
+        $("#get").click(get);
+        $("#add").click(add);
+        $("#remove").click(remove);
+
+        function get() {
+          Office.context.mailbox.item.enhancedLocation.getAsync((result) => {
+            if (result.status !== Office.AsyncResultStatus.Succeeded) {
+              console.error(`Failed to get locations. Error message: ${result.error.message}`);
+              return;
+            }
+            var places = result.value;
+            if (places && places.length > 0) {
+              result.value.forEach(function(place) {
+                console.log(`Location: ${place.displayName} (type: ${place.locationIdentifier.type})`);
+                if (place.locationIdentifier.type === Office.MailboxEnums.LocationType.Room) {
+                  console.log("Email address: " + place.emailAddress);
+                }
+              });
+            } else {
+              console.log("There are no locations.");
+            }
+          });
+        }
+
+        function add() {
+          var locations = [
+            {
+              id: "Contoso",
+              type: Office.MailboxEnums.LocationType.Custom
+            },
+            {
+              id: "room500@test.com",
+              type: Office.MailboxEnums.LocationType.Room
+            }
+          ];
+          Office.context.mailbox.item.enhancedLocation.addAsync(locations, (result) => {
+            if (result.status === Office.AsyncResultStatus.Succeeded) {
+              console.log(`Successfully added locations ${JSON.stringify(locations)}`);
+            } else {
+              console.error(`Failed to add locations. Error message: ${result.error.message}`);
+            }
+          });
+        }
+
+        function remove() {
+          var locations = [
+            {
+              id: "Contoso",
+              type: Office.MailboxEnums.LocationType.Custom
+            },
+            {
+              id: "room500@test.com",
+              type: Office.MailboxEnums.LocationType.Room
+            }
+          ];
+          Office.context.mailbox.item.enhancedLocation.removeAsync(locations, (result) => {
+            if (result.status === Office.AsyncResultStatus.Succeeded) {
+              console.log(`Successfully removed locations ${JSON.stringify(locations)}`);
+            } else {
+              console.error(`Failed to remove locations. Error message: ${result.error.message}`);
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to get and set the location of an appointment.</p>
+            <p><b>Required modes</b>: Appointment Organizer, Appointment Attendee</p>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get" class="ms-Button">
+            <div class="ms-Button-label">Get locations</div>
+          </button>
+            <p>
+                <b>Note</b>: Can add or remove locations in <b>Organizer</b> mode only.
+                <button id="add" class="ms-Button">
+                  <div class="ms-Button-label">Add locations</div>
+            </button>
+                <button id="remove" class="ms-Button">
+                  <div class="ms-Button-label">Remove locations</div>
+              </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

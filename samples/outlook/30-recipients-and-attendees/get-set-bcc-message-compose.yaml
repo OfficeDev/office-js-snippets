@@ -1,22 +1,37 @@
 order: 7
-id: outlook-recipients-and-attendees-get-bcc-message-compose
-name: Get bcc (Message Compose)
-description: Gets the Bcc line recipients of the message in Compose mode.
+id: outlook-recipients-and-attendees-get-set-bcc-message-compose
+name: Get and set bcc (Message Compose)
+description: Gets and sets the Bcc line recipients of the message in Compose mode.
 host: OUTLOOK
 api_set:
     Mailbox: '1.1'
 script:
     content: |
         $("#get-bcc").click(getBcc);
+        $("#set-bcc").click(setBcc);
 
         function getBcc() {
           Office.context.mailbox.item.bcc.getAsync(function(asyncResult) {
             if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
               var msgBcc = asyncResult.value;
-              console.log("Message being bcc'd to:");
+              console.log("Message being blind-copied to:");
               for (var i = 0; i < msgBcc.length; i++) {
                 console.log(msgBcc[i].displayName + " (" + msgBcc[i].emailAddress + ")");
               }
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
+
+        function setBcc() {
+          var email = $("#emailBcc")
+            .val()
+            .toString();
+          var emailArray = [email];
+          Office.context.mailbox.item.bcc.setAsync(emailArray, function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("Succeeded in setting Bcc field.");
             } else {
               console.error(asyncResult.error);
             }
@@ -26,14 +41,21 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p class="ms-font-m">This sample shows how to get the <b>Bcc</b> line recipients of the email.</p>
+            <p class="ms-font-m">This sample shows how to get and set the <b>Bcc</b> line recipients of the email.</p>
             <p><b>Required mode</b>: Message Compose</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="get-bcc" class="ms-Button">
-            <span class="ms-Button-label">Who is being bcc'd?</span>
+            <div class="ms-TextField">
+                <label class="ms-Label">Email address</label>
+                <input id="emailBcc" class="ms-TextField-field" type="text" value="" placeholder="Who do you want to bcc?">
+          </div>
+                <button id="set-bcc" class="ms-Button">
+            <span class="ms-Button-label">Set "Bcc"</span>
+          </button>
+                <button id="get-bcc" class="ms-Button">
+            <span class="ms-Button-label">Get who is blind-copied</span>
           </button>
         </section>
     language: html

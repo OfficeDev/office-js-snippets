@@ -1,0 +1,102 @@
+order: 2
+id: outlook-categories-work-with-master-categories
+name: Work with the categories master list
+description: 'Gets, adds, and removes categories in the master list for the mailbox.'
+host: OUTLOOK
+api_set:
+    Mailbox: '1.8'
+script:
+    content: |
+        $("#get-master-categories").click(getMasterCategories);
+        $("#add-master-categories").click(addMasterCategories);
+        $("#remove-master-categories").click(removeMasterCategories);
+
+        function getMasterCategories() {
+          Office.context.mailbox.masterCategories.getAsync(function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              var categories = asyncResult.value;
+              if (categories && categories.length > 0) {
+                console.log("Master categories:");
+                console.log(JSON.stringify(categories));
+              } else {
+                console.log("There are no categories in the master list.");
+              }
+            } else {
+              console.error(asyncResult.error);
+            }
+          });
+        }
+
+        function addMasterCategories() {
+          var masterCategoriesToAdd = [
+            {
+              displayName: "TestCategory",
+              color: Office.MailboxEnums.CategoryColor.Preset0
+            }
+          ];
+
+          Office.context.mailbox.masterCategories.addAsync(masterCategoriesToAdd, function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("Successfully added categories to master list");
+            } else {
+              console.log("masterCategories.addAsync call failed with error: " + asyncResult.error.message);
+            }
+          });
+        }
+
+        function removeMasterCategories() {
+          var masterCategoriesToRemove = ["TestCategory"];
+
+          Office.context.mailbox.masterCategories.removeAsync(masterCategoriesToRemove, function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+              console.log("Successfully removed categories from master list");
+            } else {
+              console.log("masterCategories.removeAsync call failed with error: " + asyncResult.error.message);
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p class="ms-font-m">This sample shows how to get, add, and remove <b>master categories</b> on the mailbox.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="add-master-categories" class="ms-Button">
+              <span class="ms-Button-label">Add category to master list</span>
+            </button>
+            <button id="get-master-categories" class="ms-Button">
+            <span class="ms-Button-label">Get categories master list</span>
+          </button>
+            <button id="remove-master-categories" class="ms-Button">
+            <span class="ms-Button-label">Remove category from master list</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

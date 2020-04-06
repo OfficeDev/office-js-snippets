@@ -1,0 +1,106 @@
+id: outlook-calendar-properties-apis
+name: Work with calendar properties APIs (Compose)
+description: Gets and sets isAllDayEvent and sensitivity properties of an appointment in Compose mode.
+host: OUTLOOK
+api_set:
+    Mailbox: preview
+script:
+    content: |
+        $("#getIsAllDayEvent").click(getIsAllDayEvent);
+        $("#setIsAllDayEventTrue").click(setIsAllDayEventTrue);
+        $("#getSensitivity").click(getSensitivity);
+        $("#setSensitivityConfidential").click(setSensitivityConfidential);
+
+        function getIsAllDayEvent() {
+            Office.context.mailbox.item.isAllDayEvent.getAsync(function(asyncResult) {
+              if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+                console.log("Is this an all-day event? " + asyncResult.value);
+              } else {
+                console.log("Failed to get if this is an all-day event. Error: " + JSON.stringify(asyncResult.error));
+              }
+            });
+        }
+
+        function setIsAllDayEventTrue() {
+          Office.context.mailbox.item.isAllDayEvent.setAsync(true, function(asyncResult) {
+            if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+              console.log("Failed to set all-day event: " + JSON.stringify(asyncResult.error));
+            } else {
+              console.log("Appointment set to all-day event.");
+            }
+          });
+        }
+
+        function getSensitivity() {
+            Office.context.mailbox.item.sensitivity.getAsync(function(asyncResult) {
+              if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+                console.log("Sensitivity: " + asyncResult.value);
+              } else {
+                console.log("Failed to get sensitivity: " + JSON.stringify(asyncResult.error));
+              }
+            });
+        }
+
+        function setSensitivityConfidential() {
+          Office.context.mailbox.item.sensitivity.setAsync(
+            Office.MailboxEnums.AppointmentSensitivityType.Confidential,
+            function callback(asyncResult) {
+              if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+                console.log("Failed to set appointment sensitivity: " + JSON.stringify(asyncResult.error));
+              } else {
+                console.log("Successfully set appointment sensitivity.");
+              }
+            }
+          );
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to get and set the isAllDayEvent and sensitivity properties of an appointment in compose mode.
+                <p>
+                    <b>Required mode</b>: Appointment Organizer
+                </p>
+            </p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <button id="getIsAllDayEvent" class="ms-Button">
+            <div class="ms-Button-label">Get isAllDayEvent</div>
+        </button>
+          <button id="setIsAllDayEventTrue" class="ms-Button">
+            <div class="ms-Button-label">Set isAllDayEvent to true</div>
+        </button>
+          <button id="getSensitivity" class="ms-Button">
+            <div class="ms-Button-label">Get sensitivity</div>
+        </button>
+          <button id="setSensitivityConfidential" class="ms-Button">
+            <div class="ms-Button-label">Set sensitivity to confidential</div>
+        </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

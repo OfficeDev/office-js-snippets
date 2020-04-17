@@ -144,7 +144,11 @@ function getExtractedDataFromSnippet(
             const indented = fullSnippetTextArray.slice(0, closingIndex + (functionHasNoParams ? 0 : 1));
             const whitespaceCountOnFirstLine = spaceFollowedByWordsRegex.exec(fullSnippetTextArray[0])[1].length;
 
-            text = indented
+            // Place snippet location as comment.
+            const editedFilename = filename.substr(filename.indexOf('samples')).replace(/\\/g, '/');
+            text = '//// Full sample: https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/' + editedFilename + '\n';
+
+            text += indented
                 .map(line => {
                     if (line.substr(0, whitespaceCountOnFirstLine).trim().length === 0) {
                         return line.substr(whitespaceCountOnFirstLine);

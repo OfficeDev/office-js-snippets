@@ -1,0 +1,93 @@
+id: outlook-display-items-display-new-message
+name: Create a new message
+description: 'Opens a new message form with a sample content, recipients, and an inline image attachment'
+host: OUTLOOK
+api_set:
+    Mailbox: preview
+script:
+    content: |
+        $("#run").click(run);
+        $("#run-async").click(runAsync);
+
+        function run() {
+          Office.context.mailbox.displayNewMessageForm({
+            toRecipients: Office.context.mailbox.item.to, // Copies the To line from current item
+            ccRecipients: ["sam@contoso.com"],
+            subject: "Outlook add-ins are cool!",
+            htmlBody: 'Hello <b>World</b>!<br/><img src="cid:image.png"></i>',
+            attachments: [
+              {
+                type: "file",
+                name: "image.png",
+                url: "http://www.cutestpaw.com/wp-content/uploads/2011/11/Cute-Black-Dogs-s.jpg",
+                isInline: true
+              }
+            ]
+          });
+        }
+
+        function runAsync() {
+          // The async version is only available in preview, and
+          // provides a callback when the new message form has been created.
+          Office.context.mailbox.displayNewMessageFormAsync(
+            {
+              toRecipients: Office.context.mailbox.item.to, // Copies the To line from current item
+              ccRecipients: ["sam@contoso.com"],
+              subject: "Outlook add-ins are cool!",
+              htmlBody: 'Hello <b>World</b>!<br/><img src="cid:image.png"></i>',
+              attachments: [
+                {
+                  type: "file",
+                  name: "image.png",
+                  url: "http://www.cutestpaw.com/wp-content/uploads/2011/11/Cute-Black-Dogs-s.jpg",
+                  isInline: true
+                }
+              ]
+            },
+            function(asyncResult) {
+              console.log(JSON.stringify(asyncResult));
+            }
+          );
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to display a new message, populate recipients, subject, and body, and add an inline image attachment.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="run" class="ms-Button">
+                <span class="ms-Button-label">Display new message</span>
+            </button>
+                <button id="run-async" class="ms-Button">
+                        <span class="ms-Button-label">Display new message (async)</span>
+                </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

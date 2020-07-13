@@ -1,0 +1,85 @@
+id: outlook-display-items-display-reply-with-attachments
+name: 'Create a reply, with attachments'
+description: Opens a reply message forms and adds sample attachments.
+host: OUTLOOK
+api_set:
+    Mailbox: preview
+script:
+    content: |
+        $("#run").click(run);
+        $("#run-async").click(runAsync);
+
+        function run() {
+          Office.context.mailbox.item.displayReplyForm({
+            htmlBody: "This is a reply with a couple of attachments - an inline image and an item<br><img src='cid:dog.jpg'>",
+            attachments: [
+              { type: "file", url: "http://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", isInline: true },
+              { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
+            ],
+            options: { asyncContext: null },
+            callback: function(result) {
+              if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                console.error(`Action failed with message ${result.error.message}`);
+              }
+            }
+          });
+        }
+
+        function runAsync() {
+          // The async version is only available in preview, and
+          // provides a callback when the new appointment form has been created.
+          Office.context.mailbox.item.displayReplyFormAsync(
+            {
+              htmlBody: "This is a reply with a couple of attachments - an inline image and an item<br><img src='cid:dog.jpg'>",
+              attachments: [
+                { type: "file", url: "http://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", isInline: true },
+                { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
+              ]
+            },
+            function(asyncResult) {
+              console.log(JSON.stringify(asyncResult));
+            }
+          );
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create a reply message and add an inline image attachment and an item attachment.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="run" class="ms-Button">
+                <span class="ms-Button-label">Create a reply</span>
+            </button>
+            <button id="run-async" class="ms-Button">
+                        <span class="ms-Button-label">Create a reply (async)</span>
+                </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

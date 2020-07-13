@@ -1,0 +1,94 @@
+id: outlook-display-items-display-new-appointment
+name: Create a new appointment
+description: Opens a new appointment form with sample content and a few fields populated.
+host: OUTLOOK
+api_set:
+    Mailbox: preview
+script:
+    content: |
+        $("#run").click(run);
+        $("#run-async").click(runAsync);
+
+        function run() {
+          var start = new Date();
+          var end = new Date();
+          end.setHours(start.getHours() + 1);
+
+          Office.context.mailbox.displayNewAppointmentForm({
+            requiredAttendees: ["bob@contoso.com"],
+            optionalAttendees: ["sam@contoso.com"],
+            start: start,
+            end: end,
+            location: "Home",
+            subject: "meeting",
+            resources: ["projector@contoso.com"],
+            body: "Hello World!"
+          });
+        }
+
+        function runAsync() {
+          var start = new Date();
+          var end = new Date();
+          end.setHours(start.getHours() + 1);
+          
+          // The async version is only available in preview, and provides
+          // a callback when the new appointment form has been created.
+          Office.context.mailbox.displayNewAppointmentFormAsync(
+            {
+              requiredAttendees: ["bob@contoso.com"],
+              optionalAttendees: ["sam@contoso.com"],
+              start: start,
+              end: end,
+              location: "Home",
+              subject: "meeting",
+              resources: ["projector@contoso.com"],
+              body: "Hello World!"
+            },
+            function(asyncResult) {
+              console.log(JSON.stringify(asyncResult));
+            }
+          );
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to display a new appointment and populate attendees, location, body, and a few other
+                properties.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="run" class="ms-Button">
+            <span class="ms-Button-label">Display new appointment</span>
+        </button>
+            <button id="run-async" class="ms-Button">
+            <span class="ms-Button-label">Display new appointment (async)</span>
+        </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

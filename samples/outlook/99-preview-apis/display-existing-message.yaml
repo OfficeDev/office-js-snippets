@@ -3,17 +3,27 @@ name: Open a message
 description: Displays an existing message in a separate window
 host: OUTLOOK
 api_set:
-    Mailbox: '1.1'
+    Mailbox: preview
 script:
     content: |
         // Pre-populate with current item ID.
         $("#itemId").val(Office.context.mailbox.item.itemId);
 
         $("#run").click(run);
+        $("#run-async").click(runAsync);
 
         function run() {
           var itemId = $("#itemId").val();
           Office.context.mailbox.displayMessageForm(itemId);
+        }
+
+          // The async version will return error 9049 if the item is not found.
+          // The async version is only available in preview.
+        function runAsync() {
+         var itemId = $("#itemId").val();
+         Office.context.mailbox.displayAppointmentFormAsync(itemId, function (asyncResult) {
+          console.log("Result: " + JSON.stringify(asyncResult));
+         });
         }
     language: typescript
 template:
@@ -31,6 +41,9 @@ template:
           <button id="run" class="ms-Button">
             <div class="ms-Button-label">Display message form</div>
           </button>
+          <button id="run-async" class="ms-Button">
+            <div class="ms-Button-label">Display message form (async)</div>
+          </button>
         </section>  
     language: html
 style:
@@ -47,14 +60,14 @@ style:
         }
     language: css
 libraries: |
-    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
-    @types/office-js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
 
-    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
-    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+      office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+      office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
 
-    core-js@2.4.1/client/core.min.js
-    @types/core-js
+      core-js@2.4.1/client/core.min.js
+      @types/core-js
 
-    jquery@3.1.1
-    @types/jquery@3.3.1
+      jquery@3.1.1
+      @types/jquery@3.3.1

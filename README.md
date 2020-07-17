@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/OfficeDev/office-js-snippets.svg?token=paK2s5RGiCpVHK6bYoFs&amp;branch=master)](https://travis-ci.org/OfficeDev/office-js-snippets)
+[![Build Status](https://travis-ci.org/OfficeDev/office-js-snippets.svg?branch=master)](https://travis-ci.org/OfficeDev/office-js-snippets)
 
 # Office JS Snippets
 

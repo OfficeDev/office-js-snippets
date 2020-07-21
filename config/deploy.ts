@@ -22,7 +22,8 @@ const environmentVariables: IEnvironmentVariables = process.env as any;
     try {
         // Note, if precheck fails, it will do its own banner, so only need to focus on the true case.
         if (precheck()) {
-            const destinationBranch = getDestinationBranch(environmentVariables.TRAVIS_BRANCH);
+            //const destinationBranch = getDestinationBranch(environmentVariables.TRAVIS_BRANCH);
+            const destinationBranch = 'deploy-beta';
             const repoUrl = `https://github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}/tree/${destinationBranch}`;
             banner('Starting deployment', repoUrl);
 

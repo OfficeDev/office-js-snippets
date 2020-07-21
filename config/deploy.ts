@@ -67,13 +67,13 @@ function precheck() {
 
     // Careful! Need this check because otherwise, a pull request against master would immediately trigger a deployment.
     if (environmentVariables.TRAVIS_PULL_REQUEST !== 'false') {
-        banner('Deployment skipped', 'Skipping deploy for pull requests.', chalk.yellow.bold);
-        return false;
+        banner('Deployment skipped1', 'Skipping deploy for pull requests.', chalk.yellow.bold);
+        //return false;
     }
 
     if (getDestinationBranch(environmentVariables.TRAVIS_BRANCH) == null) {
-        banner('Deployment skipped', 'Skipping deploy for pull requests.', chalk.yellow.bold);
-        return false;
+        banner('Deployment skipped2', 'Skipping deploy for pull requests.', chalk.yellow.bold);
+        //return false;
     }
 
     /* Check if the username is configured. If not abort immediately. */

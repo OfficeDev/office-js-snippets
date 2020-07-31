@@ -68,12 +68,12 @@ function precheck() {
 
     // Careful! Need this check because otherwise, a pull request against master would immediately trigger a deployment.
     if (environmentVariables.TRAVIS_PULL_REQUEST !== 'false') {
-        banner('Deployment skipped1', 'Skipping deploy for pull requests.', chalk.yellow.bold);
+        banner('Deployment skipped1a', 'Skipping deploy for pull requests.', chalk.yellow.bold);
         //return false;
     }
 
     if (getDestinationBranch(environmentVariables.TRAVIS_BRANCH) == null) {
-        banner('Deployment skipped2a', 'Skipping deploy for pull requests.', chalk.yellow.bold);
+        banner('Deployment skipped2', 'Skipping deploy for pull requests.', chalk.yellow.bold);
         //return false;
     }
 
@@ -89,7 +89,7 @@ function precheck() {
 }
 
 /**
- * Execute a shall command.
+ * Execute a shell command.
  * @param originalSanitizedCommand - The command to execute. Note that if it contains something secret, put it in triple <<<NAME>>> syntax, as the command itself will get echo-ed.
  * @param secretSubstitutions - key-value pairs to substitute into the command when executing.  Having any secret substitutions will automatically make the command run silently.
  */

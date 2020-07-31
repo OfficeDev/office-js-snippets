@@ -73,7 +73,7 @@ function precheck() {
     }
 
     if (getDestinationBranch(environmentVariables.TRAVIS_BRANCH) == null) {
-        banner('Deployment skipped2', 'Skipping deploy for pull requests.', chalk.yellow.bold);
+        banner('Deployment skipped2a', 'Skipping deploy for pull requests.', chalk.yellow.bold);
         //return false;
     }
 

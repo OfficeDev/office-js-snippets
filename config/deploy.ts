@@ -22,8 +22,7 @@ const environmentVariables: IEnvironmentVariables = process.env as any;
     try {
         // Note, if precheck fails, it will do its own banner, so only need to focus on the true case.
         if (precheck()) {
-            //const destinationBranch = getDestinationBranch(environmentVariables.TRAVIS_BRANCH);
-            const destinationBranch = 'deploy-beta';
+            const destinationBranch = getDestinationBranch(environmentVariables.TRAVIS_BRANCH);
             const repoUrl = `https://github.com/${environmentVariables.GH_ACCOUNT}/${environmentVariables.GH_REPO}/tree/${destinationBranch}`;
             banner('Starting deployment', repoUrl);
 
@@ -68,13 +67,13 @@ function precheck() {
 
     // Careful! Need this check because otherwise, a pull request against master would immediately trigger a deployment.
     if (environmentVariables.TRAVIS_PULL_REQUEST !== 'false') {
-        banner('Deployment skipped1a', 'Skipping deploy for pull requests.', chalk.yellow.bold);
-        //return false;
+        banner('Deployment skipped', 'Skipping deploy for pull requests.', chalk.yellow.bold);
+        return false;
     }
 
     if (getDestinationBranch(environmentVariables.TRAVIS_BRANCH) == null) {
         banner('Deployment skipped2', 'Skipping deploy for pull requests.', chalk.yellow.bold);
-        //return false;
+        return false;
     }
 
     /* Check if the username is configured. If not abort immediately. */

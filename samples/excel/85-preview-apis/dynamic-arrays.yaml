@@ -1,0 +1,185 @@
+order: 1
+id: excel-range-dynamic-arrays
+name: Dynamic arrays
+description: Applies formulas that use dynamic arrays and displays information about the ranges used to display the data.
+host: EXCEL
+api_set:
+    ExcelAPI: '1.12'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup)); 
+        $("#copy-table-headers").click(() => tryCatch(copyTableHeaders)); 
+        $("#apply-filter-function").click(() => tryCatch(applyFilterFunction)); 
+        $("#display-spill-information").click(() => tryCatch(displaySpillInformation));
+
+        async function copyTableHeaders() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+
+            // Set G4 to a formula that returns a dynamic array.
+            const targetCell = sheet.getRange("G4");
+            targetCell.formulas = [["=A4:D4"]];
+
+            // Get the address of the cells that the dynamic array spilled into.
+            const spillRange = targetCell.getSpillingToRange();
+            spillRange.load("address");
+
+            // Fit the columns for readability.
+            sheet.getUsedRange().format.autofitColumns();
+            await context.sync();
+
+            console.log(`Copying the table headers spilled into ${spillRange.address}.`);
+          });
+        }
+
+        async function applyFilterFunction() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+
+            /* Set G5 to a formula that returns a dynamic array.
+             * The FILTER formula filters the data in A5:D11 based on the values in the "C" column.
+             * The parameter for the filter is "H2".
+             */
+            const targetCell = sheet.getRange("G5");
+            targetCell.formulas = [['=FILTER(A5:D11,C5:C11=H2,"")']];
+
+            // Get the address of the cells that the dynamic array spilled into.
+            const spillRange = targetCell.getSpillingToRange();
+            spillRange.load("address");
+
+            // Fit the columns for readability.
+            sheet.getUsedRange().format.autofitColumns();
+            await context.sync();
+
+            console.log(`Applying the FILTER formula spilled into ${spillRange.address}.`);
+          });
+        }
+
+        async function displaySpillInformation() {
+          await Excel.run(async (context) => {
+            // Check the current cell for any spill parents or spilling-to ranges.
+            const currentRange = context.workbook.getSelectedRange();
+
+            // Spill parent shows the ranges that are causing data to spill into the current cell.
+            const spillParent = currentRange.getSpillParentOrNullObject();
+            spillParent.load("address");
+
+            // Spilling-to range shows the ranges to which this cell is applying the results of a dynamic array.
+            const spillRange = currentRange.getSpillingToRangeOrNullObject();
+            spillRange.load("address");
+            await context.sync();
+
+            // Log the dynamic array information contained within the selected cell.
+            if (!spillParent.isNullObject) {
+              console.log(`The selected cell has a spill parent at ${spillParent.address}`);
+            }
+            if (!spillRange.isNullObject) {
+              console.log(`The selected cell is spilling into ${spillRange.address}`);
+            }
+
+            if (spillParent.isNullObject && spillRange.isNullObject) {
+              console.log("The selected cell is not involved with any dynamic arrays (or you have multiple cells selected).");
+            }
+          });
+        }
+
+        /** Create a new table with sample data */
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+
+            const expensesTable = sheet.tables.add("A4:D4", true /*hasHeaders*/);
+            expensesTable.name = "ExpensesTable";
+
+            expensesTable.getHeaderRowRange().values = [["Date", "Merchant", "Category", "Amount"]];
+
+            expensesTable.rows.add(null /*add at the end*/, [
+              ["1/1/2020", "The Phone Company", "Communications", "$120"],
+              ["1/2/2020", "Northwind Electric Cars", "Transportation", "$142"],
+              ["1/5/2020", "Best For You Organics Company", "Groceries", "$27"],
+              ["1/10/2020", "Coho Vineyard", "Restaurant", "$33"],
+              ["1/11/2020", "Bellows College", "Education", "$350"],
+              ["1/15/2020", "Trey Research", "Other", "$135"],
+              ["1/15/2020", "Best For You Organics Company", "Groceries", "$97"]
+            ]);
+
+            sheet.getRange("A2:H2").values = [["Transactions", , , , , , "Category", "Groceries"]];
+            sheet.getRange("A2").style = "Heading1";
+            sheet.getRange("G2").style = "Heading2";
+            sheet.getRange("H2").format.fill.color = "#EEEE99";
+
+            sheet.getUsedRange().format.autofitColumns();
+            sheet.getUsedRange().format.autofitRows();
+
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to apply formulas that return dynamic arrays and how to get the relevant information
+            about range spilling from the used ranges.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="copy-table-headers" class="ms-Button">
+                  <span class="ms-Button-label">Copy table headers</span>
+              </button>
+          <p />
+          <button id="apply-filter-function" class="ms-Button">
+                <span class="ms-Button-label">Apply FILTER formula</span>
+            </button>
+          <p />
+          <p>Select a spilled cell and press the following button to see information for that cell related to dynamic
+            arrays.</p>
+          <button id="display-spill-information" class="ms-Button">
+              <span class="ms-Button-label">Show cell spill information</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

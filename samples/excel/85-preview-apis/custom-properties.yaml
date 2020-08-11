@@ -1,0 +1,141 @@
+order: 1
+id: excel-document-custom-properties
+name: Custom properties
+description: Gets and sets custom properties at the document and worksheet levels.
+host: EXCEL
+api_set:
+    ExcelAPI: '1.12'
+script:
+    content: |
+        $("#set-custom-doc-property").click(() => tryCatch(setCustomDocProperty)); $("#get-custom-doc-properties").click(() => tryCatch(getCustomDocProperties)); $("#set-custom-worksheet-property").click(() => tryCatch(setCustomWorksheetProperty)); $("#get-custom-worksheet-properties").click(() => tryCatch(getCustomWorksheetProperties));
+
+        /* To learn how to view document properties in the UI,
+         * see https://support.office.com/article/View-or-change-the-properties-for-an-Office-file-21D604C2-481E-4379-8E54-1DD4622C6B75
+         */
+
+        async function setCustomDocProperty() {
+          await Excel.run(async (context) => {
+            // Get the key/value pair from the task pane.
+            const userKey = $("#key").text();
+            const userValue = $("#value").text();
+
+            // Add the custom property.
+            const customDocProperties = context.workbook.properties.custom;
+            customDocProperties.add(userKey, userValue);
+
+            await context.sync();
+
+            console.log(`Successfully set custom document property ${userKey}:${userValue}.`);
+          });
+        }
+
+        async function getCustomDocProperties() {
+          await Excel.run(async (context) => {
+            // Load the keys and values of all custom properties.
+            const customDocProperties = context.workbook.properties.custom;
+            customDocProperties.load(["key", "value"]);
+            await context.sync();
+
+            // Log each custom property to the console.
+            // Note that your document may have more properties than those you have set using this snippet.
+            customDocProperties.items.forEach((property) => {
+              console.log(`${property.key}:${property.value}`);
+            });
+          });
+        }
+
+        async function setCustomWorksheetProperty() {
+          await Excel.run(async (context) => {
+            // Get the key/value pair from the task pane.
+            const userKey = $("#key").text();
+            const userValue = $("#value").text();
+
+            // Add the custom property.
+            const customWorksheetProperties = context.workbook.worksheets.getActiveWorksheet().customProperties;
+            customWorksheetProperties.add(userKey, userValue);
+
+            await context.sync();
+
+            console.log(`Successfully set custom worksheet property ${userKey}:${userValue}.`);
+          });
+        }
+
+        async function getCustomWorksheetProperties() {
+          await Excel.run(async (context) => {
+            // Load the keys and values of all custom properties in the current worksheet.
+            const customWorksheetProperties = context.workbook.worksheets.getActiveWorksheet().customProperties;
+            customWorksheetProperties.load(["key", "value"]);
+            await context.sync();
+
+            // Log each custom property to the console.
+            // Note that your document may have more properties than those you have set using this snippet.
+            customWorksheetProperties.items.forEach((property) => {
+              console.log(`${property.key}:${property.value}`);
+            });
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to set and get custom properties at both the document level and the worksheet level.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <p>Enter the key/value pairs for your custom properties.</p>
+          <p><b>Key:</b> <textarea id="key">MyKey</textarea></p>
+          <p><b>Value:</b> <textarea id="value">MyValue</textarea></p>
+
+          <p />
+          <button id="set-custom-doc-property" class="ms-Button">
+                <span class="ms-Button-label">Set as document property</span>
+            </button>
+          <p />
+          <button id="set-custom-worksheet-property" class="ms-Button">
+              <span class="ms-Button-label">Set as worksheet property</span>
+          </button>
+          <p />
+          <button id="get-custom-doc-properties" class="ms-Button">
+              <span class="ms-Button-label">Get all custom properties</span>
+          </button>
+          <p />
+          <button id="get-custom-worksheet-properties" class="ms-Button">
+              <span class="ms-Button-label">Get all worksheet-level custom properties</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -1301,6 +1301,42 @@
 
         await context.sync();
     });
+'Excel.CustomPropertyCollection#add:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/custom-properties.yaml
+
+    await Excel.run(async (context) => {
+      // Get the key/value pair from the task pane.
+      const userKey = $("#key").text();
+      const userValue = $("#value").text();
+
+      // Add the custom property.
+      const customDocProperties = context.workbook.properties.custom;
+      customDocProperties.add(userKey, userValue);
+
+      await context.sync();
+
+      console.log(`Successfully set custom document property ${userKey}:${userValue}.`);
+    });
+'Excel.WorksheetCustomPropertyCollection#add:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/custom-properties.yaml
+
+    await Excel.run(async (context) => {
+      // Get the key/value pair from the task pane.
+      const userKey = $("#key").text();
+      const userValue = $("#value").text();
+
+      // Add the custom property.
+      const customWorksheetProperties = context.workbook.worksheets.getActiveWorksheet().customProperties;
+      customWorksheetProperties.add(userKey, userValue);
+
+      await context.sync();
+
+      console.log(`Successfully set custom worksheet property ${userKey}:${userValue}.`);
+    });
 'Excel.CustomConditionalFormat#format:member':
   - >-
     // Link to full sample:
@@ -1804,6 +1840,40 @@
         };
 
         await context.sync();
+    });
+'Excel.Worksheet#customProperties:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/custom-properties.yaml
+
+    await Excel.run(async (context) => {
+      // Load the keys and values of all custom properties in the current worksheet.
+      const customWorksheetProperties = context.workbook.worksheets.getActiveWorksheet().customProperties;
+      customWorksheetProperties.load(["key", "value"]);
+      await context.sync();
+
+      // Log each custom property to the console.
+      // Note that your document may have more properties than those you have set using this snippet.
+      customWorksheetProperties.items.forEach((property) => {
+        console.log(`${property.key}:${property.value}`);
+      });
+    });
+'Excel.DocumentProperties#custom:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/custom-properties.yaml
+
+    await Excel.run(async (context) => {
+      // Load the keys and values of all custom properties.
+      const customDocProperties = context.workbook.properties.custom;
+      customDocProperties.load(["key", "value"]);
+      await context.sync();
+
+      // Log each custom property to the console.
+      // Note that your document may have more properties than those you have set using this snippet.
+      customDocProperties.items.forEach((property) => {
+        console.log(`${property.key}:${property.value}`);
+      });
     });
 'Excel.IconSetConditionalFormat#criteria:member':
   - >-
@@ -2854,6 +2924,28 @@
         // Move the range from A1:E1 to G12:K12.
         sheet.getRange("A1:E1").moveTo("G12");
         await context.sync();
+    });
+'Excel.Range#getSpillingToRange:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/dynamic-arrays.yaml
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+
+      // Set G4 to a formula that returns a dynamic array.
+      const targetCell = sheet.getRange("G4");
+      targetCell.formulas = [["=A4:D4"]];
+
+      // Get the address of the cells that the dynamic array spilled into.
+      const spillRange = targetCell.getSpillingToRange();
+      spillRange.load("address");
+
+      // Fit the columns for readability.
+      sheet.getUsedRange().format.autofitColumns();
+      await context.sync();
+
+      console.log(`Copying the table headers spilled into ${spillRange.address}.`);
     });
 'Excel.RangeAreas#format:member':
   - >-
@@ -4513,28 +4605,6 @@
         console.log("The worksheet click handler is registered.");
 
         await context.sync();
-    });
-'Excel.Range#getSpillingToRange:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/dynamic-arrays.yaml
-
-    await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("Sample");
-
-      // Set G4 to a formula that returns a dynamic array.
-      const targetCell = sheet.getRange("G4");
-      targetCell.formulas = [["=A4:D4"]];
-
-      // Get the address of the cells that the dynamic array spilled into.
-      const spillRange = targetCell.getSpillingToRange();
-      spillRange.load("address");
-
-      // Fit the columns for readability.
-      sheet.getUsedRange().format.autofitColumns();
-      await context.sync();
-
-      console.log(`Copying the table headers spilled into ${spillRange.address}.`);
     });
 'Office.RoamingSettings#get:member(1)':
   - >-

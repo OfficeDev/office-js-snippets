@@ -5,24 +5,23 @@ description: >-
 host: EXCEL
 api_set: {}
 script:
-  content: |
+  content: >
     $("#setup").click(() => tryCatch(setup));
-    $("#display-date-time-info").click(() => tryCatch(displayDateTimeInfo));
-    $("#write-date-time-info").click(() => tryCatch(writeDateTimeInfo));
+
+    $("#display-date-time-setting").click(() =>
+    tryCatch(displayDateTimeSetting));
+
+    $("#write-date-time-setting").click(() => tryCatch(writeDateTimeSetting));
+
+
+    /* Create table with only header content. */
 
     async function setup() {
       await Excel.run(async (context) => {
         context.workbook.worksheets.getItemOrNullObject("Sample").delete();
         const sheet = context.workbook.worksheets.add("Sample");
         const range = sheet.getRange("A1:B6");
-        range.values = [
-          ["Culture Setting", "Setting Format"], 
-          ["", ""], 
-          ["", ""], 
-          ["", ""], 
-          ["", ""],
-          ["", ""]
-        ];
+        range.values = [["Culture Setting", "Setting Format"], ["", ""], ["", ""], ["", ""], ["", ""], ["", ""]];
         const table = sheet.tables.add("A1:B6", true);
         range.format.autofitColumns();
         sheet.activate();
@@ -30,7 +29,11 @@ script:
       });
     }
 
-    async function displayDateTimeInfo() {
+
+    /* Use the cultural settings API to display date and time settings in your
+    console. */
+
+    async function displayDateTimeSetting() {
       await Excel.run(async (context) => {
         context.application.cultureInfo.datetimeFormat.load([
           "longDatePattern",
@@ -59,7 +62,11 @@ script:
       });
     }
 
-    async function writeDateTimeInfo() {
+
+    /* Use the cultural settings API to write date and time settings in your
+    table. */
+
+    async function writeDateTimeSetting() {
       await Excel.run(async (context) => {
         context.application.cultureInfo.datetimeFormat.load([
           "longDatePattern",
@@ -77,19 +84,30 @@ script:
         const systemLongTimePattern = context.application.cultureInfo.datetimeFormat.longTimePattern;
         const systemTimeSeparator = context.application.cultureInfo.datetimeFormat.timeSeparator;
 
-        const sheet = context.workbook.worksheets.getActiveWorksheet(); 
-        const longDate = sheet.getRange("A2:B2"); 
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        const longDate = sheet.getRange("A2:B2");
         longDate.values = [["Long date", systemLongDatePattern]];
         const shortDate = sheet.getRange("A3:B3");
         shortDate.values = [["Short date", systemShortDatePattern]];
-        
-        sheet.tables.getItemAt(0).getRange().format.autofitColumns();
+        const shortDate = sheet.getRange("A4:B4");
+        shortDate.values = [["Date separator", systemDateSeparator]];
+        const shortDate = sheet.getRange("A5:B5");
+        shortDate.values = [["Long time format", systemLongTimePattern]];
+        const shortDate = sheet.getRange("A6:B6");
+        shortDate.values = [["Time separator", systemTimeSeparator]];
+
+        sheet.tables
+          .getItemAt(0)
+          .getRange()
+          .format.autofitColumns();
 
         await context.sync();
-      });  
+      });
     }
 
+
     /** Default helper for invoking an action and handling errors. */
+
     async function tryCatch(callback) {
       try {
         await callback();
@@ -100,7 +118,7 @@ script:
     }
   language: typescript
 template:
-  content: |-
+  content: -|
     <section class="ms-font-m">
       <p>This sample shows how to apply the cultural settings APIs to retrieve read-only operating system date and time
         settings.</p>
@@ -115,11 +133,11 @@ template:
 
     <section class="samples ms-font-m">
       <h3>Try it out</h3>
-      <button id="display-date-time-info" class="ms-Button">
+      <button id="display-date-time-setting" class="ms-Button">
         <span class="ms-Button-label">Display date/time settings</span>
       </button>
       <p></p>
-      <button id="write-date-time-info" class="ms-Button">
+      <button id="write-date-time-setting" class="ms-Button">
         <span class="ms-Button-label">Write date/time settings</span>
       </button>
     </section>

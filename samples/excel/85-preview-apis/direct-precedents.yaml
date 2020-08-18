@@ -1,21 +1,21 @@
-name: Values and formulas
-description: Gets and sets values and formulas for a range.
+name: Direct precedents
+description: >-
+  This sample shows how to apply the direct precedents API to highlight direct
+  precedent cells.
 host: EXCEL
 api_set: {}
 script:
-  content: >
+  content: |
     $("#setup").click(() => tryCatch(setup));
-    $("#get-values").click(() => tryCatch(getValues));
-    $("#get-texts").click(() => tryCatch(getTexts));
-    $("#get-formulas").click(() => tryCatch(getFormulas));
     $("#get-direct-precedents").click(() => tryCatch(getDirectPrecedents));
 
+    /* Create two sample tables with functions that span the tables. */
     async function setup() {
       await Excel.run(async (context) => {
         context.workbook.worksheets.getItemOrNullObject("Sample2019Data").delete();
         context.workbook.worksheets.getItemOrNullObject("Sample2020Data").delete();
 
-        // Set up the first sample table
+        // Set up the first sample table.
         const sheet1 = context.workbook.worksheets.add("Sample2019Data");
         const data1 = [
           ["Product", "Qty", "Unit Price", "Total Price 2019"],
@@ -28,7 +28,7 @@ script:
         range1.values = data1;
         range1.format.autofitColumns();
 
-        // Set up the second sample table
+        // Set up the second sample table.
         const sheet2 = context.workbook.worksheets.add("Sample2020Data");
         const data2 = [
           ["Product", "Qty", "Unit Price", "Total Price 2020", "Average Annual Price"],
@@ -37,6 +37,7 @@ script:
           ["Chocolate", 5, 11.2, "=C5 * D5", "=Sample2019Data!E5 + E5 / 2"]
         ];
 
+        // Style the tables.
         const range2 = sheet2.getRange("B2:F5");
         range2.values = data2;
         range2.format.autofitColumns();
@@ -56,23 +57,24 @@ script:
       });
     }
 
+    /* Use the direct precedents API to detect precedent cells. */
     async function getDirectPrecedents() {
       await Excel.run(async (context) => {
         let range = context.workbook.getActiveCell();
         var rac = range.getDirectPrecedents();
         rac.areas.load();
         await context.sync();
+
+        // Loop through the direct precedent cells and highlight each cell.
         for (var i = 0; i < rac.areas.items.length; i++) {
           rac.areas.items[i].format.fill.color = "Yellow";
-          console.log("precedents cell :" + rac.areas.items[i].address);
+          console.log("Direct precedent cell(s): " + rac.areas.items[i].address);
         }
-        console.log("color of the precedents has changed");
         await context.sync();
       });
     }
 
     /** Default helper for invoking an action and handling errors. */
-
     async function tryCatch(callback) {
       try {
         await callback();
@@ -85,19 +87,22 @@ script:
 template:
   content: -|
     <section class="ms-font-m">
-      <p>This sample shows how to set and get values and formulas for a range.</p>
+      <p>This sample shows how to apply the direct precedents API to highlight direct precedent cells.</p>
     </section>
+
     <section class="setup ms-font-m">
       <h3>Set up</h3>
       <button id="setup" class="ms-Button">
-            <span class="ms-Button-label">Add sample data</span>
-        </button>
+          <span class="ms-Button-label">Add sample data</span>
+      </button>
     </section>
+
     <section class="samples ms-font-m">
       <h3>Try it out</h3>
+      <p>Highlight a cell with direct precedent cells. Note that this API can return data across worksheets, if a direct precedent cell is on another worksheet.</p>
       <button id="get-direct-precedents" class="ms-Button">
-              <span class="ms-Button-label">Get direct precedents</span>
-          </button>
+          <span class="ms-Button-label">Get direct precedents</span>
+      </button>
     </section>
   language: html
 style:

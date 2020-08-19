@@ -1,169 +1,138 @@
+order: 5
+id: excel-culture-info-date-time
 name: 'Culture info: date and time'
-description: >-
-  This sample shows how to apply the cultural settings APIs to retrieve
-  read-only operating system date and time settings.
+description: This sample shows how to apply the cultural settings APIs to retrieve read-only operating system date and time settings.
 host: EXCEL
-api_set: {}
+api_set:
+    ExcelAPI: '1.12'
 script:
-  content: >
-    $("#setup").click(() => tryCatch(setup));
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#display-date-time-setting").click(() => tryCatch(displayDateTimeSetting));
+        $("#write-date-time-setting").click(() => tryCatch(writeDateTimeSetting));
 
-    $("#display-date-time-setting").click(() =>
-    tryCatch(displayDateTimeSetting));
+        /* Create table with only header content. */
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+            const range = sheet.getRange("A1:B6");
+            range.values = [["Culture Setting", "Setting Format"], ["", ""], ["", ""], ["", ""], ["", ""], ["", ""]];
+            const table = sheet.tables.add("A1:B6", true);
+            range.format.autofitColumns();
+            sheet.activate();
+            await context.sync();
+          });
+        }
 
-    $("#write-date-time-setting").click(() => tryCatch(writeDateTimeSetting));
+        /* Use the cultural settings API to display date and time settings in your console. */
+        async function displayDateTimeSetting() {
+          await Excel.run(async (context) => {
+            context.application.cultureInfo.datetimeFormat.load([
+              "longDatePattern",
+              "shortDatePattern",
+              "dateSeparator",
+              "longTimePattern",
+              "timeSeparator"
+            ]);
+            await context.sync();
 
+            // System settings are read-only and set in the user's operating system.
+            const systemLongDatePattern = context.application.cultureInfo.datetimeFormat.longDatePattern;
+            const systemShortDatePattern = context.application.cultureInfo.datetimeFormat.shortDatePattern;
+            const systemDateSeparator = context.application.cultureInfo.datetimeFormat.dateSeparator;
+            const systemLongTimePattern = context.application.cultureInfo.datetimeFormat.longTimePattern;
+            const systemTimeSeparator = context.application.cultureInfo.datetimeFormat.timeSeparator;
 
-    /* Create table with only header content. */
+            console.log("System date/time settings: ");
+            console.log(`  System long date format: ${systemLongDatePattern}`);
+            console.log(`  System short date format: ${systemShortDatePattern}`);
+            console.log(`  System date separator: ${systemDateSeparator}`);
+            console.log(`  System long time format: ${systemLongTimePattern}`);
+            console.log(`  System time separator: ${systemTimeSeparator}`);
 
-    async function setup() {
-      await Excel.run(async (context) => {
-        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
-        const sheet = context.workbook.worksheets.add("Sample");
-        const range = sheet.getRange("A1:B6");
-        range.values = [["Culture Setting", "Setting Format"], ["", ""], ["", ""], ["", ""], ["", ""], ["", ""]];
-        const table = sheet.tables.add("A1:B6", true);
-        range.format.autofitColumns();
-        sheet.activate();
-        await context.sync();
-      });
-    }
+            await context.sync();
+          });
+        }
 
+        /* Use the cultural settings API to write date and time settings in your table. */
+        async function writeDateTimeSetting() {
+          await Excel.run(async (context) => {
+            context.application.cultureInfo.datetimeFormat.load([
+              "longDatePattern",
+              "shortDatePattern",
+              "dateSeparator",
+              "longTimePattern",
+              "timeSeparator"
+            ]);
+            await context.sync();
 
-    /* Use the cultural settings API to display date and time settings in your
-    console. */
+            // System settings are read-only and set in the user's operating system.
+            const systemLongDatePattern = context.application.cultureInfo.datetimeFormat.longDatePattern;
+            const systemShortDatePattern = context.application.cultureInfo.datetimeFormat.shortDatePattern;
+            const systemDateSeparator = context.application.cultureInfo.datetimeFormat.dateSeparator;
+            const systemLongTimePattern = context.application.cultureInfo.datetimeFormat.longTimePattern;
+            const systemTimeSeparator = context.application.cultureInfo.datetimeFormat.timeSeparator;
 
-    async function displayDateTimeSetting() {
-      await Excel.run(async (context) => {
-        context.application.cultureInfo.datetimeFormat.load([
-          "longDatePattern",
-          "shortDatePattern",
-          "dateSeparator",
-          "longTimePattern",
-          "timeSeparator"
-        ]);
-        await context.sync();
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            const longDate = sheet.getRange("A2:B2");
+            longDate.values = [["Long date", systemLongDatePattern]];
+            const shortDate = sheet.getRange("A3:B3");
+            shortDate.values = [["Short date", systemShortDatePattern]];
+            const shortDate = sheet.getRange("A4:B4");
+            shortDate.values = [["Date separator", systemDateSeparator]];
+            const shortDate = sheet.getRange("A5:B5");
+            shortDate.values = [["Long time format", systemLongTimePattern]];
+            const shortDate = sheet.getRange("A6:B6");
+            shortDate.values = [["Time separator", systemTimeSeparator]];
 
-        // System settings are read-only and set in the user's operating system.
-        const systemLongDatePattern = context.application.cultureInfo.datetimeFormat.longDatePattern;
-        const systemShortDatePattern = context.application.cultureInfo.datetimeFormat.shortDatePattern;
-        const systemDateSeparator = context.application.cultureInfo.datetimeFormat.dateSeparator;
-        const systemLongTimePattern = context.application.cultureInfo.datetimeFormat.longTimePattern;
-        const systemTimeSeparator = context.application.cultureInfo.datetimeFormat.timeSeparator;
+            sheet.tables
+              .getItemAt(0)
+              .getRange()
+              .format.autofitColumns();
 
-        console.log("System date/time settings: ");
-        console.log(`  System long date format: ${systemLongDatePattern}`);
-        console.log(`  System short date format: ${systemShortDatePattern}`);
-        console.log(`  System date separator: ${systemDateSeparator}`);
-        console.log(`  System long time format: ${systemLongTimePattern}`);
-        console.log(`  System time separator: ${systemTimeSeparator}`);
+            await context.sync();
+          });
+        }
 
-        await context.sync();
-      });
-    }
-
-
-    /* Use the cultural settings API to write date and time settings in your
-    table. */
-
-    async function writeDateTimeSetting() {
-      await Excel.run(async (context) => {
-        context.application.cultureInfo.datetimeFormat.load([
-          "longDatePattern",
-          "shortDatePattern",
-          "dateSeparator",
-          "longTimePattern",
-          "timeSeparator"
-        ]);
-        await context.sync();
-
-        // System settings are read-only and set in the user's operating system.
-        const systemLongDatePattern = context.application.cultureInfo.datetimeFormat.longDatePattern;
-        const systemShortDatePattern = context.application.cultureInfo.datetimeFormat.shortDatePattern;
-        const systemDateSeparator = context.application.cultureInfo.datetimeFormat.dateSeparator;
-        const systemLongTimePattern = context.application.cultureInfo.datetimeFormat.longTimePattern;
-        const systemTimeSeparator = context.application.cultureInfo.datetimeFormat.timeSeparator;
-
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        const longDate = sheet.getRange("A2:B2");
-        longDate.values = [["Long date", systemLongDatePattern]];
-        const shortDate = sheet.getRange("A3:B3");
-        shortDate.values = [["Short date", systemShortDatePattern]];
-        const shortDate = sheet.getRange("A4:B4");
-        shortDate.values = [["Date separator", systemDateSeparator]];
-        const shortDate = sheet.getRange("A5:B5");
-        shortDate.values = [["Long time format", systemLongTimePattern]];
-        const shortDate = sheet.getRange("A6:B6");
-        shortDate.values = [["Time separator", systemTimeSeparator]];
-
-        sheet.tables
-          .getItemAt(0)
-          .getRange()
-          .format.autofitColumns();
-
-        await context.sync();
-      });
-    }
-
-
-    /** Default helper for invoking an action and handling errors. */
-
-    async function tryCatch(callback) {
-      try {
-        await callback();
-      } catch (error) {
-        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-        console.error(error);
-      }
-    }
-  language: typescript
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
 template:
-  content: -|
-    <section class="ms-font-m">
-      <p>This sample shows how to apply the cultural settings APIs to retrieve read-only operating system date and time
-        settings.</p>
-    </section>
-
-    <section class="samples ms-font-m">
-      <h3>Setup</h3>
-      <button id="setup" class="ms-Button">
-          <span class="ms-Button-label">Setup</span>
-        </button>
-    </section>
-
-    <section class="samples ms-font-m">
-      <h3>Try it out</h3>
-      <button id="display-date-time-setting" class="ms-Button">
-        <span class="ms-Button-label">Display date/time settings</span>
-      </button>
-      <p></p>
-      <button id="write-date-time-setting" class="ms-Button">
-        <span class="ms-Button-label">Write date/time settings</span>
-      </button>
-    </section>
-  language: html
+    content: |-
+        -| <section class="ms-font-m"> <p>This sample shows how to apply the cultural settings APIs to retrieve read-only operating system date and time settings.</p> </section>
+        <section class="samples ms-font-m"> <h3>Setup</h3> <button id="setup" class="ms-Button"> <span class="ms-Button-label">Setup</span> </button> </section>
+        <section class="samples ms-font-m"> <h3>Try it out</h3> <button id="display-date-time-setting" class="ms-Button"> <span class="ms-Button-label">Display date/time settings</span> </button> <p></p> <button id="write-date-time-setting" class="ms-Button"> <span class="ms-Button-label">Write date/time settings</span> </button> </section>
+    language: html
 style:
-  content: |
-    section.samples {
-        margin-top: 20px;
-    }
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
 
-    section.samples .ms-Button, section.setup .ms-Button {
-        display: block;
-        margin-bottom: 5px;
-        margin-left: 20px;
-        min-width: 80px;
-    }
-  language: css
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
 libraries: |
-  https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-  @types/office-js-preview
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
 
-  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
-  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
 
-  core-js@2.4.1/client/core.min.js
-  @types/core-js
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
 
-  jquery@3.1.1
-  @types/jquery@3.3.1
+    jquery@3.1.1
+    @types/jquery@3.3.1

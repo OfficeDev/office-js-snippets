@@ -1,13 +1,16 @@
 name: Direct precedents
 description: >-
-  This sample shows how to apply the direct precedents API to highlight direct
-  precedent cells.
+  This sample shows how to highlight precedent cells which directly affect the
+  value of the currently selected cell, using the direct precedents API.
 host: EXCEL
 api_set: {}
 script:
   content: |
     $("#setup").click(() => tryCatch(setup));
+    $("#select-first-cell").click(() => tryCatch(selectFirstCell));
+    $("#select-second-cell").click(() => tryCatch(selectSecondCell));
     $("#get-direct-precedents").click(() => tryCatch(getDirectPrecedents));
+    $("#clear-highlighting").click(() => tryCatch(setup));
 
     /* Create two sample tables with functions that span the tables. */
     async function setup() {
@@ -57,18 +60,51 @@ script:
       });
     }
 
+    /* Select a cell with direct precedents on one worksheet. */
+    async function selectFirstCell() {
+      await Excel.run(async (context) => {
+        // Ensure correct worksheet is active.
+        const sheet = context.workbook.worksheets.getItem("Sample2020Data");
+        sheet.activate();
+        sheet.load("Sample2020Data");
+
+        // Select the cell.
+        const range = sheet.getRange("E4");
+        range.select();
+        await context.sync();
+      });
+    }
+
+    /* Select a cell with direct precedents on both worksheets. */
+    async function selectSecondCell() {
+      await Excel.run(async (context) => {
+        // Ensure correct worksheet is active.
+        const sheet = context.workbook.worksheets.getItem("Sample2020Data");
+        sheet.activate();
+        sheet.load("Sample2020Data");
+
+        // Select the cell.
+        const range = sheet.getRange("F5");
+        range.select();
+        await context.sync();
+      });
+    }
+
     /* Use the direct precedents API to detect precedent cells. */
     async function getDirectPrecedents() {
       await Excel.run(async (context) => {
         let range = context.workbook.getActiveCell();
         var rac = range.getDirectPrecedents();
+        range.load();
         rac.areas.load();
         await context.sync();
 
+        console.log(`Direct precedent cell(s) of ${range.address}:`);
+        
         // Loop through the direct precedent cells and highlight each cell.
         for (var i = 0; i < rac.areas.items.length; i++) {
           rac.areas.items[i].format.fill.color = "Yellow";
-          console.log("Direct precedent cell(s): " + rac.areas.items[i].address);
+          console.log(`  ${rac.areas.items[i].address}`);
         }
         await context.sync();
       });
@@ -87,7 +123,7 @@ script:
 template:
   content: -|
     <section class="ms-font-m">
-      <p>This sample shows how to apply the direct precedents API to highlight direct precedent cells.</p>
+      <p>This sample shows how to highlight precedent cells which directly affect the value of the currently selected cell, using the direct precedents API.</p>
     </section>
 
     <section class="setup ms-font-m">
@@ -99,10 +135,18 @@ template:
 
     <section class="samples ms-font-m">
       <h3>Try it out</h3>
-      <p>Highlight a cell with direct precedent cells. Note that this API can return data across worksheets, if a direct precedent cell is on another worksheet.</p>
+      <button id="select-first-cell" class="ms-Button">
+            <span class="ms-Button-label">Select a cell with direct precedents on this worksheet</span>
+        </button>
+      <button id="select-second-cell" class="ms-Button">
+              <span class="ms-Button-label">Select a cell with direct precedents across worksheets</span>
+          </button>
       <button id="get-direct-precedents" class="ms-Button">
           <span class="ms-Button-label">Get direct precedents</span>
       </button>
+      <button id="clear-highlighting" class="ms-Button">
+            <span class="ms-Button-label">Clear highlighting</span>
+        </button>
     </section>
   language: html
 style:

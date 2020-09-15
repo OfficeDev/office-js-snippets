@@ -57,7 +57,13 @@ script:
 
             // Apply a date filter for anything logged before August.
             const filterField = dateHierarchy.fields.getItem("Date Updated");
-            const dateFilter = { condition: Excel.DateFilterCondition.thisMonth };
+            const dateFilter = {
+              condition: Excel.DateFilterCondition.before,
+              comparator: {
+                date: "2020-08-01",
+                specificity: Excel.FilterDatetimeSpecificity.month
+              }
+            };
             filterField.applyFilter({ dateFilter: dateFilter });
 
             await context.sync();
@@ -66,7 +72,7 @@ script:
 
         async function valueFilter() {
           await Excel.run(async (context) => {
-            // Add a PivotFilter to filter on the values correlated with a row.  
+            // Add a PivotFilter to filter on the values correlated with a row.
 
             // Get the PivotTable.
             const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
@@ -74,7 +80,7 @@ script:
             // Get the "Farm" field.
             const field = pivotTable.hierarchies.getItem("Farm").fields.getItem("Farm");
 
-            // See if any value filter is currently applied to this field, if not, create a new one and apply it to the field.        
+            // See if any value filter is currently applied to this field, if not, create a new one and apply it to the field.
             if (field.isFiltered(Excel.PivotFilterType.value)) {
               // Filter to only include rows with more than 500 wholesale crates sold.
               const filter: Excel.PivotValueFilter = {
@@ -207,7 +213,7 @@ script:
               ["B Farms", "Orange", "Organic", "8/1/2020", 20, 500],
               ["B Farms", "Lemon", "Organic", "8/5/2020", 10, 770],
               ["B Farms", "Kiwi", "Conventional", "7/25/2020", 30, 300],
-              ["B Farms", "Lime", "Organic", "8/1/2020", 50, 400],
+              ["B Farms", "Lime", "Organic", "7/15/2020", 50, 600],
               ["C Farms", "Apple", "Organic", "8/1/2020", 275, 220],
               ["C Farms", "Kiwi", "Organic", "8/1/2020", 200, 120],
               ["D Farms", "Apple", "Conventional", "7/23/2020", 100, 3000],
@@ -271,11 +277,11 @@ template:
           </button>
           <p />
           <button id="date-filter" class="ms-Button">
-              <span class="ms-Button-label">August filter (Date)</span>
+              <span class="ms-Button-label">Before August filter (Date)</span>
           </button>
           <p />
           <button id="value-filter" class="ms-Button">
-              <span class="ms-Button-label">Large sales filter (Value)</span>
+              <span class="ms-Button-label">>500 units wholesale filter (Value)</span>
           </button>
           <p />
           <button id="label-filter" class="ms-Button">

@@ -1301,6 +1301,46 @@
 
         await context.sync();
     });
+'Excel.CultureInfo#datetimeFormat:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/culture-info-date-time.yaml
+
+    await Excel.run(async (context) => {
+      context.application.cultureInfo.datetimeFormat.load([
+        "longDatePattern",
+        "shortDatePattern",
+        "dateSeparator",
+        "longTimePattern",
+        "timeSeparator"
+      ]);
+      await context.sync();
+
+      // Use the cultural settings API to retrieve the user's system date and time settings.
+      const systemLongDatePattern = context.application.cultureInfo.datetimeFormat.longDatePattern;
+      const systemShortDatePattern = context.application.cultureInfo.datetimeFormat.shortDatePattern;
+      const systemDateSeparator = context.application.cultureInfo.datetimeFormat.dateSeparator;
+      const systemLongTimePattern = context.application.cultureInfo.datetimeFormat.longTimePattern;
+      const systemTimeSeparator = context.application.cultureInfo.datetimeFormat.timeSeparator;
+
+      // Write the date and time settings in your table. 
+      const sheet = context.workbook.worksheets.getActiveWorksheet();
+      const dateTimeData = sheet.getRange("A2:B6");
+      dateTimeData.values = [
+        ["Long date", systemLongDatePattern], 
+        ["Short date", systemShortDatePattern], 
+        ["Date separator", systemDateSeparator], 
+        ["Long time format", systemLongTimePattern],
+        ["Time separator", systemTimeSeparator]
+      ];
+
+      sheet.tables
+        .getItemAt(0)
+        .getRange()
+        .format.autofitColumns();
+
+      await context.sync();
+    });
 'Excel.CustomConditionalFormat#format:member':
   - >-
     // Link to full sample:
@@ -2186,6 +2226,164 @@
         farmSheet.pageLayout.zoom = { scale: 200 };
         await context.sync();
     });
+'Excel.PivotField#clearAllFilters:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/pivottable-pivotfilters.yaml
+
+    await Excel.run(async (context) => {
+      // Clear all the PivotFilters.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+      pivotTable.hierarchies.load("name");
+      await context.sync();
+
+      // Clear the filters on each PivotField.
+      pivotTable.hierarchies.items.forEach((hierarchy) => {
+        hierarchy.fields.getItem(hierarchy.name).clearAllFilters();
+      });
+      await context.sync();
+    });
+'Excel.PivotFilters#dateFilter:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/pivottable-pivotfilters.yaml
+
+    await Excel.run(async (context) => {
+      // Add a date-based PivotFilter.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+      // PivotFilters can only be applied to PivotHierarchies that are being used for pivoting.
+      // If it's not already there, add "Date Updated" to the hierarchies.
+      let dateHierarchy = pivotTable.rowHierarchies.getItemOrNullObject("Date Updated");
+      await context.sync();
+      if (dateHierarchy.isNullObject) {
+        dateHierarchy = pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Date Updated"));
+      }
+
+      // Apply a date filter to filter out anything logged before August.
+      const filterField = dateHierarchy.fields.getItem("Date Updated");
+      const dateFilter = {
+        condition: Excel.DateFilterCondition.afterOrEqualTo,
+        comparator: {
+          date: "2020-08-01",
+          specificity: Excel.FilterDatetimeSpecificity.month
+        }
+      };
+      filterField.applyFilter({ dateFilter: dateFilter });
+
+      await context.sync();
+    });
+'Excel.PivotFilters#labelFilter:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/pivottable-pivotfilters.yaml
+
+    await Excel.run(async (context) => {
+      // Add a PivotFilter to filter based on the strings of item labels.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+      // Get the "Type" field.
+      const field = pivotTable.hierarchies.getItem("Type").fields.getItem("Type");
+
+      // See if any label filter is currently applied to this field, if not, create a new one and apply it to the field.
+      if (field.isFiltered(Excel.PivotFilterType.label)) {
+        // Filter out any types that start with "L" ("Lemons" and "Limes" in this case).
+        const filter: Excel.PivotLabelFilter = {
+          condition: Excel.LabelFilterCondition.beginsWith,
+          substring: "L",
+          exclusive: true
+        };
+        field.applyFilter({ labelFilter: filter });
+      }
+
+      await context.sync();
+    });
+'Excel.PivotFilters#manualFilter:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/pivottable-pivotfilters.yaml
+
+    await Excel.run(async (context) => {
+      // Add a PivotFilter to filter on manually-selected items.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+      // PivotFilters can only be applied to PivotHierarchies that are being used for pivoting.
+      // If it's not already there, add "Classification" to the hierarchies.
+      let classHierarchy = pivotTable.filterHierarchies.getItemOrNullObject("Classification");
+      await context.sync();
+      if (classHierarchy.isNullObject) {
+        classHierarchy = pivotTable.filterHierarchies.add(pivotTable.hierarchies.getItem("Classification"));
+      }
+
+      // Apply a manual filter to include only a specific PivotItem (the string "Organic").
+      const filterField = classHierarchy.fields.getItem("Classification");
+      const manualFilter = { selectedItems: ["Organic"]};
+      filterField.applyFilter({ manualFilter: manualFilter });
+
+      await context.sync();
+    });
+'Excel.PivotFilters#valueFilter:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/pivottable-pivotfilters.yaml
+
+    await Excel.run(async (context) => {
+      // Add a PivotFilter to filter on the values correlated with a row.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+      // Get the "Farm" field.
+      const field = pivotTable.hierarchies.getItem("Farm").fields.getItem("Farm");
+
+      // See if any value filter is currently applied to this field, if not, create a new one and apply it to the field.
+      if (field.isFiltered(Excel.PivotFilterType.value)) {
+        // Filter to only include rows with more than 500 wholesale crates sold.
+        const filter: Excel.PivotValueFilter = {
+          condition: Excel.ValueFilterCondition.greaterThan,
+          comparator: 500,
+          value: "Sum of Crates Sold Wholesale"
+        };
+        field.applyFilter({ valueFilter: filter });
+      }
+
+      await context.sync();
+    });
+'Excel.PivotHierarchy#fields:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/pivottable-pivotfilters.yaml
+
+    await Excel.run(async (context) => {
+      // Add a PivotFilter to filter on the values correlated with a row.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+      // Get the "Farm" field.
+      const field = pivotTable.hierarchies.getItem("Farm").fields.getItem("Farm");
+
+      // See if any value filter is currently applied to this field, if not, create a new one and apply it to the field.
+      if (field.isFiltered(Excel.PivotFilterType.value)) {
+        // Filter to only include rows with more than 500 wholesale crates sold.
+        const filter: Excel.PivotValueFilter = {
+          condition: Excel.ValueFilterCondition.greaterThan,
+          comparator: 500,
+          value: "Sum of Crates Sold Wholesale"
+        };
+        field.applyFilter({ valueFilter: filter });
+      }
+
+      await context.sync();
+    });
 'Excel.PivotLayout#getDataBodyRange:member(1)':
   - >-
     // Link to full sample:
@@ -2911,6 +3109,52 @@
       await context.sync();
 
       console.log(`Copying the table headers spilled into ${spillRange.address}.`);
+    });
+'Excel.Range#getDirectPrecedents:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/direct-precedents.yaml
+
+    await Excel.run(async (context) => {
+      // Precedents are cells referenced by the formula in a cell.
+      let range = context.workbook.getActiveCell();
+      let directPrecedents = range.getDirectPrecedents();
+      range.load("address");
+      directPrecedents.areas.load("address");
+      await context.sync();
+
+      console.log(`Direct precedent cells of ${range.address}:`);
+
+      // Use the direct precedents API to loop through precedents of the active cell. 
+      for (var i = 0; i < directPrecedents.areas.items.length; i++) {
+        // Highlight and console the address of each precedent cell.
+        directPrecedents.areas.items[i].format.fill.color = "Yellow";
+        console.log(`  ${directPrecedents.areas.items[i].address}`);
+      }
+      await context.sync();
+    });
+'Excel.Range#workbookRangeAreas:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/direct-precedents.yaml
+
+    await Excel.run(async (context) => {
+      // Precedents are cells referenced by the formula in a cell.
+      let range = context.workbook.getActiveCell();
+      let directPrecedents = range.getDirectPrecedents();
+      range.load("address");
+      directPrecedents.areas.load("address");
+      await context.sync();
+
+      console.log(`Direct precedent cells of ${range.address}:`);
+
+      // Use the direct precedents API to loop through precedents of the active cell. 
+      for (var i = 0; i < directPrecedents.areas.items.length; i++) {
+        // Highlight and console the address of each precedent cell.
+        directPrecedents.areas.items[i].format.fill.color = "Yellow";
+        console.log(`  ${directPrecedents.areas.items[i].address}`);
+      }
+      await context.sync();
     });
 'Excel.RangeAreas#format:member':
   - >-
@@ -4020,6 +4264,29 @@
         let workbook = context.workbook;
         workbook.protection.unprotect(password);
     });
+'Excel.WorkbookRangeAreas#areas:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/direct-precedents.yaml
+
+    await Excel.run(async (context) => {
+      // Precedents are cells referenced by the formula in a cell.
+      let range = context.workbook.getActiveCell();
+      let directPrecedents = range.getDirectPrecedents();
+      range.load("address");
+      directPrecedents.areas.load("address");
+      await context.sync();
+
+      console.log(`Direct precedent cells of ${range.address}:`);
+
+      // Use the direct precedents API to loop through precedents of the active cell. 
+      for (var i = 0; i < directPrecedents.areas.items.length; i++) {
+        // Highlight and console the address of each precedent cell.
+        directPrecedents.areas.items[i].format.fill.color = "Yellow";
+        console.log(`  ${directPrecedents.areas.items[i].address}`);
+      }
+      await context.sync();
+    });
 'Excel.Worksheet#customProperties:member':
   - >-
     // Link to full sample:
@@ -4605,92 +4872,6 @@
         console.log("The worksheet click handler is registered.");
 
         await context.sync();
-    });
-'Excel.CultureInfo#datetimeFormat:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/culture-info-date-time.yaml
-
-    await Excel.run(async (context) => {
-      context.application.cultureInfo.datetimeFormat.load([
-        "longDatePattern",
-        "shortDatePattern",
-        "dateSeparator",
-        "longTimePattern",
-        "timeSeparator"
-      ]);
-      await context.sync();
-
-      // Use the cultural settings API to retrieve the user's system date and time settings.
-      const systemLongDatePattern = context.application.cultureInfo.datetimeFormat.longDatePattern;
-      const systemShortDatePattern = context.application.cultureInfo.datetimeFormat.shortDatePattern;
-      const systemDateSeparator = context.application.cultureInfo.datetimeFormat.dateSeparator;
-      const systemLongTimePattern = context.application.cultureInfo.datetimeFormat.longTimePattern;
-      const systemTimeSeparator = context.application.cultureInfo.datetimeFormat.timeSeparator;
-
-      // Write the date and time settings in your table. 
-      const sheet = context.workbook.worksheets.getActiveWorksheet();
-      const dateTimeData = sheet.getRange("A2:B6");
-      dateTimeData.values = [
-        ["Long date", systemLongDatePattern], 
-        ["Short date", systemShortDatePattern], 
-        ["Date separator", systemDateSeparator], 
-        ["Long time format", systemLongTimePattern],
-        ["Time separator", systemTimeSeparator]
-      ];
-
-      sheet.tables
-        .getItemAt(0)
-        .getRange()
-        .format.autofitColumns();
-
-      await context.sync();
-    });
-'Excel.Range#getDirectPrecedents:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/direct-precedents.yaml
-
-    await Excel.run(async (context) => {
-      // Precedents are cells referenced by the formula in a cell.
-      let range = context.workbook.getActiveCell();
-      let directPrecedents = range.getDirectPrecedents();
-      range.load("address");
-      directPrecedents.areas.load("address");
-      await context.sync();
-
-      console.log(`Direct precedent cells of ${range.address}:`);
-
-      // Use the direct precedents API to loop through precedents of the active cell. 
-      for (var i = 0; i < directPrecedents.areas.items.length; i++) {
-        // Highlight and console the address of each precedent cell.
-        directPrecedents.areas.items[i].format.fill.color = "Yellow";
-        console.log(`  ${directPrecedents.areas.items[i].address}`);
-      }
-      await context.sync();
-    });
-'Excel.WorkbookRangeAreas#areas:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/85-preview-apis/direct-precedents.yaml
-
-    await Excel.run(async (context) => {
-      // Precedents are cells referenced by the formula in a cell.
-      let range = context.workbook.getActiveCell();
-      let directPrecedents = range.getDirectPrecedents();
-      range.load("address");
-      directPrecedents.areas.load("address");
-      await context.sync();
-
-      console.log(`Direct precedent cells of ${range.address}:`);
-
-      // Use the direct precedents API to loop through precedents of the active cell. 
-      for (var i = 0; i < directPrecedents.areas.items.length; i++) {
-        // Highlight and console the address of each precedent cell.
-        directPrecedents.areas.items[i].format.fill.color = "Yellow";
-        console.log(`  ${directPrecedents.areas.items[i].address}`);
-      }
-      await context.sync();
     });
 'Office.RoamingSettings#get:member(1)':
   - >-

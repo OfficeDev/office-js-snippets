@@ -1,0 +1,330 @@
+order: 10
+id: excel-pivottables-pivotfilters
+name: PivotFilters
+description: Applies PivotFilters to a PivotTable.
+host: EXCEL
+api_set:
+    ExcelAPI: '1.12'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#manual-filter").click(() => tryCatch(manualFilter));
+        $("#date-filter").click(() => tryCatch(dateFilter));
+        $("#value-filter").click(() => tryCatch(valueFilter));
+        $("#label-filter").click(() => tryCatch(labelFilter));
+        $("#clear-filters").click(() => tryCatch(clearFilters));
+        $("#log-filters").click(() => tryCatch(logFilters));
+        $("#get-crate-total").click(() => tryCatch(getCrateTotal));
+
+        async function manualFilter() {
+          await Excel.run(async (context) => {
+            // Add a PivotFilter to filter on manually-selected items.
+
+            // Get the PivotTable.
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+            // PivotFilters can only be applied to PivotHierarchies that are being used for pivoting.
+            // If it's not already there, add "Classification" to the hierarchies.
+            let classHierarchy = pivotTable.filterHierarchies.getItemOrNullObject("Classification");
+            await context.sync();
+            if (classHierarchy.isNullObject) {
+              classHierarchy = pivotTable.filterHierarchies.add(pivotTable.hierarchies.getItem("Classification"));
+            }
+
+            // Apply a manual filter to include only a specific PivotItem (the string "Organic").
+            const filterField = classHierarchy.fields.getItem("Classification");
+            const manualFilter = { selectedItems: ["Organic"]};
+            filterField.applyFilter({ manualFilter: manualFilter });
+
+            await context.sync();
+          });
+        }
+
+        async function dateFilter() {
+          await Excel.run(async (context) => {
+            // Add a date-based PivotFilter.
+
+            // Get the PivotTable.
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+            // PivotFilters can only be applied to PivotHierarchies that are being used for pivoting.
+            // If it's not already there, add "Date Updated" to the hierarchies.
+            let dateHierarchy = pivotTable.rowHierarchies.getItemOrNullObject("Date Updated");
+            await context.sync();
+            if (dateHierarchy.isNullObject) {
+              dateHierarchy = pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Date Updated"));
+            }
+
+            // Apply a date filter to filter out anything logged before August.
+            const filterField = dateHierarchy.fields.getItem("Date Updated");
+            const dateFilter = {
+              condition: Excel.DateFilterCondition.afterOrEqualTo,
+              comparator: {
+                date: "2020-08-01",
+                specificity: Excel.FilterDatetimeSpecificity.month
+              }
+            };
+            filterField.applyFilter({ dateFilter: dateFilter });
+
+            await context.sync();
+          });
+        }
+
+        async function valueFilter() {
+          await Excel.run(async (context) => {
+            // Add a PivotFilter to filter on the values correlated with a row.
+
+            // Get the PivotTable.
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+            // Get the "Farm" field.
+            const field = pivotTable.hierarchies.getItem("Farm").fields.getItem("Farm");
+
+            // See if any value filter is currently applied to this field, if not, create a new one and apply it to the field.
+            if (field.isFiltered(Excel.PivotFilterType.value)) {
+              // Filter to only include rows with more than 500 wholesale crates sold.
+              const filter: Excel.PivotValueFilter = {
+                condition: Excel.ValueFilterCondition.greaterThan,
+                comparator: 500,
+                value: "Sum of Crates Sold Wholesale"
+              };
+              field.applyFilter({ valueFilter: filter });
+            }
+
+            await context.sync();
+          });
+        }
+
+        async function labelFilter() {
+          await Excel.run(async (context) => {
+            // Add a PivotFilter to filter based on the strings of item labels.
+
+            // Get the PivotTable.
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+            // Get the "Type" field.
+            const field = pivotTable.hierarchies.getItem("Type").fields.getItem("Type");
+
+            // See if any label filter is currently applied to this field, if not, create a new one and apply it to the field.
+            if (field.isFiltered(Excel.PivotFilterType.label)) {
+              // Filter out any types that start with "L" ("Lemons" and "Limes" in this case).
+              const filter: Excel.PivotLabelFilter = {
+                condition: Excel.LabelFilterCondition.beginsWith,
+                substring: "L",
+                exclusive: true
+              };
+              field.applyFilter({ labelFilter: filter });
+            }
+
+            await context.sync();
+          });
+        }
+
+        async function clearFilters() {
+          await Excel.run(async (context) => {
+            // Clear all the PivotFilters.
+
+            // Get the PivotTable.
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+            pivotTable.hierarchies.load("name");
+            await context.sync();
+
+            // Clear the filters on each PivotField.
+            pivotTable.hierarchies.items.forEach((hierarchy) => {
+              hierarchy.fields.getItem(hierarchy.name).clearAllFilters();
+            });
+            await context.sync();
+          });
+        }
+
+        async function getCrateTotal() {
+          await Excel.run(async (context) => {
+            // Get the total amounts from the PivotTable.
+
+            // Get the PivotTable.
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+            // The layout controls the ranges used by the PivotTable.
+            const range = pivotTable.layout.getDataBodyRange();
+
+            // Get all the data hierarchy totals.
+            const grandTotalRange = range.getLastRow();
+            grandTotalRange.load("address");
+
+            // Use the wholesale and farm sale totals to make a final sum.
+            const sumResult = context.workbook.functions.sum(grandTotalRange);
+            sumResult.load("value");
+            await context.sync();
+
+            console.log(`Total crate count: ${sumResult.value}`);
+            await context.sync();
+          });
+        }
+
+        async function logFilters() {
+          await Excel.run(async (context) => {
+            // Display all the active PivotFilters.
+
+            // Get the PivotTable.
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+            // Get the number of PivotHierarchies.
+            pivotTable.hierarchies.load("name");
+            let hierarchyCount = pivotTable.hierarchies.getCount();
+            await context.sync();
+
+            // Iterate over all the hierarchies looking for filters on the PivotFields.
+            for (let i = 0; i < hierarchyCount.value; i++) {
+              let filters = pivotTable.hierarchies.items[i].fields.getItem(pivotTable.hierarchies.items[i].name).getFilters();
+              await context.sync();
+
+              if (
+                filters.value.dateFilter ||
+                filters.value.labelFilter ||
+                filters.value.manualFilter ||
+                filters.value.valueFilter
+              ) {
+                console.log(`Filters found on "${pivotTable.hierarchies.items[i].name}" field:`);
+                console.log(filters.value);
+              }
+            }
+
+            await context.sync();
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            // Create the worksheets.
+            context.workbook.worksheets.getItemOrNullObject("Data").delete();
+            const dataSheet = context.workbook.worksheets.add("Data");
+            context.workbook.worksheets.getItemOrNullObject("Pivot").delete();
+            const pivotSheet = context.workbook.worksheets.add("Pivot");
+
+            // Create farm data.
+            const data = [
+              ["Farm", "Type", "Classification", "Date Updated", "Crates Sold at Farm", "Crates Sold Wholesale"],
+              ["A Farms", "Lime", "Organic", "8/12/2020", 300, 2000],
+              ["A Farms", "Lemon", "Organic", "8/11/2020", 250, 1800],
+              ["A Farms", "Orange", "Organic", "8/1/2020", 200, 2200],
+              ["B Farms", "Lime", "Conventional", "8/2/2020", 80, 1000],
+              ["B Farms", "Lemon", "Conventional", "7/29/2020", 75, 1230],
+              ["B Farms", "Orange", "Conventional", "7/15/2020", 25, 800],
+              ["B Farms", "Orange", "Organic", "8/1/2020", 20, 500],
+              ["B Farms", "Lemon", "Organic", "8/5/2020", 10, 770],
+              ["B Farms", "Kiwi", "Conventional", "7/25/2020", 30, 300],
+              ["B Farms", "Lime", "Organic", "7/15/2020", 50, 600],
+              ["C Farms", "Apple", "Organic", "8/1/2020", 275, 220],
+              ["C Farms", "Kiwi", "Organic", "8/1/2020", 200, 120],
+              ["D Farms", "Apple", "Conventional", "7/23/2020", 100, 3000],
+              ["D Farms", "Apple", "Organic", "7/26/2020", 80, 2800],
+              ["E Farms", "Lime", "Conventional", "8/1/2020", 160, 2700],
+              ["E Farms", "Orange", "Conventional", "8/7/2020", 180, 2000],
+              ["E Farms", "Apple", "Conventional", "8/10/2020", 245, 2200],
+              ["E Farms", "Kiwi", "Conventional", "8/11/2020", 200, 1500],
+              ["F Farms", "Kiwi", "Organic", "7/30/2020", 100, 150],
+              ["F Farms", "Lemon", "Conventional", "7/14/2020", 150, 270]
+            ];
+
+            const range = dataSheet.getRange("A1:F21");
+            range.values = data;
+            range.format.autofitColumns();
+            pivotSheet.activate();
+
+            // Create the PivotTable.
+            context.workbook.worksheets.getActiveWorksheet().pivotTables.add("Farm Sales", "Data!A1:F21", "A2");
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+            pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+            pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Type"));
+            pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+            pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to filter PivotTables with the different PivotFilters.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup sample</span>
+            </button>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Try it out</h3>
+        </section>
+
+        <section class="setup ms-font-m">
+          <p><b>Filters</b></p>
+          <p><i>Manual filter</i></p>
+          <button id="manual-filter" class="ms-Button">
+              <span class="ms-Button-label">Show only organic</span>
+          </button>
+          <p />
+          <p><i>Date filter</i></p>
+          <button id="date-filter" class="ms-Button">
+              <span class="ms-Button-label">Show August 2020 and later</span>
+          </button>
+          <p />
+          <p><i>Value filter</i></p>
+          <button id="value-filter" class="ms-Button">
+              <span class="ms-Button-label">Show only >500 units wholesale</span>
+          </button>
+          <p />
+          <p><i>Label filter</i></p>
+          <button id="label-filter" class="ms-Button">
+              <span class="ms-Button-label">Remove lemons and limes</span>
+          </button>
+
+          <p><b>PivotTable Status</b></p>
+          <p /><button id="get-crate-total" class="ms-Button">
+              <span class="ms-Button-label">Get crate totals</span>
+          </button>
+          <p /><button id="log-filters" class="ms-Button">
+              <span class="ms-Button-label">Log current filters</span>
+          </button>
+          <p /><button id="clear-filters" class="ms-Button">
+              <span class="ms-Button-label">Clear filters</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

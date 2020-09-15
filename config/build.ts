@@ -84,7 +84,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
 
             const fullPath = path.resolve(dir, file.relativePath);
             const originalFileContents = fsx.readFileSync(fullPath).toString().trim();
-            let snippet: ISnippet = jsyaml.safeLoad(originalFileContents);
+            let snippet = jsyaml.safeLoad(originalFileContents) as ISnippet;
 
             // Do validations & auto-corrections
             validateStringFieldNotEmptyOrThrow(snippet, 'name');

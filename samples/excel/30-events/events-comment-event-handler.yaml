@@ -9,8 +9,7 @@ script:
     content: |
         $("#setup").click(() => tryCatch(setup)); 
         $("#register-event-handlers").click(() => tryCatch(registerEventHandlers)); 
-        $("#add-comment-to-selected-cell").click(() => tryCatch(addCommentToSelectedCell)); 
-        $("#add-comment-to-cell").click(() => tryCatch(addCommentToCell)); 
+        $("#add-comment").click(() => tryCatch(addComment)); 
         $("#edit-comment").click(() => tryCatch(editComment)); 
         $("#delete-comment").click(() => tryCatch(deleteComment));
 
@@ -75,23 +74,12 @@ script:
             });
         }
 
-        async function addCommentToSelectedCell() {
-            await Excel.run(async (context) => {
-                const selectedRange = context.workbook.getSelectedRange();
-
-                // Note that an InvalidArgument error will be thrown if multiple cells are selected.
-                context.workbook.comments.add(selectedRange, "TODO: add headers here.");
-
-                await context.sync();
-            });
-        }
-
-        async function addCommentToCell() {
+        async function addComment() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Comments");
 
                 // Note that an InvalidArgument error will be thrown if multiple cells are passed to `comment.add`.
-                sheet.comments.add("A2", "TODO: add data.");
+                sheet.comments.add("A1", "To do: add data.");
                 await context.sync();
             });
         }
@@ -100,14 +88,14 @@ script:
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getItem("Comments");
                 const comment = sheet.comments.getItemAt(0);
-                comment.content = "PLEASE add headers here.";
+                comment.content = "Please add headers here.";
                 await context.sync();
             });
         }
 
         async function deleteComment() {
             await Excel.run(async (context) => {
-                context.workbook.comments.getItemByCell("Comments!A2").delete();
+                context.workbook.comments.getItemByCell("Comments!A1").delete();
                 await context.sync();
             });
         }
@@ -151,20 +139,16 @@ template:
             <h3>Try it out</h3>
             <p>To better view the comment changes, open the Comments pane by selecting <b>Show Comments</b> from the
                 <b>Review</b> tab.</p>
-            <button id="add-comment-to-selected-cell" class="ms-Button">
-                <span class="ms-Button-label">Add comment to selected cell</span>
-            </button>
-            <p></p>
-            <button id="add-comment-to-cell" class="ms-Button">
-                <span class="ms-Button-label">Add comment to A2</span>
+            <button id="add-comment" class="ms-Button">
+                <span class="ms-Button-label">Add comment</span>
             </button>
             <p></p>
             <button id="edit-comment" class="ms-Button">
-                <span class="ms-Button-label">Edit first comment</span>
+                <span class="ms-Button-label">Edit comment</span>
             </button>
             <p></p>
             <button id="delete-comment" class="ms-Button">
-                <span class="ms-Button-label">Remove comment at A2</span>
+                <span class="ms-Button-label">Remove comment</span>
             </button>
         </section>    
     language: html

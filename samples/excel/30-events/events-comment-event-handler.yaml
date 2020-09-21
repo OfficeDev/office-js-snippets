@@ -1,0 +1,181 @@
+order: 13
+id: excel-events-comments
+name: Comment events
+description: 'Registers event handlers to listen for comment additions, changes, and deletions.'
+host: EXCEL
+api_set:
+    ExcelAPI: '1.12'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup)); 
+        $("#register-event-handlers").click(() => tryCatch(registerEventHandlers)); 
+        $("#add-comment").click(() => tryCatch(addComment)); 
+        $("#edit-comment").click(() => tryCatch(editComment)); 
+        $("#delete-comment").click(() => tryCatch(deleteComment));
+
+        async function registerEventHandlers() {
+            await Excel.run(async (context) => {
+                const comments = context.workbook.worksheets.getActiveWorksheet().comments;
+
+                // Register the onAdded, onChanged, and onDeleted comment event handlers.
+                comments.onAdded.add(commentAdded);
+                comments.onChanged.add(commentChanged);
+                comments.onDeleted.add(commentDeleted);
+
+                await context.sync();
+
+                console.log("Added event handlers for when comments are added, changed, or deleted.");
+            });
+        }
+
+        async function commentAdded(event: Excel.CommentAddedEventArgs) {
+            await Excel.run(async (context) => {
+                // Retrieve the added comment using the comment ID.
+                // Note: This method assumes only a single comment is added at a time. 
+                const addedComment = context.workbook.comments.getItem(event.commentDetails[0].commentId);
+
+                // Load the added comment's data.
+                addedComment.load(["content", "authorName", "creationDate"]);
+
+                await context.sync();
+
+                // Print out the added comment's data.
+                console.log(`A comment was added:`);
+                console.log(`    ID: ${event.commentDetails[0].commentId}`);
+                console.log(`    Comment content:${addedComment.content}`);
+                console.log(`    Comment author:${addedComment.authorName}`);
+                console.log(`    Creation date:${addedComment.creationDate}`);
+            });
+        }
+
+        async function commentChanged(event: Excel.CommentChangedEventArgs) {
+            await Excel.run(async (context) => {
+                // Retrieve the changed comment using the comment ID.
+                // Note: This method assumes only a single comment is changed at a time. 
+                const changedComment = context.workbook.comments.getItem(event.commentDetails[0].commentId);
+
+                // Load the changed comment's data.
+                changedComment.load(["content", "authorName", "creationDate"]);
+
+                await context.sync();
+
+                // Print out the changed comment's data.
+                console.log(`A comment was changed:`);
+                console.log(`    ID: ${event.commentDetails[0].commentId}`);
+                console.log(`    Updated comment content: ${changedComment.content}`);
+                console.log(`    Comment author: ${changedComment.authorName}`);
+                console.log(`    Creation date: ${changedComment.creationDate}`);
+            });
+        }
+
+        async function commentDeleted(event: Excel.CommentDeletedEventArgs) {
+            await Excel.run(async (context) => {
+                // Print out the deleted comment's ID.
+                // Note: This method assumes only a single comment is deleted at a time. 
+                console.log(`A comment was deleted:`);
+                console.log(`    ID: ${event.commentDetails[0].commentId}`);
+            });
+        }
+
+        async function addComment() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Comments");
+
+                // Note that an InvalidArgument error will be thrown if multiple cells are passed to `comment.add`.
+                sheet.comments.add("A1", "To do: add data.");
+                await context.sync();
+            });
+        }
+
+        async function editComment() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Comments");
+                const comment = sheet.comments.getItemAt(0);
+                comment.content = "Please add headers here.";
+                await context.sync();
+            });
+        }
+
+        async function deleteComment() {
+            await Excel.run(async (context) => {
+                context.workbook.comments.getItemByCell("Comments!A1").delete();
+                await context.sync();
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Comments").delete();
+                const sheet = context.workbook.worksheets.add("Comments");
+
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */ 
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to register event handlers to listen for comment additions, changes, and deletions.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a worksheet</span>
+            </button>
+            <p></p>
+            <button id="register-event-handlers" class="ms-Button">
+                <span class="ms-Button-label">Register event handlers</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>In addition to hovering over a cell, you can view comment changes in the Comments pane by selecting <b>Show Comments</b> from the <b>Review</b> tab.</p>
+            <button id="add-comment" class="ms-Button">
+                <span class="ms-Button-label">Add comment</span>
+            </button>
+            <p></p>
+            <button id="edit-comment" class="ms-Button">
+                <span class="ms-Button-label">Edit comment</span>
+            </button>
+            <p></p>
+            <button id="delete-comment" class="ms-Button">
+                <span class="ms-Button-label">Remove comment</span>
+            </button>
+        </section>    
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+        language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

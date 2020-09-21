@@ -1,3 +1,31 @@
+'Excel.Application#decimalSeparator:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/50-workbook/culture-info.yaml
+
+    await Excel.run(async (context) => {
+      context.application.load("decimalSeparator,thousandsSeparator");
+      context.application.cultureInfo.numberFormat.load("numberDecimalSeparator,numberGroupSeparator");
+      await context.sync();
+
+      // Local settings are set under the "Options > Advanced" menu.
+      const localDecimalSeparator = context.application.decimalSeparator;
+      const localThousandsSeparator = context.application.thousandsSeparator;
+
+      const systemDecimalSeparator = context.application.cultureInfo.numberFormat.numberDecimalSeparator;
+      const systemThousandsSeparator = context.application.cultureInfo.numberFormat.numberGroupSeparator;
+
+      console.log("Local character settings: ");
+      console.log(`  Local decimal separator: ${localDecimalSeparator}`);
+      console.log(`  Local thousands separator: ${localThousandsSeparator}`);
+
+      console.log("System culture settings: ");
+      console.log(`  System decimal separator: ${systemDecimalSeparator}`);
+      console.log(`  System thousands separator: ${systemThousandsSeparator}`);
+      console.log(`  `);
+
+      await context.sync();
+    });
 'Excel.Application#suspendScreenUpdatingUntilNextSync:member(1)':
   - >-
     // Link to full sample:
@@ -30,34 +58,6 @@
         await context.sync();
 
         console.log(`Ending. Adding ${rowCount * columnCount} cells took ${Date.now() - startTime} milliseconds`);
-    });
-'Excel.Application#decimalSeparator:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/50-workbook/culture-info.yaml
-
-    await Excel.run(async (context) => {
-      context.application.load("decimalSeparator,thousandsSeparator");
-      context.application.cultureInfo.numberFormat.load("numberDecimalSeparator,numberGroupSeparator");
-      await context.sync();
-
-      // Local settings are set under the "Options > Advanced" menu.
-      const localDecimalSeparator = context.application.decimalSeparator;
-      const localThousandsSeparator = context.application.thousandsSeparator;
-
-      const systemDecimalSeparator = context.application.cultureInfo.numberFormat.numberDecimalSeparator;
-      const systemThousandsSeparator = context.application.cultureInfo.numberFormat.numberGroupSeparator;
-
-      console.log("Local character settings: ");
-      console.log(`  Local decimal separator: ${localDecimalSeparator}`);
-      console.log(`  Local thousands separator: ${localThousandsSeparator}`);
-
-      console.log("System culture settings: ");
-      console.log(`  System decimal separator: ${systemDecimalSeparator}`);
-      console.log(`  System thousands separator: ${systemThousandsSeparator}`);
-      console.log(`  `);
-
-      await context.sync();
     });
 'Excel.AutoFilter#apply:member(1)':
   - >-
@@ -425,6 +425,80 @@
 
         await context.sync();
     });
+'Excel.ChartSeries#setBubbleSizes:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/10-chart/chart-bubble-chart.yaml
+
+    await Excel.run(async (context) => {
+      /*
+        The table is expected to look like this:
+        Product, Inventory, Price, Current Market Share
+        Calamansi, 2000, $2.45, 10%
+        ...
+
+        We want each bubble to represent a single row.
+      */
+
+      // Get the worksheet and table data.
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const table = sheet.tables.getItem("Sales");
+      const dataRange = table.getDataBodyRange();
+
+      // Get the table data without the row names.
+      const valueRange = dataRange.getOffsetRange(0, 1).getResizedRange(0, -1);
+
+      // Create the chart.
+      const bubbleChart = sheet.charts.add(Excel.ChartType.bubble, valueRange);
+      bubbleChart.name = "Product Chart";
+
+      // Remove the default series, since we want a unique series for each row.
+      bubbleChart.series.getItemAt(0).delete();
+
+      // Load the data necessary to make a chart series.
+      dataRange.load(["rowCount", "values"]);
+      await context.sync();
+
+      // For each row, create a chart series (a bubble).
+      for (let i = 0; i < dataRange.rowCount; i++) {
+        const newSeries = bubbleChart.series.add(dataRange.values[i][0], i);
+        newSeries.setXAxisValues(dataRange.getCell(i, 1));
+        newSeries.setValues(dataRange.getCell(i, 2));
+        newSeries.setBubbleSizes(dataRange.getCell(i, 3));
+
+        // Show the product name and market share percentage.
+        newSeries.dataLabels.showSeriesName = true;
+        newSeries.dataLabels.showBubbleSize = true;
+        newSeries.dataLabels.showValue = false;
+      }
+
+      await context.sync();
+    });
+'Excel.ChartSeries#getDimensionValues:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/10-chart/chart-bubble-chart.yaml
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+
+      // The sample chart is of type `Excel.ChartType.bubble`.
+      const bubbleChart = sheet.charts.getItem("Product Chart");
+
+      // Get the first series in the chart.
+      const firstSeries = bubbleChart.series.getItemAt(0);
+
+      // Get the values for the dimensions we're interested in.
+      const bubbleSize = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.bubbleSizes);
+      const xValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.xvalues);
+      const yValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.yvalues);
+      const category = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.categories);
+
+      await context.sync();
+
+      // Log the information.
+      console.log(`Series ${category.value} - X:${xValues.value},Y:${yValues.value},Bubble:${bubbleSize.value}`);
+    });
 'Excel.ChartSeries#delete:member(1)':
   - >-
     // Link to full sample:
@@ -761,6 +835,115 @@
         sheet.comments.add("A2", "TODO: add data.");
         await context.sync();
     });
+'Excel.CommentCollection#onAdded:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/30-events/events-comment-event-handler.yaml
+
+    await Excel.run(async (context) => {
+        const comments = context.workbook.worksheets.getActiveWorksheet().comments;
+
+        // Register the onAdded, onChanged, and onDeleted comment event handlers.
+        comments.onAdded.add(commentAdded);
+        comments.onChanged.add(commentChanged);
+        comments.onDeleted.add(commentDeleted);
+
+        await context.sync();
+
+        console.log("Added event handlers for when comments are added, changed, or deleted.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/30-events/events-comment-event-handler.yaml
+
+    async function commentAdded(event: Excel.CommentAddedEventArgs) {
+        await Excel.run(async (context) => {
+            // Retrieve the added comment using the comment ID.
+            // Note: This method assumes only a single comment is added at a time. 
+            const addedComment = context.workbook.comments.getItem(event.commentDetails[0].commentId);
+
+            // Load the added comment's data.
+            addedComment.load(["content", "authorName", "creationDate"]);
+
+            await context.sync();
+
+            // Print out the added comment's data.
+            console.log(`A comment was added:`);
+            console.log(`    ID: ${event.commentDetails[0].commentId}`);
+            console.log(`    Comment content:${addedComment.content}`);
+            console.log(`    Comment author:${addedComment.authorName}`);
+            console.log(`    Creation date:${addedComment.creationDate}`);
+        });
+    }
+'Excel.CommentCollection#onChanged:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/30-events/events-comment-event-handler.yaml
+
+    await Excel.run(async (context) => {
+        const comments = context.workbook.worksheets.getActiveWorksheet().comments;
+
+        // Register the onAdded, onChanged, and onDeleted comment event handlers.
+        comments.onAdded.add(commentAdded);
+        comments.onChanged.add(commentChanged);
+        comments.onDeleted.add(commentDeleted);
+
+        await context.sync();
+
+        console.log("Added event handlers for when comments are added, changed, or deleted.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/30-events/events-comment-event-handler.yaml
+
+    async function commentChanged(event: Excel.CommentChangedEventArgs) {
+        await Excel.run(async (context) => {
+            // Retrieve the changed comment using the comment ID.
+            // Note: This method assumes only a single comment is changed at a time. 
+            const changedComment = context.workbook.comments.getItem(event.commentDetails[0].commentId);
+
+            // Load the changed comment's data.
+            changedComment.load(["content", "authorName", "creationDate"]);
+
+            await context.sync();
+
+            // Print out the changed comment's data.
+            console.log(`A comment was changed:`);
+            console.log(`    ID: ${event.commentDetails[0].commentId}`);
+            console.log(`    Updated comment content: ${changedComment.content}`);
+            console.log(`    Comment author: ${changedComment.authorName}`);
+            console.log(`    Creation date: ${changedComment.creationDate}`);
+        });
+    }
+'Excel.CommentCollection#onDeleted:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/30-events/events-comment-event-handler.yaml
+
+    await Excel.run(async (context) => {
+        const comments = context.workbook.worksheets.getActiveWorksheet().comments;
+
+        // Register the onAdded, onChanged, and onDeleted comment event handlers.
+        comments.onAdded.add(commentAdded);
+        comments.onChanged.add(commentChanged);
+        comments.onDeleted.add(commentDeleted);
+
+        await context.sync();
+
+        console.log("Added event handlers for when comments are added, changed, or deleted.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/30-events/events-comment-event-handler.yaml
+
+    async function commentDeleted(event: Excel.CommentDeletedEventArgs) {
+        await Excel.run(async (context) => {
+            // Print out the deleted comment's ID.
+            // Note: This method assumes only a single comment is deleted at a time. 
+            console.log(`A comment was deleted:`);
+            console.log(`    ID: ${event.commentDetails[0].commentId}`);
+        });
+    }
 'Excel.CommentReply#content:member':
   - >-
     // Link to full sample:
@@ -2530,32 +2713,28 @@
 
         await context.sync();
     });
-'Excel.Range#getPivotTables:member(1)':
+'Excel.Range#getDirectPrecedents:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/38-pivottable/pivottable-get-pivottables.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/direct-precedents.yaml
 
     await Excel.run(async (context) => {
-      const activeRange = context.workbook.getSelectedRange();
-
-      // Get all the PivotTables that intersect with this range.
-      const partiallyContainedPivotTables = activeRange.getPivotTables();
-      // Get all the PivotTables that are completely contained within this range.
-      const fullyContainedPivotTables = activeRange.getPivotTables(true);
-
-      partiallyContainedPivotTables.load("name");
-      fullyContainedPivotTables.load("name");
+      // Precedents are cells referenced by the formula in a cell.
+      let range = context.workbook.getActiveCell();
+      let directPrecedents = range.getDirectPrecedents();
+      range.load("address");
+      directPrecedents.areas.load("address");
       await context.sync();
 
-      // Display the names in the console.
-      console.log("PivotTables in the current range:")
-      partiallyContainedPivotTables.items.forEach((pivotTable) => {
-        console.log(`\t${pivotTable.name}`);
-      });
-      console.log("PivotTables completely contained in the current range:")
-      fullyContainedPivotTables.items.forEach((pivotTable) => {
-        console.log(`\t${pivotTable.name}`);
-      });
+      console.log(`Direct precedent cells of ${range.address}:`);
+
+      // Use the direct precedents API to loop through precedents of the active cell. 
+      for (var i = 0; i < directPrecedents.areas.items.length; i++) {
+        // Highlight and console the address of each precedent cell.
+        directPrecedents.areas.items[i].format.fill.color = "Yellow";
+        console.log(`  ${directPrecedents.areas.items[i].address}`);
+      }
+      await context.sync();
     });
 'Excel.Range#sort:member':
   - >-
@@ -2619,6 +2798,33 @@
         sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byColumns);
         sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byColumns);
         await context.sync();
+    });
+'Excel.Range#getPivotTables:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/38-pivottable/pivottable-get-pivottables.yaml
+
+    await Excel.run(async (context) => {
+      const activeRange = context.workbook.getSelectedRange();
+
+      // Get all the PivotTables that intersect with this range.
+      const partiallyContainedPivotTables = activeRange.getPivotTables();
+      // Get all the PivotTables that are completely contained within this range.
+      const fullyContainedPivotTables = activeRange.getPivotTables(true);
+
+      partiallyContainedPivotTables.load("name");
+      fullyContainedPivotTables.load("name");
+      await context.sync();
+
+      // Display the names in the console.
+      console.log("PivotTables in the current range:")
+      partiallyContainedPivotTables.items.forEach((pivotTable) => {
+        console.log(`\t${pivotTable.name}`);
+      });
+      console.log("PivotTables completely contained in the current range:")
+      fullyContainedPivotTables.items.forEach((pivotTable) => {
+        console.log(`\t${pivotTable.name}`);
+      });
     });
 'Excel.Range#getSpecialCells:member(1)':
   - >-
@@ -2768,6 +2974,42 @@
         // Note: non-formula values are copied over as is.
         sheet.getRange("G2").copyFrom("A1:E1", Excel.RangeCopyType.formulas);
         await context.sync();
+    });
+'Excel.Range#moveTo:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/range-copyfrom.yaml
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        // Place a label in front of the moved data.
+        sheet.getRange("F12").values = [["Moved Range:"]];
+
+        // Move the range from A1:E1 to G12:K12.
+        sheet.getRange("A1:E1").moveTo("G12");
+        await context.sync();
+    });
+'Excel.Range#getSpillingToRange:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/dynamic-arrays.yaml
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+
+      // Set G4 to a formula that returns a dynamic array.
+      const targetCell = sheet.getRange("G4");
+      targetCell.formulas = [["=A4:D4"]];
+
+      // Get the address of the cells that the dynamic array spilled into.
+      const spillRange = targetCell.getSpillingToRange();
+      spillRange.load("address");
+
+      // Fit the columns for readability.
+      sheet.getUsedRange().format.autofitColumns();
+      await context.sync();
+
+      console.log(`Copying the table headers spilled into ${spillRange.address}.`);
     });
 'Excel.Range#find:member(1)':
   - >-
@@ -3073,88 +3315,6 @@
         targetRange.set(sourceRange); 
         targetRange.format.autofitColumns();
         await context.sync();
-    });
-'Excel.Range#moveTo:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/range-copyfrom.yaml
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        // Place a label in front of the moved data.
-        sheet.getRange("F12").values = [["Moved Range:"]];
-
-        // Move the range from A1:E1 to G12:K12.
-        sheet.getRange("A1:E1").moveTo("G12");
-        await context.sync();
-    });
-'Excel.Range#getSpillingToRange:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/dynamic-arrays.yaml
-
-    await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("Sample");
-
-      // Set G4 to a formula that returns a dynamic array.
-      const targetCell = sheet.getRange("G4");
-      targetCell.formulas = [["=A4:D4"]];
-
-      // Get the address of the cells that the dynamic array spilled into.
-      const spillRange = targetCell.getSpillingToRange();
-      spillRange.load("address");
-
-      // Fit the columns for readability.
-      sheet.getUsedRange().format.autofitColumns();
-      await context.sync();
-
-      console.log(`Copying the table headers spilled into ${spillRange.address}.`);
-    });
-'Excel.Range#getDirectPrecedents:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/direct-precedents.yaml
-
-    await Excel.run(async (context) => {
-      // Precedents are cells referenced by the formula in a cell.
-      let range = context.workbook.getActiveCell();
-      let directPrecedents = range.getDirectPrecedents();
-      range.load("address");
-      directPrecedents.areas.load("address");
-      await context.sync();
-
-      console.log(`Direct precedent cells of ${range.address}:`);
-
-      // Use the direct precedents API to loop through precedents of the active cell. 
-      for (var i = 0; i < directPrecedents.areas.items.length; i++) {
-        // Highlight and console the address of each precedent cell.
-        directPrecedents.areas.items[i].format.fill.color = "Yellow";
-        console.log(`  ${directPrecedents.areas.items[i].address}`);
-      }
-      await context.sync();
-    });
-'Excel.Range#workbookRangeAreas:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/direct-precedents.yaml
-
-    await Excel.run(async (context) => {
-      // Precedents are cells referenced by the formula in a cell.
-      let range = context.workbook.getActiveCell();
-      let directPrecedents = range.getDirectPrecedents();
-      range.load("address");
-      directPrecedents.areas.load("address");
-      await context.sync();
-
-      console.log(`Direct precedent cells of ${range.address}:`);
-
-      // Use the direct precedents API to loop through precedents of the active cell. 
-      for (var i = 0; i < directPrecedents.areas.items.length; i++) {
-        // Highlight and console the address of each precedent cell.
-        directPrecedents.areas.items[i].format.fill.color = "Yellow";
-        console.log(`  ${directPrecedents.areas.items[i].address}`);
-      }
-      await context.sync();
     });
 'Excel.RangeAreas#format:member':
   - >-
@@ -4096,23 +4256,6 @@
         textbox.textFrame.deleteText();
         await context.sync();
     });
-'Excel.Workbook#pivotTables:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/38-pivottable/pivottable-get-pivottables.yaml
-
-    await Excel.run(async (context) => {
-      // Get the names of all the PivotTables in the workbook.
-      const pivotTables = context.workbook.pivotTables;
-      pivotTables.load("name");
-      await context.sync();
-
-      // Display the names in the console.
-      console.log("PivotTables in the workbook:")
-      pivotTables.items.forEach((pivotTable) => {
-        console.log(`\t${pivotTable.name}`);
-      });
-    });
 'Excel.Workbook#properties:member':
   - >-
     // Link to full sample:
@@ -4141,6 +4284,23 @@
         await context.sync();
 
         console.log("Set the following document properties: title, subject, keywords, comments, category, manager, company.");
+    });
+'Excel.Workbook#pivotTables:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/38-pivottable/pivottable-get-pivottables.yaml
+
+    await Excel.run(async (context) => {
+      // Get the names of all the PivotTables in the workbook.
+      const pivotTables = context.workbook.pivotTables;
+      pivotTables.load("name");
+      await context.sync();
+
+      // Display the names in the console.
+      console.log("PivotTables in the workbook:")
+      pivotTables.items.forEach((pivotTable) => {
+        console.log(`\t${pivotTable.name}`);
+      });
     });
 'Excel.Workbook#getSelectedRanges:member(1)':
   - >-
@@ -4304,46 +4464,6 @@
         console.log(`${property.key}:${property.value}`);
       });
     });
-'Excel.Worksheet#pivotTables:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/38-pivottable/pivottable-get-pivottables.yaml
-
-    await Excel.run(async (context) => {
-      // Get the names of all the PivotTables in the current worksheet.
-      const pivotTables = context.workbook.worksheets.getActiveWorksheet().pivotTables;
-      pivotTables.load("name");
-      await context.sync();
-
-      // Display the names in the console.
-      console.log("PivotTables in the current worksheet:")
-      pivotTables.items.forEach((pivotTable) => {
-        console.log(`\t${pivotTable.name}`);
-      });
-    });
-'Excel.Worksheet#showOutlineLevels:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/outline.yaml
-
-    Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-        // This collapses the entire outline.
-        sheet.showOutlineLevels(1, 1);
-        await context.sync();
-    });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/outline.yaml
-
-    Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-        // This shows the top 3 outline levels; collapsing any additional sublevels.
-        sheet.showOutlineLevels(3, 3);
-        await context.sync();
-    });
 'Excel.Worksheet#onRowSorted:member':
   - >-
     // Link to full sample:
@@ -4423,6 +4543,46 @@
         console.log("The worksheet click handler is registered.");
 
         await context.sync();
+    });
+'Excel.Worksheet#showOutlineLevels:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/outline.yaml
+
+    Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        // This collapses the entire outline.
+        sheet.showOutlineLevels(1, 1);
+        await context.sync();
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/outline.yaml
+
+    Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        // This shows the top 3 outline levels; collapsing any additional sublevels.
+        sheet.showOutlineLevels(3, 3);
+        await context.sync();
+    });
+'Excel.Worksheet#pivotTables:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/38-pivottable/pivottable-get-pivottables.yaml
+
+    await Excel.run(async (context) => {
+      // Get the names of all the PivotTables in the current worksheet.
+      const pivotTables = context.workbook.worksheets.getActiveWorksheet().pivotTables;
+      pivotTables.load("name");
+      await context.sync();
+
+      // Display the names in the console.
+      console.log("PivotTables in the current worksheet:")
+      pivotTables.items.forEach((pivotTable) => {
+        console.log(`\t${pivotTable.name}`);
+      });
     });
 'Excel.Worksheet#slicers:member':
   - >-

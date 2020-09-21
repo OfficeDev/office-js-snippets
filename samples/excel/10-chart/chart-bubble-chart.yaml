@@ -1,0 +1,164 @@
+order: 3
+id: excel-chart-bubble-chart
+name: Create bubble chart
+description: Creates a bubble chart with each data row represented as a single chart series (bubble).
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: '1.12'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup)); $("#create-bubble-chart").click(() => tryCatch(createBubbleChart)); $("#get-chart-series-dimension-values").click(() => tryCatch(getChartSeriesDimensionValues));
+        async function createBubbleChart() {
+          await Excel.run(async (context) => {
+            /*
+              The table is expected to look like this:
+              Product, Inventory, Price, Current Market Share
+              Calamansi, 2000, $2.45, 10%
+              ...
+
+              We want each bubble to represent a single row.
+            */
+
+            // Get the worksheet and table data.
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const table = sheet.tables.getItem("Sales");
+            const dataRange = table.getDataBodyRange();
+
+            // Get the table data without the row names.
+            const valueRange = dataRange.getOffsetRange(0, 1).getResizedRange(0, -1);
+
+            // Create the chart.
+            const bubbleChart = sheet.charts.add(Excel.ChartType.bubble, valueRange);
+            bubbleChart.name = "Product Chart";
+
+            // Remove the default series, since we want a unique series for each row.
+            bubbleChart.series.getItemAt(0).delete();
+
+            // Load the data necessary to make a chart series.
+            dataRange.load(["rowCount", "values"]);
+            await context.sync();
+
+            // For each row, create a chart series (a bubble).
+            for (let i = 0; i < dataRange.rowCount; i++) {
+              const newSeries = bubbleChart.series.add(dataRange.values[i][0], i);
+              newSeries.setXAxisValues(dataRange.getCell(i, 1));
+              newSeries.setValues(dataRange.getCell(i, 2));
+              newSeries.setBubbleSizes(dataRange.getCell(i, 3));
+
+              // Show the product name and market share percentage.
+              newSeries.dataLabels.showSeriesName = true;
+              newSeries.dataLabels.showBubbleSize = true;
+              newSeries.dataLabels.showValue = false;
+            }
+
+            await context.sync();
+          });
+        }
+        async function getChartSeriesDimensionValues() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+
+            // The sample chart is of type `Excel.ChartType.bubble`.
+            const bubbleChart = sheet.charts.getItem("Product Chart");
+
+            // Get the first series in the chart.
+            const firstSeries = bubbleChart.series.getItemAt(0);
+
+            // Get the values for the dimensions we're interested in.
+            const bubbleSize = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.bubbleSizes);
+            const xValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.xvalues);
+            const yValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.yvalues);
+            const category = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.categories);
+
+            await context.sync();
+
+            // Log the information.
+            console.log(`Series ${category.value} - X:${xValues.value},Y:${yValues.value},Bubble:${bubbleSize.value}`);
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+
+            let inventoryTable = sheet.tables.add("A1:D1", true);
+            inventoryTable.name = "Sales";
+            inventoryTable.getHeaderRowRange().values = [["Product", "Inventory", "Price", "Current Market Share"]];
+
+            inventoryTable.rows.add(null, [
+              ["Calamansi", 2000, "$2.45", "10%"],
+              ["Cara cara orange", 10000, "$2.12", "45%"],
+              ["Limequat", 4000, "$0.70", "66%"],
+              ["Meyer lemon", 100, "$2.65", "5%"],
+              ["Pomelo", 4000, "$1.69", "14%"],
+              ["Yuzu", 7500, "$3.23", "34%"]
+            ]);
+
+            sheet.getUsedRange().format.autofitColumns();
+            sheet.getUsedRange().format.autofitRows();
+
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */ async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to create a bubble chart, with each chart series (or bubble) representing a single table row.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create table</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="create-bubble-chart" class="ms-Button">
+                <span class="ms-Button-label">Create a bubble chart</span>
+            </button>
+          <p />
+          <button id="get-chart-series-dimension-values" class="ms-Button">
+                  <span class="ms-Button-label">Get first series dimension values</span>
+              </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -425,6 +425,80 @@
 
         await context.sync();
     });
+'Excel.ChartSeries#setBubbleSizes:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/10-chart/chart-bubble-chart.yaml
+
+    await Excel.run(async (context) => {
+      /*
+        The table is expected to look like this:
+        Product, Inventory, Price, Current Market Share
+        Calamansi, 2000, $2.45, 10%
+        ...
+
+        We want a each bubble to represent a single row.
+      */
+
+      // Get the worksheet and table data.
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const table = sheet.tables.getItem("Sales");
+      const dataRange = table.getDataBodyRange();
+
+      // Get the table data without the row names.
+      const valueRange = dataRange.getOffsetRange(0, 1).getResizedRange(0, -1);
+
+      // Create the chart.
+      const bubbleChart = sheet.charts.add(Excel.ChartType.bubble, valueRange);
+      bubbleChart.name = "Product Chart";
+
+      // Remove the default series, since we want a unique series for each row.
+      bubbleChart.series.getItemAt(0).delete();
+
+      // Load the data necessary to make a chart series.
+      dataRange.load(["rowCount", "values"]);
+      await context.sync();
+
+      // For each row, create a chart series (a bubble).
+      for (let i = 0; i < dataRange.rowCount; i++) {
+        const newSeries = bubbleChart.series.add(dataRange.values[i][0], i);
+        newSeries.setXAxisValues(dataRange.getCell(i, 1));
+        newSeries.setValues(dataRange.getCell(i, 2));
+        newSeries.setBubbleSizes(dataRange.getCell(i, 3));
+
+        // Show the product name and market share percentage.
+        newSeries.dataLabels.showSeriesName = true;
+        newSeries.dataLabels.showBubbleSize = true;
+        newSeries.dataLabels.showValue = false;
+      }
+
+      await context.sync();
+    });
+'Excel.ChartSeries#getDimensionValues:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/10-chart/chart-bubble-chart.yaml
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+
+      // The sample chart is of type `Excel.ChartType.bubble`.
+      const bubbleChart = sheet.charts.getItem("Product Chart");
+
+      // Get the first series in the chart.
+      const firstSeries = bubbleChart.series.getItemAt(0);
+
+      // Get the values for the dimensions we're interested in.
+      const bubbleSize = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.bubbleSizes);
+      const xValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.xvalues);
+      const yValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.yvalues);
+      const category = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.categories);
+
+      await context.sync();
+
+      // Log the information.
+      console.log(`Series ${category.value} - X:${xValues.value},Y:${yValues.value},Bubble:${bubbleSize.value}`);
+    });
 'Excel.ChartSeries#delete:member(1)':
   - >-
     // Link to full sample:
@@ -591,80 +665,6 @@
         series3.markerBackgroundColor = "purple";
 
         await context.sync();
-    });
-'Excel.ChartSeries#setBubbleSizes:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/10-chart/chart-bubble-chart.yaml
-
-    await Excel.run(async (context) => {
-      /*
-        The table is expected to look like this:
-        Product, Inventory, Price, Current Market Share
-        Calamansi, 2000, $2.45, 10%
-        ...
-
-        We want a each bubble to represent a single row.
-      */
-
-      // Get the worksheet and table data.
-      const sheet = context.workbook.worksheets.getItem("Sample");
-      const table = sheet.tables.getItem("Sales");
-      const dataRange = table.getDataBodyRange();
-
-      // Get the table data without the row names.
-      const valueRange = dataRange.getOffsetRange(0, 1).getResizedRange(0, -1);
-
-      // Create the chart.
-      const bubbleChart = sheet.charts.add(Excel.ChartType.bubble, valueRange);
-      bubbleChart.name = "Product Chart";
-
-      // Remove the default series, since we want a unique series for each row.
-      bubbleChart.series.getItemAt(0).delete();
-
-      // Load the data necessary to make a chart series.
-      dataRange.load(["rowCount", "values"]);
-      await context.sync();
-
-      // For each row, create a chart series (a bubble).
-      for (let i = 0; i < dataRange.rowCount; i++) {
-        const newSeries = bubbleChart.series.add(dataRange.values[i][0], i);
-        newSeries.setXAxisValues(dataRange.getCell(i, 1));
-        newSeries.setValues(dataRange.getCell(i, 2));
-        newSeries.setBubbleSizes(dataRange.getCell(i, 3));
-
-        // Show the product name and market share percentage.
-        newSeries.dataLabels.showSeriesName = true;
-        newSeries.dataLabels.showBubbleSize = true;
-        newSeries.dataLabels.showValue = false;
-      }
-
-      await context.sync();
-    });
-'Excel.ChartSeries#getDimensionValues:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/10-chart/chart-bubble-chart.yaml
-
-    await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("Sample");
-
-      // The sample chart is of type `Excel.ChartType.bubble`.
-      const bubbleChart = sheet.charts.getItem("Product Chart");
-
-      // Get the first series in the chart.
-      const firstSeries = bubbleChart.series.getItemAt(0);
-
-      // Get the values for the dimensions we're interested in.
-      const bubbleSize = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.bubbleSizes);
-      const xValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.xvalues);
-      const yValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.yvalues);
-      const category = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.categories);
-
-      await context.sync();
-
-      // Log the information.
-      console.log(`Series ${category.value} - X:${xValues.value},Y:${yValues.value},Bubble:${bubbleSize.value}`);
     });
 'Excel.ChartTitle#getSubstring:member(1)':
   - >-
@@ -2714,29 +2714,6 @@
         await context.sync();
     });
 'Excel.Range#getDirectPrecedents:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/direct-precedents.yaml
-
-    await Excel.run(async (context) => {
-      // Precedents are cells referenced by the formula in a cell.
-      let range = context.workbook.getActiveCell();
-      let directPrecedents = range.getDirectPrecedents();
-      range.load("address");
-      directPrecedents.areas.load("address");
-      await context.sync();
-
-      console.log(`Direct precedent cells of ${range.address}:`);
-
-      // Use the direct precedents API to loop through precedents of the active cell. 
-      for (var i = 0; i < directPrecedents.areas.items.length; i++) {
-        // Highlight and console the address of each precedent cell.
-        directPrecedents.areas.items[i].format.fill.color = "Yellow";
-        console.log(`  ${directPrecedents.areas.items[i].address}`);
-      }
-      await context.sync();
-    });
-'Excel.Range#workbookRangeAreas:member(1)':
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/samples/excel/42-range/direct-precedents.yaml

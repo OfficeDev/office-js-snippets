@@ -1,0 +1,137 @@
+id: powerpoint-insert-slides
+name: Insert slides from other presentation
+description: Inserts slides from another PowerPoint file into the current presentation.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.2'
+script:
+    content: |
+        $("#insert-all-slides").click(() => tryCatch(insertAllSlides));
+        $("#insert-after-target-slide").click(() => tryCatch(insertAfterSelectedSlide));
+        $("#file").change(() => tryCatch(storeFileAsBase64));
+
+        let chosenFileBase64;
+
+        async function storeFileAsBase64() {
+            const reader = new FileReader();
+
+            reader.onload = async (event) => {
+                // Strip off the metadata before the base64-encoded string
+                const startIndex = reader.result.toString().indexOf("base64,");
+                const copyBase64 = reader.result.toString().substr(startIndex + 7);
+
+                chosenFileBase64 = copyBase64;
+            };
+
+            // Read in the file and store a base64-encoded copy as the reader.result
+            // property. This also triggers the onload event.
+            const myFile = document.getElementById("file") as HTMLInputElement;
+            reader.readAsDataURL(myFile.files[0]);
+        }
+
+        async function insertAllSlides() {
+            await PowerPoint.run(async function(context) {
+                context.presentation.insertSlidesFromBase64(chosenFileBase64);
+                await context.sync();
+            });
+        }
+
+        async function insertAfterSelectedSlide() {
+            await PowerPoint.run(async function(context) {
+                const selectedSlideID = await getSelectedSlideID();
+
+                context.presentation.insertSlidesFromBase64(chosenFileBase64, {
+                    formatting: PowerPoint.InsertSlideFormatting.useDestinationTheme,
+                    targetSlideId: selectedSlideID + "#"
+                });
+                await context.sync();
+            });
+        }
+
+        function getSelectedSlideID() {
+            // Wrap a call of one of the Common APIs in a Promise-returning
+            // function, so that it can be easily called within a run() method
+            // of an application-specific API.
+            return new OfficeExtension.Promise<string>(function(resolve, reject) {
+                Office.context.document.getSelectedDataAsync(Office.CoercionType.SlideRange, function(asyncResult) {
+                    try {
+                        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+                            reject(console.error(asyncResult.error.message));
+                        } else {
+                            const result = asyncResult.value as any;
+                            resolve(result.slides[0].id);
+                        }
+                    } 
+                    catch (error) {
+                        reject(console.log(error));
+                    }
+                });
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } 
+            catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to insert slides from another presentation into the current presentation.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>
+                <ol>
+                    <li>Open this add-in in a brand new presentation.</li>
+                    <li>Add at least 2 slides to the presentation.</li>
+                    <li>Next, select a PowerPoint presentation from which to insert slides.</li>
+                </ol>
+                <form>
+                    <input type="file" id="file" />
+          </form>
+            </p>
+            <p>Press <b>Insert all slides</b> to insert all the slides at the beginning of the
+                presentation. Source formatting is used.</p>
+            <button id="insert-all-slides" class="ms-Button">
+                    <span class="ms-Button-label">Insert all slides</span>
+            </button>
+            <p>Select a slide and press <b>Insert after selected slide</b>. Destination formatting is used.</p>
+            <button id="insert-after-target-slide" class="ms-Button">
+                    <span class="ms-Button-label">Insert after selected slide</span>
+            </button>
+            <p><b>To undo an insertion, click anywhere on the presentation and press Ctrl-Z.</b></p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

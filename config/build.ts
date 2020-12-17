@@ -6,7 +6,7 @@ import * as chalk from 'chalk';
 import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
-    getDestinationBranch, followsNamingGuidelines, isCUID,
+    followsNamingGuidelines, isCUID,
     rmRf, mkDir, getFiles, writeFile, banner, getPrintableDetails, Dictionary
 } from './helpers';
 import { buildReferenceDocSnippetExtracts } from './build.documentation';
@@ -18,7 +18,6 @@ import escapeStringRegexp = require('escape-string-regexp');
 import * as fsx from 'fs-extra';
 
 
-const { GH_ACCOUNT, GH_REPO, TRAVIS_BRANCH } = process.env;
 const PRIVATE_SAMPLES = 'private-samples';
 const PUBLIC_SAMPLES = 'samples';
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
@@ -123,7 +122,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
             status.complete(true /*success*/, `Processing ${file.relativePath}`, messages);
 
             const rawUrl = `https://raw.githubusercontent.com/` +
-                `${GH_ACCOUNT || '<ACCOUNT>'}/${GH_REPO || '<REPO>'}/${getDestinationBranch(TRAVIS_BRANCH) || '<BRANCH>'}` +
+                `${'<ACCOUNT>'}/${'<REPO>'}/${'<BRANCH>'}` +
                 `/${dir}/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {

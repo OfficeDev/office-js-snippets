@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/OfficeDev/office-js-snippets.svg?branch=master)](https://travis-ci.org/OfficeDev/office-js-snippets)
-
 # Office JS Snippets
 
 A collection of code snippets built with [Script Lab](//github.com/OfficeDev/script-lab)
@@ -134,7 +132,7 @@ A few style rules to observe:
 
 ## Debugging the build script
 
-* The scripts for building/validating the snippets are under the `config` folder -- in particular, under `build.ts`. There is also a `deploy.ts` for copying the built files to their final location.
+* The scripts for building/validating the snippets are under the `config` folder -- in particular, under `build.ts`.
 
 > **Note**: If debugging in Visual Studio Code, you can use "F5" to attach the debugger, but be sure to run `npm run tsc` before you do (and after any code change!). `F5` is not set to recompile!
 

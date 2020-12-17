@@ -74,18 +74,6 @@ export function getPrintableDetails(item: any, indent: number) {
     return details.split('\n').map(line => new Array(indent).join(' ') + line).join('\n');
 }
 
-export const getDestinationBranch = (sourceBranch: 'master' | 'prod' | any): 'deploy-beta' | 'deploy-prod' | null => {
-    if (sourceBranch === 'master') {
-        return 'deploy-beta';
-    }
-    else if (sourceBranch === 'prod') {
-        return 'deploy-prod';
-    }
-    else {
-        return null;
-    }
-};
-
 /**
  * Creates a folder.
  * @param dir An absolute path to the directory.

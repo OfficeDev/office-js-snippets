@@ -122,7 +122,8 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
             status.complete(true /*success*/, `Processing ${file.relativePath}`, messages);
 
             const rawUrl = `https://raw.githubusercontent.com/` +
-                `${'<ACCOUNT>'}/${'<REPO>'}/${'<BRANCH>'}` +
+                //`${'<ACCOUNT>'}/${'<REPO>'}/${'<BRANCH>'}` +
+                `OfficeDev/office-js-snippets/master` +
                 `/${dir}/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {

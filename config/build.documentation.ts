@@ -146,7 +146,7 @@ function getExtractedDataFromSnippet(
 
             // Place snippet location as comment.
             const editedFilename = filename.substr(filename.lastIndexOf('samples')).replace(/\\/g, '/');
-            text = '// Link to full sample: https://raw.githubusercontent.com/OfficeDev/office-js-snippets/master/' + editedFilename + '\n';
+            text = '// Link to full sample: https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/' + editedFilename + '\n';
 
             text += indented
                 .map(line => {

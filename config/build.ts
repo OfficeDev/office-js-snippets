@@ -7,7 +7,7 @@ import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
     followsNamingGuidelines, isCUID,
-    rmRf, mkDir, getFiles, writeFile, banner, getPrintableDetails, Dictionary
+    rmRf, mkDir, readDir, getFiles, writeFile, banner, getPrintableDetails, Dictionary
 } from './helpers';
 import { buildReferenceDocSnippetExtracts } from './build.documentation';
 import { getShareableYaml } from './snippet.helpers';
@@ -47,6 +47,7 @@ const defaultApiSets = {
         .then(updateModifiedFiles)
         .then(() => checkSnippetsForUniqueIDs(processedSnippets))
         .then(() => generatePlaylists(processedSnippets))
+        .then(copyAndUpdatePlaylistFolders)
         .then(() => buildReferenceDocSnippetExtracts(processedSnippets, accumulatedErrors))
         .then(() => {
             if (accumulatedErrors.length > 0) {
@@ -122,7 +123,6 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
             status.complete(true /*success*/, `Processing ${file.relativePath}`, messages);
 
             const rawUrl = `https://raw.githubusercontent.com/` +
-                //`${'<ACCOUNT>'}/${'<REPO>'}/${'<BRANCH>'}` +
                 `OfficeDev/office-js-snippets/master` +
                 `/${dir}/${file.host}/${file.group}/${file.file_name}`;
 
@@ -574,6 +574,50 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
     });
 
     await Promise.all(publicPlaylistPromises.concat(allPlaylistPromises));
+}
+
+async function copyAndUpdatePlaylistFolders() {
+    banner('Copying and updating \'playlists\' and \'view\' directories');
+
+    /* Copying playlists directory */
+    let playlistsProdFolderName = 'playlists-prod';
+    status.add(`Creating \'${playlistsProdFolderName}\' folder`);
+    await rmRf(playlistsProdFolderName);
+    let playlistsProdFolderPath = await mkDir(playlistsProdFolderName);
+    status.complete(true /*success*/, `Creating \'${playlistsProdFolderName}\' folder`);
+
+    await fsx.copy('playlists', playlistsProdFolderName);
+    let playlistsFiles = await readDir(playlistsProdFolderPath);
+    (await Promise.all(playlistsFiles.map(file => updateCopiedFile(playlistsProdFolderPath, file))));
+
+    /* Copying view directory */
+    let viewProdFolderName = `view-prod`;
+    status.add(`Creating \'${viewProdFolderName}\' folder`);
+    await rmRf(viewProdFolderName);
+    let viewProdFolderPath = await mkDir(viewProdFolderName);
+    status.complete(true /*success*/, `Creating \'${viewProdFolderName}\' folder`);
+
+    await fsx.copy('view', viewProdFolderName);
+    let viewFiles = await readDir(viewProdFolderPath);
+    (await Promise.all(viewFiles.map(file => updateCopiedFile(viewProdFolderPath, file))));
+}
+
+// helper for copyAndUpdatePlaylistFolders
+async function updateCopiedFile(folderPath: string, filePath: string) {
+    const fullPath = path.resolve(folderPath, filePath);
+    let content = fsx.readFileSync(fullPath).toString().trim().replace(
+        /\/OfficeDev\/office-js-snippets\/master/g,
+        '/OfficeDev/office-js-snippets/prod');
+    const fileUpdates = [];
+    fileUpdates.push(
+        Promise.resolve()
+            .then(async () => {
+                const updatingStatusText = `Updating copied file ${fullPath}`;
+                status.add(updatingStatusText);
+                await writeFile(fullPath, content);
+                status.complete(true /*succeeded*/, updatingStatusText);
+            })
+    );
 }
 
 function handleError(error: any | any[]) {

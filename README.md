@@ -34,7 +34,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 
 5. Check the name and description property values, also near the top of the file, and edit as needed.
 6. Save the file **somewhere outside of the office-js-snippets project**. (You will move it into the project in a later step.) The file name must have a ".yaml" extension and it must be in [`kebab-case`](http://wiki.c2.com/?KebabCase). For examples, see the existing *.yaml files in the subfolders of the `samples` folder of the project.
-7. Make sure the master branch of your fork is in sync with the master branch of the upstream \OfficeDev\office-js-snippets repo by following the steps in [Syncing a fork](https://help.github.com/articles/syncing-a-fork/).
+7. Make sure the main branch of your fork is in sync with the main branch of the upstream \OfficeDev\office-js-snippets repo by following the steps in [Syncing a fork](https://help.github.com/articles/syncing-a-fork/).
 8. Create a new branch at the **office-js-snippets** root folder of your local repo by running the command `git checkout -b {name_of_your_new_branch}`. (This will create and checkout the new branch. *Stay in this branch for all the remaining steps.*) Each snippet should have its own branch. Suggestion: use the name of the yaml file that you created above (without the extension) as the branch name.
 9. Decide the folder where your snippet should be added. All snippet files must reside within the appropriate subfolder inside the `samples` folder. Within the `samples` folder, the structure of subfolders is as follows:
 
@@ -70,7 +70,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 19. On the **Open a pull request** page, verify that:
 
  - the base fork is `OfficeDev/office-js-snippets`
- - the base branch is `master`
+ - the base branch is `main`
  - the head fork is `{your-GitHub-account}/office-js-snippets`
  - the "compare" branch is `{name_of_your_new_branch}`.
 
@@ -81,7 +81,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
  > **Note**: Since your pull request passed locally, it should pass the online test too. Once in a while, the online test fails when the local test passed. This is usually a bug in the online test service. If this happens, cancel the pull request, wait a few hours, and then repeat the steps for creating a pull request.
 
 23. The reviewers may make comments on your pull request and ask you to make changes. Make changes in Script Lab and then repeat the process of creating the `.yaml` file. You do not have to create the new branch again, but make sure it is checked out when you copy the changed `.yaml` file over the previous version. After you commit and push the changed version to your fork, the new version is automatically added to your existing pull request. *Do **not** create a new pull request.*
-24. When the reviewers are satisfied, your pull request will be merged to the `master` branch and the pull request will be closed.
+24. When the reviewers are satisfied, your pull request will be merged to the `main` branch and the pull request will be closed.
 
  > **Note**: In a few days, the repo admins will merge your snippet into the `prod` branch. It will then appear in **Samples** area of Script Lab. (It is in the **My Snippets** area as soon as you create it.)
 

@@ -123,7 +123,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
             status.complete(true /*success*/, `Processing ${file.relativePath}`, messages);
 
             const rawUrl = `https://raw.githubusercontent.com/` +
-                `OfficeDev/office-js-snippets/master` +
+                `OfficeDev/office-js-snippets/main` +
                 `/${dir}/${file.host}/${file.group}/${file.file_name}`;
 
             if (messages.findIndex(item => item instanceof Error) >= 0) {
@@ -606,7 +606,7 @@ async function copyAndUpdatePlaylistFolders() {
 async function updateCopiedFile(folderPath: string, filePath: string) {
     const fullPath = path.resolve(folderPath, filePath);
     let content = fsx.readFileSync(fullPath).toString().trim().replace(
-        /\/OfficeDev\/office-js-snippets\/master/g,
+        /\/OfficeDev\/office-js-snippets\/main/g,
         '/OfficeDev/office-js-snippets/prod');
     const fileUpdates = [];
     fileUpdates.push(

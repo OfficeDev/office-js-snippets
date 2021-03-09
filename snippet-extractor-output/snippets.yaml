@@ -4253,6 +4253,42 @@
         textbox.textFrame.deleteText();
         await context.sync();
     });
+'Excel.Workbook#insertWorksheetsFromBase64:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/85-preview-apis/workbook-insert-external-worksheets.yaml
+
+    const myFile = <HTMLInputElement>document.getElementById("file");
+
+    const reader = new FileReader();
+
+
+    reader.onload = (event) => {
+        Excel.run((context) => {
+            // Remove the metadata before the base64-encoded string.
+            const startIndex = reader.result.toString().indexOf("base64,");
+            const workbookContents = reader.result.toString().substr(startIndex + 7);
+            
+            // Retrieve the workbook.
+            const workbook = context.workbook;
+            
+            // Set up the insert options. 
+            var options = { 
+                sheetNamesToInsert: [], // Insert all the worksheets from the source workbook.
+                positionType: Excel.WorksheetPositionType.after, // Insert after the `relativeTo` sheet.
+                relativeTo: "Sheet1" }; // The sheet relative to which the other worksheets will be inserted. Used with `positionType`.
+            
+            // Insert the workbook. 
+            workbook.insertWorksheetsFromBase64(workbookContents, options);
+            return context.sync();
+        });
+    };
+
+
+    // Read the file as a data URL so that we can parse the base64-encoded
+    string.
+
+    reader.readAsDataURL(myFile.files[0]);
 'Excel.Workbook#properties:member':
   - >-
     // Link to full sample:
@@ -4784,36 +4820,6 @@
         await context.sync();
         console.log("A handler has been registered for the OnDeactivate event.");
     });
-'Excel.WorksheetCollection#addFromBase64:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/85-preview-apis/workbook-insert-external-worksheets.yaml
-
-    const myFile = <HTMLInputElement>document.getElementById("file");
-
-    const reader = new FileReader();
-
-
-    reader.onload = (event) => {
-        Excel.run((context) => {
-            // strip off the metadata before the base64-encoded string
-            const startIndex = reader.result.toString().indexOf("base64,");
-            const workbookContents = reader.result.toString().substr(startIndex + 7);
-
-            const sheets = context.workbook.worksheets;
-            sheets.addFromBase64(
-                workbookContents,
-                null, // get all the worksheets 
-                Excel.WorksheetPositionType.end // insert them after the current workbook's worksheets
-                );
-            return context.sync();
-        });
-    };
-
-
-    // read in the file as a data URL so we can parse the base64-encoded string
-
-    reader.readAsDataURL(myFile.files[0]);
 'Excel.WorksheetCollection#getFirst:member(1)':
   - >-
     // Link to full sample:
@@ -9260,7 +9266,7 @@
 'PowerPoint.Presentation#insertSlidesFromBase64:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/insert-slides.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/insert-slides.yaml
 
     await PowerPoint.run(async function(context) {
         const selectedSlideID = await getSelectedSlideID();
@@ -9270,6 +9276,23 @@
             targetSlideId: selectedSlideID + "#"
         });
         await context.sync();
+    });
+'PowerPoint.SlideCollection#add:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/add-slides.yaml
+
+    const chosenMaster = $("#master-id").val() as string;
+
+    const chosenLayout = $("#layout-id").val() as string;
+
+
+    await PowerPoint.run(async function(context) {
+      context.presentation.slides.add({
+        slideMasterId: chosenMaster,
+        layoutId: chosenLayout
+      });
+      await context.sync();
     });
 'Word.Body#search:member(1)':
   - >-

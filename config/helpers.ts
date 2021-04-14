@@ -196,21 +196,22 @@ export function getFiles(root: string): SnippetFileInput[] {
     // Helper
     function syncRecurseThroughDirectory(dir: string) {
         fs.readdirSync(dir)
-            .forEach(file => {
-                const fullPath = path.join(dir, file);
-                const withoutExt = file.replace('.yaml', '');
+        .filter(file => !['.DS_Store'].includes(file))
+        .forEach(file => {
+            const fullPath = path.join(dir, file);
+            const withoutExt = file.replace('.yaml', '');
 
-                /* Check for file/folder naming guidelines */
-                if (!followsNamingGuidelines(withoutExt)) {
-                    throw new Error(`Invalid name at ${chalk.bold.red(fullPath)}. Name must only contain lowercase letters, numbers, and hyphens.`);
-                }
+            /* Check for file/folder naming guidelines */
+            if (!followsNamingGuidelines(withoutExt)) {
+                throw new Error(`Invalid name at ${chalk.bold.red(fullPath)}. Name must only contain lowercase letters, numbers, and hyphens.`);
+            }
 
-                if (fs.statSync(fullPath).isDirectory()) {
-                    syncRecurseThroughDirectory(fullPath);
-                } else {
-                    files.push(getFileMetadata(fullPath, root));
-                }
-            });
+            if (fs.statSync(fullPath).isDirectory()) {
+                syncRecurseThroughDirectory(fullPath);
+            } else {
+                files.push(getFileMetadata(fullPath, root));
+            }
+        });
     }
 }
 
@@ -218,14 +219,12 @@ export function getFiles(root: string): SnippetFileInput[] {
     Naming guidelines:  only allow lowercase letters, numbers, and hyphens
 
     OK:
-
     sample
     sample-with-hyphen
     sample-es5
 
 
     BAD:
-
     sample with space
     Any-uppercase
     anyWhere

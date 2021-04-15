@@ -1,0 +1,323 @@
+order: 2
+id: excel-pivottable-pivotlayout
+name: PivotLayout
+description: Sets PivotTable layout settings through the PivotLayout.
+host: EXCEL
+api_set:
+    ExcelAPI: '1.13'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup)); 
+        $("#change-layout").click(() => tryCatch(changeLayout)); 
+        $("#add-alt-text").click(() => tryCatch(addAltText)); 
+        $("#add-line-spacing").click(() => tryCatch(addLineSpacing)); 
+        $("#repeat-item-labels").click(() => tryCatch(repeatItemLabels)); 
+        $("#toggle-field-headers").click(() => tryCatch(toggleFieldHeaders)); 
+        $("#toggle-grand-totals").click(() => tryCatch(toggleGrandTotals)); 
+        $("#set-empty-cell-text").click(() => tryCatch(setEmptyCellText)); 
+        $("#toggle-fill-empty-cells").click(() => tryCatch(toggleFillEmptyCells)); 
+        $("#toggle-auto-format").click(() => tryCatch(toggleAutoFormat)); 
+        $("#toggle-preserve-formatting").click(() => tryCatch(togglePreserveFormatting));
+
+        async function changeLayout() {
+          await Excel.run(async (context) => {
+            // Change the PivotLayout.type to a new type.
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+            pivotTable.layout.load("layoutType");
+            await context.sync();
+
+            // Cycle between the three layout types.
+            if (pivotTable.layout.layoutType === "Compact") {
+              pivotTable.layout.layoutType = "Outline";
+            } else if (pivotTable.layout.layoutType === "Outline") {
+              pivotTable.layout.layoutType = "Tabular";
+            } else {
+              pivotTable.layout.layoutType = "Compact";
+            }
+
+            await context.sync();
+            console.log("Pivot layout is now " + pivotTable.layout.layoutType);
+          });
+        }
+
+        async function addAltText() {
+          await Excel.run(async (context) => {
+            // Set the alt text for the displayed PivotTable.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            const pivotLayout = pivotTable.layout;
+
+            pivotLayout.altTextTitle = "Farm Sales PivotTable";
+            pivotLayout.altTextDescription = "A summary of fruit sales. It is pivoted on farm name, and fruit type. The aggregated data is both the sums of crates sold at the farms and the sums of crates sold wholesale.";
+            console.log("Adding alt text. Check the PivotTable settings to see the changes.");
+
+            await context.sync();
+          });
+        }
+
+        async function addLineSpacing() {
+          await Excel.run(async (context) => {
+            // Add a blank row after each PivotItem in the row hierarchy.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            const pivotLayout = pivotTable.layout;
+
+            pivotLayout.displayBlankLineAfterEachItem(true);
+            console.log("Setting `PivotLayout.displayBlankLineAfterEachItem` to true.");
+
+            await context.sync();
+          });
+        }
+
+        async function repeatItemLabels() {
+          await Excel.run(async (context) => {
+            // Repeat the PivotItem labels for each row used by another level of the row hierarchy.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            const pivotLayout = pivotTable.layout;
+
+            pivotLayout.repeatAllItemLabels(true);
+            console.log("Setting `PivotLayout.repeatAllItemLabels` to true.");
+
+            await context.sync();
+          });
+        }
+
+        async function toggleFieldHeaders() {
+          await Excel.run(async (context) => {
+            // Turn the field headers on and off for the row and column hierarchies.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            const pivotLayout = pivotTable.layout;
+            pivotLayout.load("showFieldHeaders");
+            await context.sync();
+
+            let showHeaders = !pivotLayout.showFieldHeaders;
+            console.log(`Show field headers? - ${showHeaders}`);
+            pivotLayout.showFieldHeaders = showHeaders;
+            await context.sync();
+          });
+        }
+
+        async function toggleGrandTotals() {
+          await Excel.run(async (context) => {
+            // Turn the grand totals on and off for the rows and columns.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            const pivotLayout = pivotTable.layout;
+
+            pivotLayout.load(["showRowGrandTotals", "showColumnGrandTotals"]);
+            await context.sync();
+
+            let showColumnTotals = !pivotLayout.showColumnGrandTotals;
+            let showRowTotals = !pivotLayout.showRowGrandTotals;
+            console.log(`Show column grand totals? - ${showColumnTotals}`);
+            console.log(`Show row grand totals? - ${showRowTotals}`);
+
+            pivotLayout.showColumnGrandTotals = showColumnTotals;
+            pivotLayout.showRowGrandTotals = showRowTotals;
+
+            await context.sync();
+          });
+        }
+
+        async function setEmptyCellText() {
+          await Excel.run(async (context) => {
+            // Set a default value for an empty cell in the PivotTable. This doesn't include cells left blank by the layout.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            const pivotLayout = pivotTable.layout;
+
+            pivotLayout.emptyCellText = "--";
+
+            // Set the text alignment to match the rest of the PivotTable.
+            pivotLayout.getDataBodyRange().format.horizontalAlignment = Excel.HorizontalAlignment.right;
+            await context.sync();
+          });
+        }
+
+        async function toggleFillEmptyCells() {
+          await Excel.run(async (context) => {
+            // Toggle whether empty cells are filled with a default value.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            const pivotLayout = pivotTable.layout;
+
+            pivotLayout.load("fillEmptyCells");
+            await context.sync();
+
+            let fillToSet = !pivotLayout.fillEmptyCells;
+            console.log(`Filling empty cells? - ${fillToSet}`);
+
+            pivotLayout.fillEmptyCells = fillToSet;
+            await context.sync();
+          });
+        }
+
+        async function toggleAutoFormat() {
+          await Excel.run(async (context) => {
+            // Set whether the PivotTable adjusts the format after it is refreshed and recalculated.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            const pivotLayout = pivotTable.layout;
+
+            pivotLayout.load("autoFormat");
+            await context.sync();
+
+            let autoFormatToSet = !pivotLayout.autoFormat;
+            console.log(`Automatically format PivotTable after a refresh? - ${autoFormatToSet}`);
+            
+            pivotLayout.autoFormat = autoFormatToSet;
+            await context.sync();
+          });
+        }
+
+        async function togglePreserveFormatting() {
+          await Excel.run(async (context) => {
+            // Set whether the PivotTable keeps the established format after it is refreshed and recalculated.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            const pivotLayout = pivotTable.layout;
+
+            pivotLayout.load("preserveFormatting");
+            await context.sync();
+
+            let preserveFormattingToSet = !pivotLayout.preserveFormatting;
+            console.log(`Preserve the formatting PivotTable after a refresh? - ${preserveFormattingToSet}`);
+
+            pivotLayout.preserveFormatting = preserveFormattingToSet;
+            await context.sync();
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Data").delete();
+            const dataSheet = context.workbook.worksheets.add("Data");
+            context.workbook.worksheets.getItemOrNullObject("Pivot").delete();
+            const pivotSheet = context.workbook.worksheets.add("Pivot");
+
+            const data = [
+              ["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"],
+              ["A Farms", "Lime", "Organic", 300, 2000],
+              ["A Farms", "Lemon", "Organic", 250, 1800],
+              ["A Farms", "Orange", "Organic", "", 2200],
+              ["B Farms", "Lime", "Conventional", 80, 1000],
+              ["B Farms", "Lemon", "Conventional", "", 1230],
+              ["B Farms", "Orange", "Conventional", 25, 800],
+              ["B Farms", "Orange", "Organic", 20, 500],
+              ["B Farms", "Lemon", "Organic", "", 770],
+              ["B Farms", "Kiwi", "Conventional", 30, 300],
+              ["B Farms", "Lime", "Organic", "", 400],
+              ["C Farms", "Apple", "Organic", 275, 220],
+              ["C Farms", "Kiwi", "Organic", 200, 120],
+              ["D Farms", "Apple", "Conventional", 100, ""],
+              ["D Farms", "Apple", "Organic", 80, 2800],
+              ["E Farms", "Lime", "Conventional", 160, 2700],
+              ["E Farms", "Orange", "Conventional", "", 2000],
+              ["E Farms", "Apple", "Conventional", 245, 2200],
+              ["E Farms", "Kiwi", "Conventional", 200, ""],
+              ["F Farms", "Kiwi", "Organic", 100, ""],
+              ["F Farms", "Lemon", "Conventional", "", 270]
+            ];
+
+            const range = dataSheet.getRange("A1:E21");
+            range.values = data;
+            range.format.autofitColumns();
+
+            pivotSheet.activate();
+
+            const rangeToAnalyze = context.workbook.worksheets.getItem("Data").getRange("A1:E21");
+            const rangeToPlacePivot = context.workbook.worksheets.getItem("Pivot").getRange("A2");
+            const pivotTable = context.workbook.worksheets
+              .getItem("Pivot")
+              .pivotTables.add("Farm Sales", rangeToAnalyze, rangeToPlacePivot);
+
+            pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+            pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Type"));
+
+            pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+            pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
+            // Add the following if you'd like to see how the layout settings affect a column hierarchy.
+            //pivotTable.columnHierarchies.add(pivotTable.hierarchies.getItem("Classification"));
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to work with the PivotLayout class to display the PivotTable.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup sample</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="change-layout" class="ms-Button">
+              <span class="ms-Button-label">Change layout type</span>
+          </button>
+          <button id="add-alt-text" class="ms-Button">
+              <span class="ms-Button-label">Add alt text</span>
+          </button>
+          <button id="add-line-spacing" class="ms-Button">
+              <span class="ms-Button-label">Add line spacing</span>
+          </button>
+          <button id="repeat-item-labels" class="ms-Button">
+              <span class="ms-Button-label">Repeat item labels</span>
+          </button>
+          <br>
+          <h4>Header and total settings</h4>
+          <button id="toggle-field-headers" class="ms-Button">
+              <span class="ms-Button-label">Toggle field headers</span>
+          </button><button id="toggle-grand-totals" class="ms-Button">
+              <span class="ms-Button-label">Toggle grand totals</span>
+          </button>
+          <br>
+          <h4>Empty cell settings</h4>
+          <button id="set-empty-cell-text" class="ms-Button">
+              <span class="ms-Button-label">Set empty cell text</span>
+          </button>
+          <button id="toggle-fill-empty-cells" class="ms-Button">
+              <span class="ms-Button-label">Toggle fill empty cells</span>
+          </button><br>
+          <h4>PivotTable refresh formatting settings</h4>
+          <button id="toggle-auto-format" class="ms-Button">
+              <span class="ms-Button-label">Toggle auto format</span>
+          </button>
+          <button id="toggle-preserve-formatting" class="ms-Button">
+              <span class="ms-Button-label">Toggle preserve formatting</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

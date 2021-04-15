@@ -1,0 +1,131 @@
+order: 3
+id: excel-events-formula-changed
+name: Formula change event
+description: Registers an event handler to detect changes to formulas.
+host: EXCEL
+api_set:
+    ExcelAPI: '1.13'
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup)); 
+        $("#register-formula-change-handler").click(() => tryCatch(registerFormulaChangeHandler)); 
+        $("#trigger-formula-change").click(() => tryCatch(triggerFormulaChange));
+
+        async function registerFormulaChangeHandler() {
+          await Excel.run(async (context) => {
+            // Retrieve the worksheet named "Sample".
+            let sheet = context.workbook.worksheets.getItem("Sample");
+            
+            // Register the formula changed event handler for this worksheet.
+            sheet.onFormulaChanged.add(formulaChangeHandler);
+            await context.sync();
+            
+            console.log("Registered a formula changed event handler for this worksheet.");
+          });
+        }
+
+        async function formulaChangeHandler(event: Excel.WorksheetFormulaChangedEventArgs) {
+          await Excel.run(async (context) => {
+            // Retrieve details about the formula change event.
+            const cellAddress = event.formulaDetails[0].cellAddress;
+            const previousFormula = event.formulaDetails[0].previousFormula;
+            const source = event.source;
+            
+            // Print out the change event details.
+            console.log(
+              `The formula in cell ${cellAddress} changed. 
+              The previous formula was: ${previousFormula}. 
+              The source of the change was: ${source}.`
+            );
+          });
+        }
+
+        async function triggerFormulaChange() {
+          await Excel.run(async (context) => {
+            // Retrieve the worksheet and choose a range to edit.
+            let sheet = context.workbook.worksheets.getItem("Sample");
+            const range = sheet.getRange("D1");
+            
+            // Change the formula in the chosen range.
+            range.formulas = [["=A1 * C1"]];
+            await context.sync();
+            
+            console.log(`The new formula is: ${range.formulas}`);
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            // Delete "Sample" worksheet, if it already exists. 
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+
+            // Add a worksheet named "Sample".
+            const sheet = context.workbook.worksheets.add("Sample");
+            
+            // Retrieve the range. 
+            const range = sheet.getRange("A1:D1");
+
+            // Add sample data to the range. 
+            range.formulas = [["2", "4", "24", "=A1 * B1"]];
+            
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */ 
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p class="ms-font-m">This sample shows how to register a formula changed event handler and detect details about the changed formula.</p>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p class="ms-font-m">Set up the worksheet.</p>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup</span>
+            </button>
+            <p class="ms-font-m">Register the formula changed event handler to this worksheet.</p>
+                <button id="register-formula-change-handler" class="ms-Button">
+                    <span class="ms-Button-label">Register event handler</span>    
+                </button>
+            <p class="ms-font-m">Trigger a change to the formula in cell D1. Watch the console to see details about the change event.</p>
+            <button id="trigger-formula-change" class="ms-Button">
+                <span class="ms-Button-label">Trigger change event</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

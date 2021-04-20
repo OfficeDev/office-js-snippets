@@ -1,0 +1,219 @@
+id: powerpoint-tags
+name: Work with tags
+description: Use tags to process subsets of slides.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.2'
+script:
+    content: |
+        $("#add-selected-slide-tag").click(() => tryCatch(addTagToSelectedSlide));
+        $("#delete-slides-by-audience").click(() => tryCatch(deleteSlidesByAudience));
+        $("#add-slide-tags").click(() => tryCatch(addMultipleSlideTags));
+        $("#add-shape-tag").click(() => tryCatch(addShapeTag));
+        $("#add-presentation-tag").click(() => tryCatch(addPresentationTag));
+        $("#delete-presentation-tag").click(() => tryCatch(deletePresentationTag));
+
+        async function addTagToSelectedSlide() {
+          await PowerPoint.run(async function(context) {
+            let selectedSlideIndex = await getSelectedSlideIndex();
+
+            // Decrement because the getSelectedSlideByIndex method is 1-based,
+            // but the getItemAt method is 0-based.
+            selectedSlideIndex = selectedSlideIndex - 1;
+            const slide = context.presentation.slides.getItemAt(selectedSlideIndex);
+            slide.tags.add("CUSTOMER_TYPE", "Premium");
+
+            await context.sync();
+
+            const audienceTag = slide.tags.getItem("CUSTOMER_TYPE");
+            audienceTag.load("key, value");
+
+            await context.sync();
+
+            console.log("Added key " + JSON.stringify(audienceTag.key) + " with value " + JSON.stringify(audienceTag.value));
+          });
+        }
+
+        function getSelectedSlideIndex() {
+          // Wrap a call of one of the Common APIs in a Promise-returning
+          // function, so that it can be easily called within a run() method
+          // of an application-specific API.
+          return new OfficeExtension.Promise<number>(function (resolve, reject) {
+            Office.context.document.getSelectedDataAsync(Office.CoercionType.SlideRange, function (asyncResult) {
+              try {
+                if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+                  reject(console.error(asyncResult.error.message));
+                } else {
+                  const result = asyncResult.value as any;
+                  resolve(result.slides[0].index);
+                }
+              } catch (error) {
+                reject(console.log(error));
+              }
+            });
+          });
+        }
+
+        async function deleteSlidesByAudience() {
+          await PowerPoint.run(async function(context) {
+            const slides = context.presentation.slides;
+            slides.load("tags/key, tags/value");
+
+            await context.sync();
+
+            for (let i = 0; i < slides.items.length; i++) {
+              let currentSlide = slides.items[i];
+              for (let j = 0; j < currentSlide.tags.items.length; j++) {
+                let currentTag = currentSlide.tags.items[j];
+                if (currentTag.key === "CUSTOMER_TYPE" && currentTag.value === "Premium") {
+                  currentSlide.delete();
+                }
+              }
+            }
+
+            await context.sync();
+          });
+        }
+
+        async function addMultipleSlideTags() {
+          await PowerPoint.run(async function(context) {
+            const slide = context.presentation.slides.getItemAt(0);
+            slide.tags.add("OCEAN", "Indian");
+            slide.tags.add("PLANET", "Jupiter");
+            slide.tags.add("CONTINENT", "Antarctica");
+
+            await context.sync();
+
+            slide.tags.load("key, value");
+
+            await context.sync();
+
+            for (let i = 0; i < slide.tags.items.length; i++) {
+              console.log("Added key " + JSON.stringify(slide.tags.items[i].key) + " with value " +        JSON.stringify(slide.tags.items[i].value));
+            }
+          });
+        }
+
+        async function addShapeTag() {
+          await PowerPoint.run(async function(context) {
+            const slide = context.presentation.slides.getItemAt(0);
+            const shape = slide.shapes.getItemAt(0);
+            shape.tags.add("MOUNTAIN", "Denali");
+
+            await context.sync();
+
+            const myShapeTag = shape.tags.getItem("MOUNTAIN");
+            myShapeTag.load("key, value");
+
+            await context.sync();
+
+            console.log("Added key " + JSON.stringify(myShapeTag.key) + " with value " + JSON.stringify(myShapeTag.value));
+          });
+        }
+
+        async function addPresentationTag() {
+          await PowerPoint.run(async function (context) {
+            let presentationTags = context.presentation.tags;
+            presentationTags.add("COLOR", "blue");
+
+            await context.sync();
+
+            const tag = presentationTags.getItem("COLOR");
+            tag.load("key, value");
+
+            await context.sync();
+
+            console.log("Added key " + JSON.stringify(tag.key) + " with value " + JSON.stringify(tag.value));
+          });
+        }
+
+        async function deletePresentationTag() {
+          await PowerPoint.run(async function (context) {
+            let presentationTags = context.presentation.tags;
+
+            presentationTags.delete("COLOR");
+
+            await context.sync();
+
+            console.log(JSON.stringify(presentationTags));
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>These snippets show how to use tags with the presentation and its slides and shapes.</p>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+
+            <p>1. Add several slides to the deck. Add content to each so they are visually distinct in the thumbnail pane.</p>
+
+            <p>2. Select a <i>single</i> slide and press <b>Add tag</b> to tag the slide to be shown only to premium customers.</p>
+            <button id="add-selected-slide-tag" class="ms-Button">
+                <span class="ms-Button-label">Add tag</span>
+            </button>
+
+            <p>3. Repeat step 2 for another slide.</p>
+
+            <p>4. Press <b>Delete premium customer slides</b> to remove from the presentation slides that should only be shown to premium customers.</p>
+            <button id="delete-slides-by-audience" class="ms-Button">
+                <span class="ms-Button-label">Delete premium customer slides</span>
+            </button>
+
+            <p>5. Press <b>Add slide tags</b> to add mulitiple tags to the first slide of the presentation.</p>
+            <button id="add-slide-tags" class="ms-Button">
+                <span class="ms-Button-label">Add slide tags</span>
+            </button>
+
+            <p>6. Select the first slide and on the ribbon, navigate <b>Insert</b> > <b>Illustrations</b> > <b>Shapes</b> to add a shape to it. Press <b>Add shape tag</b>.</p>
+            <button id="add-shape-tag" class="ms-Button">
+                <span class="ms-Button-label">Add shape tag</span>
+            </button>
+
+            <p>7. Press <b>Add presentation tag</b>.</p>
+            <button id="add-presentation-tag" class="ms-Button">
+                <span class="ms-Button-label">Add presentation tag</span>
+            </button>
+
+            <p>8. Press <b>Delete presentation tag</b>.</p>
+            <button id="delete-presentation-tag" class="ms-Button">
+                <span class="ms-Button-label">Delete presentation tag</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

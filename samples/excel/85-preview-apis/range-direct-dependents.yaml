@@ -1,0 +1,140 @@
+order: 4
+id: excel-direct-dependents
+name: Direct dependents
+description: This sample shows how to find and highlight the dependents of the currently selected cell. Dependents are cells affected by the value in a cell.
+host: EXCEL
+api_set:
+    ExcelAPI: '1.13'
+script:
+  content: |
+    $("#setup").click(() => tryCatch(setup));
+    $("#select-first-cell").click(() => tryCatch(selectD3));
+    $("#select-second-cell").click(() => tryCatch(selectE4));
+    $("#get-direct-dependents").click(() => tryCatch(getDirectDependents));
+    $("#clear-highlighting").click(() => tryCatch(clearFormatting));
+    /** Select a cell with direct dependents on this worksheet. */
+    async function selectD3() {
+      await Excel.run(async (context) => {
+        // Ensure correct worksheet is active.
+        const sheet = context.workbook.worksheets.getItem("Sample2019Data");
+        sheet.activate();
+        // Select cell D3.
+        const range = sheet.getRange("D3");
+        range.select();
+        await context.sync();
+      });
+    }
+    /** Select a cell with direct dependents across multiple worksheets. */
+    async function selectE4() {
+      await Excel.run(async (context) => {
+        // Ensure correct worksheet is active.
+        const sheet = context.workbook.worksheets.getItem("Sample2019Data");
+        sheet.activate();
+        // Select cell E4.
+        const range = sheet.getRange("E4");
+        range.select();
+        await context.sync();
+      });
+    }
+    async function getDirectDependents() {
+      await Excel.run(async (context) => {
+        // Direct dependents are cells affected by the value in a cell.
+        let range = context.workbook.getActiveCell();
+        let directDependents = range.getDirectDependents();
+        range.load("address");
+        directDependents.areas.load("address");
+        await context.sync();
+        console.log(`Direct dependent cells of ${range.address}:`);
+        // Use the direct dependents API to loop through direct dependents of the active cell.
+        for (var i = 0; i < directDependents.areas.items.length; i++) {
+          // Highlight and print the address of each dependent cell.
+          directDependents.areas.items[i].format.fill.color = "Yellow";
+          console.log(`  ${directDependents.areas.items[i].address}`);
+        }
+        await context.sync();
+      });
+    }
+    /** Remove highlighting from precedent and dependent cells. */
+    async function clearFormatting() {
+      await Excel.run(async (context) => {
+        const sheet1 = context.workbook.worksheets.getItem("Sample2019Data");
+        let range1 = sheet1.getRange("B3:E5");
+        range1.format.fill.clear();
+        const sheet2 = context.workbook.worksheets.getItem("Sample2020Data");
+        let range2 = sheet2.getRange("B3:F5");
+        range2.format.fill.clear();
+        await context.sync();
+      });
+    }
+    /** Create two sample tables with functions that span the tables. */
+    async function setup() {
+      await Excel.run(async (context) => {
+        context.workbook.worksheets.getItemOrNullObject("Sample2019Data").delete();
+        context.workbook.worksheets.getItemOrNullObject("Sample2020Data").delete();
+        // Set up the first sample table.
+        const sheet1 = context.workbook.worksheets.add("Sample2019Data");
+        const data1 = [
+          ["Product", "Qty", "Unit Price", "Total Price 2019"],
+          ["Almonds", 2, 7.5, "=C3 * D3"],
+          ["Coffee", 1, 34.5, "=C4 * D4"],
+          ["Chocolate", 5, 9.56, "=C5 * D5"]
+        ];
+        const range1 = sheet1.getRange("B2:E5");
+        range1.values = data1;
+        range1.format.autofitColumns();
+        // Set up the second sample table.
+        const sheet2 = context.workbook.worksheets.add("Sample2020Data");
+        const data2 = [
+          ["Product", "Qty", "Unit Price", "Total Price 2020", "Average Annual Price"],
+          ["Almonds", 2, 8.0, "=C3 * D3", "=Sample2019Data!E3 + E3 / 2"],
+          ["Coffee", 1, 36.5, "=C4 * D4", "=Sample2019Data!E4 + E4 / 2"],
+          ["Chocolate", 5, 11.2, "=C5 * D5", "=Sample2019Data!E5 + E5 / 2"]
+        ];
+        const range2 = sheet2.getRange("B2:F5");
+        range2.values = data2;
+        range2.format.autofitColumns();
+        // Style the tables.
+        const header1 = range1.getRow(0);
+        header1.format.fill.color = "#4472C4";
+        header1.format.font.color = "white";
+        const header2 = range2.getRow(0);
+        header2.format.fill.color = "#4472C4";
+        header2.format.font.color = "white";
+        sheet2.activate();
+        await context.sync();
+      });
+    }
+    /** Default helper for invoking an action and handling errors. */
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+  language: typescript
+template:
+  content: "<section class=\"ms-font-m\">\n\t<p>This sample shows how to find and highlight the dependents of the currently selected cell. Dependents are cells\n\t\taffected by the value in a cell.</p>\n</section>\n<section class=\"setup ms-font-m\">\n\t<h3>Set up</h3>\n\t<button id=\"setup\" class=\"ms-Button\"> <span class=\"ms-Button-label\">Add sample data</span> </button>\n</section>\n<section class=\"samples ms-font-m\">\n\t<h3>Try it out</h3>\n\t<button id=\"select-first-cell\" class=\"ms-Button\"> <span class=\"ms-Button-label\">Select a cell with direct dependents on this worksheet</span> </button>\n\t<br>\n\t<button id=\"select-second-cell\" class=\"ms-Button\"> <span class=\"ms-Button-label\">Select a cell with direct dependents across worksheets</span> </button>\n\t<br>\n\t<button id=\"get-direct-dependents\" class=\"ms-Button\"> <span class=\"ms-Button-label\">Highlight and print direct dependents to the console</span> </button>\n\t<br>\n\t<button id=\"clear-highlighting\" class=\"ms-Button\"> <span class=\"ms-Button-label\">Clear highlighting</span> </button>\n</section>"
+  language: html
+style:
+  content: |
+    section.samples {
+        margin-top: 20px;
+    }
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+libraries: |
+  https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+  @types/office-js-preview
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
+  jquery@3.1.1
+  @types/jquery@3.3.1

@@ -1,0 +1,80 @@
+order: 5
+id: excel-events-workbook-activated
+name: Workbook activated event
+description: This sample shows how to register a workbook activated event handler.
+host: EXCEL
+api_set:
+    ExcelAPI: '1.13'
+script:
+  content: |
+    $("#register-event-handler").click(() => tryCatch(registerEventHandler));
+
+    async function workbookActivated(event: Excel.WorkbookActivatedEventArgs) {
+      await Excel.run(async (context) => {
+        // Callback function for when the workbook is activated.
+        console.log("The workbook was activated.");
+      });
+    }
+
+    async function registerEventHandler() {
+      await Excel.run(async (context) => {
+        const workbook = context.workbook;
+
+        // Register the workbook activated event handler.
+        workbook.onActivated.add(workbookActivated);
+
+        await context.sync();
+        console.log("Added event handler for workbook activated.");
+      });
+    }
+
+    /** Default helper for invoking an action and handling errors. */
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+  language: typescript
+template:
+    content: |-
+      <section class="ms-font-m">
+        <p>This sample shows how to register a workbook activated event handler.</p>
+        <p>Once the event handler is registered, a notification prints to the console when the workbook is activated. Try
+          switching to another application and then switching back to Excel to see the console notification.</p>
+      </section>
+
+      <section class="setup ms-font-m">
+        <h3>Try it out</h3>
+        <button id="register-event-handler" class="ms-Button">
+            <span class="ms-Button-label">Register the event handler</span>
+        </button>
+      </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

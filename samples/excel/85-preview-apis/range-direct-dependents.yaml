@@ -1,20 +1,20 @@
 order: 4
 id: excel-direct-dependents
 name: Direct dependents
-description: This sample shows how to find and highlight the direct dependents of the currently selected cell. Dependents are cells affected by the value in a cell.
+description: This sample shows how to find and highlight the direct dependents of the currently selected cell. Dependent cells contain formulas that refer to other cells.
 host: EXCEL
 api_set:
     ExcelAPI: '1.13'
 script:
   content: |
     $("#setup").click(() => tryCatch(setup));
-    $("#select-first-cell").click(() => tryCatch(selectFirstCell));
-    $("#select-second-cell").click(() => tryCatch(selectSecondCell));
+    $("#select-D3").click(() => tryCatch(selectD3));
+    $("#select-E4").click(() => tryCatch(selectE4));
     $("#get-direct-dependents").click(() => tryCatch(getDirectDependents));
     $("#clear-highlighting").click(() => tryCatch(clearFormatting));
     
     /** Select a cell with direct dependents on the same worksheet. */
-    async function selectFirstCell() {
+    async function selectD3() {
       await Excel.run(async (context) => {
         // Activate the sample worksheet.
         const sheet = context.workbook.worksheets.getItem("Sample2019Data");
@@ -28,9 +28,9 @@ script:
     }
     
     /** Select a cell with direct dependents across worksheets. */
-    async function selectSecondCell() {
+    async function selectE4() {
       await Excel.run(async (context) => {
-        // Ensure correct worksheet is active.
+        // Activate the sample worksheet.
         const sheet = context.workbook.worksheets.getItem("Sample2019Data");
         sheet.activate();
         
@@ -43,7 +43,7 @@ script:
     
     async function getDirectDependents() {
       await Excel.run(async (context) => {
-        // Direct dependents are cells affected by the value in a cell.
+        // Direct dependents are cells that contain formulas that refer to other cells.
         let range = context.workbook.getActiveCell();
         let directDependents = range.getDirectDependents();
         range.load("address");
@@ -58,21 +58,6 @@ script:
           directDependents.areas.items[i].format.fill.color = "Yellow";
           console.log(`  ${directDependents.areas.items[i].address}`);
         }
-        await context.sync();
-      });
-    }
-    
-    /** Remove highlighting from precedent and dependent cells. */
-    async function clearFormatting() {
-      await Excel.run(async (context) => {
-        const sheet1 = context.workbook.worksheets.getItem("Sample2019Data");
-        let range1 = sheet1.getRange("B3:E5");
-        range1.format.fill.clear();
-        
-        const sheet2 = context.workbook.worksheets.getItem("Sample2020Data");
-        let range2 = sheet2.getRange("B3:F5");
-        range2.format.fill.clear();
-        
         await context.sync();
       });
     }
@@ -133,8 +118,7 @@ script:
 template:
   content: |-
     <section class="ms-font-m">
-      <p>This sample shows how to find and highlight the dependents of the currently selected cell. Dependents are cells
-        affected by the value in a cell.</p>
+      <p>This sample shows how to find and highlight the dependents of the currently selected cell. Dependent cells contain formulas that refer to other cells.</p>
     </section>
 
     <section class="setup ms-font-m">
@@ -146,20 +130,17 @@ template:
     
     <section class="samples ms-font-m">
       <h3>Try it out</h3>
-      <button id="select-first-cell" class="ms-Button">
-        <span class="ms-Button-label">Select a cell with direct dependents on this worksheet</span>
+      <p>Cells in the 'E' column have direct dependents on the same worksheet. Cells in the 'F' column have direct dependents on another worksheet.</p>
+      <button id="select-D3" class="ms-Button">
+        <span class="ms-Button-label">Select D3</span>
       </button>
       <br>
-      <button id="select-second-cell" class="ms-Button">
-        <span class="ms-Button-label">Select a cell with direct dependents across worksheets</span>
+      <button id="select-E4" class="ms-Button">
+        <span class="ms-Button-label">Select E4</span>
       </button>
       <br>
       <button id="get-direct-dependents" class="ms-Button">
         <span class="ms-Button-label">Highlight direct dependents</span>
-      </button>
-      <br>
-      <button id="clear-highlighting" class="ms-Button">
-        <span class="ms-Button-label">Clear highlighting</span>
       </button>
     </section>
   language: html

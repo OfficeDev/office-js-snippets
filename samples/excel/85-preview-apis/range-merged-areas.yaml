@@ -8,25 +8,43 @@ api_set:
 script:
     content: |
       $("#setup").click(() => tryCatch(setup));
-      $("#get-merged-areas").click(() => tryCatch(getMergedAreas));
+      $("#create-merged-area").click(() => tryCatch(createMergedArea));
+      $("#get-merged-area").click(() => tryCatch(getMergedArea));
 
-      async function getMergedAreas() {
+      async function createMergedArea() {
+        await Excel.run(async (context) => {
+          // Retrieve the worksheet and the table in that worksheet.
+          const sheet = context.workbook.worksheets.getActiveWorksheet();
+          const range = sheet.getRange("B2:E6");
+
+          // Create a merged area in the first row of the table.
+          const chartTitle = range.getRow(0);
+          chartTitle.merge(true);
+
+          // Format the merged area.
+          chartTitle.format.horizontalAlignment = "Center";
+
+          await context.sync();
+        });
+      }
+
+      async function getMergedArea() {
         await Excel.run(async (context) => {
           // Retrieve the worksheet and the table in that worksheet.
           const sheet = context.workbook.worksheets.getActiveWorksheet();
           const table = sheet.getRange("B2:E6");
-          
-          // Retrieve the merged areas within the table and load their details. 
+
+          // Retrieve the merged area within the table and load its details.
           const mergedAreas = table.getMergedAreasOrNullObject();
           mergedAreas.load("address");
           mergedAreas.load("cellCount");
 
-          // For visibility, select the merged area. 
+          // Select the merged area.
           const range = mergedAreas.areas.getItemAt(0);
           range.select();
           await context.sync();
 
-          // Print out the details of the `mergedAreas` range object. 
+          // Print out the details of the `mergedAreas` range object.
           console.log(`Address of the merged area: ${mergedAreas.address}`);
           console.log(`Number of cells in the merged area: ${mergedAreas.cellCount}`);
 
@@ -39,7 +57,7 @@ script:
           context.workbook.worksheets.getItemOrNullObject("Sample").delete();
           const sheet = context.workbook.worksheets.add("Sample");
 
-          // Create a table. 
+          // Create a table.
           const data = [
             ["Product chart", "", "", ""],
             ["Product", "Qty", "Unit Price", "Total Price"],
@@ -56,11 +74,6 @@ script:
           const header = range.getRow(1);
           header.format.fill.color = "#4472C4";
           header.format.font.color = "white";
-
-          // Create a merged area above the header row of the table. 
-          const chartTitle = range.getRow(0);
-          chartTitle.merge(true);
-          chartTitle.format.horizontalAlignment = "Center";
 
           sheet.activate();
           await context.sync();
@@ -80,7 +93,7 @@ script:
 template:
     content: |-
       <section class="ms-font-m">
-        <p>This sample shows how to create and then find the merged areas on a worksheet.</p>
+        <p>This sample shows how to create and find merged areas in a worksheet.</p>
       </section>
 
       <section class="setup ms-font-m">

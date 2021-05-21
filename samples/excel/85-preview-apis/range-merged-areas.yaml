@@ -1,7 +1,7 @@
 order: 7
 id: excel-merged-areas
-name: Get merged areas
-description: This sample shows how to get the merged areas on a worksheet.
+name: Merged areas
+description: This sample shows how to create and then find the merged areas in a worksheet.
 host: EXCEL
 api_set:
     ExcelAPI: '1.13'
@@ -14,16 +14,16 @@ script:
         await Excel.run(async (context) => {
           // Retrieve the worksheet and the table in that worksheet.
           const sheet = context.workbook.worksheets.getActiveWorksheet();
-          const range = sheet.getRange("B2:E6");
+          const table = sheet.getRange("B2:E6");
           
-          // Retrieve the merged areas within that table and load details. 
-          let mergedAreas = range.getMergedAreasOrNullObject();
+          // Retrieve the merged areas within the table and load their details. 
+          let mergedAreas = table.getMergedAreasOrNullObject();
           mergedAreas.load("address");
           mergedAreas.load("cellCount");
 
-          // Highlight the merged area located at cell B2. 
-          const mergedArea = sheet.getRange("B2");
-          mergedArea.select();
+          // For visibility, highlight the merged area located at cell B2. 
+          const range = sheet.getRange("B2");
+          range.select();
           await context.sync();
 
           // Print out the details of the `mergedAreas` range object. 
@@ -39,6 +39,7 @@ script:
           context.workbook.worksheets.getItemOrNullObject("Sample").delete();
           const sheet = context.workbook.worksheets.add("Sample");
 
+          // Create a table. 
           const data = [
             ["Product chart", "", "", ""],
             ["Product", "Qty", "Unit Price", "Total Price"],
@@ -51,17 +52,17 @@ script:
           range.values = data;
           range.format.autofitColumns();
 
+          // Add a header row to the table.
           const header = range.getRow(1);
           header.format.fill.color = "#4472C4";
           header.format.font.color = "white";
 
-          // Create a merged area. 
+          // Create a merged area above the header row of the table. 
           const chartTitle = range.getRow(0);
           chartTitle.merge(true);
           chartTitle.format.horizontalAlignment = "Center";
 
           sheet.activate();
-
           await context.sync();
         });
       }
@@ -79,7 +80,7 @@ script:
 template:
     content: |-
       <section class="ms-font-m">
-        <p>This sample shows how to get the merged areas on a worksheet.</p>
+        <p>This sample shows how to create and then find the merged areas on a worksheet.</p>
       </section>
 
       <section class="setup ms-font-m">

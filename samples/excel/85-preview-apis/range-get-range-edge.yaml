@@ -1,7 +1,7 @@
 order: 8
 id: excel-get-range-edge
-name: Range edges
-description: This sample shows how to select the edge of a range, based on the currently selected range.
+name: Select range edge
+description: This sample shows two ways to select the edge of a range, based on the currently selected range.
 host: EXCEL
 api_set:
     ExcelAPI: '1.13'
@@ -13,6 +13,94 @@ script:
       $("#get-range-edge-up").click(() => tryCatch(getRangeEdgeUp));
       $("#get-extended-range-right").click(() => tryCatch(getExtendedRangeRight));
       $("#get-extended-range-down").click(() => tryCatch(getExtendedRangeDown));
+
+      async function getRangeEdgeLeft() {
+        await Excel.run(async (context) => {
+          // Get the selected range.
+          const range = context.workbook.getSelectedRange();
+
+          // Get the active cell in the workbook.
+          const activeCell = context.workbook.getActiveCell();
+
+          // Get the cell at the furthest edge of the currently selected range, in the "Left" direction. 
+          // This action matches the result of using the Control+Arrow key keyboard shortcut while a range is selected.
+          const newRange = range.getRangeEdge(
+            "Left", // Define the direction as a string.
+            activeCell // If the selected range contains more than one cell, the active cell must be defined.
+          );
+
+          // Select the edge of the range.
+          newRange.select();
+
+          await context.sync();
+        });
+      }
+
+      async function getRangeEdgeUp() {
+        await Excel.run(async (context) => {
+          // Get the selected range.
+          const range = context.workbook.getSelectedRange();
+
+          // Define the direction with the KeyboardDirection enum.
+          const direction = Excel.KeyboardDirection.up;
+
+          // Get the active cell in the workbook.
+          const activeCell = context.workbook.getActiveCell();
+
+          // Get the cell at the furthest edge of the currently selected range, in the "up" direction. 
+          // This action matches the result of using the Control+Arrow key keyboard shortcut while a range is selected.
+          const newRange = range.getRangeEdge(
+            direction, // Define the direction.
+            activeCell // If the selected range contains more than one cell, the active cell must be defined.
+          );
+          newRange.select();
+
+          await context.sync();
+        });
+      }
+
+      async function getExtendedRangeRight() {
+        await Excel.run(async (context) => {
+          // Get the selected range.
+          const range = context.workbook.getSelectedRange();
+
+          // Get the active cell in the workbook.
+          const activeCell = context.workbook.getActiveCell();
+
+          // Get all the cells from the currently selected range to the furthest edge of the currently selected range, in the "Right" direction. 
+          // This action matches the result of using the Control+Shift+Arrow key keyboard shortcut while a range is selected.
+          const newRange = range.getExtendedRange(
+            "Right", // Define the direction as a string.
+            activeCell // If the selected range contains more than one cell, the active cell must be defined.
+          );
+          newRange.select();
+
+          await context.sync();
+        });
+      }
+
+      async function getExtendedRangeDown() {
+        await Excel.run(async (context) => {
+          // Get the selected range.
+          const range = context.workbook.getSelectedRange();
+
+          // Define the direction with the KeyboardDirection enum.
+          const direction = Excel.KeyboardDirection.down;
+
+          // Get the active cell in the workbook.
+          const activeCell = context.workbook.getActiveCell();
+
+          // Get all the cells from the currently selected range to the furthest edge of the currently selected range, in the "down" direction. 
+          // This action matches the result of using the Control+Shift+Arrow key keyboard shortcut while a range is selected.
+          const newRange = range.getExtendedRange(
+            direction, // Define the direction.
+            activeCell // If the selected range contains more than one cell, the active cell must be defined.
+          );
+          newRange.select();
+
+          await context.sync();
+        });
+      }
 
       /** Select a range with one cell. */
       async function selectC4() {
@@ -40,89 +128,6 @@ script:
         });
       }
 
-      async function getRangeEdgeLeft() {
-        await Excel.run(async (context) => {
-          // Get the active worksheet.
-          const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-          const range = context.workbook.getSelectedRange();
-
-          //  Get the active cell in the selected range.
-          const activeCell = context.workbook.getActiveCell();
-
-          // Get the edge of the range, in the "Left" direction.
-          const newRange = range.getRangeEdge(
-            "Left", // Define the direction as a string.
-            activeCell // If the selected range contains more than one cell, the active cell must be defined.
-          );
-
-          newRange.select();
-
-          await context.sync();
-        });
-      }
-
-      async function getRangeEdgeUp() {
-        await Excel.run(async (context) => {
-          const range = context.workbook.getSelectedRange();
-          // range.getItemAt(0);
-
-          // Define the direction with the KeyboardDirection enum.
-          const direction = Excel.KeyboardDirection.up;
-
-          //  Get the active cell in the selected range.
-          const activeCell = context.workbook.getActiveCell();
-
-          // Get the edge of the range, in the "up" direction.
-          const newRange = range.getRangeEdge(
-            direction, // Define the direction.
-            activeCell // If the selected range contains more than one cell, the active cell must be defined.
-          );
-          newRange.select();
-
-          await context.sync();
-        });
-      }
-
-      async function getExtendedRangeRight() {
-        await Excel.run(async (context) => {
-          const range = context.workbook.getSelectedRange();
-
-          //  Get the active cell in the selected range.
-          const activeCell = context.workbook.getActiveCell();
-
-          // Get the edge of the range, in the "Right" direction.
-          const newRange = range.getRangeEdge(
-            "Right", // Define the direction as a string.
-            activeCell // If the selected range contains more than one cell, the active cell must be defined.
-          );
-          newRange.select();
-
-          await context.sync();
-        });
-      }
-
-      async function getExtendedRangeDown() {
-        await Excel.run(async (context) => {
-          const range = context.workbook.getSelectedRange();
-
-          // Define the direction with the KeyboardDirection enum.
-          const direction = Excel.KeyboardDirection.down;
-
-          //  Get the active cell in the selected range.
-          const activeCell = context.workbook.getActiveCell();
-
-          // Get the edge of the range, in the "down" direction.
-          const newRange = range.getExtendedRange(
-            direction, // Define the direction.
-            activeCell // If the selected range contains more than one cell, the active cell must be defined.
-          );
-          newRange.select();
-
-          await context.sync();
-        });
-      }
-
       /** Default helper for invoking an action and handling errors. */
       async function tryCatch(callback) {
         try {
@@ -136,7 +141,7 @@ script:
 template:
     content: |-
       <section class="ms-font-m">
-        <p>This sample shows how to select the edge of a range, based on the currently selected range.</p>
+        <p>This sample shows two ways to select the edge of a range, based on the currently selected range.</p>
       </section>
 
       <section class="setup ms-font-m">
@@ -151,12 +156,15 @@ template:
 
       <section class="samples ms-font-m">
         <h3>Try it out</h3>
+        <p>The first type of range edge selection in this sample shows how to select the cell at the furthest edge of the currently selected range, in the directions up or left. This action matches the result of using the Control+Arrow key keyboard shortcut while a range is selected.</p>
         <button id="get-range-edge-left" class="ms-Button">
           <span class="ms-Button-label">Get left edge of range</span>
         </button>
         <button id="get-range-edge-up" class="ms-Button">
           <span class="ms-Button-label">Get upward edge of range</span>
         </button>
+        <br>
+        <p>The second type of range edge selection in this sample shows how to select all the cells from the currently selected range to the furthest edge of the range, in the directions right or down. This action matches the result of using the Control+Shift+Arrow key keyboard shortcut while a range is selected.</p>
         <button id="get-extended-range-right" class="ms-Button">
           <span class="ms-Button-label">Get extended range to the right</span>
         </button>

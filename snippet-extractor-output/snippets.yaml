@@ -4632,30 +4632,17 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/85-preview-apis/workbook-insert-external-worksheets.yaml
 
+    // Retrieve the file and set up an HTML FileReader element. 
+
     const myFile = <HTMLInputElement>document.getElementById("file");
 
     const reader = new FileReader();
 
 
     reader.onload = (event) => {
-        Excel.run((context) => {
-            // Remove the metadata before the base64-encoded string.
-            const startIndex = reader.result.toString().indexOf("base64,");
-            const workbookContents = reader.result.toString().substr(startIndex + 7);
-            
-            // Retrieve the workbook.
-            const workbook = context.workbook;
-            
-            // Set up the insert options. 
-            var options = { 
-                sheetNamesToInsert: [], // Insert all the worksheets from the source workbook.
-                positionType: Excel.WorksheetPositionType.after, // Insert after the `relativeTo` sheet.
-                relativeTo: "Sheet1" }; // The sheet relative to which the other worksheets will be inserted. Used with `positionType`.
-            
-            // Insert the workbook. 
-            workbook.insertWorksheetsFromBase64(workbookContents, options);
-            return context.sync();
-        });
+        // Remove the metadata before the base64-encoded string.
+        const startIndex = reader.result.toString().indexOf("base64,");
+        externalWorkbook = reader.result.toString().substr(startIndex + 7);
     };
 
 
@@ -4663,6 +4650,25 @@
     string.
 
     reader.readAsDataURL(myFile.files[0]);
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/85-preview-apis/workbook-insert-external-worksheets.yaml
+
+    await Excel.run(async (context) => {
+        // Retrieve the source workbook.
+        const workbook = context.workbook;
+        
+        // Set up the insert options.
+        var options = {
+            sheetNamesToInsert: [], // Insert all the worksheets from the source workbook.
+            positionType: Excel.WorksheetPositionType.after, // Insert after the `relativeTo` sheet.
+            relativeTo: "Sheet1" // The sheet relative to which the other worksheets will be inserted. Used with `positionType`.
+        };
+        
+        // Insert the new worksheets.
+        workbook.insertWorksheetsFromBase64(externalWorkbook, options);
+        await context.sync();
+    });
 'Excel.Workbook#pivotTables:member':
   - >-
     // Link to full sample:

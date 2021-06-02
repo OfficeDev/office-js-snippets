@@ -7,35 +7,42 @@ api_set:
     ExcelAPI: '1.13'
 script:
     content: |
-        $("#file").change(() => tryCatch(insertSheets));
+        $("#file").change(getBase64);
+        $("#insert-sheets").click(() => tryCatch(insertSheets));
 
-        async function insertSheets() {
+        let externalWorkbook;
+
+        async function getBase64() {
+            // Retrieve the file and set up an HTML FileReader element. 
             const myFile = <HTMLInputElement>document.getElementById("file");
             const reader = new FileReader();
-
+           
             reader.onload = (event) => {
-                Excel.run((context) => {
-                    // Remove the metadata before the base64-encoded string.
-                    const startIndex = reader.result.toString().indexOf("base64,");
-                    const workbookContents = reader.result.toString().substr(startIndex + 7);
-                    
-                    // Retrieve the workbook.
-                    const workbook = context.workbook;
-                    
-                    // Set up the insert options. 
-                    var options = { 
-                        sheetNamesToInsert: [], // Insert all the worksheets from the source workbook.
-                        positionType: Excel.WorksheetPositionType.after, // Insert after the `relativeTo` sheet.
-                        relativeTo: "Sheet1" }; // The sheet relative to which the other worksheets will be inserted. Used with `positionType`.
-                    
-                    // Insert the workbook. 
-                    workbook.insertWorksheetsFromBase64(workbookContents, options);
-                    return context.sync();
-                });
+                // Remove the metadata before the base64-encoded string.
+                const startIndex = reader.result.toString().indexOf("base64,");
+                externalWorkbook = reader.result.toString().substr(startIndex + 7);
             };
-
+           
             // Read the file as a data URL so that we can parse the base64-encoded string.
             reader.readAsDataURL(myFile.files[0]);
+        }
+
+        async function insertSheets() {
+            await Excel.run(async (context) => {
+                // Retrieve the source workbook.
+                const workbook = context.workbook;
+                
+                // Set up the insert options.
+                var options = {
+                    sheetNamesToInsert: [], // Insert all the worksheets from the source workbook.
+                    positionType: Excel.WorksheetPositionType.after, // Insert after the `relativeTo` sheet.
+                    relativeTo: "Sheet1" // The sheet relative to which the other worksheets will be inserted. Used with `positionType`.
+                };
+                
+                // Insert the new worksheets.
+                workbook.insertWorksheetsFromBase64(externalWorkbook, options);
+                await context.sync();
+            });
         }
 
         /** Default helper for invoking an action and handling errors. */
@@ -60,6 +67,11 @@ template:
             <form>
                 <input type="file" id="file" />
             </form>
+            <br>
+            <p>Insert the worksheets from the selected workbook.</p>
+            <button id="insert-sheets" class="ms-Button">
+                <span class="ms-Button-label">Insert sheets</span>
+            </button>
         </section>
     language: html
 style:
@@ -78,12 +90,9 @@ style:
 libraries: |
     https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
     @types/office-js-preview
-
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
-
     core-js@2.4.1/client/core.min.js
     @types/core-js
-
     jquery@3.1.1
     @types/jquery@3.3.1

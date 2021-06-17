@@ -8,15 +8,16 @@ api_set:
 script:
     content: |-
         $("#setup").click(() => tryCatch(setup));
-        $("#register-onactivated-deactivated-handlers").click(() => tryCatch(registerActivatonHandlers));
+        $("#register-onactivated-deactivated-handlers").click(() => tryCatch(registerActivationHandlers));
         $("#create-pie-chart").click(() => tryCatch(createPieChart));
         $("#create-cylinder-chart").click(() => tryCatch(createCylinderChart));
 
-        async function registerActivatonHandlers() {
+        async function registerActivationHandlers() {
             await Excel.run(async (context) => {
 
                 const pieChart = context.workbook.worksheets.getActiveWorksheet().charts.getItem("Pie");
 
+                // Register the onActivated and onDeactivated event handlers.
                 pieChart.onActivated.add(chartActivated);
                 pieChart.onDeactivated.add(chartDeactivated);
 
@@ -28,7 +29,16 @@ script:
 
         async function chartActivated(event) {
             await Excel.run(async (context) => {
-                console.log("The pie chart is the active chart. ID: " + event.chartId);
+                // Retrieve the worksheet.
+                var sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Retrieve the activated chart by ID and load the name of the chart. 
+                var activatedChart = sheet.charts.getItem(event.chartId);
+                activatedChart.load(["name"]);
+                await context.sync();
+
+                // Print out the activated chart's data.
+                console.log(`A chart was activated. ID: ${event.chartId}. Chart name: ${activatedChart.name}.`);
             });
         }
 

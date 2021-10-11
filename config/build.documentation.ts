@@ -79,10 +79,9 @@ async function buildSnippetExtractsPerHost(
                         result[headerNames[index]] = cell.value;
                     });
                     mappedRowData.push(result);
-                }
-
-                resolve(mappedRowData.filter(item => item));
+                }  
             });
+            resolve(mappedRowData.filter(item => item));
         });
 
     const allSnippetData: { [key: string]: string[] } = {};

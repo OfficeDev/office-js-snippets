@@ -5,7 +5,7 @@ import { Dictionary } from './helpers';
 
 import { SnippetProcessedData, banner, readDir, officeHostsToAppNames, writeFile, rmRf, mkDir } from './helpers';
 import { status } from './status';
-import parseXlsx from 'excel';
+const ExcelJS = require('exceljs');
 
 const SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME = 'snippet-extractor-metadata';
 
@@ -47,43 +47,40 @@ async function buildSnippetExtractsPerHost(
 ): Promise<{ [key: string]: string[] }> {
     const hostName = officeHostsToAppNames[
         filename.substr(0, filename.length - '.xlsx'.length).toUpperCase()];
-
     banner(`Extracting reference-doc snippet bits for ${hostName}`);
 
     const lines: MappingFileRowData[] =
-        await new Promise((resolve: (data: MappingFileRowData[]) => void, reject) => {
+        await new Promise(async (resolve: (data: MappingFileRowData[]) => void, reject) => {
             const fullFilePath = path.join(
                 path.resolve(SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME),
                 filename
             );
-            parseXlsx(fullFilePath).then((data) => {
-                if (data.length < 2) {
-                    reject(new Error('No data rows found'));
-                }
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.readFile(fullFilePath);
+            const worksheet = workbook.worksheets[0];
+            if (worksheet.rowCount < 2) {
+                reject(new Error('No data rows found'));
+            }
 
-                if (data[0].length !== headerNames.length) {
-                    reject(
-                        new Error('Unexpected number of columns. Expecting the following ' +
-                            headerNames.length + ' columns: ' +
-                            headerNames.map(name => `"${name}"`).join(', ')
-                        )
-                    );
-                }
+            if (worksheet.getRow(1).cellCount !== headerNames.length) {
+                reject(
+                    new Error('Unexpected number of columns. Expecting the following ' +
+                        headerNames.length + ' columns: ' +
+                        headerNames.map(name => `"${name}"`).join(', ')
+                    )
+                );
+            }
 
-                // Remove the first line, since it's the header line
-                data.splice(0, 1);
-
-                resolve(data.map((row: string[]) => {
-                    if (row.find(text => text.startsWith('//'))) {
-                        return null;
-                    }
-
+            let mappedRowData: MappingFileRowData[] = [];
+            worksheet.eachRow((row, rowNumber) => {
+                if (rowNumber !== 1 && !row.getCell(1).value.startsWith('//')) {
                     let result: MappingFileRowData = {} as any;
-                    row.forEach((column: string, index) => {
-                        result[headerNames[index]] = column;
+                    row.eachCell((cell, index) => {
+                        result[headerNames[index]] = cell.value;
                     });
-                    return result;
-                }).filter(item => item));
+                }
+
+                resolve(mappedRowData.filter(item => item));
             });
         });
 

@@ -505,7 +505,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
     let publicPlaylistPromises = map(publicGroups, async (items, host) => {
         const creatingStatusText = `Creating ${host}.yaml`;
         status.add(creatingStatusText);
-        items = sortBy(items, sortingCriteria);
+        items.values = sortBy(items.values, sortingCriteria);
 
         /*
            Having sorted the items -- which may have included a number in the group name! -- remove the group number if any

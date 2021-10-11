@@ -78,6 +78,7 @@ async function buildSnippetExtractsPerHost(
                     row.eachCell((cell, index) => {
                         result[headerNames[index]] = cell.value;
                     });
+                    mappedRowData.push(result);
                 }
 
                 resolve(mappedRowData.filter(item => item));

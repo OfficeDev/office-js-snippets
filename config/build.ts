@@ -1,7 +1,7 @@
 #!/usr/bin/env node --harmony
 
 import * as path from 'path';
-import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
+import { isNil, isString, isArray, isEmpty, cloneDeep } from 'lodash';
 import * as chalk from 'chalk';
 import { status } from './status';
 import {
@@ -22,7 +22,7 @@ const PRIVATE_SAMPLES = 'private-samples';
 const PUBLIC_SAMPLES = 'samples';
 const snippetFilesToUpdate: Array<{ path: string; contents: string }> = [];
 const accumulatedErrors: Array<string | Error> = [];
-const sortingCriteria = ['group', 'order', 'id'];
+//const sortingCriteria = ['group', 'order', 'id'];
 
 const officeHosts = ['ACCESS', 'EXCEL', 'ONENOTE', 'OUTLOOK', 'POWERPOINT', 'PROJECT', 'WORD'];
 const defaultApiSets = {
@@ -505,7 +505,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
     let publicPlaylistPromises = map(publicGroups, async (items, host) => {
         const creatingStatusText = `Creating ${host}.yaml`;
         status.add(creatingStatusText);
-        items = sortBy(items, sortingCriteria);
+        //items = sortBy(items, sortingCriteria);
 
         /*
            Having sorted the items -- which may have included a number in the group name! -- remove the group number if any
@@ -559,7 +559,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
     let allPlaylistPromises = map(allGroups, async (items, host) => {
         const creatingStatusText = `Creating ${host}.json`;
         status.add(creatingStatusText);
-        items = sortBy(items, sortingCriteria);
+       // items = sortBy(items, sortingCriteria);
 
         let hostMapping = {} as { [id: string]: string };
         items.forEach(item => {

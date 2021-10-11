@@ -76,10 +76,10 @@ async function buildSnippetExtractsPerHost(
                 if (rowNumber !== 1 && !row.getCell(1).value.startsWith('//')) {
                     let result: MappingFileRowData = {} as any;
                     row.eachCell((cell, index) => {
-                        result[headerNames[index]] = cell.value;
+                        result[headerNames[index - 1]] = cell.value;
                     });
                     mappedRowData.push(result);
-                }  
+                }
             });
             resolve(mappedRowData.filter(item => item));
         });
@@ -99,7 +99,6 @@ async function buildSnippetExtractsPerHost(
             }
             allSnippetData[fullName].push(text);
         });
-
     return allSnippetData;
 }
 

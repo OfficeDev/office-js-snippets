@@ -1,0 +1,217 @@
+id: powerpoint-shapes
+name: 'Insert shape, line, and text box'
+description: 'Inserts geometric shapes, lines, and text boxes to a slide.'
+host: POWERPOINT
+api_set: PowerPointApi '1.3'
+script:
+    content: |
+        $("#create-hexagon").click(() => tryCatch(createHexagon));
+        $("#shrink-hexagon").click(() => tryCatch(shrinkHexagon));
+        $("#move-hexagon").click(() => tryCatch(moveHexagon));
+        $("#create-line").click(() => tryCatch(createLine));
+        $("#create-text-box").click(() => tryCatch(createTextBox));
+        $("#create-shape-with-text").click(() => tryCatch(createShapeWithText));
+        $("#remove-all").click(() => tryCatch(removeAll));
+
+        // This function gets the collection of shapes on the first slide,
+        // and adds a hexagon shape to the collection, while specifying its
+        // location and size. Then it names the shape.
+        async function createHexagon() {
+          await PowerPoint.run(async (context) => {
+            var shapes = context.presentation.slides.getItemAt(0).shapes;
+            var hexagon = shapes.addGeometricShape(PowerPoint.GeometricShapeType.hexagon, 
+                {
+                  left: 100,
+                  top: 100,
+                  height: 150,
+                  width: 150
+                });
+            hexagon.name = "Hexagon";
+
+            await context.sync();
+          });
+        }
+
+        // This function gets the collection of shapes on the first slide,
+        // gets the first shape in the collection, and resets its size.
+        async function shrinkHexagon() {
+          await PowerPoint.run(async (context) => {
+            var shapes = context.presentation.slides.getItemAt(0).shapes;
+            var hexagon = shapes.getItemAt(0);
+            hexagon.height = 50;
+            hexagon.width = 50;
+
+            await context.sync();
+          });
+        }
+
+        // This function gets the collection of shapes on the first slide,
+        // gets the first shape in the collection, and resets its location.
+        async function moveHexagon() {
+          await PowerPoint.run(async (context) => {
+            var shapes = context.presentation.slides.getItemAt(0).shapes;
+            var hexagon = shapes.getItemAt(0);
+            hexagon.top = 50;
+            hexagon.left = 150;
+
+            await context.sync();
+          });
+        }
+
+        // This function gets the collection of shapes on the first slide,
+        // and adds a line to the collection, while specifying its
+        // start and end points. Then it names the shape.
+        async function createLine() {
+          await PowerPoint.run(async (context) => {
+            var shapes = context.presentation.slides.getItemAt(0).shapes;
+
+            // For a line, left and top are the coordinates of the start point,
+            // while height and width are the coordinates of the end point.
+            var line = shapes.addLine(PowerPoint.ConnectorType.straight, 
+                { 
+                  left: 400, 
+                  top: 200, 
+                  height: 20, 
+                  width: 150 
+                });
+            line.name = "StraightLine";
+
+            await context.sync();
+          });
+        }
+
+        // This function gets the collection of shapes on the first slide,
+        // and adds a text box to the collection, while specifying its text,
+        // location, and size. Then it names the text box.
+        async function createTextBox() {
+          await PowerPoint.run(async (context) => {
+            var shapes = context.presentation.slides.getItemAt(0).shapes;
+            var textbox = shapes.addTextBox("Hello!", 
+                { 
+                  left: 100, 
+                  top: 300, 
+                  height: 300, 
+                  width: 450 
+                });
+            textbox.name = "Textbox";
+
+            return context.sync();
+          });
+        }
+
+        // This function gets the collection of shapes on the first slide,
+        // and adds a brace pair, {}, to the collection, while specifying its
+        // location and size. Then it names the shape, sets its text and font
+        // color, and centers it inside the braces.
+        async function createShapeWithText() {
+          await PowerPoint.run(async (context) => {
+            var shapes = context.presentation.slides.getItemAt(0).shapes;
+            var braces = shapes.addGeometricShape(PowerPoint.GeometricShapeType.bracePair, {
+                left: 100,
+                top: 400,
+                height: 50,
+                width: 150
+              });
+            braces.name = "Braces";
+            braces.textFrame.textRange.text = "Shape text";
+            braces.textFrame.textRange.font.color = "purple";
+            braces.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middleCentered;
+
+            return context.sync();
+          });
+        }
+
+        // This function gets the collection of shapes on the first slide,
+        // and then iterates through them, deleting each one.
+        async function removeAll() {
+          await PowerPoint.run(async (context) => {
+            const slide = context.presentation.slides.getItemAt(0);
+            const shapes = slide.shapes;
+
+            // Load all the shapes in the collection without loading their properties.
+            shapes.load("items/$none");
+
+            await context.sync();
+
+            shapes.items.forEach((shape) => shape.delete());
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to create, resize, move, and delete shapes.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="create-hexagon" class="ms-Button">
+                <span class="ms-Button-label">Create hexagon</span>
+            </button>
+            <p />
+            <button id="shrink-hexagon" class="ms-Button">
+                            <span class="ms-Button-label">Shrink hexagon</span>
+                    </button>
+            <p />
+            <button id="move-hexagon" class="ms-Button">
+                            <span class="ms-Button-label">Move hexagon</span>
+                    </button>
+            <p />
+            <button id="create-line" class="ms-Button">
+                <span class="ms-Button-label">Create line</span>
+            </button>
+            <p />
+
+            <button id="create-text-box" class="ms-Button">
+                        <span class="ms-Button-label">Create text box</span>
+                    </button>
+            <p />
+
+            <button id="create-shape-with-text" class="ms-Button">
+                <span class="ms-Button-label">Create shape with text</span>
+            </button>
+            <p />
+
+            <button id="remove-all" class="ms-Button">
+                    <span class="ms-Button-label">Remove all shapes</span>
+                </button>
+            <p />
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

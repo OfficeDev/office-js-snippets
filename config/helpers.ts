@@ -124,7 +124,7 @@ export const readDir = (dir: string) =>
  * @param contents
  */
 export const writeFile = (filename: string, contents: string) =>
-    new Promise((resolve, reject) => {
+    new Promise<void>((resolve, reject) => {
         fs.writeFile(filename, contents, (err) => {
             if (err) {
                 return reject(err);
@@ -164,7 +164,7 @@ export function getFileMetadata(fullPath: string, root: string): SnippetFileInpu
 
     /* Additional must be null or empty */
     if (additional && additional.length > 0) {
-        throw new Error(`Invalid folder structure at ${chalk.bold.red(relativePath)}.File ${chalk.bold.yellow(name)} was located too deep.`);
+        throw new Error(`Invalid folder structure at ${chalk.bold.red(relativePath)}.File ${chalk.bold.yellow(file_name)} was located too deep.`);
     }
 
     if (host == null) {

@@ -1,0 +1,157 @@
+order: 14
+id: excel-chart-data-table
+name: Chart data table
+description: Add a data table to a chart and then format that data table.
+host: EXCEL
+api_set: 
+  ExcelApi: '1.14'
+script:
+  content: >
+    $("#setup").click(() => tryCatch(setup));
+    $("#create-column-clustered-chart").click(() => tryCatch(createColumnClusteredChart));
+    $("#add-chart-data-table").click(() => tryCatch(addChartDataTable));
+    $("#format-chart-data-table").click(() => tryCatch(formatChartDataTable));
+
+    async function createColumnClusteredChart() {
+      await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        // Create a column clustered chart with data from SalesTable.
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const dataRange = salesTable.getDataBodyRange();
+        const chart = sheet.charts.add("ColumnClustered", dataRange, "Auto");
+
+        // Position and format the chart.
+        chart.setPosition("A9", "L20");
+        chart.title.text = "Quarterly sales chart";
+        chart.legend.position = "Right";
+        chart.legend.format.fill.setSolidColor("white");
+
+        const points = chart.series.getItemAt(0).points;
+        points.getItemAt(0).format.fill.setSolidColor("pink");
+        points.getItemAt(1).format.fill.setSolidColor("indigo");
+
+        await context.sync();
+      });
+    }
+
+    async function addChartDataTable() {
+      await Excel.run(async (context) => {
+        // Retrieve the chart named "Chart 1" on the active worksheet.
+        const chart = context.workbook.worksheets.getActiveWorksheet().charts.getItem("Chart 1");
+
+        // Get the data table object for the chart and set it to visible.
+        const chartDataTable = chart.getDataTableOrNullObject();
+        chartDataTable.load("visible");
+        chartDataTable.visible = true;
+        await context.sync();
+      });
+    }
+
+    async function formatChartDataTable() {
+      await Excel.run(async (context) => {
+        // Retrieve the chart named "Chart 1" on the active worksheet.
+        const chart = context.workbook.worksheets.getActiveWorksheet().charts.getItem("Chart 1");
+
+        // Get the chart data table object and load its properties.
+        const chartDataTable = chart.getDataTableOrNullObject();
+        chartDataTable.load();
+
+        // Set the display properties of the chart data table.
+        chartDataTable.showLegendKey = true;
+        chartDataTable.showHorizontalBorder = false;
+        chartDataTable.showVerticalBorder = true;
+        chartDataTable.showOutlineBorder = true;
+
+        // Retrieve the chart data table format object and set format properties. 
+        const chartDataTableFormat = chartDataTable.format;
+        chartDataTableFormat.font.color = "#B76E79";
+        chartDataTableFormat.border.color = "blue";
+        chartDataTableFormat.font.name = "Comic Sans";
+        await context.sync();
+      });
+    }
+    
+    async function setup() {
+      await Excel.run(async (context) => {
+        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+        const sheet = context.workbook.worksheets.add("Sample");
+
+        let expensesTable = sheet.tables.add("A1:E1", true);
+        expensesTable.name = "SalesTable";
+        expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+        expensesTable.rows.add(null, [
+          ["Frames", 5000, 7000, 6544, 4377],
+          ["Saddles", 400, 323, 276, 651],
+          ["Brake levers", 12000, 8766, 8456, 9812],
+          ["Chains", 1550, 1088, 692, 853],
+          ["Mirrors", 225, 600, 923, 544],
+          ["Spokes", 6005, 7634, 4589, 8765]
+        ]);
+
+        sheet.getUsedRange().format.autofitColumns();
+        sheet.getUsedRange().format.autofitRows();
+
+        sheet.activate();
+        await context.sync();
+      });
+    }
+
+    /** Default helper for invoking an action and handling errors. */
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+  language: typescript
+template:
+  content: |-
+    <section class="ms-font-m">
+      <p>This sample shows how to add a data table to a chart and then format that data table.</p>
+    </section>
+
+    <section class="setup ms-font-m">
+      <h3>Set up</h3>
+      <button id="setup" class="ms-Button">
+        <span class="ms-Button-label">Create table</span>
+      </button>
+    </section>
+
+    <section class="samples ms-font-m">
+      <h3>Try it out</h3>
+      <button id="create-column-clustered-chart" class="ms-Button">
+        <span class="ms-Button-label">Create chart</span>
+      </button>
+      <button id="add-chart-data-table" class="ms-Button">
+        <span class="ms-Button-label">Add chart data table</span>
+      </button>
+      <button id="format-chart-data-table" class="ms-Button">
+        <span class="ms-Button-label">Format chart data table</span>
+      </button>
+    </section>
+  language: html
+style:
+  content: |
+    section.samples {
+        margin-top: 20px;
+    }
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+libraries: |
+  https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+  @types/office-js
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
+  jquery@3.1.1
+  @types/jquery@3.3.1

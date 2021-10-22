@@ -8,16 +8,17 @@ api_set:
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#add-auto-filter").click(() => tryCatch(addAutoFilter));
+        $("#add-percent-auto-filter").click(() => tryCatch(addPercentAutoFilter));
+        $("#add-custom-auto-filter").click(() => tryCatch(addCustomAutoFilter));
         $("#randomize-data").click(() => tryCatch(randomizeData));
         $("#refresh-auto-filter").click(() => tryCatch(refreshAutoFilter));
-        $("#clear-single-auto-filter-column").click(() => tryCatch(clearSingleAutoFilterColumn));
-        $("#remove-auto-filter").click(() => tryCatch(removeAutoFilter));
+        $("#clear-single-auto-filter").click(() => tryCatch(clearSingleAutoFilter));
+        $("#remove-all-auto-filter").click(() => tryCatch(removeAllAutoFilters));
 
-        async function addAutoFilter() {
+        async function addPercentAutoFilter() {
             await Excel.run(async (context) => {
-                // This method adds an AutoFilter to the active worksheet and applies the filter to 
-                // two different columns of the used range. 
+                // This method adds a percentage AutoFilter to the active worksheet 
+                // and applies the filter to a column of the used range.
 
                 // Retrieve the active worksheet and the used range on that worksheet.
                 const sheet = context.workbook.worksheets.getActiveWorksheet();
@@ -25,14 +26,27 @@ script:
 
                 // Add a filter that will only show the rows with the top 50% of values in column 3.
                 sheet.autoFilter.apply(farmData, 3, {
-                    criterion1: "50",
-                    filterOn: Excel.FilterOn.topPercent
+                criterion1: "50",
+                filterOn: Excel.FilterOn.topPercent
                 });
+
+                await context.sync();
+            });
+        }
+
+        async function addCustomAutoFilter() {
+            await Excel.run(async (context) => {
+                // This method adds a custom AutoFilter to the active worksheet 
+                // and applies the filter to a column of the used range.
+
+                // Retrieve the active worksheet and the used range on that worksheet.
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const farmData = sheet.getUsedRange();
 
                 // Add a filter that will only show the rows with values that end with the letter "e" in column 1.
                 sheet.autoFilter.apply(farmData, 1, {
-                    criterion1: "=*e",
-                    filterOn: Excel.FilterOn.custom
+                criterion1: "=*e",
+                filterOn: Excel.FilterOn.custom
                 });
 
                 await context.sync();
@@ -47,7 +61,7 @@ script:
                 await context.sync();
 
                 for (let i = 1; i < farmData.rowCount; i++) {
-                    farmData.getCell(i, 3).values = [[Math.round(Math.random() * 5000)]];
+                farmData.getCell(i, 3).values = [[Math.round(Math.random() * 5000)]];
                 }
 
                 await context.sync();
@@ -56,7 +70,7 @@ script:
 
         async function refreshAutoFilter() {
             await Excel.run(async (context) => {
-                // This method refreshes the AutoFilter to ensure changes are captured. 
+                // This method refreshes the AutoFilter to ensure that changes are captured.
 
                 // Retrieve the active worksheet.
                 const sheet = context.workbook.worksheets.getActiveWorksheet();
@@ -67,7 +81,7 @@ script:
             });
         }
 
-        async function clearSingleAutoFilterColumn() {
+        async function clearSingleAutoFilter() {
             await Excel.run(async (context) => {
                 // This method clears the AutoFilter setting from one column.
 
@@ -80,9 +94,9 @@ script:
             });
         }
 
-        async function removeAutoFilter() {
+        async function removeAllAutoFilters() {
             await Excel.run(async (context) => {
-                // This method removes the AutoFilter from the active worksheet. 
+                // This method removes all AutoFilters from the active worksheet.
 
                 // Retrieve the active worksheet.
                 const sheet = context.workbook.worksheets.getActiveWorksheet();
@@ -99,41 +113,39 @@ script:
                 const dataSheet = context.workbook.worksheets.add("Sample");
 
                 const data = [
-                    ["Farm", "Type", "Classification", "Crates Sold Wholesale"],
-                    ["A Farms", "Lime", "Organic", 2000],
-                    ["A Farms", "Lemon", "Organic", 1800],
-                    ["A Farms", "Orange", "Organic", 2200],
-                    ["B Farms", "Lime", "Conventional", 1000],
-                    ["B Farms", "Lemon", "Conventional", 1230],
-                    ["B Farms", "Orange", "Conventional", 800],
-                    ["B Farms", "Orange", "Organic", 500],
-                    ["B Farms", "Lemon", "Organic", 770],
-                    ["B Farms", "Kiwi", "Conventional", 300],
-                    ["B Farms", "Lime", "Organic", 400],
-                    ["C Farms", "Apple", "Organic", 220],
-                    ["C Farms", "Kiwi", "Organic", 120],
-                    ["D Farms", "Apple", "Conventional", 3000],
-                    ["D Farms", "Apple", "Organic", 2800],
-                    ["E Farms", "Lime", "Conventional", 2700],
-                    ["E Farms", "Orange", "Conventional", 2000],
-                    ["E Farms", "Apple", "Conventional", 2200],
-                    ["E Farms", "Kiwi", "Conventional", 1500],
-                    ["F Farms", "Kiwi", "Organic", 150],
-                    ["F Farms", "Lemon", "Conventional", 270]
+                ["Farm", "Type", "Classification", "Crates Sold Wholesale"],
+                ["A Farms", "Lime", "Organic", 2000],
+                ["A Farms", "Lemon", "Organic", 1800],
+                ["A Farms", "Orange", "Organic", 2200],
+                ["B Farms", "Lime", "Conventional", 1000],
+                ["B Farms", "Lemon", "Conventional", 1230],
+                ["B Farms", "Orange", "Conventional", 800],
+                ["B Farms", "Orange", "Organic", 500],
+                ["B Farms", "Lemon", "Organic", 770],
+                ["B Farms", "Kiwi", "Conventional", 300],
+                ["B Farms", "Lime", "Organic", 400],
+                ["C Farms", "Apple", "Organic", 220],
+                ["C Farms", "Kiwi", "Organic", 120],
+                ["D Farms", "Apple", "Conventional", 3000],
+                ["D Farms", "Apple", "Organic", 2800],
+                ["E Farms", "Lime", "Conventional", 2700],
+                ["E Farms", "Orange", "Conventional", 2000],
+                ["E Farms", "Apple", "Conventional", 2200],
+                ["E Farms", "Kiwi", "Conventional", 1500],
+                ["F Farms", "Kiwi", "Organic", 150],
+                ["F Farms", "Lemon", "Conventional", 270]
                 ];
-
                 const range = dataSheet.getRange("A1:D21");
                 range.values = data;
                 dataSheet.getRange("A1:D1").format.font.bold = true;
                 range.format.autofitColumns();
                 dataSheet.activate();
-                
                 await context.sync();
             });
         }
 
         /** Default helper for invoking an action and handling errors. */
-        async function tryCatch(callback) {
+            async function tryCatch(callback) {
             try {
                 await callback();
             } catch (error) {
@@ -157,8 +169,12 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="add-auto-filter" class="ms-Button">
-                <span class="ms-Button-label">Add AutoFilter</span>
+            <button id="add-percent-auto-filter" class="ms-Button">
+                <span class="ms-Button-label">Add percent AutoFilter</span>
+            </button>
+            <p />
+            <button id="add-custom-auto-filter" class="ms-Button">
+                <span class="ms-Button-label">Add custom AutoFilter</span>
             </button>
             <p />
             <button id="randomize-data" class="ms-Button">
@@ -170,12 +186,12 @@ template:
                 <span class="ms-Button-label">Refresh AutoFilter</span>
             </button>
             <p />
-            <button id="clear-single-auto-filter-column" class="ms-Button">
-                <span class="ms-Button-label">Clear single AutoFilter column</span>
+            <button id="clear-single-auto-filter" class="ms-Button">
+                <span class="ms-Button-label">Clear percent AutoFilter</span>
             </button>
             <p />
-            <button id="remove-auto-filter" class="ms-Button">
-                <span class="ms-Button-label">Remove AutoFilter</span>
+            <button id="remove-all-auto-filters" class="ms-Button">
+                <span class="ms-Button-label">Remove all AutoFilters</span>
             </button>
         </section>
     language: html

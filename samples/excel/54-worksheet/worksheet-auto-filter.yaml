@@ -8,18 +8,47 @@ api_set:
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#add-auto-filter").click(() => tryCatch(addAutoFilter));
+        $("#add-percent-auto-filter").click(() => tryCatch(addPercentAutoFilter));
+        $("#add-custom-auto-filter").click(() => tryCatch(addCustomAutoFilter));
         $("#randomize-data").click(() => tryCatch(randomizeData));
         $("#refresh-auto-filter").click(() => tryCatch(refreshAutoFilter));
-        $("#remove-auto-filter").click(() => tryCatch(removeAutoFilter));
+        $("#clear-single-auto-filter").click(() => tryCatch(clearSingleAutoFilter));
+        $("#remove-all-auto-filters").click(() => tryCatch(removeAllAutoFilters));
 
-        async function addAutoFilter() {
+        async function addPercentAutoFilter() {
             await Excel.run(async (context) => {
+                // This method adds a percentage AutoFilter to the active worksheet 
+                // and applies the filter to a column of the used range.
+
+                // Retrieve the active worksheet and the used range on that worksheet.
                 const sheet = context.workbook.worksheets.getActiveWorksheet();
                 const farmData = sheet.getUsedRange();
 
-                // This filter will only show the rows with the top 25% of values in column 3.
-                sheet.autoFilter.apply(farmData, 3, { criterion1: "25", filterOn: Excel.FilterOn.topPercent });
+                // Add a filter that will only show the rows with the top 50% of values in column 3.
+                sheet.autoFilter.apply(farmData, 3, {
+                    criterion1: "50",
+                    filterOn: Excel.FilterOn.topPercent
+                });
+
+                await context.sync();
+            });
+        }
+
+        async function addCustomAutoFilter() {
+            await Excel.run(async (context) => {
+                // This method adds a custom AutoFilter to the active worksheet 
+                // and applies the filter to a column of the used range.
+
+                // Retrieve the active worksheet and the used range on that worksheet.
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const farmData = sheet.getUsedRange();
+
+                // Add a filter that will only show the rows with values that end with the letter "e" in column 1.
+                sheet.autoFilter.apply(farmData, 1, {
+                    criterion1: "=*e",
+                    filterOn: Excel.FilterOn.custom
+                });
+
                 await context.sync();
             });
         }
@@ -41,15 +70,38 @@ script:
 
         async function refreshAutoFilter() {
             await Excel.run(async (context) => {
+                // This method refreshes the AutoFilter to ensure that changes are captured.
+
+                // Retrieve the active worksheet.
                 const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Reapply the filter to capture changes.
                 sheet.autoFilter.reapply();
                 await context.sync();
             });
         }
 
-        async function removeAutoFilter() {
+        async function clearSingleAutoFilter() {
             await Excel.run(async (context) => {
+                // This method clears the AutoFilter setting from one column.
+
+                // Retrieve the active worksheet.
                 const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Clear the filter from only column 3.
+                sheet.autoFilter.clearColumnCriteria(3);
+                await context.sync();
+            });
+        }
+
+        async function removeAllAutoFilters() {
+            await Excel.run(async (context) => {
+                // This method removes all AutoFilters from the active worksheet.
+
+                // Retrieve the active worksheet.
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Remove all filters.
                 sheet.autoFilter.remove();
                 await context.sync();
             });
@@ -83,11 +135,13 @@ script:
                     ["F Farms", "Kiwi", "Organic", 150],
                     ["F Farms", "Lemon", "Conventional", 270]
                 ];
+
                 const range = dataSheet.getRange("A1:D21");
                 range.values = data;
                 dataSheet.getRange("A1:D1").format.font.bold = true;
                 range.format.autofitColumns();
                 dataSheet.activate();
+
                 await context.sync();
             });
         }
@@ -105,33 +159,43 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-          <p>This sample shows how to work with an AutoFilter on a worksheet.</p>
+            <p>This sample shows how to work with an AutoFilter on a worksheet.</p>
         </section>
 
         <section class="samples ms-font-m">
-          <h3>Setup</h3>
-          <button id="setup" class="ms-Button">
+            <h3>Setup</h3>
+            <button id="setup" class="ms-Button">
                 <span class="ms-Button-label">Add data</span>
             </button>
         </section>
+
         <section class="samples ms-font-m">
-          <h3>Try it out</h3>
-          <button id="add-auto-filter" class="ms-Button">
-                <span class="ms-Button-label">Add AutoFilter</span>
+            <h3>Try it out</h3>
+            <p>Add two filters. One shows only the top half of sales and the other shows only fruits that end with the letter 'e'.</p>
+            <button id="add-percent-auto-filter" class="ms-Button">
+                <span class="ms-Button-label">Add percent AutoFilter</span>
             </button>
-          <p />
-          <button id="randomize-data" class="ms-Button">
-              <span class="ms-Button-label">Randomize data</span>
+            <p />
+            <button id="add-custom-auto-filter" class="ms-Button">
+                <span class="ms-Button-label">Add custom AutoFilter</span>
             </button>
-          <p />
-          <p>When the data in the worksheet or table changes, the AutoFilter needs to be refreshed by your add-in.</p>
-          <button id="refresh-auto-filter" class="ms-Button">
-            <span class="ms-Button-label">Refresh AutoFilter</span>
-          </button>
-          <p />
-          <button id="remove-auto-filter" class="ms-Button">
-            <span class="ms-Button-label">Remove AutoFilter</span>
-          </button>
+            <p />
+            <button id="randomize-data" class="ms-Button">
+                <span class="ms-Button-label">Randomize data</span>
+            </button>
+            <p />
+            <p>When the data in the worksheet or table changes, the AutoFilter needs to be refreshed by your add-in.</p>
+            <button id="refresh-auto-filter" class="ms-Button">
+                <span class="ms-Button-label">Refresh AutoFilter</span>
+            </button>
+            <p />
+            <button id="clear-single-auto-filter" class="ms-Button">
+                <span class="ms-Button-label">Clear percent AutoFilter</span>
+            </button>
+            <p />
+            <button id="remove-all-auto-filters" class="ms-Button">
+                <span class="ms-Button-label">Remove all AutoFilters</span>
+            </button>
         </section>
     language: html
 style:

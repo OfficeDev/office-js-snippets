@@ -1,0 +1,111 @@
+order: 16
+id: excel-events-worksheet-protection
+name: Worksheet protection events
+description: Registers an event handler to listen for worksheet protection status changes.
+host: EXCEL
+api_set:
+    ExcelAPI: '1.14'
+script:
+    content: |
+        $("#register-event").click(() => tryCatch(registerEvent));
+        $("#change-protection").click(() => tryCatch(changeProtection));
+
+        async function registerEvent() {
+            await Excel.run(async (context) => {
+                // This method registers an event handler for the onProtectionChanged event of a worksheet.
+
+                // Set "Sample" as the active worksheet.
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet = context.workbook.worksheets.add("Sample");
+                sheet.activate();
+
+                // Register the onProtectionChanged event handler.
+                sheet.onProtectionChanged.add(checkProtection);
+                await context.sync();
+                console.log("Added a worksheet protection change event handler.");
+            });
+        }
+
+        async function checkProtection(event: Excel.WorksheetProtectionChangedEventArgs) {
+            await Excel.run(async (context) => {
+                // This method is an event handler that returns the protection status of a worksheet and information about the changed worksheet.
+                const protectionStatus = event.isProtected;
+                const worksheetId = event.worksheetId;
+                const source = event.source;
+                console.log("Protection status changed. Protection status is now: " + protectionStatus + ".");
+                console.log("    ID of changed worksheet: " + worksheetId + ".");
+                console.log("    Source of change event: " + source + ".");
+            });
+        }
+
+        async function changeProtection() {
+            await Excel.run(async (context) => {
+                // This method toggles the protection status of a worksheet between "protected" and "unprotected".
+                const sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.activate();
+
+                // Load the protected property of the WorksheetProtection object.
+                sheet.load("protection/protected");
+                await context.sync();
+
+                // Enable worksheet protection if it's disabled, or disable worksheet protection if it's enabled.
+                if (sheet.protection.protected) {
+                    sheet.protection.unprotect();
+                } else {
+                    sheet.protection.protect();
+                }
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to register a worksheet protection change event handler. Once the event handler is registered, you can enable and disable worksheet protection for the current worksheet. When worksheet protection is enabled, the current worksheet can't be edited.</p>
+        </section>
+        <section class="ms-font-m">
+            <h3>Try it out</h3>
+            <button id="register-event" class="ms-Button">
+                <span class="ms-Button-label">Register worksheet protection event</span>
+            </button>
+            <br><br>
+            <p>Toggle worksheet protection and then try editing a cell on the worksheet.</p>
+            <button id="change-protection" class="ms-Button">
+                <span class="ms-Button-label">Toggle worksheet protection</span>
+            </button>
+        </section>  
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+        language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

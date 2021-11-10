@@ -1,7 +1,7 @@
 order: 1
 id: excel-performance-optimization
 name: Performance optimization
-description: Optimizes performance by untracking ranges and turning off screen painting.
+description: 'Optimizes performance by untracking ranges, turning off screen painting, and switching the calculation mode.'
 host: EXCEL
 api_set:
     ExcelApi: '1.9'
@@ -11,75 +11,132 @@ script:
         $("#refresh-data").click(() => tryCatch(refreshData));
         $("#toggle-tracking").click(() => tryCatch(toggleTracking));
         $("#toggle-screen-painting").click(() => tryCatch(toggleScreenPainting));
+        $("#toggle-calculation").click(() => tryCatch(toggleCalculationMode));
+        $("#recalculate").click(() => tryCatch(recalculate));
+
+        const ROW_COUNT = 500;
+        const COLUMN_COUNT = 20;
 
         let untrack = false;
         let pauseScreenPainting = false;
 
         async function refreshData() {
-            await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
-                const rowCount = 500;
-                const columnCount = 20;
+          await Excel.run(async (context) => {
+            // Recreate the data in the worksheet with random data.
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
 
-                const startTime = Date.now();
-                console.log("Starting...");
+            const startTime = Date.now();
+            console.log("Starting...");
 
-                if (pauseScreenPainting) {
-                    // Note: Don't call `suspendScreenUpdatingUntilNextSync` repeatedly (such as in a loop).
-                    // Repeated calls will cause the Excel window to flicker. 
-                    context.application.suspendScreenUpdatingUntilNextSync();
+            // If other parts of the sample have toggled screen printing off, this will stop screen updating until context.sync is called.
+            if (pauseScreenPainting) {
+              context.application.suspendScreenUpdatingUntilNextSync();
+            }
+
+            for (let i = 1; i < ROW_COUNT; i++) {
+              for (let j = 1; j < COLUMN_COUNT; j++) {
+                let cell = sheet.getCell(i, j);
+                cell.values = [[i * j * Math.random()]];
+
+                // If other parts of the sample have toggled tracking off, we will avoid tracking this range and having to manage the proxy objects.
+                // For more information, see https://docs.microsoft.com/office/dev/add-ins/concepts/resource-limits-and-performance-optimization#untrack-unneeded-proxy-objects
+                if (untrack) {
+                  cell.untrack();
                 }
+              }
+            }
 
-                for (let i = 0; i < rowCount; i++) {
-                    for (let j = 0; j < columnCount; j++) {
-                        let cell = sheet.getCell(i, j);
-                        cell.values = [[i * j * Math.random()]];
-                        if (untrack) {
-                            cell.untrack();
-                        }
-                    }
-                }
+            await context.sync();
 
-                await context.sync();
-
-                console.log(`Ending. Adding ${rowCount * columnCount} cells took ${Date.now() - startTime} milliseconds`);
-            });
+            console.log(`Ending. Adding ${ROW_COUNT * COLUMN_COUNT} cells took ${Date.now() - startTime} milliseconds`);
+          });
         }
 
         function toggleScreenPainting() {
-            pauseScreenPainting = !pauseScreenPainting;
-            console.log(`pauseScreenPainting is ${pauseScreenPainting}`);
+          pauseScreenPainting = !pauseScreenPainting;
+          if (pauseScreenPainting) {
+            console.log("Screen updating will be paused when you press Refresh Data.");
+          } else {
+            console.log("Screen updating will happen as normal.");
+          }
         }
 
         function toggleTracking() {
-            untrack = !untrack;
-            console.log(`untrack is ${untrack}`);
+          untrack = !untrack;
+          if (untrack) {
+            console.log("Proxy Range objects will not be tracked when you press Refresh Data.");
+          } else {
+            console.log("Proxy Range objects will  be tracked as normal.");
+          }
+        }
+
+        async function toggleCalculationMode() {
+          await Excel.run(async (context) => {
+            context.application.load("calculationMode");
+            await context.sync();
+
+            let calculationMode = context.application.calculationMode;
+            if (calculationMode === Excel.CalculationMode.automatic) {
+              context.application.calculationMode = Excel.CalculationMode.manual;
+              console.log(`Calculation Mode is now ${Excel.CalculationMode.manual}`);
+            } else {
+              context.application.calculationMode = Excel.CalculationMode.automatic;
+              console.log(`Calculation Mode is now ${Excel.CalculationMode.automatic}`);
+            }
+          });
+        }
+
+        async function recalculate() {
+          await Excel.run(async (context) => {
+            context.application.calculate(Excel.CalculationType.full);
+          });
         }
 
         async function setup() {
-            await Excel.run(async (context) => {
-                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
-                const sheet = context.workbook.worksheets.add("Sample");
-                
-                sheet.activate();
-                await context.sync();
+          await Excel.run(async (context) => {
+            // Create a sample worksheet.
+            const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+            sheet.activate();
+            sheet.getCell(0, 0).values = [["Row Total"]];
+
+            // Add SUM functions for each row to the first column.
+            let rangeAddressesToUse = [];
+            for (let row = 1; row < ROW_COUNT; row++) {
+              let cell = sheet.getCell(row, 0);
+              let sumRange = cell.getResizedRange(0, COLUMN_COUNT - 1).getOffsetRange(0, 1);
+              sumRange.load("address");
+
+              // Store the range objects to avoid calling context.sync in the loop.
+              rangeAddressesToUse.push(sumRange);
+            }
+
+            await context.sync();
+            rangeAddressesToUse.forEach((value, index) => {
+              let cell = sheet.getCell(index + 1, 0);
+              cell.formulas = [[`=SUM(${value.address.substring(value.address.indexOf("!") + 1)})`]];
             });
+
+            // Add a lot of sample data.
+            refreshData();
+            await context.sync();
+          });
         }
 
         /** Default helper for invoking an action and handling errors. */
         async function tryCatch(callback) {
-            try {
-                await callback();
-            } catch (error) {
-                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-                console.error(error);
-            }
+          try {
+            await callback();
+          } catch (error) {
+            OfficeHelpers.UI.notify(error);
+            OfficeHelpers.Utilities.log(error);
+          }
         }
     language: typescript
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows some performance optimizations.</p>
+            <p>This sample shows some performance optimizations. Toggle the various performance options, then refresh or
+                recalculate to see the effects.</p>
         </section>
 
         <section class="samples ms-font-m">
@@ -90,15 +147,27 @@ template:
         </section>
 
         <section class="samples ms-font-m">
+            <h3>Performance settings</h3>
+            <button id="toggle-screen-painting" class="ms-Button">
+                    <span class="ms-Button-label">Toggle screen painting</span>
+            </button>
+            <p>
+                <button id="toggle-tracking" class="ms-Button">
+                    <span class="ms-Button-label">Toggle range tracking</span>
+            </button>
+                <p>
+                    <button id="toggle-calculation" class="ms-Button">
+                    <span class="ms-Button-label">Toggle calculation mode</span>
+            </button>
+        </section>
+        <section class="samples ms-font-m">
             <h3>Try it out</h3>
             <button id="refresh-data" class="ms-Button">
-                <span class="ms-Button-label">Refresh data</span>
-            </button><p>
-            <button id="toggle-screen-painting" class="ms-Button">
-                <span class="ms-Button-label">Toggle screen painting</span>
-            </button><p>
-            <button id="toggle-tracking" class="ms-Button">
-                <span class="ms-Button-label">Toggle range tracking</span>
+                    <span class="ms-Button-label">Refresh data</span>
+            </button>
+            <p>
+                <button id="recalculate" class="ms-Button">
+                <span class="ms-Button-label">Recalculate</span>
             </button>
         </section>
     language: html
@@ -124,6 +193,9 @@ libraries: |
 
     core-js@2.4.1/client/core.min.js
     @types/core-js
+
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
+    @microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts
 
     jquery@3.1.1
     @types/jquery@3.3.1

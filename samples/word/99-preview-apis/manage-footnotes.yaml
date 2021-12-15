@@ -1,0 +1,264 @@
+id: word-manage-footnotes
+name: Manage footnotes
+description: Basic operations using footnotes.
+host: WORD
+api_set:
+    WordApi: '1.4'
+script:
+    content: |
+        $("#insert-footnote").click(() => tryCatch(insertFootnote));
+        $("#get-reference").click(() => tryCatch(getReference));
+        $("#get-footnote-type").click(() => tryCatch(getFootnoteType));
+        $("#get-footnote-body").click(() => tryCatch(getFootnoteBody));
+        $("#get-next-footnote").click(() => tryCatch(getNextFootnote));
+        $("#delete-footnote").click(() => tryCatch(deleteFootnote));
+        $("#get-first-footnote").click(() => tryCatch(getFirstFootnote));
+        $("#get-footnotes-from-body").click(() => tryCatch(getFootnotesFromBody));
+        $("#get-footnotes-from-range").click(() => tryCatch(getFootnotesFromRange));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function insertFootnote() {
+          await Word.run(async (context) => {
+            const range = context.document.getSelection();
+            context.load(range);
+            await context.sync();
+            const text = $("#input-footnote")
+              .val()
+              .toString();
+            const footnote = range.insertFootnote(text);
+            context.load(footnote);
+            await context.sync();
+            console.log("Inserted footnote.");
+          });
+        }
+        async function getFootnotesFromBody() {
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            const result = body.footnotes;
+            result.load("length");
+            await context.sync();
+            console.log("Number of footnotes in the document body: " + result.items.length);
+          });
+        }
+        async function getReference() {
+          await Word.run(async (context) => {
+            const footnotes = context.document.body.footnotes;
+            context.load(footnotes);
+            await context.sync();
+
+            const reference_number = $("#input-reference").val();
+            let mark = Number(reference_number) - 1;
+            const item = footnotes.items[mark];
+            var reference = item.reference;
+            context.load(reference);
+            await context.sync();
+            reference.select();
+            await context.sync();
+
+            console.log(`Reference ${reference_number} is selected.`);
+          });
+        }
+        async function getFootnoteType() {
+          await Word.run(async (context) => {
+            const footnotes = context.document.body.footnotes;
+            context.load(footnotes);
+            await context.sync();
+
+            const reference_number = $("#input-reference").val();
+            let mark = Number(reference_number) - 1;
+            const item = footnotes.items[mark];
+            await context.sync();
+
+            console.log("Note type: " + item.type);
+          });
+        }
+        async function getFootnotesFromRange() {
+          await Word.run(async (context) => {
+            const range = context.document.getSelection();
+            const result = range.footnotes;
+            result.load("length");
+            await context.sync();
+            console.log("Number of footnotes in the selected range: " + result.items.length);
+          });
+        }
+        async function deleteFootnote() {
+          await Word.run(async (context) => {
+            const footnotes = context.document.body.footnotes;
+            context.load(footnotes);
+            await context.sync();
+            const reference_number = $("#input-reference").val();
+            let mark = Number(reference_number) - 1;
+            footnotes.items[mark].delete();
+            await context.sync();
+            console.log("Footnote deleted.");
+          });
+        }
+        async function getFirstFootnote() {
+          await Word.run(async (context) => {
+            const footnotes = context.document.body.footnotes;
+            context.load(footnotes);
+            await context.sync();
+
+            const item = footnotes.getFirst();
+            context.load(item);
+            await context.sync();
+
+            var reference = item.reference;
+            context.load(reference);
+            await context.sync();
+
+            reference.select();
+            console.log("The first footnote is selected.");
+            await context.sync();
+          });
+        }
+        async function getNextFootnote() {
+          await Word.run(async (context) => {
+            const footnotes = context.document.body.footnotes;
+
+            context.load(footnotes);
+            await context.sync();
+
+            const reference_number = $("#input-reference").val();
+            let mark = Number(reference_number) - 1;
+            const item = footnotes.items[mark].getNext();
+            context.load(item);
+            await context.sync();
+
+            var reference = item.reference;
+            context.load(reference);
+            await context.sync();
+
+            reference.select();
+            console.log("Selected is the next footnote: " + (Number(reference_number) + 1));
+            await context.sync();
+          });
+        }
+        async function getFootnoteBody() {
+          await Word.run(async (context) => {
+            const footnotes = context.document.body.footnotes;
+            context.load(footnotes);
+            await context.sync();
+
+            const reference_number = $("#input-reference").val();
+            let mark = Number(reference_number) - 1;
+            const item = footnotes.items[mark];
+
+            context.load(item);
+            await context.sync();
+            const footnoteBody = item.body;
+            context.load(footnoteBody);
+            await context.sync();
+            var range = footnoteBody.getRange();
+
+            context.load(range);
+            await context.sync();
+            range.select();
+            console.log("Footnote text: " + range.text);
+          });
+        }
+        async function setup() {
+          await Word.run(async (context) => {
+            context.document.body.clear();
+            context.document.body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            context.document.body.paragraphs
+              .getLast()
+              .insertText(
+                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.",
+                "Replace"
+              );
+          });
+        }
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows basic operations using footnotes.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add sample text</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <h4>Insert footnote</h4>
+            <p>1. Select text in the document.</p>
+            <p>2. What text do you want to set in the footnote?</p>
+            <input id="input-footnote">
+            <button id="insert-footnote" class="ms-Button">
+            <span class="ms-Button-label">Insert footnote</span>
+          </button>
+            <p>3. Repeat steps 1 and 2 as often as you want.</p>
+            <h4>Manage existing footnote</h4>
+            <p>What's the reference number of the footnote you want to work with?</p>
+            <input id="input-reference" style="width:30px;">
+            <p><b>Note</b>: Ensure the main document body has focus.</p>
+            <button id="get-reference" class="ms-Button">
+            <span class="ms-Button-label">Get reference</span>
+          </button>
+            <button id="get-footnote-type" class="ms-Button">
+            <span class="ms-Button-label">Get footnote type</span>
+          </button>
+            <button id="get-footnote-body" class="ms-Button">
+              <span class="ms-Button-label">Get footnote body</span>
+          </button>
+            <button id="get-next-footnote" class="ms-Button">
+            <span class="ms-Button-label">Get next footnote</span>
+          </button>
+            <button id="delete-footnote" class="ms-Button">
+            <span class="ms-Button-label">Delete footnote</span>
+          </button>
+            <h4>Get footnotes</h4>
+            <button id="get-first-footnote" class="ms-Button">
+            <span class="ms-Button-label">Get first footnote in document body</span>
+          </button>
+            <button id="get-footnotes-from-body" class="ms-Button">
+            <span class="ms-Button-label">Get footnotes from document body</span>
+          </button>
+            <p>Select text in the document.</p>
+            <button id="get-footnotes-from-range" class="ms-Button">
+            <span class="ms-Button-label">Get footnotes from selected range</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -10605,6 +10605,18 @@
 
       await context.sync();
     });
+'Word.Body#footnotes:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      const result = body.footnotes;
+      result.load("length");
+      await context.sync();
+      console.log("Number of footnotes in the document body: " + result.items.length);
+    });
 'Word.Body#paragraphs:member':
   - >-
     // Link to full sample:
@@ -10799,6 +10811,132 @@
 
       await context.sync();
       console.log(base64.value);
+    });
+'Word.NoteItem#delete:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
+
+    await Word.run(async (context) => {
+      const footnotes = context.document.body.footnotes;
+      context.load(footnotes);
+      await context.sync();
+      const reference_number = $("#input-reference").val();
+      let mark = Number(reference_number) - 1;
+      footnotes.items[mark].delete();
+      await context.sync();
+      console.log("Footnote deleted.");
+    });
+'Word.NoteItem#getNext:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
+
+    await Word.run(async (context) => {
+      const footnotes = context.document.body.footnotes;
+
+      context.load(footnotes);
+      await context.sync();
+
+      const reference_number = $("#input-reference").val();
+      let mark = Number(reference_number) - 1;
+      const item = footnotes.items[mark].getNext();
+      context.load(item);
+      await context.sync();
+
+      var reference = item.reference;
+      context.load(reference);
+      await context.sync();
+
+      reference.select();
+      console.log("Selected is the next footnote: " + (Number(reference_number) + 1));
+      await context.sync();
+    });
+'Word.NoteItem#body:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
+
+    await Word.run(async (context) => {
+      const footnotes = context.document.body.footnotes;
+      context.load(footnotes);
+      await context.sync();
+
+      const reference_number = $("#input-reference").val();
+      let mark = Number(reference_number) - 1;
+      const item = footnotes.items[mark];
+
+      context.load(item);
+      await context.sync();
+      const footnoteBody = item.body;
+      context.load(footnoteBody);
+      await context.sync();
+      var range = footnoteBody.getRange();
+
+      context.load(range);
+      await context.sync();
+      range.select();
+      console.log("Footnote text: " + range.text);
+    });
+'Word.NoteItem#reference:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
+
+    await Word.run(async (context) => {
+      const footnotes = context.document.body.footnotes;
+      context.load(footnotes);
+      await context.sync();
+
+      const reference_number = $("#input-reference").val();
+      let mark = Number(reference_number) - 1;
+      const item = footnotes.items[mark];
+      var reference = item.reference;
+      context.load(reference);
+      await context.sync();
+      reference.select();
+      await context.sync();
+
+      console.log(`Reference ${reference_number} is selected.`);
+    });
+'Word.NoteItem#type:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
+
+    await Word.run(async (context) => {
+      const footnotes = context.document.body.footnotes;
+      context.load(footnotes);
+      await context.sync();
+
+      const reference_number = $("#input-reference").val();
+      let mark = Number(reference_number) - 1;
+      const item = footnotes.items[mark];
+      await context.sync();
+
+      console.log("Note type: " + item.type);
+    });
+'Word.NoteItemCollection#getFirst:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
+
+    await Word.run(async (context) => {
+      const footnotes = context.document.body.footnotes;
+      context.load(footnotes);
+      await context.sync();
+
+      const item = footnotes.getFirst();
+      context.load(item);
+      await context.sync();
+
+      var reference = item.reference;
+      context.load(reference);
+      await context.sync();
+
+      reference.select();
+      console.log("The first footnote is selected.");
+      await context.sync();
     });
 'Word.Paragraph#insertBreak:member(1)':
   - >-
@@ -11057,6 +11195,35 @@
       for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
+    });
+'Word.Range#insertFootnote:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
+
+    await Word.run(async (context) => {
+      const range = context.document.getSelection();
+      context.load(range);
+      await context.sync();
+      const text = $("#input-footnote")
+        .val()
+        .toString();
+      const footnote = range.insertFootnote(text);
+      context.load(footnote);
+      await context.sync();
+      console.log("Inserted footnote.");
+    });
+'Word.Range#footnotes:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
+
+    await Word.run(async (context) => {
+      const range = context.document.getSelection();
+      const result = range.footnotes;
+      result.load("length");
+      await context.sync();
+      console.log("Number of footnotes in the selected range: " + result.items.length);
     });
 'Word.Section#getHeader:member(1)':
   - >-

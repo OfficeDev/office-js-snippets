@@ -1,0 +1,235 @@
+id: word-manage-comments
+name: Manage comments
+description: Basic operations using comments.
+host: WORD
+api_set:
+    WordApi: '1.4'
+script:
+    content: |
+        $("#insert").click(() => tryCatch(insertComment));
+        $("#reply").click(() => tryCatch(replyToFirstCommentInSelection));
+        $("#get-comments").click(() => tryCatch(getComments));
+        $("#get-comments-in-selection").click(() => tryCatch(getCommentsInSelection));
+        $("#edit").click(() => tryCatch(editFirstCommentInSelection));
+        $("#resolve").click(() => tryCatch(resolveFirstCommentInSelection));
+        $("#delete").click(() => tryCatch(deleteFirstCommentInSelection));
+        $("#range").click(() => tryCatch(getFirstCommentRange));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function insertComment() {
+          await Word.run(async (context) => {
+            let text = $("#comment-text")
+              .val()
+              .toString();
+            let comment = context.document.getSelection().insertComment(text);
+            comment.load("*");
+            await context.sync();
+            console.log("Comment inserted:");
+            console.log(comment);
+          });
+        }
+
+        async function replyToFirstCommentInSelection() {
+          await Word.run(async (context) => {
+            let text = $("#reply-text")
+              .val()
+              .toString();
+            let comments = context.document.getSelection().getComments();
+            comments.load("*");
+            comments.load("items");
+            await context.sync();
+            let reply = comments.items[0].reply(text);
+            reply.load("*");
+            await context.sync();
+            console.log("Reply added:");
+            console.log(reply);
+          });
+        }
+
+        async function getComments() {
+          await Word.run(async (context) => {
+            let comments = context.document.body.getComments();
+            comments.load("*");
+            await context.sync();
+            console.log("All comments:");
+            console.log(comments);
+          });
+        }
+
+        async function getCommentsInSelection() {
+          await Word.run(async (context) => {
+            let comments = context.document.getSelection().getComments();
+            comments.load("*");
+            await context.sync();
+            console.log("Comments:");
+            console.log(comments);
+          });
+        }
+
+        async function editFirstCommentInSelection() {
+          await Word.run(async (context) => {
+            let text = $("#edit-comment-text")
+              .val()
+              .toString();
+            let comment = context.document
+              .getSelection()
+              .getComments()
+              .getFirst();
+            comment.content = text;
+            await context.sync();
+            comment.load("*");
+            await context.sync();
+            console.log("Comment content changed:");
+            console.log(comment);
+          });
+        }
+
+        async function resolveFirstCommentInSelection() {
+          await Word.run(async (context) => {
+            let comment = context.document
+              .getSelection()
+              .getComments()
+              .getFirst();
+            comment.load("resolved");
+            await context.sync();
+
+            let test: Boolean = comment.resolved;
+            comment.resolved = !test;
+            await context.sync();
+
+            comment.load("*");
+            await context.sync();
+            console.log("Comment resolved:");
+            console.log(comment);
+          });
+        }
+
+        async function deleteFirstCommentInSelection() {
+          await Word.run(async (context) => {
+            context.document
+              .getSelection()
+              .getComments()
+              .getFirst()
+              .delete();
+            await context.sync();
+            console.log("Comment deleted");
+          });
+        }
+
+        async function getFirstCommentRange() {
+          await Word.run(async (context) => {
+            let range = context.document
+              .getSelection()
+              .getComments()
+              .getFirst()
+              .getRange();
+            range.load("*");
+            await context.sync();
+            console.log("Comment location:");
+            console.log(range);
+          });
+        }
+        async function setup() {
+          await Word.run(async (context) => {
+            context.document.body.clear();
+            context.document.body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            context.document.body.paragraphs
+              .getLast()
+              .insertText(
+                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.",
+                "Replace"
+              );
+          });
+        }
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows basic operations using comments.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add sample text</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Select content in document body.</p>
+            <p>Text to insert as a comment:</p>
+            <input id = "comment-text">
+            <button id="insert" class="ms-Button">
+              <span class="ms-Button-label">Insert comment</span>
+          </button>
+            <p>Text to replace first comment in selection:</p>
+            <input id = "edit-comment-text">
+            <button id="edit" class="ms-Button">
+            <span class="ms-Button-label">Edit comment</span>
+          </button>
+            <p>Change Resolved state of first comment in selection.</p>
+            <button id="resolve" class="ms-Button">
+                    <span class="ms-Button-label">Toggle Resolved state</span>
+            </button>
+            <p>Delete first comment in selection.</p>
+            <button id="delete" class="ms-Button">
+                    <span class="ms-Button-label">Delete comment</span>
+            </button>
+            <p>Text for replying to first comment in selection:</p>
+            <input id = "reply-text">
+            <p><i><b>Note</b>: Comment thread must not be in Resolved state.</i></p>
+            <button id="reply" class="ms-Button">
+                    <span class="ms-Button-label">Reply to comment</span>
+            </button>
+            <p>Get all comments in document body.</p>
+            <button id="get-comments" class="ms-Button">
+                    <span class="ms-Button-label">Get all comments</span>
+            </button>
+            <p>Get comments in selection.</p>
+            <button id="get-comments-in-selection" class="ms-Button">
+                    <span class="ms-Button-label">Get comments</span>
+            </button>
+            <p>Get range of first comment in selection.</p>
+            <button id="range" class="ms-Button">
+                    <span class="ms-Button-label">Get range</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -1,6 +1,6 @@
 id: word-manage-comments
-name: Manage comments
-description: Basic operations using comments.
+name: Comments
+description: 'This sample shows how to perform basic comments operations, including insert, reply, get, edit, resolve, and delete.'
 host: WORD
 api_set:
     WordApi: '1.4'
@@ -11,80 +11,81 @@ script:
         $("#get-comments").click(() => tryCatch(getComments));
         $("#get-comments-in-selection").click(() => tryCatch(getCommentsInSelection));
         $("#edit").click(() => tryCatch(editFirstCommentInSelection));
-        $("#resolve").click(() => tryCatch(resolveFirstCommentInSelection));
+        $("#resolve").click(() => tryCatch(toggleResolvedStatusOfFirstCommentInSelection));
         $("#delete").click(() => tryCatch(deleteFirstCommentInSelection));
         $("#range").click(() => tryCatch(getFirstCommentRange));
         $("#setup").click(() => tryCatch(setup));
 
+        /** Set a comment on the selected content. */
         async function insertComment() {
           await Word.run(async (context) => {
-            let text = $("#comment-text")
-              .val()
-              .toString();
+            let text = $("#comment-text").val().toString();
             let comment = context.document.getSelection().insertComment(text);
-            comment.load("*");
+            context.load(comment);
             await context.sync();
+
             console.log("Comment inserted:");
             console.log(comment);
           });
         }
 
+        /** Reply to the first comment in the selected content. */
         async function replyToFirstCommentInSelection() {
           await Word.run(async (context) => {
-            let text = $("#reply-text")
-              .val()
-              .toString();
+            let text = $("#reply-text").val().toString();
             let comments = context.document.getSelection().getComments();
-            comments.load("*");
             comments.load("items");
             await context.sync();
+
             let reply = comments.items[0].reply(text);
-            reply.load("*");
-            await context.sync();
             console.log("Reply added:");
             console.log(reply);
           });
         }
 
+        /** Get the comments in the document body. */
         async function getComments() {
           await Word.run(async (context) => {
             let comments = context.document.body.getComments();
-            comments.load("*");
+            context.load(comments);
             await context.sync();
+
             console.log("All comments:");
             console.log(comments);
           });
         }
 
+        /** Get the comments in the selected content. */
         async function getCommentsInSelection() {
           await Word.run(async (context) => {
             let comments = context.document.getSelection().getComments();
-            comments.load("*");
+            context.load(comments);
             await context.sync();
+
             console.log("Comments:");
             console.log(comments);
           });
         }
 
+        /** Edit the first comment in the selected content. */
         async function editFirstCommentInSelection() {
           await Word.run(async (context) => {
-            let text = $("#edit-comment-text")
-              .val()
-              .toString();
+            let text = $("#edit-comment-text").val().toString();
             let comment = context.document
               .getSelection()
               .getComments()
               .getFirst();
             comment.content = text;
+            context.load(comment);
             await context.sync();
-            comment.load("*");
-            await context.sync();
+
             console.log("Comment content changed:");
             console.log(comment);
           });
         }
 
-        async function resolveFirstCommentInSelection() {
+        /** Toggle Resolved status of the first comment in the selected content. */
+        async function toggleResolvedStatusOfFirstCommentInSelection() {
           await Word.run(async (context) => {
             let comment = context.document
               .getSelection()
@@ -93,17 +94,20 @@ script:
             comment.load("resolved");
             await context.sync();
 
-            let test: Boolean = comment.resolved;
-            comment.resolved = !test;
+            // Toggle resolved status.
+            // If the comment is active, set as resolved.
+            // If it's resolved, set resolved to false.
+            let toggleResolved: boolean = comment.resolved;
+            comment.resolved = !toggleResolved;
+            context.load(comment);
             await context.sync();
 
-            comment.load("*");
-            await context.sync();
-            console.log("Comment resolved:");
+            console.log(`Comment Resolved status: ${comment.resolved}`);
             console.log(comment);
           });
         }
 
+        /** Delete the first comment in the selected content. */
         async function deleteFirstCommentInSelection() {
           await Word.run(async (context) => {
             context.document
@@ -112,10 +116,12 @@ script:
               .getFirst()
               .delete();
             await context.sync();
+
             console.log("Comment deleted");
           });
         }
 
+        /** Get the range of the first comment in the selected content. */
         async function getFirstCommentRange() {
           await Word.run(async (context) => {
             let range = context.document
@@ -123,12 +129,14 @@ script:
               .getComments()
               .getFirst()
               .getRange();
-            range.load("*");
+            context.load(range);
             await context.sync();
+
             console.log("Comment location:");
             console.log(range);
           });
         }
+        /** Set two paragraphs of sample text. */
         async function setup() {
           await Word.run(async (context) => {
             context.document.body.clear();

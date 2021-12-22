@@ -1,6 +1,6 @@
 id: word-manage-footnotes
-name: Manage footnotes
-description: Basic operations using footnotes.
+name: Footnotes
+description: 'This sample shows how to perform basic footnotes operations, including insert, get, and delete.'
 host: WORD
 api_set:
     WordApi: '1.4'
@@ -17,29 +17,29 @@ script:
         $("#get-footnotes-from-range").click(() => tryCatch(getFootnotesFromRange));
         $("#setup").click(() => tryCatch(setup));
 
+        /** Set a footnote on the selected content. */
         async function insertFootnote() {
           await Word.run(async (context) => {
-            const range = context.document.getSelection();
-            context.load(range);
-            await context.sync();
-            const text = $("#input-footnote")
-              .val()
-              .toString();
-            const footnote = range.insertFootnote(text);
+            const text = $("#input-footnote").val().toString();
+            const footnote = context.document.getSelection().insertFootnote(text);
             context.load(footnote);
             await context.sync();
+
             console.log("Inserted footnote.");
           });
         }
+        /** Get the footnotes in the document body. */
         async function getFootnotesFromBody() {
           await Word.run(async (context) => {
             const body = context.document.body;
             const result = body.footnotes;
             result.load("length");
             await context.sync();
+
             console.log("Number of footnotes in the document body: " + result.items.length);
           });
         }
+        /** Select the footnote's reference mark in the document body. */
         async function getReference() {
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
@@ -47,17 +47,19 @@ script:
             await context.sync();
 
             const reference_number = $("#input-reference").val();
-            let mark = Number(reference_number) - 1;
+            let mark = (reference_number as number) - 1;
             const item = footnotes.items[mark];
-            var reference = item.reference;
+            let reference = item.reference;
             context.load(reference);
             await context.sync();
+
             reference.select();
             await context.sync();
 
             console.log(`Reference ${reference_number} is selected.`);
           });
         }
+        /** Get the referenced note's type, which is footnote. */
         async function getFootnoteType() {
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
@@ -65,45 +67,43 @@ script:
             await context.sync();
 
             const reference_number = $("#input-reference").val();
-            let mark = Number(reference_number) - 1;
+            let mark = (reference_number as number) - 1;
             const item = footnotes.items[mark];
             await context.sync();
 
             console.log("Note type: " + item.type);
           });
         }
+        /** Get the footnotes in the selected document range. */
         async function getFootnotesFromRange() {
           await Word.run(async (context) => {
             const range = context.document.getSelection();
             const result = range.footnotes;
             result.load("length");
             await context.sync();
+
             console.log("Number of footnotes in the selected range: " + result.items.length);
           });
         }
+        /** Delete this referenced footnote. */
         async function deleteFootnote() {
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
             context.load(footnotes);
             await context.sync();
+
             const reference_number = $("#input-reference").val();
-            let mark = Number(reference_number) - 1;
+            let mark = (reference_number as number) - 1;
             footnotes.items[mark].delete();
             await context.sync();
+
             console.log("Footnote deleted.");
           });
         }
+        /** Get the first footnote in the document body and select its reference mark. */
         async function getFirstFootnote() {
           await Word.run(async (context) => {
-            const footnotes = context.document.body.footnotes;
-            context.load(footnotes);
-            await context.sync();
-
-            const item = footnotes.getFirst();
-            context.load(item);
-            await context.sync();
-
-            var reference = item.reference;
+            let reference = context.document.body.footnotes.getFirst().reference;
             context.load(reference);
             await context.sync();
 
@@ -112,28 +112,29 @@ script:
             await context.sync();
           });
         }
+        /** Select the next footnote in the document body. */
         async function getNextFootnote() {
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
-
             context.load(footnotes);
             await context.sync();
 
             const reference_number = $("#input-reference").val();
-            let mark = Number(reference_number) - 1;
+            let mark = (reference_number as number) - 1;
             const item = footnotes.items[mark].getNext();
             context.load(item);
             await context.sync();
 
-            var reference = item.reference;
+            let reference = item.reference;
             context.load(reference);
             await context.sync();
 
             reference.select();
-            console.log("Selected is the next footnote: " + (Number(reference_number) + 1));
+            console.log("Selected is the next footnote: " + (mark + 2));
             await context.sync();
           });
         }
+        /** Get the text of referenced footnote. */
         async function getFootnoteBody() {
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
@@ -141,7 +142,7 @@ script:
             await context.sync();
 
             const reference_number = $("#input-reference").val();
-            let mark = Number(reference_number) - 1;
+            let mark = (reference_number as number) - 1;
             const item = footnotes.items[mark];
 
             context.load(item);
@@ -149,7 +150,7 @@ script:
             const footnoteBody = item.body;
             context.load(footnoteBody);
             await context.sync();
-            var range = footnoteBody.getRange();
+            let range = footnoteBody.getRange();
 
             context.load(range);
             await context.sync();
@@ -157,6 +158,7 @@ script:
             console.log("Footnote text: " + range.text);
           });
         }
+        /** Set two paragraphs of sample text. */
         async function setup() {
           await Word.run(async (context) => {
             context.document.body.clear();

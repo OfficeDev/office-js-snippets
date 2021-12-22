@@ -10509,8 +10509,9 @@
 
     await Word.run(async (context) => {
       let comments = context.document.body.getComments();
-      comments.load("*");
+      context.load(comments);
       await context.sync();
+
       console.log("All comments:");
       console.log(comments);
     });
@@ -10627,6 +10628,7 @@
       const result = body.footnotes;
       result.load("length");
       await context.sync();
+
       console.log("Number of footnotes in the document body: " + result.items.length);
     });
 'Word.Body#paragraphs:member':
@@ -10690,6 +10692,7 @@
         .getFirst()
         .delete();
       await context.sync();
+
       console.log("Comment deleted");
     });
 'Word.Comment#getRange:member(1)':
@@ -10703,8 +10706,9 @@
         .getComments()
         .getFirst()
         .getRange();
-      range.load("*");
+      context.load(range);
       await context.sync();
+
       console.log("Comment location:");
       console.log(range);
     });
@@ -10714,16 +10718,12 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
 
     await Word.run(async (context) => {
-      let text = $("#reply-text")
-        .val()
-        .toString();
+      let text = $("#reply-text").val().toString();
       let comments = context.document.getSelection().getComments();
-      comments.load("*");
       comments.load("items");
       await context.sync();
+
       let reply = comments.items[0].reply(text);
-      reply.load("*");
-      await context.sync();
       console.log("Reply added:");
       console.log(reply);
     });
@@ -10733,17 +10733,15 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
 
     await Word.run(async (context) => {
-      let text = $("#edit-comment-text")
-        .val()
-        .toString();
+      let text = $("#edit-comment-text").val().toString();
       let comment = context.document
         .getSelection()
         .getComments()
         .getFirst();
       comment.content = text;
+      context.load(comment);
       await context.sync();
-      comment.load("*");
-      await context.sync();
+
       console.log("Comment content changed:");
       console.log(comment);
     });
@@ -10760,13 +10758,15 @@
       comment.load("resolved");
       await context.sync();
 
-      let test: Boolean = comment.resolved;
-      comment.resolved = !test;
+      // Toggle resolved status.
+      // If the comment is active, set as resolved.
+      // If it's resolved, set resolved to false.
+      let toggleResolved: boolean = comment.resolved;
+      comment.resolved = !toggleResolved;
+      context.load(comment);
       await context.sync();
 
-      comment.load("*");
-      await context.sync();
-      console.log("Comment resolved:");
+      console.log(`Comment Resolved status: ${comment.resolved}`);
       console.log(comment);
     });
 'Word.CommentCollection#getFirst:member(1)':
@@ -10780,8 +10780,9 @@
         .getComments()
         .getFirst()
         .getRange();
-      range.load("*");
+      context.load(range);
       await context.sync();
+
       console.log("Comment location:");
       console.log(range);
     });
@@ -10791,16 +10792,12 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
 
     await Word.run(async (context) => {
-      let text = $("#reply-text")
-        .val()
-        .toString();
+      let text = $("#reply-text").val().toString();
       let comments = context.document.getSelection().getComments();
-      comments.load("*");
       comments.load("items");
       await context.sync();
+
       let reply = comments.items[0].reply(text);
-      reply.load("*");
-      await context.sync();
       console.log("Reply added:");
       console.log(reply);
     });
@@ -10959,10 +10956,12 @@
       const footnotes = context.document.body.footnotes;
       context.load(footnotes);
       await context.sync();
+
       const reference_number = $("#input-reference").val();
-      let mark = Number(reference_number) - 1;
+      let mark = (reference_number as number) - 1;
       footnotes.items[mark].delete();
       await context.sync();
+
       console.log("Footnote deleted.");
     });
 'Word.NoteItem#getNext:member(1)':
@@ -10972,22 +10971,21 @@
 
     await Word.run(async (context) => {
       const footnotes = context.document.body.footnotes;
-
       context.load(footnotes);
       await context.sync();
 
       const reference_number = $("#input-reference").val();
-      let mark = Number(reference_number) - 1;
+      let mark = (reference_number as number) - 1;
       const item = footnotes.items[mark].getNext();
       context.load(item);
       await context.sync();
 
-      var reference = item.reference;
+      let reference = item.reference;
       context.load(reference);
       await context.sync();
 
       reference.select();
-      console.log("Selected is the next footnote: " + (Number(reference_number) + 1));
+      console.log("Selected is the next footnote: " + (mark + 2));
       await context.sync();
     });
 'Word.NoteItem#body:member':
@@ -11001,7 +10999,7 @@
       await context.sync();
 
       const reference_number = $("#input-reference").val();
-      let mark = Number(reference_number) - 1;
+      let mark = (reference_number as number) - 1;
       const item = footnotes.items[mark];
 
       context.load(item);
@@ -11009,7 +11007,7 @@
       const footnoteBody = item.body;
       context.load(footnoteBody);
       await context.sync();
-      var range = footnoteBody.getRange();
+      let range = footnoteBody.getRange();
 
       context.load(range);
       await context.sync();
@@ -11027,11 +11025,12 @@
       await context.sync();
 
       const reference_number = $("#input-reference").val();
-      let mark = Number(reference_number) - 1;
+      let mark = (reference_number as number) - 1;
       const item = footnotes.items[mark];
-      var reference = item.reference;
+      let reference = item.reference;
       context.load(reference);
       await context.sync();
+
       reference.select();
       await context.sync();
 
@@ -11048,7 +11047,7 @@
       await context.sync();
 
       const reference_number = $("#input-reference").val();
-      let mark = Number(reference_number) - 1;
+      let mark = (reference_number as number) - 1;
       const item = footnotes.items[mark];
       await context.sync();
 
@@ -11060,15 +11059,7 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
 
     await Word.run(async (context) => {
-      const footnotes = context.document.body.footnotes;
-      context.load(footnotes);
-      await context.sync();
-
-      const item = footnotes.getFirst();
-      context.load(item);
-      await context.sync();
-
-      var reference = item.reference;
+      let reference = context.document.body.footnotes.getFirst().reference;
       context.load(reference);
       await context.sync();
 
@@ -11287,8 +11278,9 @@
 
     await Word.run(async (context) => {
       let comments = context.document.getSelection().getComments();
-      comments.load("*");
+      context.load(comments);
       await context.sync();
+
       console.log("Comments:");
       console.log(comments);
     });
@@ -11328,12 +11320,11 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
 
     await Word.run(async (context) => {
-      let text = $("#comment-text")
-        .val()
-        .toString();
+      let text = $("#comment-text").val().toString();
       let comment = context.document.getSelection().insertComment(text);
-      comment.load("*");
+      context.load(comment);
       await context.sync();
+
       console.log("Comment inserted:");
       console.log(comment);
     });
@@ -11367,15 +11358,11 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-footnotes.yaml
 
     await Word.run(async (context) => {
-      const range = context.document.getSelection();
-      context.load(range);
-      await context.sync();
-      const text = $("#input-footnote")
-        .val()
-        .toString();
-      const footnote = range.insertFootnote(text);
+      const text = $("#input-footnote").val().toString();
+      const footnote = context.document.getSelection().insertFootnote(text);
       context.load(footnote);
       await context.sync();
+
       console.log("Inserted footnote.");
     });
 'Word.Range#footnotes:member':
@@ -11388,6 +11375,7 @@
       const result = range.footnotes;
       result.load("length");
       await context.sync();
+
       console.log("Number of footnotes in the selected range: " + result.items.length);
     });
 'Word.Section#getHeader:member(1)':

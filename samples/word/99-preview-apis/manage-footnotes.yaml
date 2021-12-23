@@ -1,6 +1,6 @@
 id: word-manage-footnotes
 name: Footnotes
-description: 'This sample shows how to perform basic footnotes operations, including insert, get, and delete.'
+description: 'This sample shows how to perform basic footnote operations, including insert, get, and delete.'
 host: WORD
 api_set:
     WordApi: '1.4'
@@ -20,80 +20,84 @@ script:
         /** Set a footnote on the selected content. */
         async function insertFootnote() {
           await Word.run(async (context) => {
-            const text = $("#input-footnote").val().toString();
+            const text = $("#input-footnote")
+              .val()
+              .toString();
             const footnote = context.document.getSelection().insertFootnote(text);
-            context.load(footnote);
             await context.sync();
 
             console.log("Inserted footnote.");
-          });
-        }
-        /** Get the footnotes in the document body. */
-        async function getFootnotesFromBody() {
-          await Word.run(async (context) => {
-            const body = context.document.body;
-            const result = body.footnotes;
-            result.load("length");
-            await context.sync();
-
-            console.log("Number of footnotes in the document body: " + result.items.length);
           });
         }
         /** Select the footnote's reference mark in the document body. */
         async function getReference() {
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
-            context.load(footnotes);
+            footnotes.load("items/reference");
             await context.sync();
 
-            const reference_number = $("#input-reference").val();
-            let mark = (reference_number as number) - 1;
+            const referenceNumber = $("#input-reference").val();
+            let mark = (referenceNumber as number) - 1;
             const item = footnotes.items[mark];
             let reference = item.reference;
-            context.load(reference);
-            await context.sync();
-
             reference.select();
             await context.sync();
 
-            console.log(`Reference ${reference_number} is selected.`);
+            console.log(`Reference ${referenceNumber} is selected.`);
           });
         }
         /** Get the referenced note's type, which is footnote. */
         async function getFootnoteType() {
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
-            context.load(footnotes);
+            footnotes.load("items/type");
             await context.sync();
 
-            const reference_number = $("#input-reference").val();
-            let mark = (reference_number as number) - 1;
-            const item = footnotes.items[mark];
-            await context.sync();
-
-            console.log("Note type: " + item.type);
+            const referenceNumber = $("#input-reference").val();
+            let mark = (referenceNumber as number) - 1;
+            const itemType = footnotes.items[mark].type;
+            console.log(`Note type of footnote ${referenceNumber}: ${itemType}`);
           });
         }
-        /** Get the footnotes in the selected document range. */
-        async function getFootnotesFromRange() {
+        /** Get the text of the referenced footnote. */
+        async function getFootnoteBody() {
           await Word.run(async (context) => {
-            const range = context.document.getSelection();
-            const result = range.footnotes;
-            result.load("length");
+            const footnotes = context.document.body.footnotes;
+            footnotes.load("items/body");
             await context.sync();
 
-            console.log("Number of footnotes in the selected range: " + result.items.length);
+            const referenceNumber = $("#input-reference").val();
+            let mark = (referenceNumber as number) - 1;
+            let footnoteBody = footnotes.items[mark].body.getRange();
+            footnoteBody.load("text");
+            await context.sync();
+
+            console.log(`Text of footnote ${referenceNumber}: ${footnoteBody.text}`);
+          });
+        }
+        /** Select the next footnote in the document body. */
+        async function getNextFootnote() {
+          await Word.run(async (context) => {
+            const footnotes = context.document.body.footnotes;
+            footnotes.load("items/reference");
+            await context.sync();
+
+            const referenceNumber = $("#input-reference").val();
+            let mark = (referenceNumber as number) - 1;
+            const reference = footnotes.items[mark].getNext().reference;
+            reference.select();
+            console.log("Selected is the next footnote: " + (mark + 2));
           });
         }
         /** Delete this referenced footnote. */
         async function deleteFootnote() {
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
-            context.load(footnotes);
+            footnotes.load("items");
             await context.sync();
 
-            const reference_number = $("#input-reference").val();
-            let mark = (reference_number as number) - 1;
+            const referenceNumber = $("#input-reference").val();
+            let mark = (referenceNumber as number) - 1;
             footnotes.items[mark].delete();
             await context.sync();
 
@@ -104,58 +108,28 @@ script:
         async function getFirstFootnote() {
           await Word.run(async (context) => {
             let reference = context.document.body.footnotes.getFirst().reference;
-            context.load(reference);
-            await context.sync();
-
             reference.select();
             console.log("The first footnote is selected.");
-            await context.sync();
           });
         }
-        /** Select the next footnote in the document body. */
-        async function getNextFootnote() {
+        /** Get the footnotes in the document body. */
+        async function getFootnotesFromBody() {
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
-            context.load(footnotes);
+            footnotes.load("length");
             await context.sync();
 
-            const reference_number = $("#input-reference").val();
-            let mark = (reference_number as number) - 1;
-            const item = footnotes.items[mark].getNext();
-            context.load(item);
-            await context.sync();
-
-            let reference = item.reference;
-            context.load(reference);
-            await context.sync();
-
-            reference.select();
-            console.log("Selected is the next footnote: " + (mark + 2));
-            await context.sync();
+            console.log("Number of footnotes in the document body: " + footnotes.items.length);
           });
         }
-        /** Get the text of referenced footnote. */
-        async function getFootnoteBody() {
+        /** Get the footnotes in the selected document range. */
+        async function getFootnotesFromRange() {
           await Word.run(async (context) => {
-            const footnotes = context.document.body.footnotes;
-            context.load(footnotes);
+            const footnotes = context.document.getSelection().footnotes;
+            footnotes.load("length");
             await context.sync();
 
-            const reference_number = $("#input-reference").val();
-            let mark = (reference_number as number) - 1;
-            const item = footnotes.items[mark];
-
-            context.load(item);
-            await context.sync();
-            const footnoteBody = item.body;
-            context.load(footnoteBody);
-            await context.sync();
-            let range = footnoteBody.getRange();
-
-            context.load(range);
-            await context.sync();
-            range.select();
-            console.log("Footnote text: " + range.text);
+            console.log("Number of footnotes in the selected range: " + footnotes.items.length);
           });
         }
         /** Set two paragraphs of sample text. */
@@ -201,42 +175,47 @@ template:
             <h3>Try it out</h3>
             <h4>Insert footnote</h4>
             <p>1. Select text in the document.</p>
-            <p>2. What text do you want to set in the footnote?</p>
-            <input id="input-footnote">
-            <button id="insert-footnote" class="ms-Button">
+            <p>
+                <label>2. What text do you want to set in the footnote?</label>
+                <input id="input-footnote">
+                <button id="insert-footnote" class="ms-Button">
             <span class="ms-Button-label">Insert footnote</span>
           </button>
+            </p>
             <p>3. Repeat steps 1 and 2 as often as you want.</p>
             <h4>Manage existing footnote</h4>
-            <p>What's the reference number of the footnote you want to work with?</p>
-            <input id="input-reference" style="width:30px;">
-            <p><b>Note</b>: Ensure the main document body has focus.</p>
-            <button id="get-reference" class="ms-Button">
+            <p>
+                <label>What's the reference number of the footnote you want to work with?</label>
+                <input id="input-reference" style="width:30px;">
+            </p>
+                <p><b>Note</b>: Ensure the main document body has focus.</p>
+                <button id="get-reference" class="ms-Button">
             <span class="ms-Button-label">Get reference</span>
           </button>
-            <button id="get-footnote-type" class="ms-Button">
+                <button id="get-footnote-type" class="ms-Button">
             <span class="ms-Button-label">Get footnote type</span>
           </button>
-            <button id="get-footnote-body" class="ms-Button">
+                <button id="get-footnote-body" class="ms-Button">
               <span class="ms-Button-label">Get footnote body</span>
           </button>
-            <button id="get-next-footnote" class="ms-Button">
+                <button id="get-next-footnote" class="ms-Button">
             <span class="ms-Button-label">Get next footnote</span>
           </button>
-            <button id="delete-footnote" class="ms-Button">
+                <button id="delete-footnote" class="ms-Button">
             <span class="ms-Button-label">Delete footnote</span>
           </button>
-            <h4>Get footnotes</h4>
-            <button id="get-first-footnote" class="ms-Button">
+                <h4>Get footnotes</h4>
+                <button id="get-first-footnote" class="ms-Button">
             <span class="ms-Button-label">Get first footnote in document body</span>
           </button>
-            <button id="get-footnotes-from-body" class="ms-Button">
+                <button id="get-footnotes-from-body" class="ms-Button">
             <span class="ms-Button-label">Get footnotes from document body</span>
           </button>
-            <p>Select text in the document.</p>
-            <button id="get-footnotes-from-range" class="ms-Button">
+                <p>First, select text in the document.
+                    <button id="get-footnotes-from-range" class="ms-Button">
             <span class="ms-Button-label">Get footnotes from selected range</span>
           </button>
+                </p>
         </section>
     language: html
 style:

@@ -7,20 +7,24 @@ api_set:
 script:
     content: |
         $("#insert").click(() => tryCatch(insertComment));
-        $("#reply").click(() => tryCatch(replyToFirstCommentInSelection));
-        $("#get-comments").click(() => tryCatch(getComments));
-        $("#get-comments-in-selection").click(() => tryCatch(getCommentsInSelection));
         $("#edit").click(() => tryCatch(editFirstCommentInSelection));
+        $("#reply").click(() => tryCatch(replyToFirstActiveCommentInSelection));
         $("#resolve").click(() => tryCatch(toggleResolvedStatusOfFirstCommentInSelection));
-        $("#delete").click(() => tryCatch(deleteFirstCommentInSelection));
         $("#range").click(() => tryCatch(getFirstCommentRange));
+        $("#get-comments-in-selection").click(() => tryCatch(getCommentsInSelection));
+        $("#delete").click(() => tryCatch(deleteFirstCommentInSelection));
+        $("#get-comments").click(() => tryCatch(getComments));
         $("#setup").click(() => tryCatch(setup));
 
         /** Set a comment on the selected content. */
         async function insertComment() {
           await Word.run(async (context) => {
-            let text = $("#comment-text").val().toString();
+            let text = $("#comment-text")
+              .val()
+              .toString();
             let comment = context.document.getSelection().insertComment(text);
+
+            // Load object for display in Script Lab console.
             context.load(comment);
             await context.sync();
 
@@ -29,58 +33,43 @@ script:
           });
         }
 
-        /** Reply to the first comment in the selected content. */
-        async function replyToFirstCommentInSelection() {
-          await Word.run(async (context) => {
-            let text = $("#reply-text").val().toString();
-            let comments = context.document.getSelection().getComments();
-            comments.load("items");
-            await context.sync();
-
-            let reply = comments.items[0].reply(text);
-            console.log("Reply added:");
-            console.log(reply);
-          });
-        }
-
-        /** Get the comments in the document body. */
-        async function getComments() {
-          await Word.run(async (context) => {
-            let comments = context.document.body.getComments();
-            context.load(comments);
-            await context.sync();
-
-            console.log("All comments:");
-            console.log(comments);
-          });
-        }
-
-        /** Get the comments in the selected content. */
-        async function getCommentsInSelection() {
-          await Word.run(async (context) => {
-            let comments = context.document.getSelection().getComments();
-            context.load(comments);
-            await context.sync();
-
-            console.log("Comments:");
-            console.log(comments);
-          });
-        }
-
         /** Edit the first comment in the selected content. */
         async function editFirstCommentInSelection() {
           await Word.run(async (context) => {
-            let text = $("#edit-comment-text").val().toString();
+            let text = $("#edit-comment-text")
+              .val()
+              .toString();
             let comment = context.document
               .getSelection()
               .getComments()
               .getFirst();
             comment.content = text;
+
+            // Load object for display in Script Lab console.
             context.load(comment);
             await context.sync();
 
             console.log("Comment content changed:");
             console.log(comment);
+          });
+        }
+
+        /** Reply to the first active comment in the selected content. */
+        async function replyToFirstActiveCommentInSelection() {
+          await Word.run(async (context) => {
+            let text = $("#reply-text")
+              .val()
+              .toString();
+            let comments = context.document.getSelection().getComments();
+            comments.load("items");
+            await context.sync();
+            let firstActiveComment = comments.items.find((item) => item.resolved !== true);
+            if (firstActiveComment) {
+              let reply = firstActiveComment.reply(text);
+              console.log("Reply added");
+            } else {
+              console.log("No active comment was found in the selection so couldn't reply.");
+            }
           });
         }
 
@@ -107,6 +96,35 @@ script:
           });
         }
 
+        /** Get the range of the first comment in the selected content. */
+        async function getFirstCommentRange() {
+          await Word.run(async (context) => {
+            let range = context.document
+              .getSelection()
+              .getComments()
+              .getFirst()
+              .getRange();
+            range.load("text");
+            await context.sync();
+
+            console.log(`Comment location: ${range.text}`);
+          });
+        }
+
+        /** Get the comments in the selected content. */
+        async function getCommentsInSelection() {
+          await Word.run(async (context) => {
+            let comments = context.document.getSelection().getComments();
+
+            // Load objects for display in Script Lab console.
+            context.load(comments);
+            await context.sync();
+
+            console.log("Comments:");
+            console.log(comments);
+          });
+        }
+
         /** Delete the first comment in the selected content. */
         async function deleteFirstCommentInSelection() {
           await Word.run(async (context) => {
@@ -121,21 +139,20 @@ script:
           });
         }
 
-        /** Get the range of the first comment in the selected content. */
-        async function getFirstCommentRange() {
+        /** Get the comments in the document body. */
+        async function getComments() {
           await Word.run(async (context) => {
-            let range = context.document
-              .getSelection()
-              .getComments()
-              .getFirst()
-              .getRange();
-            context.load(range);
+            let comments = context.document.body.getComments();
+
+            // Load objects for display in Script Lab console.
+            context.load(comments);
             await context.sync();
 
-            console.log("Comment location:");
-            console.log(range);
+            console.log("All comments:");
+            console.log(comments);
           });
         }
+
         /** Set two paragraphs of sample text. */
         async function setup() {
           await Word.run(async (context) => {
@@ -177,43 +194,58 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <p>Select content in document body.</p>
-            <p>Text to insert as a comment:</p>
-            <input id = "comment-text">
-            <button id="insert" class="ms-Button">
+            <p>First, select content in document body.</p>
+            <p>
+                <label>Comment text:</label>
+                <input id = "comment-text">
+                <button id="insert" class="ms-Button">
               <span class="ms-Button-label">Insert comment</span>
-          </button>
-            <p>Text to replace first comment in selection:</p>
-            <input id = "edit-comment-text">
-            <button id="edit" class="ms-Button">
-            <span class="ms-Button-label">Edit comment</span>
-          </button>
-            <p>Change Resolved state of first comment in selection.</p>
-            <button id="resolve" class="ms-Button">
-                    <span class="ms-Button-label">Toggle Resolved state</span>
             </button>
-            <p>Delete first comment in selection.</p>
-            <button id="delete" class="ms-Button">
-                    <span class="ms-Button-label">Delete comment</span>
-            </button>
-            <p>Text for replying to first comment in selection:</p>
-            <input id = "reply-text">
-            <p><i><b>Note</b>: Comment thread must not be in Resolved state.</i></p>
-            <button id="reply" class="ms-Button">
-                    <span class="ms-Button-label">Reply to comment</span>
-            </button>
-            <p>Get all comments in document body.</p>
-            <button id="get-comments" class="ms-Button">
+            </p>
+            <p>
+                <label>Replacement text:</label>
+                <input id = "edit-comment-text">
+                <button id="edit" class="ms-Button">
+                    <span class="ms-Button-label">Edit first comment in selection</span>
+                </button>
+            </p>
+            <p>
+                <label>Reply text:</label>
+                <input id = "reply-text">
+                <button id="reply" class="ms-Button">
+                    <span class="ms-Button-label">Reply to first active comment in selection</span>
+              </button>
+            </p>
+            <p>
+                <label>Change Resolved state of first comment in selection.</label>
+                <button id="resolve" class="ms-Button">
+                        <span class="ms-Button-label">Toggle Resolved state</span>
+                  </button>
+            </p>
+            <p>
+                <label>Get range of first comment in selection.</label>
+                <button id="range" class="ms-Button">
+                        <span class="ms-Button-label">Get range</span>
+                  </button>
+            </p>
+            <p>
+                <label>Get comments in selection.</label>
+                <button id="get-comments-in-selection" class="ms-Button">
+                            <span class="ms-Button-label">Get comments</span>
+                      </button>
+            </p>
+            <p>
+                <label>Delete first comment in selection.</label>
+                <button id="delete" class="ms-Button">
+                        <span class="ms-Button-label">Delete comment</span>
+                  </button>
+            </p>
+            <p>
+                <label>Get all comments in document body.</label>
+                <button id="get-comments" class="ms-Button">
                     <span class="ms-Button-label">Get all comments</span>
-            </button>
-            <p>Get comments in selection.</p>
-            <button id="get-comments-in-selection" class="ms-Button">
-                    <span class="ms-Button-label">Get comments</span>
-            </button>
-            <p>Get range of first comment in selection.</p>
-            <button id="range" class="ms-Button">
-                    <span class="ms-Button-label">Get range</span>
-            </button>
+              </button>
+            </p>
         </section>
     language: html
 style:

@@ -1,0 +1,160 @@
+order: 1
+id: excel-data-types-formatted-number
+name: 'Data types: Formatted numbers'
+description: This sample shows how to set and get data types using the formatted number properties.
+host: EXCEL
+api_set:
+    ExcelApi: BETA (PREVIEW ONLY)
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#set-formatted-number-date").click(() => tryCatch(setFormattedNumberDate)); 
+        $("#set-formatted-number-currency").click(() => tryCatch(setFormattedNumberCurrency)); 
+        $("#get-formatted-number").click(() => tryCatch(getFormattedNumber));
+
+        async function setFormattedNumberDate() {
+          await Excel.run(async (context) => {
+            // This method creates a formatted number data type,
+            // and sets the format of this data type as a date.
+
+            // Get the Sample worksheet and a range on that sheet.
+            const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
+            const dateRange = sheet.getRange("A1");
+
+            // Write a number formatted as a date to cell A1.
+            dateRange.valuesAsJson = [
+              [
+                {
+                  type: Excel.CellValueType.formattedNumber,
+                  basicValue: 32889.0,
+                  numberFormat: "m/d/yyyy"
+                }
+              ]
+            ];
+            await context.sync();
+          });
+        }
+
+        async function setFormattedNumberCurrency() {
+          await Excel.run(async (context) => {
+            // This method creates a formatted number data type,
+            // and sets the format of this data type as a currency.
+
+            // Get the Sample worksheet and a range on that sheet.
+            const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
+            const currencyRange = sheet.getRange("A2");
+
+            // Write a number formatted as currency to cell A2.
+            currencyRange.valuesAsJson = [
+              [
+                {
+                  type: Excel.CellValueType.formattedNumber,
+                  basicValue: 12.34,
+                  numberFormat: "$* #,##0.00"
+                }
+              ]
+            ];
+
+            await context.sync();
+          });
+        }
+
+        async function getFormattedNumber() {
+          await Excel.run(async (context) => {
+            // This method prints information about data types 
+            // in cells A1 and A2 to the console.
+
+            // Get the Sample worksheet and two ranges on that sheet.
+            const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
+            const currencyRange = sheet.getRange("A2");
+            const dateRange = sheet.getRange("A1");
+
+            // Load the data type property of the ranges.
+            currencyRange.load("valuesAsJson");
+            dateRange.load("valuesAsJson");
+            await context.sync();
+
+            const currencyValues = currencyRange.valuesAsJson[0][0];
+            const dateValues = dateRange.valuesAsJson[0][0];
+
+            // Print information about the data types to the console.
+            console.log("Date");
+            console.log("  Type: " + dateValues.type);
+            console.log("  Basic value: " + dateValues.basicValue);
+            console.log("  Basic type: " + dateValues.basicType);
+            console.log("  Number format: " + (dateValues as Excel.FormattedNumberCellValue).numberFormat);
+
+            console.log("Currency");
+            console.log("  Type: " + currencyValues.type);
+            console.log("  Basic value: " + currencyValues.basicValue);
+            console.log("  Basic type: " + currencyValues.basicType);
+            console.log("  Number format: " + (currencyValues as Excel.FormattedNumberCellValue).numberFormat);
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            // Create a new worksheet called "Sample" and activate it.
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */ async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to work with the formatted number data type.</p>
+        </section>
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add worksheet</span>
+          </button>
+          <h3>Try it out</h3>
+          <button id="set-formatted-number-date" class="ms-Button">
+            <span class="ms-Button-label">Set formatted date</span>
+          </button>
+          <button id="set-formatted-number-currency" class="ms-Button">
+            <span class="ms-Button-label">Set formatted currency</span>
+          </button>
+          <button id="get-formatted-number" class="ms-Button">
+            <span class="ms-Button-label">Log data types</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

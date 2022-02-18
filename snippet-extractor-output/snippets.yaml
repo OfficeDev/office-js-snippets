@@ -5129,6 +5129,67 @@
         textbox.textFrame.deleteText();
         await context.sync();
     });
+'Excel.WebImageCellValue#address:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/85-preview-apis/data-types-web-image.yaml
+
+    await Excel.run(async (context) => {
+      // This method retrieves the image URL from the selected cell and opens that image in a new browser tab.
+
+      // Load the active cell information.
+      const activeCell = context.workbook.getActiveCell();
+      activeCell.load("valuesAsJson");
+      await context.sync();
+
+      // Get image URL from the active cell.
+      const values = activeCell.valuesAsJson;
+      const webImageData = values[0][0] as Excel.WebImageCellValue;
+      const webImageUrl = webImageData.address;
+
+      if (!webImageUrl) {
+        console.log("The selected cell is missing an image URL. Select a cell that contains an image.");
+        return;
+      }
+
+      // Open the image URL in a new browser tab.
+      const tab = window.open(webImageData.address, "_blank");
+    });
+'Excel.WebImageCellValue#type:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/85-preview-apis/data-types-web-image.yaml
+
+    await Excel.run(async (context) => {
+      // This method inserts a web image into the currently selected cell.
+
+      // Retrieve image data from the task pane and then clear the input fields.
+      const imageUrl = $("#url").val() as string;
+      const imageAltText = $("#alt-text").val() as string;
+      clearForm();
+
+      // Load the active cell.
+      const activeCell = context.workbook.getActiveCell();
+      activeCell.load();
+      await context.sync();
+
+      if (!imageUrl) {
+        console.log("Please enter an image URL.");
+        return;
+      }
+
+      // Create a web image object and assign the image details.
+      const webImage: Excel.WebImageCellValue = {
+        type: "WebImage", /* The string equivalent of `Excel.CellValueType.webImage`. */
+        address: imageUrl,
+        altText: imageAltText     
+      };
+
+      // Insert web image into the active cell.
+      activeCell.valuesAsJson = [[webImage]];
+
+      await context.sync();
+    });
 'Excel.Workbook#properties:member':
   - >-
     // Link to full sample:

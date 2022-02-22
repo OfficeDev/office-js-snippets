@@ -1,0 +1,203 @@
+order: 2
+id: excel-data-types-web-image
+name: 'Data types: Web images'
+description: This sample shows how to set and get web images in a worksheet using data types.
+host: EXCEL
+api_set:
+    ExcelApi: BETA (PREVIEW ONLY)
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#insert-image").click(() => tryCatch(insertImage));
+        $("#retrieve-image-info").click(() => tryCatch(retrieveImageInfo));
+        $("#open-image").click(() => tryCatch(openImage));
+        $("#clear-form").click(() => tryCatch(clearForm));
+
+        async function insertImage() {
+          await Excel.run(async (context) => {
+            // This method inserts a web image into the currently selected cell.
+
+            // Retrieve image data from the task pane and then clear the input fields.
+            const imageUrl = $("#url").val() as string;
+            const imageAltText = $("#alt-text").val() as string;
+            clearForm();
+
+            // Load the active cell.
+            const activeCell = context.workbook.getActiveCell();
+            activeCell.load();
+            await context.sync();
+
+            if (!imageUrl) {
+              console.log("Please enter an image URL.");
+              return;
+            }
+
+            // Create a web image object and assign the image details.
+            const webImage: Excel.WebImageCellValue = {
+              type: "WebImage", /* The string equivalent of `Excel.CellValueType.webImage`. */
+              address: imageUrl,
+              altText: imageAltText     
+            };
+
+            // Insert web image into the active cell.
+            activeCell.valuesAsJson = [[webImage]];
+
+            await context.sync();
+          });
+        }
+
+        async function retrieveImageInfo() {
+          await Excel.run(async (context) => {
+            // This method retrieves image data from a selected cell and displays it in the existing input fields in the task pane.
+            
+            // Load the active cell information.
+            const activeCell = context.workbook.getActiveCell();
+            activeCell.load("valuesAsJson");
+            await context.sync();
+
+            // Get image data from the active cell.
+            const values = activeCell.valuesAsJson;
+            const webImageData = values[0][0] as Excel.WebImageCellValue;
+            const webImageUrl = webImageData.address;
+            const webImageAltText = webImageData.altText;
+
+            if (!webImageUrl) {
+              console.log("The selected cell is missing an image URL. Make sure to select a cell that contains an image.");
+              return;
+            }
+
+            // Assign image data to corresponding input fields in the task pane.
+            $("#url").val(webImageUrl);
+            $("#alt-text").val(webImageAltText);
+          });
+        }
+
+        async function openImage() {
+          await Excel.run(async (context) => {
+            // This method retrieves the image URL from the selected cell and opens that image in a new browser tab.
+
+            // Load the active cell information.
+            const activeCell = context.workbook.getActiveCell();
+            activeCell.load("valuesAsJson");
+            await context.sync();
+
+            // Get image URL from the active cell.
+            const values = activeCell.valuesAsJson;
+            const webImageData = values[0][0] as Excel.WebImageCellValue;
+            const webImageUrl = webImageData.address;
+
+            if (!webImageUrl) {
+              console.log("The selected cell is missing an image URL. Select a cell that contains an image.");
+              return;
+            }
+
+            // Open the image URL in a new browser tab.
+            const tab = window.open(webImageData.address, "_blank");
+          });
+        }
+
+        async function clearForm() {
+          // Clear the input fields in the task pane.
+          $("#url").val("");
+          $("#alt-text").val("");
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            // Create a new worksheet called "Sample" and activate it.
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */ 
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to work with the web image data type. Insert an image into the selected cell and then
+            retrieve information about that image.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <p>Add a new worksheet and then enter the URL and alt text for an image of your choice.</p>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add worksheet</span>
+          </button>
+          <label for="url"><strong>Image URL:</strong> </label>
+          <input type="text" name="url" id="url" alt="Image url input field"><br>
+          <label for="alt-text"><strong>Alt text:</strong> </label>
+          <input type="text" name="alt-text" id="alt-text" alt="Alt text input field">
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <p>Select the cell you want to insert the web image into, and then select the <strong>Insert image</strong> button.</p>
+          <button id="insert-image" class="ms-Button">
+            <span class="ms-Button-label">Insert image</span>
+          </button>
+
+          <p>Select the cell containing the web image that you want to view the details of, and then select the <strong>Retrieve image details</strong> button. The image details will display here in the task pane, in the preceding <strong>Image URL</strong> and <strong>Alt text</strong> fields.</p>
+          <button id="retrieve-image-info" class="ms-Button">
+            <span class="ms-Button-label">Retrieve image details</span>
+          </button>
+
+          <p>Select the cell with the image you want to view and then select the <strong>Open image in browser</strong> button. The image will open in a new web browser tab.</p>
+          <button id="open-image" class="ms-Button">
+            <span class="ms-Button-label">Open image in browser</span>
+          </button>
+
+          <p>Clear the <strong>Image URL</strong> and <strong>Alt text</strong> fields in the task pane.</p>
+          <button id="clear-form" class="ms-Button">
+            <span class="ms-Button-label">Clear form</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+
+        label {
+            display: inline-block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+
+        input {
+            display: inline-block;
+            padding: 5px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

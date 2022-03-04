@@ -26,7 +26,7 @@ script:
                 filter.load();
                 await context.sync();
 
-                // add the Classification hierarchy to the filter, if it's not already there
+                // Add the Classification hierarchy to the filter, if it's not already there.
                 if (filter.isNullObject) {
                     filters.add(pivotTable.hierarchies.getItem("Classification"));
                     await context.sync();
@@ -66,15 +66,15 @@ script:
             await Excel.run(async (context) => {
                 const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
 
-                // the layout controls the ranges used by the PivotTable
+                // The layout controls the ranges used by the PivotTable.
                 const range = pivotTable.layout.getDataBodyRange();
 
-                // get all the data hierarchy totals
+                // Get all the data hierarchy totals.
                 const grandTotalRange = range.getLastRow();
                 grandTotalRange.load("address");
                 await context.sync();
                 
-                // use the wholesale and farm sale totals to make a final sum
+                // Use the wholesale and farm sale totals to make a final sum.
                 const masterTotalRange = context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27");
                 masterTotalRange.formulas = [["All Crates", "=SUM(" + grandTotalRange.address + ")"]];
                 await context.sync();
@@ -83,13 +83,13 @@ script:
 
         async function setup() {
             await Excel.run(async (context) => {
-                // create the worksheets
+                // Create the worksheets.
                 context.workbook.worksheets.getItemOrNullObject("Data").delete();
                 const dataSheet = context.workbook.worksheets.add("Data");
                 context.workbook.worksheets.getItemOrNullObject("Pivot").delete();
                 const pivotSheet = context.workbook.worksheets.add("Pivot");
 
-                // create farm data
+                // Create farm data.
                 const data = [["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"],
                 ["A Farms", "Lime", "Organic", 300, 2000],
                 ["A Farms", "Lemon", "Organic", 250, 1800],
@@ -117,7 +117,7 @@ script:
                 range.format.autofitColumns();
                 pivotSheet.activate();
 
-                // create the PivotTable
+                // Create the PivotTable.
                 context.workbook.worksheets.getActiveWorksheet()
                     .pivotTables.add("Farm Sales", "Data!A1:E21", "A2");
                 const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
@@ -134,7 +134,7 @@ script:
             await Excel.run(async (context) => {
                 context.workbook.worksheets.getItem("Pivot").pivotTables.getItem("Farm Sales").delete();
                 
-                // also clean up the extra data from getCrateTotal()
+                // Also clean up the extra data from getCrateTotal().
                 context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27").delete(Excel.DeleteShiftDirection.up);
                 await context.sync();
             });

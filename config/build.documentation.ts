@@ -90,10 +90,17 @@ async function buildSnippetExtractsPerHost(
         .filter(item => item)
         .forEach((text, index) => {
             const row = lines[index];
-            let fullName = `${hostName}.${row.class.trim()}#${row.member.trim()}:member`;
-            if (row.memberId) {
-                fullName += `(${row.memberId})`;
+            let fullName;
+
+            if (row.member) { /* If the mapping is for a field */
+                fullName = `${hostName}.${row.class.trim()}#${row.member.trim()}:member`;
+                if (row.memberId) {
+                    fullName += `(${row.memberId})`;
+                }
+            } else { /* If the mapping is for a top-level sample (like an enum) */
+                fullName = `${hostName}.${row.class.trim()}:${row.memberId.trim()}`;
             }
+
             if (!allSnippetData[fullName]) {
                 allSnippetData[fullName] = [];
             }

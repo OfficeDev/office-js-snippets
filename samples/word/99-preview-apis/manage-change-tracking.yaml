@@ -1,0 +1,154 @@
+id: word-manage-change-tracking
+name: Track changes
+description: This sample shows how to get and set the change tracking mode and get the before and after of reviewed text.
+host: WORD
+api_set:
+    WordApi: '1.4'
+script:
+    content: |
+        $("#get-change-tracking-mode").click(() => tryCatch(getChangeTrackingMode));
+        $("#set-change-tracking-mode").click(() => tryCatch(setChangeTrackingMode));
+        $("#get-reviewed-text").click(() => tryCatch(getReviewedText));
+        $("#setup").click(() => tryCatch(setup));
+
+        /** Get the current change tracking mode. */
+        async function getChangeTrackingMode() {
+          await Word.run(async (context) => {
+            const document = context.document;
+            document.load("changeTrackingMode");
+            await context.sync();
+
+            if (document.changeTrackingMode === Word.ChangeTrackingMode.trackMineOnly) {
+              console.log("Only my changes are being tracked.");
+            } else if (document.changeTrackingMode === Word.ChangeTrackingMode.trackAll) {
+              console.log("Everyone's changes are being tracked.");
+            } else {
+              console.log("No changes are being tracked.");
+            }
+          });
+        }
+
+        /** Set the change tracking mode. */
+        async function setChangeTrackingMode() {
+          await Word.run(async (context) => {
+            const mode = $("input[name='mode']:checked").val();
+            if (mode === "Track only my changes") {
+              context.document.changeTrackingMode = Word.ChangeTrackingMode.trackMineOnly;
+            } else if (mode === "Track everyone's changes") {
+              context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+            } else {
+              context.document.changeTrackingMode = Word.ChangeTrackingMode.off;
+            }
+
+            await context.sync();
+
+            getChangeTrackingMode();
+          });
+        }
+
+        /** Get the reviewed text. */
+        async function getReviewedText() {
+          await Word.run(async (context) => {
+            const range = context.document.getSelection();
+            let before = range.getReviewedText(Word.ChangeTrackingVersion.original);
+            let after = range.getReviewedText(Word.ChangeTrackingVersion.current);
+
+            await context.sync();
+
+            console.log(`Reviewed text (before):\n${before.value}`);
+            console.log(`Reviewed text (after):\n${after.value}`);
+          });
+        }
+
+        /** Set two paragraphs of sample text. */
+        async function setup() {
+          await Word.run(async (context) => {
+            context.document.body.clear();
+            context.document.body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            context.document.body.paragraphs
+              .getLast()
+              .insertText(
+                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.",
+                "Replace"
+              );
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows basic operations of the Track Changes feature.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add sample text</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <h4>Get current change tracking mode</h4>
+            <button id="get-change-tracking-mode" class="ms-Button">
+                  <span class="ms-Button-label">Get mode</span>
+              </button>
+            <h4>Set change tracking mode</h4>
+            <p>
+                <input type="radio" id="track-all-mode" name="mode" value="Track everyone's changes">
+                <label for="track-all-mode">Track everyone's changes</label><br>
+                <input type="radio" id="just-mine-mode" name="mode" value="Track only my changes">
+                <label for="just-mine-mode">Track only my changes</label><br>
+                <input type="radio" id="tracking-off-mode" name="mode" value="Turn change tracking off">
+                <label for="tracking-off-mode">Don't track any changes</label><br>
+                <button id="set-change-tracking-mode" class="ms-Button">
+                    <span class="ms-Button-label">Set selected mode</span>
+                </button>
+            </p>
+            <h4>Get reviewed text</h4>
+            <p>
+                <label>Select text with tracked changes in the document.</label>
+                <button id="get-reviewed-text" class="ms-Button">
+                  <span class="ms-Button-label">Get reviewed text</span>
+              </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

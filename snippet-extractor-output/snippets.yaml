@@ -1177,27 +1177,6 @@
 
         console.log("The trendline color has been set to:" + line.color);
     });
-'Excel.ChartType:enum':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-create-several-charts.yaml
-
-    await Excel.run(async (context) => {
-      let sheet = context.workbook.worksheets.getItem("Sample");
-      let salesTable = sheet.tables.getItem("SalesTable");
-
-      let dataRange = sheet.getRange("A1:E7");
-      let chart = sheet.charts.add(Excel.ChartType.line, dataRange, "Auto");
-
-      chart.setPosition("A22", "F35");
-      chart.legend.position = "Right";
-      chart.legend.format.fill.setSolidColor("white");
-      chart.dataLabels.format.font.size = 15;
-      chart.dataLabels.format.font.color = "black";
-      chart.title.text = "Bicycle Parts Quarterly Sales";
-
-      await context.sync();
-    });
 'Excel.ColorScaleConditionalFormat#criteria:member':
   - >-
     // Link to full sample:
@@ -3094,6 +3073,26 @@
         masterTotalRange.formulas = [["All Crates", "=SUM(" + grandTotalRange.address + ")"]];
         await context.sync();
     });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-filters-and-summaries.yaml
+
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+        // The layout controls the ranges used by the PivotTable.
+        const range = pivotTable.layout.getDataBodyRange();
+
+        // Get all the data hierarchy totals.
+        const grandTotalRange = range.getLastRow();
+        grandTotalRange.load("address");
+        await context.sync();
+        
+        // Use the wholesale and farm sale totals to make a final sum.
+        const masterTotalRange = context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27");
+        masterTotalRange.formulas = [["All Crates", "=SUM(" + grandTotalRange.address + ")"]];
+        await context.sync();
+    });
 'Excel.PivotLayout#altTextDescription:member':
   - >-
     // Link to full sample:
@@ -3425,6 +3424,32 @@
         // Highlight and print the address of each dependent cell.
         directDependents.areas.items[i].format.fill.color = "Yellow";
         console.log(`  ${directDependents.areas.items[i].address}`);
+      }
+      await context.sync();
+    });
+'Excel.Range#getDependents:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/85-preview-apis/range-dependents.yaml
+
+    await Excel.run(async (context) => {
+      // This method highlights all the dependent cells of the active cell.
+      // Dependent cells contain formulas that refer to other cells.
+
+      // Get the active cell, retrieve the dependent cells, and load their addresses.
+      let range = context.workbook.getActiveCell();
+      let dependents = range.getDependents();
+      range.load("address");
+      dependents.areas.load("address");
+      await context.sync();
+
+      console.log(`All dependent cells of ${range.address}:`);
+
+      // Use the dependents API to loop through dependents of the active cell.
+      for (var i = 0; i < dependents.areas.items.length; i++) {
+        // Highlight and print out the address of each dependent cell.
+        dependents.areas.items[i].format.fill.color = "Orange";
+        console.log(`  ${dependents.areas.items[i].address}`);
       }
       await context.sync();
     });
@@ -5129,67 +5154,6 @@
         const textbox = shapes.getItem("Textbox");
         textbox.textFrame.deleteText();
         await context.sync();
-    });
-'Excel.WebImageCellValue#address:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/85-preview-apis/data-types-web-image.yaml
-
-    await Excel.run(async (context) => {
-      // This method retrieves the image URL from the selected cell and opens that image in a new browser tab.
-
-      // Load the active cell information.
-      const activeCell = context.workbook.getActiveCell();
-      activeCell.load("valuesAsJson");
-      await context.sync();
-
-      // Get image URL from the active cell.
-      const values = activeCell.valuesAsJson;
-      const webImageData = values[0][0] as Excel.WebImageCellValue;
-      const webImageUrl = webImageData.address;
-
-      if (!webImageUrl) {
-        console.log("The selected cell is missing an image URL. Select a cell that contains an image.");
-        return;
-      }
-
-      // Open the image URL in a new browser tab.
-      const tab = window.open(webImageData.address, "_blank");
-    });
-'Excel.WebImageCellValue#type:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/85-preview-apis/data-types-web-image.yaml
-
-    await Excel.run(async (context) => {
-      // This method inserts a web image into the currently selected cell.
-
-      // Retrieve image data from the task pane and then clear the input fields.
-      const imageUrl = $("#url").val() as string;
-      const imageAltText = $("#alt-text").val() as string;
-      clearForm();
-
-      // Load the active cell.
-      const activeCell = context.workbook.getActiveCell();
-      activeCell.load();
-      await context.sync();
-
-      if (!imageUrl) {
-        console.log("Please enter an image URL.");
-        return;
-      }
-
-      // Create a web image object and assign the image details.
-      const webImage: Excel.WebImageCellValue = {
-        type: "WebImage", /* The string equivalent of `Excel.CellValueType.webImage`. */
-        address: imageUrl,
-        altText: imageAltText     
-      };
-
-      // Insert web image into the active cell.
-      activeCell.valuesAsJson = [[webImage]];
-
-      await context.sync();
     });
 'Excel.Workbook#properties:member':
   - >-

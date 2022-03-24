@@ -1,0 +1,1739 @@
+order: 3
+id: excel-data-types-entity-values
+name: 'Data types: Create entity values from data in a table'
+description: Demonstrates how to create entity values for each row in a table.
+host: EXCEL
+api_set:
+    ExcelApi: BETA (PREVIEW ONLY)
+script:
+  content: |-
+    $("#setup").click(() => tryCatch(setup));
+    $("#run").click(() => tryCatch(run));
+
+    async function run() {
+      await Excel.run(async (context) => {
+        const productsTable = context.workbook.tables.getItem("ProductsTable");
+
+        // Add a new column to the table for the entity values
+        productsTable.columns.getItemOrNullObject("Product").delete();
+        const productColumn = productsTable.columns.add(0, null, "Product");
+
+        // Get product data from table
+        const dataRange = productsTable.getDataBodyRange();
+        dataRange.load("values");
+
+        await context.sync();
+
+        // Add product entities to table
+        const entities = dataRange.values.map((rowValues) => {
+          // Get addtional product properties
+          const product = getProduct(rowValues[1]);
+          // Get category properties
+          const category = product ? getCategory(product.categoryID) : null;
+          // Get supplier properties
+          const supplier = product ? getSupplier(product.supplierID) : null;
+          // Return the entity
+          return [makeProductEntity(rowValues[1], rowValues[2], product, category, supplier)];
+        });
+        productColumn.getDataBodyRange().valuesAsJson = entities;
+
+        productColumn.getRange().format.autofitColumns();
+
+        await context.sync();
+      });
+    }
+
+    /** Get product properties */
+    function getProduct(productID: number): any {
+      return products.find((p) => p.productID == productID);
+    }
+
+    /** Get category properties */
+    function getCategory(categoryID: number): any {
+      return categories.find((c) => c.categoryID == categoryID);
+    }
+
+    /** Get supplier properties */
+    function getSupplier(supplierID: number): any {
+      return suppliers.find((s) => s.supplierID == supplierID);
+    }
+
+    /** Make entity from product properties */
+    function makeProductEntity(
+      productID: number, 
+      productName: string, 
+      product?: any, 
+      category?: any,
+      supplier?: any) {
+      const entity: Excel.EntityCellValue = {
+        type: Excel.CellValueType.entity,
+        text: productName,
+        properties: {
+          "Product ID": {
+            type: Excel.CellValueType.string,
+            basicValue: productID.toString() || ""
+          },
+          "Product Name": {
+            type: Excel.CellValueType.string,
+            basicValue: productName || ""
+          },
+          "Quantity Per Unit": {
+            type: Excel.CellValueType.string,
+            basicValue: product.quantityPerUnit || ""
+          },
+          // Add Unit Price as a formatted number
+          "Unit Price": {
+            type: Excel.CellValueType.formattedNumber,
+            basicValue: product.unitPrice,
+            numberFormat: "$* #,##0.00"
+          },
+          // Add Units In Store as a formatted number
+          "Units In Stock": {
+            type: Excel.CellValueType.formattedNumber,
+            basicValue: product.unitsInStore,
+            numberFormat: "#,##0"
+          },
+          // Add Units On Order as a formatted number
+          "Units On Order": {
+            type: Excel.CellValueType.formattedNumber,
+            basicValue: product.unitsOnOrder,
+            numberFormat: "#,##0"
+          },
+          // Add Reorder Level as a formatted number
+          "Reorder Level": {
+            type: Excel.CellValueType.formattedNumber,
+            basicValue: product.reorderLevel,
+            numberFormat: "#,##0"
+          },
+          Discontinued: {
+            type: Excel.CellValueType.boolean,
+            basicValue: product.discontinued || false
+          }
+        },
+        layouts: {
+          card: {
+            title: { property: "Product Name" },
+            sections: [
+              {
+                layout: "List",
+                properties: ["Product ID"]
+              },
+              {
+                layout: "List",
+                title: "Quantity and price",
+                collapsible: true,
+                collapsed: false,
+                properties: ["Quantity Per Unit", "Unit Price"]
+              },
+              {
+                layout: "List",
+                title: "Inventory",
+                collapsible: true,
+                collapsed: true,
+                properties: ["Units In Stock", "Units On Order", "Reorder Level"]
+              },
+              {
+                layout: "List",
+                title: "Additional information",
+                collapsed: true,
+                properties: ["Discontinued"]
+              }
+            ]
+          }
+        }
+      };
+
+      // Add image property to the entity and the card layout
+      if (product.productImage) {
+        entity.properties["Image"] = {
+          type: Excel.CellValueType.webImage,
+          address: product.productImage || ""
+        };
+        entity.layouts.card.mainImage = { property: "Image" };
+      }
+
+      // Add a nested entity for the product category
+      if (category) {
+        entity.properties["Category"] = {
+          type: Excel.CellValueType.entity,
+          text: category.categoryName,
+          properties: {
+            "Category ID": {
+              type: Excel.CellValueType.double,
+              basicValue: category.categoryID,
+              propertyMetadata: {
+                // Exclude the category ID property from the card view and auto complete
+                excludeFrom: {
+                  cardView: true,
+                  autoComplete: true
+                }
+              }
+            },
+            "Category Name": {
+              type: Excel.CellValueType.string,
+              basicValue: category.categoryName || ""
+            },
+            "Description": {
+              type: Excel.CellValueType.string,
+              basicValue: category.description || ""
+            }
+          }
+        };
+        // Add Category to the card layout
+        entity.layouts.card.sections[0].properties.push("Category");
+      }
+
+      // Add a nested entity for the supplier
+      if (supplier) {
+        entity.properties["Supplier"] = {
+          type: Excel.CellValueType.entity,
+          text: supplier.companyName,
+          properties: {
+            "Supplier ID": {
+              type: Excel.CellValueType.double,
+              basicValue: supplier.supplierID,
+            },
+            "Company Name": {
+              type: Excel.CellValueType.string,
+              basicValue: supplier.companyName || ""
+            },
+            "Contact Name": {
+              type: Excel.CellValueType.string,
+              basicValue: supplier.contactName || ""
+            },
+            "Contact Title": {
+              type: Excel.CellValueType.string,
+              basicValue: supplier.contactTitle || ""
+            },
+            "Address": {
+              type: Excel.CellValueType.string,
+              basicValue: supplier.address || ""
+            },
+            "City": {
+              type: Excel.CellValueType.string,
+              basicValue: supplier.city || ""
+            },
+            "Region": {
+              type: Excel.CellValueType.string,
+              basicValue: supplier.region || ""
+            },
+            "Postal Code": {
+              type: Excel.CellValueType.string,
+              basicValue: supplier.postalCode || ""
+            },
+            "Country": {
+              type: Excel.CellValueType.string,
+              basicValue: supplier.country || ""
+            },
+            "Phone": {
+              type: Excel.CellValueType.string,
+              basicValue: supplier.phone || ""
+            },
+          },
+          layouts: {
+            card: {
+              title: { property: "Company Name" },
+              sections: [
+                {
+                  layout: "List",
+                  properties: [
+                    "Supplier ID",
+                    "Company Name",
+                    "Contact Name",
+                    "Contact Title",
+                    "Address",
+                    "City",
+                    "Region",
+                    "Postal Code",
+                    "Country",
+                    "Phone",
+                  ]
+                },
+              ]
+            }
+          }
+        };
+        // Add Supplier to the card layout
+        entity.layouts.card.sections[2].properties.push("Supplier");
+      }
+      return entity;
+    }
+
+    /** Setup worksheet */
+    async function setup() {
+      await Excel.run(async (context) => {
+        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+        const sheet = context.workbook.worksheets.add("Sample");
+
+        const productsTable = sheet.tables.add("A1:C1", true /*hasHeaders*/);
+        productsTable.name = "ProductsTable";
+
+        productsTable.getHeaderRowRange().values = [["Product", "ProductID", "ProductName"]];
+
+        productsTable.rows.add(
+          null /*add at the end*/,
+          products.map((p) => [null, p.productID, p.productName])
+        );
+
+        sheet.getUsedRange().format.autofitColumns();
+        sheet.getUsedRange().format.autofitRows();
+
+        sheet.activate();
+
+        await context.sync();
+      });
+    }
+
+    /** Default helper for invoking an action and handling errors. */
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+
+    /** Sample data */
+    const products = [
+      {
+        productID: 1,
+        productName: "Chai",
+        supplierID: 1,
+        categoryID: 1,
+        quantityPerUnit: "10 boxes x 20 bags",
+        unitPrice: 18,
+        unitsInStore: 39,
+        unitsOnOrder: 0,
+        reorderLevel: 10,
+        discontinued: false,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Masala_Chai.JPG/320px-Masala_Chai.JPG"
+      },
+      {
+        productID: 2,
+        productName: "Chang",
+        supplierID: 1,
+        categoryID: 1,
+        quantityPerUnit: "24 - 12 oz bottles",
+        unitPrice: 19,
+        unitsInStore: 17,
+        unitsOnOrder: 40,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 3,
+        productName: "Aniseed Syrup",
+        supplierID: 1,
+        categoryID: 2,
+        quantityPerUnit: "12 - 550 ml bottles",
+        unitPrice: 10,
+        unitsInStore: 13,
+        unitsOnOrder: 70,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Maltose_syrup.jpg/185px-Maltose_syrup.jpg"
+      },
+      {
+        productID: 4,
+        productName: "Chef Anton's Cajun Seasoning",
+        supplierID: 2,
+        categoryID: 2,
+        quantityPerUnit: "48 - 6 oz jars",
+        unitPrice: 22,
+        unitsInStore: 53,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Kruidenmengeling-spice.jpg/193px-Kruidenmengeling-spice.jpg"
+      },
+      {
+        productID: 5,
+        productName: "Chef Anton's Gumbo Mix",
+        supplierID: 2,
+        categoryID: 2,
+        quantityPerUnit: "36 boxes",
+        unitPrice: 21.35,
+        unitsInStore: 0,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: true,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Okra_in_a_Bowl_%28Unsplash%29.jpg/180px-Okra_in_a_Bowl_%28Unsplash%29.jpg"
+      },
+      {
+        productID: 6,
+        productName: "Grandma's Boysenberry Spread",
+        supplierID: 3,
+        categoryID: 2,
+        quantityPerUnit: "12 - 8 oz jars",
+        unitPrice: 25,
+        unitsInStore: 120,
+        unitsOnOrder: 0,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Making_cranberry_sauce_-_in_the_jar.jpg/90px-Making_cranberry_sauce_-_in_the_jar.jpg"
+      },
+      {
+        productID: 7,
+        productName: "Uncle Bob's Organic Dried Pears",
+        supplierID: 3,
+        categoryID: 7,
+        quantityPerUnit: "12 - 1 lb pkgs.",
+        unitPrice: 30,
+        unitsInStore: 15,
+        unitsOnOrder: 0,
+        reorderLevel: 10,
+        discontinued: false,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/DriedPears.JPG/120px-DriedPears.JPG"
+      },
+      {
+        productID: 8,
+        productName: "Northwoods Cranberry Sauce",
+        supplierID: 3,
+        categoryID: 2,
+        quantityPerUnit: "12 - 12 oz jars",
+        unitPrice: 40,
+        unitsInStore: 6,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Making_cranberry_sauce_-_stovetop.jpg/90px-Making_cranberry_sauce_-_stovetop.jpg"
+      },
+      {
+        productID: 9,
+        productName: "Mishi Kobe Niku",
+        supplierID: 4,
+        categoryID: 6,
+        quantityPerUnit: "18 - 500 g pkgs.",
+        unitPrice: 97,
+        unitsInStore: 29,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: true,
+        productImage: ""
+      },
+      {
+        productID: 10,
+        productName: "Ikura",
+        supplierID: 4,
+        categoryID: 8,
+        quantityPerUnit: "12 - 200 ml jars",
+        unitPrice: 31,
+        unitsInStore: 31,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 11,
+        productName: "Queso Cabrales",
+        supplierID: 5,
+        categoryID: 4,
+        quantityPerUnit: "1 kg pkg.",
+        unitPrice: 21,
+        unitsInStore: 22,
+        unitsOnOrder: 30,
+        reorderLevel: 30,
+        discontinued: false,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Tilsit_cheese.jpg/190px-Tilsit_cheese.jpg"
+      },
+      {
+        productID: 12,
+        productName: "Queso Manchego La Pastora",
+        supplierID: 5,
+        categoryID: 4,
+        quantityPerUnit: "10 - 500 g pkgs.",
+        unitPrice: 38,
+        unitsInStore: 86,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Manchego.jpg/177px-Manchego.jpg"
+      },
+      {
+        productID: 13,
+        productName: "Konbu",
+        supplierID: 6,
+        categoryID: 8,
+        quantityPerUnit: "2 kg box",
+        unitPrice: 6,
+        unitsInStore: 24,
+        unitsOnOrder: 0,
+        reorderLevel: 5,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 14,
+        productName: "Tofu",
+        supplierID: 6,
+        categoryID: 7,
+        quantityPerUnit: "40 - 100 g pkgs.",
+        unitPrice: 23.25,
+        unitsInStore: 35,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Korean.food-Dubu.gui-01.jpg/120px-Korean.food-Dubu.gui-01.jpg"
+      },
+      {
+        productID: 15,
+        productName: "Genen Shouyu",
+        supplierID: 6,
+        categoryID: 2,
+        quantityPerUnit: "24 - 250 ml bottles",
+        unitPrice: 15.5,
+        unitsInStore: 39,
+        unitsOnOrder: 0,
+        reorderLevel: 5,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 16,
+        productName: "Pavlova",
+        supplierID: 7,
+        categoryID: 3,
+        quantityPerUnit: "32 - 500 g boxes",
+        unitPrice: 17.45,
+        unitsInStore: 29,
+        unitsOnOrder: 0,
+        reorderLevel: 10,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 17,
+        productName: "Alice Mutton",
+        supplierID: 7,
+        categoryID: 6,
+        quantityPerUnit: "20 - 1 kg tins",
+        unitPrice: 39,
+        unitsInStore: 0,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: true,
+        productImage: ""
+      },
+      {
+        productID: 18,
+        productName: "Carnarvon Tigers",
+        supplierID: 7,
+        categoryID: 8,
+        quantityPerUnit: "16 kg pkg.",
+        unitPrice: 62.5,
+        unitsInStore: 42,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 19,
+        productName: "Teatime Chocolate Biscuits",
+        supplierID: 8,
+        categoryID: 3,
+        quantityPerUnit: "10 boxes x 12 pieces",
+        unitPrice: 9.2,
+        unitsInStore: 25,
+        unitsOnOrder: 0,
+        reorderLevel: 5,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Macau_Koi_Kei_Bakery_Almond_Biscuits_2.JPG/120px-Macau_Koi_Kei_Bakery_Almond_Biscuits_2.JPG"
+      },
+      {
+        productID: 20,
+        productName: "Sir Rodney's Marmalade",
+        supplierID: 8,
+        categoryID: 3,
+        quantityPerUnit: "30 gift boxes",
+        unitPrice: 81,
+        unitsInStore: 40,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Homemade_marmalade%2C_England.jpg/135px-Homemade_marmalade%2C_England.jpg"
+      },
+      {
+        productID: 21,
+        productName: "Sir Rodney's Scones",
+        supplierID: 8,
+        categoryID: 3,
+        quantityPerUnit: "24 pkgs. x 4 pieces",
+        unitPrice: 10,
+        unitsInStore: 3,
+        unitsOnOrder: 40,
+        reorderLevel: 5,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Factura_membrillo.jpg/190px-Factura_membrillo.jpg"
+      },
+      {
+        productID: 22,
+        productName: "Gustaf's Knäckebröd",
+        supplierID: 9,
+        categoryID: 5,
+        quantityPerUnit: "24 - 500 g pkgs.",
+        unitPrice: 21,
+        unitsInStore: 104,
+        unitsOnOrder: 0,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 23,
+        productName: "Tunnbröd",
+        supplierID: 9,
+        categoryID: 5,
+        quantityPerUnit: "12 - 250 g pkgs.",
+        unitPrice: 9,
+        unitsInStore: 61,
+        unitsOnOrder: 0,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 24,
+        productName: "Guaraná Fantástica",
+        supplierID: 10,
+        categoryID: 1,
+        quantityPerUnit: "12 - 355 ml cans",
+        unitPrice: 4.5,
+        unitsInStore: 20,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: true,
+        productImage: ""
+      },
+      {
+        productID: 25,
+        productName: "NuNuCa Nuß-Nougat-Creme",
+        supplierID: 11,
+        categoryID: 3,
+        quantityPerUnit: "20 - 450 g glasses",
+        unitPrice: 14,
+        unitsInStore: 76,
+        unitsOnOrder: 0,
+        reorderLevel: 30,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 26,
+        productName: "Gumbär Gummibärchen",
+        supplierID: 11,
+        categoryID: 3,
+        quantityPerUnit: "100 - 250 g bags",
+        unitPrice: 31.23,
+        unitsInStore: 15,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 27,
+        productName: "Schoggi Schokolade",
+        supplierID: 11,
+        categoryID: 3,
+        quantityPerUnit: "100 - 100 g pieces",
+        unitPrice: 43.9,
+        unitsInStore: 49,
+        unitsOnOrder: 0,
+        reorderLevel: 30,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 28,
+        productName: "Rössle Sauerkraut",
+        supplierID: 12,
+        categoryID: 7,
+        quantityPerUnit: "25 - 825 g cans",
+        unitPrice: 45.6,
+        unitsInStore: 26,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: true,
+        productImage: "https://th.bing.com/th/id/OIP.w9WSAKPISXlOtxZr6E_ErgAAAA?w=118&h=180&c=7&o=5&dpr=1.5&pid=1.7"
+      },
+      {
+        productID: 29,
+        productName: "Thüringer Rostbratwurst",
+        supplierID: 12,
+        categoryID: 6,
+        quantityPerUnit: "50 bags x 30 sausgs.",
+        unitPrice: 123.79,
+        unitsInStore: 0,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: true,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Rote_Bratw%C3%BCrste_auf_einem_Grillrost.JPG/220px-Rote_Bratw%C3%BCrste_auf_einem_Grillrost.JPG"
+      },
+      {
+        productID: 30,
+        productName: "Nord-Ost Matjeshering",
+        supplierID: 13,
+        categoryID: 8,
+        quantityPerUnit: "10 - 200 g glasses",
+        unitPrice: 25.89,
+        unitsInStore: 10,
+        unitsOnOrder: 0,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 31,
+        productName: "Gorgonzola Telino",
+        supplierID: 14,
+        categoryID: 4,
+        quantityPerUnit: "12 - 100 g pkgs",
+        unitPrice: 12.5,
+        unitsInStore: 0,
+        unitsOnOrder: 70,
+        reorderLevel: 20,
+        discontinued: false,
+        productImage: "https://th.bing.com/th/id/OIP.L8uKB_VBE4XT-31q4roMiQAAAA?w=135&h=154&c=7&o=5&dpr=1.5&pid=1.7"
+      },
+      {
+        productID: 32,
+        productName: "Mascarpone Fabioli",
+        supplierID: 14,
+        categoryID: 4,
+        quantityPerUnit: "24 - 200 g pkgs.",
+        unitPrice: 32,
+        unitsInStore: 9,
+        unitsOnOrder: 40,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Mascarpone_2.jpg/220px-Mascarpone_2.jpg"
+      },
+      {
+        productID: 33,
+        productName: "Geitost",
+        supplierID: 15,
+        categoryID: 4,
+        quantityPerUnit: "500 g",
+        unitPrice: 2.5,
+        unitsInStore: 112,
+        unitsOnOrder: 0,
+        reorderLevel: 20,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 34,
+        productName: "Sasquatch Ale",
+        supplierID: 16,
+        categoryID: 1,
+        quantityPerUnit: "24 - 12 oz bottles",
+        unitPrice: 14,
+        unitsInStore: 111,
+        unitsOnOrder: 0,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Hefeweizen_Glass.jpg/330px-Hefeweizen_Glass.jpg"
+      },
+      {
+        productID: 35,
+        productName: "Steeleye Stout",
+        supplierID: 16,
+        categoryID: 1,
+        quantityPerUnit: "24 - 12 oz bottles",
+        unitPrice: 18,
+        unitsInStore: 20,
+        unitsOnOrder: 0,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Weizenbier.jpg/150px-Weizenbier.jpg"
+      },
+      {
+        productID: 36,
+        productName: "Inlagd Sill",
+        supplierID: 17,
+        categoryID: 8,
+        quantityPerUnit: "24 - 250 g  jars",
+        unitPrice: 19,
+        unitsInStore: 112,
+        unitsOnOrder: 0,
+        reorderLevel: 20,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 37,
+        productName: "Gravad lax",
+        supplierID: 17,
+        categoryID: 8,
+        quantityPerUnit: "12 - 500 g pkgs.",
+        unitPrice: 26,
+        unitsInStore: 11,
+        unitsOnOrder: 50,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 38,
+        productName: "Côte de Blaye",
+        supplierID: 18,
+        categoryID: 1,
+        quantityPerUnit: "12 - 75 cl bottles",
+        unitPrice: 263.5,
+        unitsInStore: 17,
+        unitsOnOrder: 0,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 39,
+        productName: "Chartreuse verte",
+        supplierID: 18,
+        categoryID: 1,
+        quantityPerUnit: "750 cc per bottle",
+        unitPrice: 18,
+        unitsInStore: 69,
+        unitsOnOrder: 0,
+        reorderLevel: 5,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 40,
+        productName: "Boston Crab Meat",
+        supplierID: 19,
+        categoryID: 8,
+        quantityPerUnit: "24 - 4 oz tins",
+        unitPrice: 18.4,
+        unitsInStore: 123,
+        unitsOnOrder: 0,
+        reorderLevel: 30,
+        discontinued: false,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Kanikama.jpg/220px-Kanikama.jpg"
+      },
+      {
+        productID: 41,
+        productName: "Jack's New England Clam Chowder",
+        supplierID: 19,
+        categoryID: 8,
+        quantityPerUnit: "12 - 12 oz cans",
+        unitPrice: 9.65,
+        unitsInStore: 85,
+        unitsOnOrder: 0,
+        reorderLevel: 10,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Quail_07_bg_041506.jpg/300px-Quail_07_bg_041506.jpg"
+      },
+      {
+        productID: 42,
+        productName: "Singaporean Hokkien Fried Mee",
+        supplierID: 20,
+        categoryID: 5,
+        quantityPerUnit: "32 - 1 kg pkgs.",
+        unitPrice: 14,
+        unitsInStore: 26,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: true,
+        productImage: ""
+      },
+      {
+        productID: 43,
+        productName: "Ipoh Coffee",
+        supplierID: 20,
+        categoryID: 1,
+        quantityPerUnit: "16 - 500 g tins",
+        unitPrice: 46,
+        unitsInStore: 17,
+        unitsOnOrder: 10,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Dark_roasted_espresso_blend_coffee_beans_2.jpg/200px-Dark_roasted_espresso_blend_coffee_beans_2.jpg"
+      },
+      {
+        productID: 44,
+        productName: "Gula Malacca",
+        supplierID: 20,
+        categoryID: 2,
+        quantityPerUnit: "20 - 2 kg bags",
+        unitPrice: 19.45,
+        unitsInStore: 27,
+        unitsOnOrder: 0,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 45,
+        productName: "Rogede sild",
+        supplierID: 21,
+        categoryID: 8,
+        quantityPerUnit: "1k pkg.",
+        unitPrice: 9.5,
+        unitsInStore: 5,
+        unitsOnOrder: 70,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 46,
+        productName: "Spegesild",
+        supplierID: 21,
+        categoryID: 8,
+        quantityPerUnit: "4 - 450 g glasses",
+        unitPrice: 12,
+        unitsInStore: 95,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 47,
+        productName: "Zaanse koeken",
+        supplierID: 22,
+        categoryID: 3,
+        quantityPerUnit: "10 - 4 oz boxes",
+        unitPrice: 9.5,
+        unitsInStore: 36,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 48,
+        productName: "Chocolade",
+        supplierID: 22,
+        categoryID: 3,
+        quantityPerUnit: "10 pkgs.",
+        unitPrice: 12.75,
+        unitsInStore: 15,
+        unitsOnOrder: 70,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 49,
+        productName: "Maxilaku",
+        supplierID: 23,
+        categoryID: 3,
+        quantityPerUnit: "24 - 50 g pkgs.",
+        unitPrice: 20,
+        unitsInStore: 10,
+        unitsOnOrder: 60,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 50,
+        productName: "Valkoinen suklaa",
+        supplierID: 23,
+        categoryID: 3,
+        quantityPerUnit: "12 - 100 g bars",
+        unitPrice: 16.25,
+        unitsInStore: 65,
+        unitsOnOrder: 0,
+        reorderLevel: 30,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 51,
+        productName: "Manjimup Dried Apples",
+        supplierID: 24,
+        categoryID: 7,
+        quantityPerUnit: "50 - 300 g pkgs.",
+        unitPrice: 53,
+        unitsInStore: 20,
+        unitsOnOrder: 0,
+        reorderLevel: 10,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 52,
+        productName: "Filo Mix",
+        supplierID: 24,
+        categoryID: 5,
+        quantityPerUnit: "16 - 2 kg boxes",
+        unitPrice: 7,
+        unitsInStore: 38,
+        unitsOnOrder: 0,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 53,
+        productName: "Perth Pasties",
+        supplierID: 24,
+        categoryID: 6,
+        quantityPerUnit: "48 pieces",
+        unitPrice: 32.8,
+        unitsInStore: 0,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: true,
+        productImage: ""
+      },
+      {
+        productID: 54,
+        productName: "Tourtière",
+        supplierID: 25,
+        categoryID: 6,
+        quantityPerUnit: "16 pies",
+        unitPrice: 7.45,
+        unitsInStore: 21,
+        unitsOnOrder: 0,
+        reorderLevel: 10,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 55,
+        productName: "Pâté chinois",
+        supplierID: 25,
+        categoryID: 6,
+        quantityPerUnit: "24 boxes x 2 pies",
+        unitPrice: 24,
+        unitsInStore: 115,
+        unitsOnOrder: 0,
+        reorderLevel: 20,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 56,
+        productName: "Gnocchi di nonna Alice",
+        supplierID: 26,
+        categoryID: 5,
+        quantityPerUnit: "24 - 250 g pkgs.",
+        unitPrice: 38,
+        unitsInStore: 21,
+        unitsOnOrder: 10,
+        reorderLevel: 30,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 57,
+        productName: "Ravioli Angelo",
+        supplierID: 26,
+        categoryID: 5,
+        quantityPerUnit: "24 - 250 g pkgs.",
+        unitPrice: 19.5,
+        unitsInStore: 36,
+        unitsOnOrder: 0,
+        reorderLevel: 20,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 58,
+        productName: "Escargots de Bourgogne",
+        supplierID: 27,
+        categoryID: 8,
+        quantityPerUnit: "24 pieces",
+        unitPrice: 13.25,
+        unitsInStore: 62,
+        unitsOnOrder: 0,
+        reorderLevel: 20,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 59,
+        productName: "Raclette Courdavault",
+        supplierID: 28,
+        categoryID: 4,
+        quantityPerUnit: "5 kg pkg.",
+        unitPrice: 55,
+        unitsInStore: 79,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Raclette_-_001.jpg/258px-Raclette_-_001.jpg"
+      },
+      {
+        productID: 60,
+        productName: "Camembert Pierrot",
+        supplierID: 28,
+        categoryID: 4,
+        quantityPerUnit: "15 - 300 g rounds",
+        unitPrice: 34,
+        unitsInStore: 19,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 61,
+        productName: "Sirop d'érable",
+        supplierID: 29,
+        categoryID: 2,
+        quantityPerUnit: "24 - 500 ml bottles",
+        unitPrice: 28.5,
+        unitsInStore: 113,
+        unitsOnOrder: 0,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: "https://th.bing.com/th/id/OIP.gUJ7crJUM3yLzV5m5FXnqAHaOt?w=115&h=180&c=7&o=5&dpr=1.5&pid=1.7"
+      },
+      {
+        productID: 62,
+        productName: "Tarte au sucre",
+        supplierID: 29,
+        categoryID: 3,
+        quantityPerUnit: "48 pies",
+        unitPrice: 49.3,
+        unitsInStore: 17,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 63,
+        productName: "Vegie-spread",
+        supplierID: 7,
+        categoryID: 2,
+        quantityPerUnit: "15 - 625 g jars",
+        unitPrice: 43.9,
+        unitsInStore: 24,
+        unitsOnOrder: 0,
+        reorderLevel: 5,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 64,
+        productName: "Wimmers gute Semmelknödel",
+        supplierID: 12,
+        categoryID: 5,
+        quantityPerUnit: "20 bags x 4 pieces",
+        unitPrice: 33.25,
+        unitsInStore: 22,
+        unitsOnOrder: 80,
+        reorderLevel: 30,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 65,
+        productName: "Louisiana Fiery Hot Pepper Sauce",
+        supplierID: 2,
+        categoryID: 2,
+        quantityPerUnit: "32 - 8 oz bottles",
+        unitPrice: 21.05,
+        unitsInStore: 76,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 66,
+        productName: "Louisiana Hot Spiced Okra",
+        supplierID: 2,
+        categoryID: 2,
+        quantityPerUnit: "24 - 8 oz jars",
+        unitPrice: 17,
+        unitsInStore: 4,
+        unitsOnOrder: 100,
+        reorderLevel: 20,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Okra_in_a_Bowl_%28Unsplash%29.jpg/180px-Okra_in_a_Bowl_%28Unsplash%29.jpg"
+      },
+      {
+        productID: 67,
+        productName: "Laughing Lumberjack Lager",
+        supplierID: 16,
+        categoryID: 1,
+        quantityPerUnit: "24 - 12 oz bottles",
+        unitPrice: 14,
+        unitsInStore: 52,
+        unitsOnOrder: 0,
+        reorderLevel: 10,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 68,
+        productName: "Scottish Longbreads",
+        supplierID: 8,
+        categoryID: 3,
+        quantityPerUnit: "10 boxes x 8 pieces",
+        unitPrice: 12.5,
+        unitsInStore: 6,
+        unitsOnOrder: 10,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Hefeweizen_Glass.jpg/330px-Hefeweizen_Glass.jpg"
+      },
+      {
+        productID: 69,
+        productName: "Gudbrandsdalsost",
+        supplierID: 15,
+        categoryID: 4,
+        quantityPerUnit: "10 kg pkg.",
+        unitPrice: 36,
+        unitsInStore: 26,
+        unitsOnOrder: 0,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 70,
+        productName: "Outback Lager",
+        supplierID: 7,
+        categoryID: 1,
+        quantityPerUnit: "24 - 355 ml bottles",
+        unitPrice: 15,
+        unitsInStore: 15,
+        unitsOnOrder: 10,
+        reorderLevel: 30,
+        discontinued: false,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Weizenbier.jpg/150px-Weizenbier.jpg"
+      },
+      {
+        productID: 71,
+        productName: "Flotemysost",
+        supplierID: 15,
+        categoryID: 4,
+        quantityPerUnit: "10 - 500 g pkgs.",
+        unitPrice: 21.5,
+        unitsInStore: 26,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 72,
+        productName: "Mozzarella di Giovanni",
+        supplierID: 14,
+        categoryID: 4,
+        quantityPerUnit: "24 - 200 g pkgs.",
+        unitPrice: 34.8,
+        unitsInStore: 14,
+        unitsOnOrder: 0,
+        reorderLevel: 0,
+        discontinued: false,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Mozzarella_cheese.jpg/245px-Mozzarella_cheese.jpg"
+      },
+      {
+        productID: 73,
+        productName: "Röd Kaviar",
+        supplierID: 17,
+        categoryID: 8,
+        quantityPerUnit: "24 - 150 g jars",
+        unitPrice: 15,
+        unitsInStore: 101,
+        unitsOnOrder: 0,
+        reorderLevel: 5,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 74,
+        productName: "Longlife Tofu",
+        supplierID: 4,
+        categoryID: 7,
+        quantityPerUnit: "5 kg pkg.",
+        unitPrice: 10,
+        unitsInStore: 4,
+        unitsOnOrder: 20,
+        reorderLevel: 5,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 75,
+        productName: "Rhönbräu Klosterbier",
+        supplierID: 12,
+        categoryID: 1,
+        quantityPerUnit: "24 - 0.5 l bottles",
+        unitPrice: 7.75,
+        unitsInStore: 125,
+        unitsOnOrder: 0,
+        reorderLevel: 25,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 76,
+        productName: "Lakkalikööri",
+        supplierID: 23,
+        categoryID: 1,
+        quantityPerUnit: "500 ml",
+        unitPrice: 18,
+        unitsInStore: 57,
+        unitsOnOrder: 0,
+        reorderLevel: 20,
+        discontinued: false,
+        productImage: ""
+      },
+      {
+        productID: 77,
+        productName: "Original Frankfurter grüne Soße",
+        supplierID: 12,
+        categoryID: 2,
+        quantityPerUnit: "12 boxes",
+        unitPrice: 13,
+        unitsInStore: 32,
+        unitsOnOrder: 0,
+        reorderLevel: 15,
+        discontinued: false,
+        productImage: ""
+      }
+    ];
+
+    const categories = [
+      {
+        categoryID: 1,
+        categoryName: "Beverages",
+        description: "Soft drinks, coffees, teas, beers, and ales"
+      },
+      {
+        categoryID: 2,
+        categoryName: "Condiments",
+        description: "Sweet and savory sauces, relishes, spreads, and seasonings"
+      },
+      {
+        categoryID: 3,
+        categoryName: "Confections",
+        description: "Desserts, candies, and sweet breads"
+      },
+      {
+        categoryID: 4,
+        categoryName: "Dairy Products",
+        description: "Cheeses"
+      },
+      {
+        categoryID: 5,
+        categoryName: "Grains/Cereals",
+        description: "Breads, crackers, pasta, and cereal"
+      },
+      {
+        categoryID: 6,
+        categoryName: "Meat/Poultry",
+        description: "Prepared meats"
+      },
+      {
+        categoryID: 7,
+        categoryName: "Produce",
+        description: "Dried fruit and bean curd"
+      },
+      {
+        categoryID: 8,
+        categoryName: "Seafood",
+        description: "Seaweed and fish"
+      }
+    ];
+
+    const suppliers = [
+      {
+          "supplierID": 1,
+          "companyName": "Exotic Liquids",
+          "contactName": "Charlotte Cooper",
+          "contactTitle": "Purchasing Manager",
+          "address": "49 Gilbert St.",
+          "city": "London",
+          "region": "",
+          "postalCode": "EC1 4SD",
+          "country": "UK",
+          "phone": "(171) 555-2222"
+      },
+      {
+          "supplierID": 2,
+          "companyName": "New Orleans Cajun Delights",
+          "contactName": "Shelley Burke",
+          "contactTitle": "Order Administrator",
+          "address": "P.O. Box 78934",
+          "city": "New Orleans",
+          "region": "LA",
+          "postalCode": "70117",
+          "country": "USA",
+          "phone": "(100) 555-4822"
+      },
+      {
+          "supplierID": 3,
+          "companyName": "Grandma Kelly's Homestead",
+          "contactName": "Regina Murphy",
+          "contactTitle": "Sales Representative",
+          "address": "707 Oxford Rd.",
+          "city": "Ann Arbor",
+          "region": "MI",
+          "postalCode": "48104",
+          "country": "USA",
+          "phone": "(313) 555-5735"
+      },
+      {
+          "supplierID": 4,
+          "companyName": "Tokyo Traders",
+          "contactName": "Yoshi Nagase",
+          "contactTitle": "Marketing Manager",
+          "address": "9-8 Sekimai Musashino-shi",
+          "city": "Tokyo",
+          "region": "",
+          "postalCode": "100",
+          "country": "Japan",
+          "phone": "(03) 3555-5011"
+      },
+      {
+          "supplierID": 5,
+          "companyName": "Cooperativa de Quesos 'Las Cabras'",
+          "contactName": "Antonio del Valle Saavedra",
+          "contactTitle": "Export Administrator",
+          "address": "Calle del Rosal 4",
+          "city": "Oviedo",
+          "region": "Asturias",
+          "postalCode": "33007",
+          "country": "Spain",
+          "phone": "(98) 598 76 54"
+      },
+      {
+          "supplierID": 6,
+          "companyName": "Mayumi's",
+          "contactName": "Mayumi Ohno",
+          "contactTitle": "Marketing Representative",
+          "address": "92 Setsuko Chuo-ku",
+          "city": "Osaka",
+          "region": "",
+          "postalCode": "545",
+          "country": "Japan",
+          "phone": "(06) 431-7877"
+      },
+      {
+          "supplierID": 7,
+          "companyName": "Pavlova, Ltd.",
+          "contactName": "Ian Devling",
+          "contactTitle": "Marketing Manager",
+          "address": "74 Rose St. Moonie Ponds",
+          "city": "Melbourne",
+          "region": "Victoria",
+          "postalCode": "3058",
+          "country": "Australia",
+          "phone": "(03) 444-2343"
+      },
+      {
+          "supplierID": 8,
+          "companyName": "Specialty Biscuits, Ltd.",
+          "contactName": "Peter Wilson",
+          "contactTitle": "Sales Representative",
+          "address": "29 King's Way",
+          "city": "Manchester",
+          "region": "",
+          "postalCode": "M14 GSD",
+          "country": "UK",
+          "phone": "(161) 555-4448"
+      },
+      {
+          "supplierID": 9,
+          "companyName": "PB Knäckebröd AB",
+          "contactName": "Lars Peterson",
+          "contactTitle": "Sales Agent",
+          "address": "Kaloadagatan 13",
+          "city": "Göteborg",
+          "region": "",
+          "postalCode": "S-345 67",
+          "country": "Sweden",
+          "phone": "031-987 65 43"
+      },
+      {
+          "supplierID": 10,
+          "companyName": "Refrescos Americanas LTDA",
+          "contactName": "Carlos Diaz",
+          "contactTitle": "Marketing Manager",
+          "address": "Av. das Americanas 12.890",
+          "city": "Sao Paulo",
+          "region": "",
+          "postalCode": "5442",
+          "country": "Brazil",
+          "phone": "(11) 555 4640"
+      },
+      {
+          "supplierID": 11,
+          "companyName": "Heli Süßwaren GmbH & Co. KG",
+          "contactName": "Petra Winkler",
+          "contactTitle": "Sales Manager",
+          "address": "Tiergartenstraße 5",
+          "city": "Berlin",
+          "region": "",
+          "postalCode": "10785",
+          "country": "Germany",
+          "phone": "(010) 9984510"
+      },
+      {
+          "supplierID": 12,
+          "companyName": "Plutzer Lebensmittelgroßmärkte AG",
+          "contactName": "Martin Bein",
+          "contactTitle": "International Marketing Mgr.",
+          "address": "Bogenallee 51",
+          "city": "Frankfurt",
+          "region": "",
+          "postalCode": "60439",
+          "country": "Germany",
+          "phone": "(069) 992755"
+      },
+      {
+          "supplierID": 13,
+          "companyName": "Nord-Ost-Fisch Handelsgesellschaft mbH",
+          "contactName": "Sven Petersen",
+          "contactTitle": "Coordinator Foreign Markets",
+          "address": "Frahmredder 112a",
+          "city": "Cuxhaven",
+          "region": "",
+          "postalCode": "27478",
+          "country": "Germany",
+          "phone": "(04721) 8713"
+      },
+      {
+          "supplierID": 14,
+          "companyName": "Formaggi Fortini s.r.l.",
+          "contactName": "Elio Rossi",
+          "contactTitle": "Sales Representative",
+          "address": "Viale Dante, 75",
+          "city": "Ravenna",
+          "region": "",
+          "postalCode": "48100",
+          "country": "Italy",
+          "phone": "(0544) 60323"
+      },
+      {
+          "supplierID": 15,
+          "companyName": "Norske Meierier",
+          "contactName": "Beate Vileid",
+          "contactTitle": "Marketing Manager",
+          "address": "Hatlevegen 5",
+          "city": "Sandvika",
+          "region": "",
+          "postalCode": "1320",
+          "country": "Norway",
+          "phone": "(0)2-953010"
+      },
+      {
+          "supplierID": 16,
+          "companyName": "Bigfoot Breweries",
+          "contactName": "Cheryl Saylor",
+          "contactTitle": "Regional Account Rep.",
+          "address": "3400 - 8th Avenue Suite 210",
+          "city": "Bend",
+          "region": "OR",
+          "postalCode": "97101",
+          "country": "USA",
+          "phone": "(503) 555-9931"
+      },
+      {
+          "supplierID": 17,
+          "companyName": "Svensk Sjöföda AB",
+          "contactName": "Michael Björn",
+          "contactTitle": "Sales Representative",
+          "address": "Brovallavägen 231",
+          "city": "Stockholm",
+          "region": "",
+          "postalCode": "S-123 45",
+          "country": "Sweden",
+          "phone": "08-123 45 67"
+      },
+      {
+          "supplierID": 18,
+          "companyName": "Aux joyeux ecclésiastiques",
+          "contactName": "Guylène Nodier",
+          "contactTitle": "Sales Manager",
+          "address": "203, Rue des Francs-Bourgeois",
+          "city": "Paris",
+          "region": "",
+          "postalCode": "75004",
+          "country": "France",
+          "phone": "(1) 03.83.00.68"
+      },
+      {
+          "supplierID": 19,
+          "companyName": "New England Seafood Cannery",
+          "contactName": "Robb Merchant",
+          "contactTitle": "Wholesale Account Agent",
+          "address": "Order Processing Dept. 2100 Paul Revere Blvd.",
+          "city": "Boston",
+          "region": "MA",
+          "postalCode": "02134",
+          "country": "USA",
+          "phone": "(617) 555-3267"
+      },
+      {
+          "supplierID": 20,
+          "companyName": "Leka Trading",
+          "contactName": "Chandra Leka",
+          "contactTitle": "Owner",
+          "address": "471 Serangoon Loop, Suite #402",
+          "city": "Singapore",
+          "region": "",
+          "postalCode": "0512",
+          "country": "Singapore",
+          "phone": "555-8787"
+      },
+      {
+          "supplierID": 21,
+          "companyName": "Lyngbysild",
+          "contactName": "Niels Petersen",
+          "contactTitle": "Sales Manager",
+          "address": "Lyngbysild Fiskebakken 10",
+          "city": "Lyngby",
+          "region": "",
+          "postalCode": "2800",
+          "country": "Denmark",
+          "phone": "43844108"
+      },
+      {
+          "supplierID": 22,
+          "companyName": "Zaanse Snoepfabriek",
+          "contactName": "Dirk Luchte",
+          "contactTitle": "Accounting Manager",
+          "address": "Verkoop Rijnweg 22",
+          "city": "Zaandam",
+          "region": "",
+          "postalCode": "9999 ZZ",
+          "country": "Netherlands",
+          "phone": "(12345) 1212"
+      },
+      {
+          "supplierID": 23,
+          "companyName": "Karkki Oy",
+          "contactName": "Anne Heikkonen",
+          "contactTitle": "Product Manager",
+          "address": "Valtakatu 12",
+          "city": "Lappeenranta",
+          "region": "",
+          "postalCode": "53120",
+          "country": "Finland",
+          "phone": "(953) 10956"
+      },
+      {
+          "supplierID": 24,
+          "companyName": "G'day, Mate",
+          "contactName": "Wendy Mackenzie",
+          "contactTitle": "Sales Representative",
+          "address": "170 Prince Edward Parade Hunter's Hill",
+          "city": "Sydney",
+          "region": "NSW",
+          "postalCode": "2042",
+          "country": "Australia",
+          "phone": "(02) 555-5914"
+      },
+      {
+          "supplierID": 25,
+          "companyName": "Ma Maison",
+          "contactName": "Jean-Guy Lauzon",
+          "contactTitle": "Marketing Manager",
+          "address": "2960 Rue St. Laurent",
+          "city": "Montréal",
+          "region": "Québec",
+          "postalCode": "H1J 1C3",
+          "country": "Canada",
+          "phone": "(514) 555-9022"
+      },
+      {
+          "supplierID": 26,
+          "companyName": "Pasta Buttini s.r.l.",
+          "contactName": "Giovanni Giudici",
+          "contactTitle": "Order Administrator",
+          "address": "Via dei Gelsomini, 153",
+          "city": "Salerno",
+          "region": "",
+          "postalCode": "84100",
+          "country": "Italy",
+          "phone": "(089) 6547665"
+      },
+      {
+          "supplierID": 27,
+          "companyName": "Escargots Nouveaux",
+          "contactName": "Marie Delamare",
+          "contactTitle": "Sales Manager",
+          "address": "22, rue H. Voiron",
+          "city": "Montceau",
+          "region": "",
+          "postalCode": "71300",
+          "country": "France",
+          "phone": "85.57.00.07"
+      },
+      {
+          "supplierID": 28,
+          "companyName": "Gai pâturage",
+          "contactName": "Eliane Noz",
+          "contactTitle": "Sales Representative",
+          "address": "Bat. B 3, rue des Alpes",
+          "city": "Annecy",
+          "region": "",
+          "postalCode": "74000",
+          "country": "France",
+          "phone": "38.76.98.06"
+      },
+      {
+          "supplierID": 29,
+          "companyName": "Forêts d'érables",
+          "contactName": "Chantal Goulet",
+          "contactTitle": "Accounting Manager",
+          "address": "148 rue Chasseur",
+          "city": "Ste-Hyacinthe",
+          "region": "Québec",
+          "postalCode": "J2S 7S8",
+          "country": "Canada",
+          "phone": "(514) 555-2955"
+      }
+    ];
+  language: typescript
+template:
+  content: "<section class=\"ms-font-m\">\n\t<p>Demonstrates how to create entity values for each row in a table.</p>\n</section>\n<section class=\"setup ms-font-m\">\n\t<h3>Set up</h3>\n\t<button id=\"setup\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Create table</span>\n  </button>\n</section>\n<section class=\"samples ms-font-m\">\n\t<h3>Try it out</h3>\n\t<button id=\"run\" class=\"ms-Button\">\n        <span class=\"ms-Button-label\">Add entity values</span>\n</section>"
+  language: html
+style:
+  content: |
+    section.samples {
+        margin-top: 20px;
+    }
+
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+libraries: |
+  https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+  https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
+
+  jquery@3.1.1
+  @types/jquery@3.3.1

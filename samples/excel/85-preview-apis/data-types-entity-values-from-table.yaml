@@ -8,57 +8,66 @@ api_set:
 script:
     content: |-
         $("#setup").click(() => tryCatch(setup));
-        $("#run").click(() => tryCatch(run));
+        $("#addEntitiesToTable").click(() => tryCatch(addEntitiesToTable));
 
-        async function run() {
+        async function addEntitiesToTable() {
           await Excel.run(async (context) => {
+            // This method retrieves data for each of the existing products in the table, 
+            // creates entity values for each of those products, and adds the entities 
+            // to the table.
+
             const productsTable = context.workbook.tables.getItem("ProductsTable");
 
-            // Add a new column to the table for the entity values
+            // Add a new column to the table for the entity values.
             productsTable.columns.getItemOrNullObject("Product").delete();
             const productColumn = productsTable.columns.add(0, null, "Product");
 
-            // Get product data from table
+            // Get product data from table.
             const dataRange = productsTable.getDataBodyRange();
             dataRange.load("values");
 
             await context.sync();
 
-            // Add product entities to table
+            // Set up the entities by mapping the product names to 
+            // the sample JSON product data.
             const entities = dataRange.values.map((rowValues) => {
-              // Get additional product properties
+              // Get products and product properties.
               const product = getProduct(rowValues[1]);
-              // Get category properties
+              
+              // Get product categories and category properties.
               const category = product ? getCategory(product.categoryID) : null;
-              // Get supplier properties
+              
+              // Get product suppliers and supplier properties.
               const supplier = product ? getSupplier(product.supplierID) : null;
-              // Return the entity
+              
+              // Create entities by combining product, category, and supplier properties.
               return [makeProductEntity(rowValues[1], rowValues[2], product, category, supplier)];
             });
+
+            // Add the complete entities to the Products Table. 
             productColumn.getDataBodyRange().valuesAsJson = entities;
 
             productColumn.getRange().format.autofitColumns();
-
             await context.sync();
           });
         }
 
-        /** Get product properties */
+        // Get products and product properties.
         function getProduct(productID: number): any {
           return products.find((p) => p.productID == productID);
         }
 
-        /** Get category properties */
+        // Get product categories and category properties.
         function getCategory(categoryID: number): any {
           return categories.find((c) => c.categoryID == categoryID);
         }
 
-        /** Get supplier properties */
+        // Get product suppliers and supplier properties.
         function getSupplier(supplierID: number): any {
           return suppliers.find((s) => s.supplierID == supplierID);
         }
 
-        /** Make entity from product properties */
+        // Create entities from product properties.
         function makeProductEntity(
           productID: number, 
           productName: string, 
@@ -81,25 +90,25 @@ script:
                 type: Excel.CellValueType.string,
                 basicValue: product.quantityPerUnit || ""
               },
-              // Add Unit Price as a formatted number
+              // Add Unit Price as a formatted number.
               "Unit Price": {
                 type: Excel.CellValueType.formattedNumber,
                 basicValue: product.unitPrice,
                 numberFormat: "$* #,##0.00"
               },
-              // Add Units In Store as a formatted number
+              // Add Units In Store as a formatted number.
               "Units In Stock": {
                 type: Excel.CellValueType.formattedNumber,
                 basicValue: product.unitsInStore,
                 numberFormat: "#,##0"
               },
-              // Add Units On Order as a formatted number
+              // Add Units On Order as a formatted number.
               "Units On Order": {
                 type: Excel.CellValueType.formattedNumber,
                 basicValue: product.unitsOnOrder,
                 numberFormat: "#,##0"
               },
-              // Add Reorder Level as a formatted number
+              // Add Reorder Level as a formatted number.
               "Reorder Level": {
                 type: Excel.CellValueType.formattedNumber,
                 basicValue: product.reorderLevel,
@@ -143,7 +152,7 @@ script:
             }
           };
 
-          // Add image property to the entity and the card layout
+          // Add image property to the entity and the card layout.
           if (product.productImage) {
             entity.properties["Image"] = {
               type: Excel.CellValueType.webImage,
@@ -152,7 +161,7 @@ script:
             entity.layouts.card.mainImage = { property: "Image" };
           }
 
-          // Add a nested entity for the product category
+          // Add a nested entity for the product category.
           if (category) {
             entity.properties["Category"] = {
               type: Excel.CellValueType.entity,
@@ -162,7 +171,7 @@ script:
                   type: Excel.CellValueType.double,
                   basicValue: category.categoryID,
                   propertyMetadata: {
-                    // Exclude the category ID property from the card view and auto complete
+                    // Exclude the category ID property from the card view and auto complete.
                     excludeFrom: {
                       cardView: true,
                       autoComplete: true
@@ -180,7 +189,7 @@ script:
               }
             };
 
-            // Add Category to the card layout.
+            // Add product category to the card layout.
             entity.layouts.card.sections[0].properties.push("Category");
           }
 
@@ -255,13 +264,13 @@ script:
               }
             };
 
-            // Add Supplier to the card layout.
+            // Add product supplier to the card layout.
             entity.layouts.card.sections[2].properties.push("Supplier");
           }
           return entity;
         }
 
-        /** Set up worksheet. */
+        /** Set up Sample worksheet. */
         async function setup() {
           await Excel.run(async (context) => {
             context.workbook.worksheets.getItemOrNullObject("Sample").delete();
@@ -296,7 +305,7 @@ script:
           }
         }
 
-        /** Sample JSON data. */
+        /** Sample JSON product data. */
         const products = [
           {
             productID: 1,
@@ -722,7 +731,7 @@ template:
         </section>
         <section class="samples ms-font-m">
           <h3>Try it out</h3>
-          <button id="run" class="ms-Button">
+          <button id="addEntitiesToTable" class="ms-Button">
             <span class="ms-Button-label">Add entity values</span>
           </button>
         </section>

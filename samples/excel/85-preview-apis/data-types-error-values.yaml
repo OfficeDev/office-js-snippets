@@ -1,0 +1,97 @@
+order: 4
+id: excel-data-types-error-values
+name: 'Data types: Set error values'
+description: Demonstrates how to set a cell value to an error data type.
+host: EXCEL
+api_set:
+    ExcelApi: BETA (PREVIEW ONLY)
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#run").click(() => tryCatch(run));
+
+        /*
+         * Set cell A1 to #BUSY! error
+         */
+        async function run() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            const range = sheet.getRange("A1");
+
+            const error: Excel.ErrorCellValue = {
+              type: Excel.CellValueType.error,
+              errorType: Excel.ErrorCellValueType.busy
+            };
+
+            range.valuesAsJson = [[error]];
+
+            await context.sync();
+          });
+        }
+
+        /**
+         * Setup sample data
+         */
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            // Create a new worksheet called "Sample" and activate it.
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+            sheet.activate();
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample demonstrates how to set a cell value to an error data type.</p>
+        </section>
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add worksheet</span>
+          </button>
+            <h3>Try it out</h3>
+            <button id="run" class="ms-Button">
+              <span class="ms-Button-label">Set cell value to error data type</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

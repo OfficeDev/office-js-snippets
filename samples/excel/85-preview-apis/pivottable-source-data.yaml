@@ -1,0 +1,136 @@
+order: 6
+id: excel-pivottable-data-source
+name: PivotTable data source
+description: Gets information about the data source of a PivotTable.
+host: EXCEL
+api_set:
+    ExcelApi: BETA (PREVIEW ONLY)
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup)); 
+        $("#get-pivottable-data-source").click(() => tryCatch(getPivotTableDataSource));
+
+        async function getPivotTableDataSource() {
+          await Excel.run(async (context) => {
+            // This method logs information about the data source of a PivotTable.
+
+            const worksheet = context.workbook.worksheets.getItem("TotalPivot");
+            const pivotTable = worksheet.pivotTables.getItem("All Farm Sales");
+
+            // Retrieve the type and string representation of the data source of the PivotTable.
+            const pivotTableDataSourceType = pivotTable.getDataSourceType();
+            const pivotTableDataSourceString = pivotTable.getDataSourceString();
+            await context.sync();
+
+            // Log the data source information.
+            console.log("Data source: " + pivotTableDataSourceString.value);
+            console.log("Source type: " + pivotTableDataSourceType.value);
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            // Create the worksheets.
+            context.workbook.worksheets.getItemOrNullObject("Data").delete();
+            const dataSheet = context.workbook.worksheets.add("Data");
+            context.workbook.worksheets.getItemOrNullObject("TotalPivot").delete();
+            const totalPivot = context.workbook.worksheets.add("TotalPivot");
+
+            // Create farm data.
+            const data = [
+              ["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"],
+              ["A Farms", "Lime", "Organic", 300, 2000],
+              ["A Farms", "Lemon", "Organic", 250, 1800],
+              ["A Farms", "Orange", "Organic", 200, 2200],
+              ["B Farms", "Lime", "Conventional", 80, 1000],
+              ["B Farms", "Lemon", "Conventional", 75, 1230],
+              ["B Farms", "Orange", "Conventional", 25, 800],
+              ["B Farms", "Orange", "Organic", 20, 500],
+              ["B Farms", "Lemon", "Organic", 10, 770],
+              ["B Farms", "Kiwi", "Conventional", 30, 300],
+              ["B Farms", "Lime", "Organic", 50, 400],
+              ["C Farms", "Apple", "Organic", 275, 220],
+              ["C Farms", "Kiwi", "Organic", 200, 120],
+              ["D Farms", "Apple", "Conventional", 100, 3000],
+              ["D Farms", "Apple", "Organic", 80, 2800],
+              ["E Farms", "Lime", "Conventional", 160, 2700],
+              ["E Farms", "Orange", "Conventional", 180, 2000],
+              ["E Farms", "Apple", "Conventional", 245, 2200],
+              ["E Farms", "Kiwi", "Conventional", 200, 1500],
+              ["F Farms", "Kiwi", "Organic", 100, 150],
+              ["F Farms", "Lemon", "Conventional", 150, 270]
+            ];
+
+            const range = dataSheet.getRange("A1:E21");
+            range.values = data;
+            range.format.autofitColumns();
+
+            // Create the PivotTable.
+            const pivotTable = totalPivot.pivotTables.add("All Farm Sales", "Data!A1:E21", "TotalPivot!A2");
+            pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+            pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Type"));
+            pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+            pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+
+            // Switch to the worksheet with a PivotTable.
+            totalPivot.activate();
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */ async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to get information about the data source of a PivotTable. It returns the type and string representation of the data source.</p>
+          <p><em>Note: This sample works in Excel on Windows and Excel on the web. It doesn't work in Excel on Mac; this is a known issue.</em></p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Set up</span>
+          </button>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Try it out</h3>
+          <button id="get-pivottable-data-source" class="ms-Button">
+            <span class="ms-Button-label">Get PivotTable data source</span>
+          </button>
+        </section>  
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

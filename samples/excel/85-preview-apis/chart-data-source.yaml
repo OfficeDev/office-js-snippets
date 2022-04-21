@@ -14,7 +14,6 @@ script:
       await Excel.run(async (context) => {
         // This method retrieves the data source string and type values from
         // the chart on the Sample worksheet.
-
         const sheet = context.workbook.worksheets.getItem("Sample");
 
         // Get the series collection from the first chart on the worksheet, and
@@ -22,14 +21,14 @@ script:
         const seriesCollection = sheet.charts.getItemAt(0).series;
         const series = seriesCollection.getItemAt(0);
 
-        // Get the series data source string and type. 
+        // Get the series data source string and type values. 
         const dataSourceString = series.getDimensionDataSourceString("Values");
         const dataSourceType = series.getDimensionDataSourceType("Values");
         await context.sync();
         
         // Log the data source information to the console.
-        console.log("Data source string: " + dataSourceString.value);
-        console.log("Data source type: " + dataSourceType.value);
+        console.log("Qtr1 data source string: " + dataSourceString.value);
+        console.log("Qtr1 data source type: " + dataSourceType.value);
       });
     }
 
@@ -55,30 +54,21 @@ script:
         
         sheet.getUsedRange().format.autofitColumns();
         sheet.getUsedRange().format.autofitRows();
+        sheet.activate();
 
         // Create a line chart based on data from Qtr1 from SalesTable.
-        createLineChart(context);
-        sheet.activate();
+        let dataRange = sheet.getRange("A1:B7");
+        let chart = sheet.charts.add("Line", dataRange, "Auto");
+
+        // Position and style the chart.
+        chart.setPosition("A15", "E30");
+        chart.legend.position = "Right";
+        chart.legend.format.fill.setSolidColor("white");
+        chart.dataLabels.format.font.size = 15;
+        chart.dataLabels.format.font.color = "black";
 
         await context.sync();
       });
-    }
-
-    function createLineChart(context: Excel.RequestContext) {
-      // Retrieve the Sample worksheet and the SalesTable on that sheet.
-      const sheet = context.workbook.worksheets.getItem("Sample");
-      const salesTable = sheet.tables.getItem("SalesTable");
-
-      // Retrieve data from SalesTable and add that data to a line chart.
-      let dataRange = sheet.getRange("A1:B7");
-      let chart = sheet.charts.add("Line", dataRange, "Auto");
-
-      // Position and style the chart.
-      chart.setPosition("A15", "E30");
-      chart.legend.position = "Right";
-      chart.legend.format.fill.setSolidColor("white");
-      chart.dataLabels.format.font.size = 15;
-      chart.dataLabels.format.font.color = "black";
     }
 
     /** Default helper for invoking an action and handling errors. */
@@ -99,6 +89,7 @@ template:
 
     <section class="setup ms-font-m">
       <h3>Set up</h3>
+      <p>Add a product table and line chart to a Sample worksheet.</p>
       <button id="setup" class="ms-Button">
         <span class="ms-Button-label">Add sample data</span>
       </button>

@@ -1,7 +1,7 @@
 order: 6
 id: chart-data-source
 name: Chart series data source
-description: ''
+description: 'This sample shows how to get information about the data source of a chart series.'
 host: EXCEL
 api_set:
     ExcelApi: BETA (PREVIEW ONLY)
@@ -12,12 +12,22 @@ script:
 
     async function logSeriesSource() {
       await Excel.run(async (context) => {
+        // This method retrieves the data source string and type values from
+        // the chart on the Sample worksheet.
+
         const sheet = context.workbook.worksheets.getItem("Sample");
+
+        // Get the series collection from the first chart on the worksheet, and
+        // then get the first series in that collection.
         const seriesCollection = sheet.charts.getItemAt(0).series;
         const series = seriesCollection.getItemAt(0);
+
+        // Get the series data source string and type. 
         const dataSourceString = series.getDimensionDataSourceString("Values");
         const dataSourceType = series.getDimensionDataSourceType("Values");
         await context.sync();
+        
+        // Log the data source information to the console.
         console.log("Data source string: " + dataSourceString.value);
         console.log("Data source type: " + dataSourceType.value);
       });
@@ -25,11 +35,15 @@ script:
 
     async function setup() {
       await Excel.run(async (context) => {
+        // Create a new worksheet called "Sample" and activate it.
         context.workbook.worksheets.getItemOrNullObject("Sample").delete();
         const sheet = context.workbook.worksheets.add("Sample");
+        
+        // Create an a table named SalesTable on the Sample worksheet.
         let expensesTable = sheet.tables.add("A1:E1", true);
         expensesTable.name = "SalesTable";
-        expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];
+
+        expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];        
         expensesTable.rows.add(null, [
           ["Frames", 5000, 7000, 6544, 4377],
           ["Saddles", 400, 323, 276, 651],
@@ -38,19 +52,28 @@ script:
           ["Mirrors", 225, 600, 923, 544],
           ["Spokes", 6005, 7634, 4589, 8765]
         ]);
+        
         sheet.getUsedRange().format.autofitColumns();
         sheet.getUsedRange().format.autofitRows();
+
+        // Create a line chart based on data from Qtr1 from SalesTable.
         createLineChart(context);
         sheet.activate();
+
         await context.sync();
       });
     }
 
-    async function createLineChart(context: Excel.RequestContext) {
+    function createLineChart(context: Excel.RequestContext) {
+      // Retrieve the Sample worksheet and the SalesTable on that sheet.
       const sheet = context.workbook.worksheets.getItem("Sample");
       const salesTable = sheet.tables.getItem("SalesTable");
+
+      // Retrieve data from SalesTable and add that data to a line chart.
       let dataRange = sheet.getRange("A1:B7");
       let chart = sheet.charts.add("Line", dataRange, "Auto");
+
+      // Position and style the chart.
       chart.setPosition("A15", "E30");
       chart.legend.position = "Right";
       chart.legend.format.fill.setSolidColor("white");
@@ -71,7 +94,7 @@ script:
 template:
   content: |-
     <section class="ms-font-m">
-      <p>This sample shows how to get information about the data source for a chart series.</p>
+      <p>This sample shows how to get information about the data source of a chart series.</p>
     </section>
 
     <section class="setup ms-font-m">

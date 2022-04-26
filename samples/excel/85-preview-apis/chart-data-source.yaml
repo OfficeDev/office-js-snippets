@@ -1,0 +1,127 @@
+order: 6
+id: excel-chart-data-source
+name: Chart series data source
+description: This sample shows how to get information about the data source of a chart series.
+host: EXCEL
+api_set:
+    ExcelApi: BETA (PREVIEW ONLY)
+script:
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#log-chart-series-source").click(() => tryCatch(logChartSeriesSource));
+
+        async function logChartSeriesSource() {
+          await Excel.run(async (context) => {
+            // This method retrieves the data source information of a chart series in the Sample worksheet.
+            const sheet = context.workbook.worksheets.getItem("Sample");
+
+            // Get the first chart series from the first chart on the worksheet.
+            const seriesCollection = sheet.charts.getItemAt(0).series;
+            const series = seriesCollection.getItemAt(0);
+
+            // Get the series data source string and type values. 
+            const dataSourceString = series.getDimensionDataSourceString("Values");
+            const dataSourceType = series.getDimensionDataSourceType("Values");
+
+            series.load("name");
+            await context.sync();
+            
+            // Log the data source information to the console.
+            console.log(series.name + " data source string: " + dataSourceString.value);
+            console.log(series.name + " data source type: " + dataSourceType.value);
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            // Create a new worksheet called "Sample" and activate it.
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+            
+            // Create an a table named SalesTable on the Sample worksheet.
+            let expensesTable = sheet.tables.add("A1:E1", true);
+            expensesTable.name = "SalesTable";
+
+            expensesTable.getHeaderRowRange().values = [["Product", "Qtr1", "Qtr2", "Qtr3", "Qtr4"]];        
+            expensesTable.rows.add(null, [
+              ["Frames", 5000, 7000, 6544, 4377],
+              ["Saddles", 400, 323, 276, 651],
+              ["Brake levers", 12000, 8766, 8456, 9812],
+              ["Chains", 1550, 1088, 692, 853],
+              ["Mirrors", 225, 600, 923, 544],
+              ["Spokes", 6005, 7634, 4589, 8765]
+            ]);
+            
+            sheet.getUsedRange().format.autofitColumns();
+            sheet.getUsedRange().format.autofitRows();
+            sheet.activate();
+
+            // Create a line chart based on data from SalesTable.
+            let dataRange = sheet.getRange("A1:E7");
+            let chart = sheet.charts.add("Line", dataRange, Excel.ChartSeriesBy.rows);
+
+            // Position and style the chart.
+            chart.setPosition("A15", "E30");
+            chart.legend.position = "Right";
+            chart.legend.format.fill.setSolidColor("white");
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to get information about the data source of a chart series.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <p>Add a product table and line chart to a sample worksheet.</p>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add sample data</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <p>Log information to the console about the data source of the chart series <strong>Frames</strong>.</p>
+          <button id="log-chart-series-source" class="ms-Button">
+            <span class="ms-Button-label">Log data source</span>
+          </button>
+        </section>  
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

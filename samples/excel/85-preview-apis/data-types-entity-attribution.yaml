@@ -1,0 +1,300 @@
+order: 7
+id: excel-data-types-entity-attribution
+name: 'Data types: Entity value attribution properties'
+description: 'This sample shows how to set entity values with data provider attributions. An entity value is a container for data types, similar to an object in object-oriented programming.'
+host: EXCEL
+api_set:
+    ExcelApi: BETA (PREVIEW ONLY)
+script:
+  content: >
+    $("#setup").click(() => tryCatch(setup));
+    $("#addEntitiesToTable").click(() => tryCatch(addEntitiesToTable));
+
+    async function addEntitiesToTable() {
+      await Excel.run(async (context) => {
+        // This method retrieves data for each of the existing products in the table,
+        // creates entity values for each of those products, and adds the entities
+        // to the table.
+
+        const productsTable = context.workbook.tables.getItem("ProductsTable");
+
+        // Add a new column to the table for the entity values.
+        productsTable.columns.getItemOrNullObject("Product").delete();
+        const productColumn = productsTable.columns.add(0, null, "Product");
+
+        // Get product data from the table.
+        const dataRange = productsTable.getDataBodyRange();
+        dataRange.load("values");
+
+        await context.sync();
+
+        // Set up the entities by mapping the product names to
+        // the sample JSON product data.
+        const entities = dataRange.values.map((rowValues) => {
+          // Get products and product properties.
+          const product = getProduct(rowValues[1]);
+
+          // Create entities by combining Products Table data and JSON data.
+          return [makeProductEntity(rowValues[1], rowValues[2], product)];
+        });
+
+        // Add the complete entities to the Products Table.
+        productColumn.getDataBodyRange().valuesAsJson = entities;
+
+        productColumn.getRange().format.autofitColumns();
+        await context.sync();
+      });
+    }
+
+    // Create entities from product properties.
+    function makeProductEntity(productID: number, productName: string, product?:
+    any) {
+      const entity: Excel.EntityCellValue = {
+        type: Excel.CellValueType.entity,
+        text: productName,
+        properties: {
+          "Product ID": {
+            type: Excel.CellValueType.string,
+            basicValue: productID.toString() || ""
+          },
+          "Product Name": {
+            type: Excel.CellValueType.string,
+            basicValue: productName || ""
+          },
+          "Quantity Per Unit": {
+            type: Excel.CellValueType.string,
+            basicValue: product.quantityPerUnit || ""
+          },
+          // Add Unit Price as a formatted number.
+          "Unit Price": {
+            type: Excel.CellValueType.formattedNumber,
+            basicValue: product.unitPrice,
+            numberFormat: "$* #,##0.00"
+          }
+        },
+        layouts: {
+          card: {
+            title: { property: "Product Name" },
+            sections: [
+              {
+                layout: "List",
+                properties: ["Product ID"]
+              },
+              {
+                layout: "List",
+                title: "Quantity and price",
+                collapsible: true,
+                collapsed: false,
+                properties: ["Quantity Per Unit", "Unit Price"]
+              }
+            ]
+          }
+        },
+        provider: {
+          // Name of the data provider. Displays as a tooltip when hovering over the logo.
+          description: product.providerName,
+          // Source URL of the logo.
+          logoSourceAddress: product.sourceAddress,
+          // Destination URL that the logo navigates to when clicked.
+          logoTargetAddress: product.targetAddress
+        }
+      };
+      console.log(product.providerName);
+
+      return entity;
+    }
+
+    // Get products and product properties.
+    function getProduct(productID: number): any {
+      return products.find((p) => p.productID == productID);
+    }
+
+    /** Set up Sample worksheet. */
+    async function setup() {
+      await Excel.run(async (context) => {
+        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+        const sheet = context.workbook.worksheets.add("Sample");
+
+        const productsTable = sheet.tables.add("A1:C1", true /*hasHeaders*/);
+        productsTable.name = "ProductsTable";
+
+        productsTable.getHeaderRowRange().values = [["Product", "ProductID", "ProductName"]];
+
+        productsTable.rows.add(
+          null /*add at the end*/,
+          products.map((p) => [null, p.productID, p.productName])
+        );
+
+        sheet.getUsedRange().format.autofitColumns();
+        sheet.getUsedRange().format.autofitRows();
+
+        sheet.activate();
+
+        await context.sync();
+      });
+    }
+
+    /** Default helper for invoking an action and handling errors. */
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+
+    /** Sample JSON product data. */
+    const products = [
+      {
+        productID: 1,
+        productName: "Chai",
+        quantityPerUnit: "10 boxes x 20 bags",
+        unitPrice: 18,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Masala_Chai.JPG/320px-Masala_Chai.JPG",
+        providerName: "Microsoft",
+        sourceAddress: "http://test.com",
+        targetAddress: "http://microsoft.com"
+      },
+      {
+        productID: 2,
+        productName: "Chang",
+        quantityPerUnit: "24 - 12 oz bottles",
+        unitPrice: 19,
+        productImage: "",
+        providerName: "Microsoft",
+        sourceAddress: "http://test.com",
+        targetAddress: "http://microsoft.com"
+      },
+      {
+        productID: 3,
+        productName: "Aniseed Syrup",
+        quantityPerUnit: "12 - 550 ml bottles",
+        unitPrice: 10,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Maltose_syrup.jpg/185px-Maltose_syrup.jpg",
+        providerName: "Xbox",
+        sourceAddress: "http://test.com",
+        targetAddress: "http://xbox.com"
+      },
+      {
+        productID: 4,
+        productName: "Chef Anton's Cajun Seasoning",
+        quantityPerUnit: "48 - 6 oz jars",
+        unitPrice: 22,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Kruidenmengeling-spice.jpg/193px-Kruidenmengeling-spice.jpg",
+        providerName: "Xbox",
+        sourceAddress:
+          "https://th.bing.com/th/id/R.3d6a2ad56bc3403c5cfcc3efe09b741b?rik=gnNKMMZSvZ3uMA&riu=http%3a%2f%2fpurepng.com%2fpublic%2fuploads%2flarge%2fpurepng.com-microsoft-logo-iconlogobrand-logoiconslogos-251519939091wmudn.png&ehk=1%2fl4i5MeDLTCpvZhUZlCefvhSzsGR16HIPqagpDxYDg%3d&risl=&pid=ImgRaw&r=0",
+        targetAddress: "http://xbox.com"
+      },
+      {
+        productID: 5,
+        productName: "Chef Anton's Gumbo Mix",
+        quantityPerUnit: "36 boxes",
+        unitPrice: 21.35,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Okra_in_a_Bowl_%28Unsplash%29.jpg/180px-Okra_in_a_Bowl_%28Unsplash%29.jpg",
+        providerName: "Xbox",
+        sourceAddress: "http://test.com",
+        targetAddress: "http://xbox.com"
+      },
+      {
+        productID: 6,
+        productName: "Grandma's Boysenberry Spread",
+        quantityPerUnit: "12 - 8 oz jars",
+        unitPrice: 25,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Making_cranberry_sauce_-_in_the_jar.jpg/90px-Making_cranberry_sauce_-_in_the_jar.jpg",
+        providerName: "MSN",
+        sourceAddress: "http://test.com",
+        targetAddress: "http://msn.com"
+      },
+      {
+        productID: 7,
+        productName: "Uncle Bob's Organic Dried Pears",
+        quantityPerUnit: "12 - 1 lb pkgs.",
+        unitPrice: 30,
+        productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/DriedPears.JPG/120px-DriedPears.JPG",
+        providerName: "MSN",
+        sourceAddress: "http://test.com",
+        targetAddress: "http://msn.com"
+      },
+      {
+        productID: 8,
+        productName: "Northwoods Cranberry Sauce",
+        quantityPerUnit: "12 - 12 oz jars",
+        unitPrice: 40,
+        productImage:
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Making_cranberry_sauce_-_stovetop.jpg/90px-Making_cranberry_sauce_-_stovetop.jpg",
+        providerName: "Microsoft",
+        sourceAddress: "http://test.com",
+        targetAddress: "http://microsoft.com"
+      },
+      {
+        productID: 9,
+        productName: "Mishi Kobe Niku",
+        quantityPerUnit: "18 - 500 g pkgs.",
+        unitPrice: 97,
+        productImage: "",
+        providerName: "Xbox",
+        sourceAddress: "http://test.com",
+        targetAddress: "http://xbox.com"
+      },
+      {
+        productID: 10,
+        productName: "Ikura",
+        quantityPerUnit: "12 - 200 ml jars",
+        unitPrice: 31,
+        productImage: "",
+        providerName: "MSN",
+        sourceAddress: "http://test.com",
+        targetAddress: "http://msn.com"
+      },
+    ];
+  language: typescript
+template:
+  content: |-
+    <section class="ms-font-m">
+      <p>This sample shows how to create entity values with data provider attributions. An entity value is a container for data types, similar to an object in object-oriented programming.</p>
+    </section>
+    <section class="setup ms-font-m">
+      <h3>Set up</h3>
+      <button id="setup" class="ms-Button">
+        <span class="ms-Button-label">Create table</span>
+      </button>
+    </section>
+    <section class="samples ms-font-m">
+      <h3>Try it out</h3>
+      <button id="addEntitiesToTable" class="ms-Button">
+        <span class="ms-Button-label">Add entity values</span>
+      </button>
+      <p>To see the entity value's data attribution, click the icon to the left of the title in the <strong>Product</strong> column after selecting <strong>Add entity values</strong>. </p>
+      <p>The data attribution appears as a logo in the bottom left corner of the entity card. Hover over the logo to see the name of the data provider. Click on the logo to visit the data provider's URL.</p>
+    </section>  
+  language: html
+style:
+  content: |
+    section.samples {
+        margin-top: 20px;
+    }
+
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+libraries: |
+  https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+  @types/office-js-preview
+
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
+
+  jquery@3.1.1
+  @types/jquery@3.3.1

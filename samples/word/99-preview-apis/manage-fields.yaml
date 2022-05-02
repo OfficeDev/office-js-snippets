@@ -6,42 +6,68 @@ api_set:
     WordApi: '1.4'
 script:
     content: |
-        $("#run").click(() => tryCatch(run));
+        $("#get-first").click(() => tryCatch(getFirstField));
+        $("#get-parent-body").click(() => tryCatch(getParentBodyOfFirstField));
+        $("#get-all").click(() => tryCatch(getAllFields));
         $("#setup").click(() => tryCatch(setup));
 
-        async function run() {
+        async function getFirstField() {
           await Word.run(async (context) => {
             let field = context.document.body.fields.getFirstOrNullObject();
-            field.load();
+            field.load(["code", "result"]);
 
             await context.sync();
 
-            console.log("Code: " + field.code);
-            console.log("Result: " + field.result);
+            if (field.isNullObject) {
+              console.log("There are no fields in this document so there's no first field");
+            } else {
+              console.log("Code of first field: " + field.code);
+              console.log("Result of first field: " + field.result);
+            }
+          });
+        }
 
-            let parentBody = field.parentBody;
-            parentBody.load("text");
+        async function getParentBodyOfFirstField() {
+          await Word.run(async (context) => {
+            let field = context.document.body.fields.getFirstOrNullObject();
+            field.load("parentBody/text");
+
             await context.sync();
 
-            console.log("Text of parentBody: " + JSON.stringify(parentBody.text));
+            if (field.isNullObject) {
+              console.log("There are no fields in this document so can't get parent body of non-existent first field");
+            } else {
+              let parentBody = field.parentBody;
+              console.log("Text of first field's parentBody: " + JSON.stringify(parentBody.text));
+            }
+          });
+        }
+
+        async function getAllFields() {
+          await Word.run(async (context) => {
+            let fields = context.document.body.fields.load("items");
+
+            await context.sync();
+
+            if (fields.items.length === 0) {
+              console.log("There are no fields in this document");
+            } else {
+              for (let i = 0; i < fields.items.length; i++) {
+                console.log(`Field ${i + 1}'s code: ${fields.items[i].code}`);
+                console.log(`Field ${i + 1}'s result: ${fields.items[i].result}`);
+              }
+            }
           });
         }
 
         async function setup() {
           await Word.run(async (context) => {
-            context.document.body.clear();
-            context.document.body.insertParagraph("One more paragraph. ", "Start");
-            context.document.body.insertParagraph("Inserting another paragraph. ", "Start");
-            context.document.body.insertParagraph(
+            let body = context.document.body;
+            body.clear();
+            body.insertParagraph(
               "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
               "Start"
             );
-            context.document.body.paragraphs
-              .getLast()
-              .insertText(
-                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ",
-                "Replace"
-              );
           });
         }
 
@@ -60,8 +86,7 @@ template:
         <section class="ms-font-m">
             <p>This sample demonstrates how to get fields, which are placeholders for dynamic data in your document. To learn
                 more
-                about fields, refer to <a
-                    href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
+                about fields, refer to <a target="_blank" href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
                     edit, and view fields in Word</a>.</p>
         </section>
 
@@ -74,23 +99,29 @@ template:
 
         <section class="setup ms-font-m">
             <h4>Add fields to document</h4>
-            <p>At present, these APIs are only available in Word on the web. However, Word on the web doesn't support adding
+            <p>At present, Word on the web doesn't support adding
                 fields
                 to the document.</p>
             <ol>
                 <li>Open Word on Windows or on Mac.</li>
-                <li>Insert at least field. To learn how to do so, refer to <a
-                        href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
+                <li>Insert at least one field. To learn how to do so, refer to <a
+                        target="_blank" href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
                         edit, and view fields in Word</a>.</li>
-                <li>Open the same document in Word on the web.</li>
+                <li>Optional: Open the same document in Word on the web.</li>
             </ol>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <button id="run" class="ms-Button">
-              <span class="ms-Button-label">Run</span>
+            <button id="get-first" class="ms-Button">
+              <span class="ms-Button-label">Get first field</span>
           </button>
+            <button id="get-parent-body" class="ms-Button">
+                  <span class="ms-Button-label">Get first field's parent body</span>
+              </button>
+            <button id="get-all" class="ms-Button">
+                  <span class="ms-Button-label">Get all fields</span>
+              </button>
         </section>
     language: html
 style:

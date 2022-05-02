@@ -1,0 +1,120 @@
+id: word-manage-fields
+name: Get fields
+description: This sample shows how to get existing fields.
+host: WORD
+api_set:
+    WordApi: '1.4'
+script:
+    content: |
+        $("#run").click(() => tryCatch(run));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function run() {
+          await Word.run(async (context) => {
+            let field = context.document.body.fields.getFirstOrNullObject();
+            field.load();
+
+            await context.sync();
+
+            console.log("Code: " + field.code);
+            console.log("Result: " + field.result);
+
+            let parentBody = field.parentBody;
+            parentBody.load("text");
+            await context.sync();
+
+            console.log("Text of parentBody: " + JSON.stringify(parentBody.text));
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            context.document.body.clear();
+            context.document.body.insertParagraph("One more paragraph. ", "Start");
+            context.document.body.insertParagraph("Inserting another paragraph. ", "Start");
+            context.document.body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            context.document.body.paragraphs
+              .getLast()
+              .insertText(
+                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ",
+                "Replace"
+              );
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample demonstrates how to get fields, which are placeholders for dynamic data in your document. To learn
+                more
+                about fields, refer to <a
+                    href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
+                    edit, and view fields in Word</a>.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Set up</span>
+          </button>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h4>Add fields to document</h4>
+            <p>At present, these APIs are only available in Word on the web. However, Word on the web doesn't support adding
+                fields
+                to the document.</p>
+            <ol>
+                <li>Open Word on Windows or on Mac.</li>
+                <li>Insert at least field. To learn how to do so, refer to <a
+                        href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
+                        edit, and view fields in Word</a>.</li>
+                <li>Open the same document in Word on the web.</li>
+            </ol>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="run" class="ms-Button">
+              <span class="ms-Button-label">Run</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -6,344 +6,337 @@ host: EXCEL
 api_set:
     ExcelApi: BETA (PREVIEW ONLY)
 script:
-    content: |
-        $("#setup").click(() => tryCatch(setup));
-        $("#addEntitiesToTable").click(() => tryCatch(addEntitiesToTable));
+  content: >
+    $("#setup").click(() => tryCatch(setup));
 
-        async function addEntitiesToTable() {
-          await Excel.run(async (context) => {
-            // This method retrieves data for each of the existing employees in the table,
-            // creates entity values for each of those employees, and adds the entities
-            // to the table.
+    $("#addEntitiesToTable").click(() => tryCatch(addEntitiesToTable));
 
-            const employeesTable = context.workbook.tables.getItem("EmployeesTable");
 
-            // Add a new column to the table for the entity values.
-            employeesTable.columns.getItemOrNullObject("Employee").delete();
-            const employeeColumn = employeesTable.columns.add(0, null, "Employee");
+    async function addEntitiesToTable() {
+      await Excel.run(async (context) => {
+        // This method retrieves data for each of the existing employees in the table,
+        // creates entity values for each of those employees, and adds the entities
+        // to the table.
 
-            // Get employee data from the table.
-            const dataRange = employeesTable.getDataBodyRange();
-            dataRange.load("values");
+        const employeesTable = context.workbook.tables.getItem("EmployeesTable");
 
-            await context.sync();
+        // Add a new column to the table for the entity values.
+        employeesTable.columns.getItemOrNullObject("Employee").delete();
+        const employeeColumn = employeesTable.columns.add(0, null, "Employee");
 
-            // Set up the entities by mapping the employee IDs in table to
-            // the sample JSON employee data.
-            const entities = dataRange.values.map((rowValues) => {
-              // Get employee properties.
-              const employee = getEmployee(rowValues[1] /* Employee ID */);
+        // Get employee data from the table.
+        const dataRange = employeesTable.getDataBodyRange();
+        dataRange.load("values");
 
-              // Collect all the references that are needed to make the employee entity.
-              const references = collectReferences(employee);
-              
-              // Create employee entity from employee properties.
-              const employeeEntity = makeEmployeeEntity(
-                rowValues[2] /* LastName */, 
-                rowValues[3] /* FirstName */, 
-                employee, 
-                references
-              );
+        await context.sync();
 
-              // Add reference values to employee entity.
-              const referencedValues: any[] = [{ type: "Root" }];
+        // Set up the entities by mapping the employee IDs in table to
+        // the sample JSON employee data.
+        const entities = dataRange.values.map((rowValues) => {
+          // Get employee properties.
+          const employee = getEmployee(rowValues[1] /* Employee ID */);
 
-              references.slice(1).forEach((id) => {
-                const referencedEmployee = getEmployee(id);
-                referencedValues.push(
-                  makeEmployeeEntity(
-                    referencedEmployee.lastName,
-                    referencedEmployee.firstName,
-                    referencedEmployee,
-                    references
-                  )
-                );
-              });
-              employeeEntity.referencedValues = referencedValues;
+          // Collect all the references that are needed to make the employee entity.
+          const references = collectReferences(employee);
 
-              return [employeeEntity];
-            });
+          // Create employee entity from employee properties.
+          const employeeEntity = makeEmployeeEntity(
+            rowValues[2] /* LastName */,
+            rowValues[3] /* FirstName */,
+            employee,
+            references
+          );
 
-            // Add the complete entities to the Employees Table.
-            employeeColumn.getDataBodyRange().valuesAsJson = entities;
+          // Add reference values to employee entity.
+          const referencedValues: any[] = [{ type: "Root" }];
 
-            employeeColumn.getRange().format.autofitColumns();
-
-            await context.sync();
-          });
-        }
-
-        // Collect all the references that is needed to make an employee entity.
-        function collectReferences(employee) {
-          const references: number[] = [];
-          collectReferencesM(employee, references);
-          return references;
-        }
-
-        function collectReferencesM(employee, references: number[]) {
-
-          // Check if references has already been collected for the employee.
-          if (references.indexOf(employee.employeeID) > -1) {
-            return;
-          }
-
-          // Record the reference for the employee.
-          ensureReferenceExist(references, employee.employeeID);
-
-          // Record the reference for the manager, if the employee has a manager.
-          if (employee.reportsTo != null) {
-            // Get the manager.
-            const manager = getEmployee(employee.reportsTo);
-            // Collect references for the manager.
-            collectReferencesM(manager, references);
-          }
-
-          // Collect references for each of the direct reports of the employee, if any.
-          const directReports = employee.directReports || getDirectReports(employee.employeeID);
-
-          if (directReports.length > 0) {
-            directReports.forEach((direct) => collectReferencesM(direct, references));
-          }
-        }
-
-        // Check whether a specific id exist in a list of ids. Add the id to the list, if it doesn't exist
-        function ensureReferenceExist(list: number[], id: number) {
-          if (list.indexOf(id) == -1) {
-            list.push(id);
-          }
-        }
-
-        // Create entities from employee properties.
-        function makeEmployeeEntity(
-          lastName: string,
-          firstName: string,
-          employee: any,
-          references: number[]
-        ) {
-          const entity: Excel.EntityCellValue = {
-            type: Excel.CellValueType.entity,
-            text: `${firstName} ${lastName}`,
-            properties: {
-              "Employee ID": {
-                type: Excel.CellValueType.string,
-                basicValue: employee.employeeID.toString() || ""
-              },
-              "Last Name": {
-                type: Excel.CellValueType.string,
-                basicValue: lastName || ""
-              },
-              "First Name": {
-                type: Excel.CellValueType.string,
-                basicValue: firstName || ""
-              },
-              Name: {
-                type: Excel.CellValueType.string,
-                basicValue: `${firstName || ""} ${lastName || ""}`
-              },
-              Title: {
-                type: Excel.CellValueType.string,
-                basicValue: employee.title || ""
-              }
-            },
-            layouts: {
-              card: {
-                title: { property: "Name" },
-                sections: [
-                  {
-                    layout: "List",
-                    properties: ["Employee ID", "First Name", "Last Name", "Title"]
-                  }
-                ]
-              }
-            }
-          };
-
-          // Add manager reference, if the employee has a manager.
-          if (employee.reportsTo != null) {
-            entity.properties["Manager"] = {
-              type: "Reference",
-              reference: references.indexOf(employee.reportsTo)
-            };
-            entity.layouts.card.sections[0].properties.push("Manager");
-          }
-
-          // Add references for direct reports, if any
-          if (employee.directReports.length > 0) {
-            entity.properties["Direct Reports"] = {
-              type: Excel.CellValueType.array,
-              elements: employee.directReports.map((direct) => { 
-                return [{
-                  type: "Reference",
-                  reference: references.indexOf(direct.employeeID)
-                }]
-              }),
-              basicType: Excel.CellValueType.error, //RESTRICTED: What type of value is used for features that are unenlightened
-              basicValue: "#VALUE!" //RESTRICTED: What value is used for features that are unenlightened
-            };
-            entity.layouts.card.sections[0].properties.push("Direct Reports");
-          }
-
-          return entity;
-        }
-
-        // Get employee properties.
-        function getEmployee(employeeID: number): any {
-          // Find the employee in the sample data.
-          const employee = employees.find((e) => e.employeeID === employeeID);
-          // Add direct reports for the employee.
-          employee["directReports"] = getDirectReports(employeeID);
-          return employee;
-        }
-
-        // Get direct reports of employee.
-        function getDirectReports(employeeID: number): any {
-          return employees.filter((e) => e.reportsTo === employeeID);
-        }
-
-        /** Set up Sample worksheet. */
-        async function setup() {
-          await Excel.run(async (context) => {
-            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
-            const sheet = context.workbook.worksheets.add("Sample");
-
-            const employeesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
-            employeesTable.name = "EmployeesTable";
-
-            employeesTable.getHeaderRowRange().values = [["Employee", "EmployeeID", "LastName", "FirstName"]];
-
-            employeesTable.rows.add(
-              null /*add at the end*/,
-              employees.map((e) => [null, e.employeeID, e.lastName, e.firstName])
+          references.slice(1).forEach((id) => {
+            const referencedEmployee = getEmployee(id);
+            referencedValues.push(
+              makeEmployeeEntity(referencedEmployee.lastName, referencedEmployee.firstName, referencedEmployee, references)
             );
-
-            sheet.getUsedRange().format.autofitColumns();
-            sheet.getUsedRange().format.autofitRows();
-
-            sheet.activate();
-
-            await context.sync();
           });
-        }
+          employeeEntity.referencedValues = referencedValues;
 
-        /** Default helper for invoking an action and handling errors. */
-        async function tryCatch(callback) {
-          try {
-            await callback();
-          } catch (error) {
-            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-            console.error(error);
+          return [employeeEntity];
+        });
+
+        // Add the complete entities to the Employees Table.
+        employeeColumn.getDataBodyRange().valuesAsJson = entities;
+
+        employeeColumn.getRange().format.autofitColumns();
+
+        await context.sync();
+      });
+    }
+
+
+    // Collect all the references that is needed to make an employee entity.
+
+    function collectReferences(employee) {
+      const references: number[] = [];
+      collectReferencesM(employee, references);
+      return references;
+    }
+
+
+    function collectReferencesM(employee, references: number[]) {
+      // Check if references has already been collected for the employee.
+      if (references.indexOf(employee.employeeID) > -1) {
+        return;
+      }
+
+      // Record the reference for the employee.
+      ensureReferenceExist(references, employee.employeeID);
+
+      // Record the reference for the manager, if the employee has a manager.
+      if (employee.reportsTo != null) {
+        // Get the manager.
+        const manager = getEmployee(employee.reportsTo);
+        // Collect references for the manager.
+        collectReferencesM(manager, references);
+      }
+
+      // Collect references for each of the direct reports of the employee, if any.
+      const directReports = employee.directReports || getDirectReports(employee.employeeID);
+
+      if (directReports.length > 0) {
+        directReports.forEach((direct) => collectReferencesM(direct, references));
+      }
+    }
+
+
+    // Check whether a specific id exist in a list of ids. Add the id to the
+    list, if it doesn't exist
+
+    function ensureReferenceExist(list: number[], id: number) {
+      if (list.indexOf(id) == -1) {
+        list.push(id);
+      }
+    }
+
+
+    // Create entities from employee properties.
+
+    function makeEmployeeEntity(lastName: string, firstName: string, employee:
+    any, references: number[]): Excel.EntityCellValue {
+      const entity: Excel.EntityCellValue = {
+        type: Excel.CellValueType.entity,
+        text: `${firstName} ${lastName}`,
+        properties: {
+          "Employee ID": {
+            type: Excel.CellValueType.string,
+            basicValue: employee.employeeID.toString() || ""
+          },
+          "Last Name": {
+            type: Excel.CellValueType.string,
+            basicValue: lastName || ""
+          },
+          "First Name": {
+            type: Excel.CellValueType.string,
+            basicValue: firstName || ""
+          },
+          Name: {
+            type: Excel.CellValueType.string,
+            basicValue: `${firstName || ""} ${lastName || ""}`
+          },
+          Title: {
+            type: Excel.CellValueType.string,
+            basicValue: employee.title || ""
+          }
+        },
+        layouts: {
+          card: {
+            title: { property: "Name" },
+            sections: [
+              {
+                layout: "List",
+                properties: ["Employee ID", "First Name", "Last Name", "Title"]
+              }
+            ]
           }
         }
+      };
 
-        /** Sample JSON product data. */
-        const employees = [
-          {
-            employeeID: 1,
-            lastName: "Davolio",
-            firstName: "Nancy",
-            title: "Sales Representative",
-            reportsTo: 2
-          },
-          {
-            employeeID: 2,
-            lastName: "Fuller",
-            firstName: "Andrew",
-            title: "Vice President, Sales",
-            reportsTo: null
-          },
-          {
-            employeeID: 3,
-            lastName: "Leverling",
-            firstName: "Janet",
-            title: "Sales Representative",
-            reportsTo: 2
-          },
-          {
-            employeeID: 4,
-            lastName: "Peacock",
-            firstName: "Margaret",
-            title: "Sales Representative",
-            reportsTo: 2
-          },
-          {
-            employeeID: 5,
-            lastName: "Buchanan",
-            firstName: "Steven",
-            title: "Sales Manager",
-            reportsTo: 2
-          },
-          {
-            employeeID: 6,
-            lastName: "Suyama",
-            firstName: "Michael",
-            title: "Sales Representative",
-            reportsTo: 5
-          },
-          {
-            employeeID: 7,
-            lastName: "King",
-            firstName: "Robert",
-            title: "Sales Representative",
-            reportsTo: 5
-          },
-          {
-            employeeID: 8,
-            lastName: "Callahan",
-            firstName: "Laura",
-            title: "Inside Sales Coordinator",
-            reportsTo: 2
-          },
-          {
-            employeeID: 9,
-            lastName: "Dodsworth",
-            firstName: "Anne",
-            title: "Sales Representative",
-            reportsTo: 5
-          }
-        ];
-    language: typescript
+      // Add manager reference, if the employee has a manager.
+      if (employee.reportsTo != null) {
+        entity.properties["Manager"] = {
+          type: "Reference",
+          reference: references.indexOf(employee.reportsTo)
+        };
+        entity.layouts.card.sections[0].properties.push("Manager");
+      }
+
+      // Add references for direct reports, if any
+      if (employee.directReports.length > 0) {
+        entity.properties["Direct Reports"] = {
+          type: Excel.CellValueType.array,
+          elements: employee.directReports.map((direct) => {
+            return [
+              {
+                type: "Reference",
+                reference: references.indexOf(direct.employeeID)
+              }
+            ];
+          }),
+        };
+        entity.layouts.card.sections[0].properties.push("Direct Reports");
+      }
+
+      return entity;
+    }
+
+
+    // Get employee properties.
+
+    function getEmployee(employeeID: number): any {
+      // Find the employee in the sample data.
+      const employee = employees.find((e) => e.employeeID === employeeID);
+      // Add direct reports for the employee.
+      employee["directReports"] = getDirectReports(employeeID);
+      return employee;
+    }
+
+
+    // Get direct reports of employee.
+
+    function getDirectReports(employeeID: number): any {
+      return employees.filter((e) => e.reportsTo === employeeID);
+    }
+
+
+    /** Set up Sample worksheet. */
+
+    async function setup() {
+      await Excel.run(async (context) => {
+        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+        const sheet = context.workbook.worksheets.add("Sample");
+
+        const employeesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
+        employeesTable.name = "EmployeesTable";
+
+        employeesTable.getHeaderRowRange().values = [["Employee", "EmployeeID", "LastName", "FirstName"]];
+
+        employeesTable.rows.add(
+          null /*add at the end*/,
+          employees.map((e) => [null, e.employeeID, e.lastName, e.firstName])
+        );
+
+        sheet.getUsedRange().format.autofitColumns();
+        sheet.getUsedRange().format.autofitRows();
+
+        sheet.activate();
+
+        await context.sync();
+      });
+    }
+
+
+    /** Default helper for invoking an action and handling errors. */
+
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+
+
+    /** Sample JSON product data. */
+
+    const employees = [
+      {
+        employeeID: 1,
+        lastName: "Davolio",
+        firstName: "Nancy",
+        title: "Sales Representative",
+        reportsTo: 2
+      },
+      {
+        employeeID: 2,
+        lastName: "Fuller",
+        firstName: "Andrew",
+        title: "Vice President, Sales",
+        reportsTo: null
+      },
+      {
+        employeeID: 3,
+        lastName: "Leverling",
+        firstName: "Janet",
+        title: "Sales Representative",
+        reportsTo: 2
+      },
+      {
+        employeeID: 4,
+        lastName: "Peacock",
+        firstName: "Margaret",
+        title: "Sales Representative",
+        reportsTo: 2
+      },
+      {
+        employeeID: 5,
+        lastName: "Buchanan",
+        firstName: "Steven",
+        title: "Sales Manager",
+        reportsTo: 2
+      },
+      {
+        employeeID: 6,
+        lastName: "Suyama",
+        firstName: "Michael",
+        title: "Sales Representative",
+        reportsTo: 5
+      },
+      {
+        employeeID: 7,
+        lastName: "King",
+        firstName: "Robert",
+        title: "Sales Representative",
+        reportsTo: 5
+      },
+      {
+        employeeID: 8,
+        lastName: "Callahan",
+        firstName: "Laura",
+        title: "Inside Sales Coordinator",
+        reportsTo: 2
+      },
+      {
+        employeeID: 9,
+        lastName: "Dodsworth",
+        firstName: "Anne",
+        title: "Sales Representative",
+        reportsTo: 5
+      }
+    ];
+  language: typescript
 template:
-    content: |-
-        <section class="ms-font-m">
-            <p>This sample shows how to create entity values with references to other entity values.</p>
-        </section>
-        <section class="setup ms-font-m">
-            <h3>Set up</h3>
-            <button id="setup" class="ms-Button">
-            <span class="ms-Button-label">Create table</span>
-          </button>
-        </section>
-        <section class="samples ms-font-m">
-            <h3>Try it out</h3>
-            <button id="addEntitiesToTable" class="ms-Button">
-            <span class="ms-Button-label">Add entity values</span>
-          </button>
-            <p>To see the entity value, click the icon to the left of the title in the <strong>Employee</strong> column after
-                selecting <strong>Add entity values</strong>. Extract the <strong>Manager</strong> field or the <strong>Direct Reports</strong> field to the grid to see the referenced entities.</p>
-        </section>
-    language: html
+  content: "<section class=\"ms-font-m\">\n\t<p>This sample shows how to create entity values with references to other entity values.</p>\n</section>\n<section class=\"setup ms-font-m\">\n\t<h3>Set up</h3>\n\t<button id=\"setup\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Create table</span>\n  </button>\n</section>\n<section class=\"samples ms-font-m\">\n\t<h3>Try it out</h3>\n\t<button id=\"addEntitiesToTable\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Add entity values</span>\n  </button>\n\t<p>To see the entity value, click the icon to the left of the title in the <strong>Employee</strong> column after\n\t\tselecting <strong>Add entity values</strong>. Extract the <strong>Manager</strong> field or the <strong>Direct Reports</strong> field to the grid to see the referenced entities.</p>\n</section>"
+  language: html
 style:
-    content: |
-        section.samples {
-            margin-top: 20px;
-        }
+  content: |
+    section.samples {
+        margin-top: 20px;
+    }
 
-        section.samples .ms-Button, section.setup .ms-Button {
-            display: block;
-            margin-bottom: 5px;
-            margin-left: 20px;
-            min-width: 80px;
-        }
-    language: css
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
 libraries: |
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-    @types/office-js-preview
+  https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+  @types/office-js-preview
 
-    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
-    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
 
-    core-js@2.4.1/client/core.min.js
-    @types/core-js
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
 
-    jquery@3.1.1
-    @types/jquery@3.3.1
+  jquery@3.1.1
+  @types/jquery@3.3.1

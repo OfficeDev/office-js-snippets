@@ -8,15 +8,13 @@ api_set:
 script:
   content: >
     $("#setup").click(() => tryCatch(setup));
-
-    $("#addEntitiesToTable").click(() => tryCatch(addEntitiesToTable));
-
+    $("#add-entities-to-table").click(() => tryCatch(addEntitiesToTable));
 
     async function addEntitiesToTable() {
       await Excel.run(async (context) => {
-        // This method retrieves data for each of the existing employees in the table,
-        // creates entity values for each of those employees, and adds the entities
-        // to the table.
+        // This method retrieves data for each of the employees in the table 
+        // on the worksheet, creates entity values for each of those employees, 
+        // and adds the entities to the table.
 
         const employeesTable = context.workbook.tables.getItem("EmployeesTable");
 
@@ -27,10 +25,9 @@ script:
         // Get employee data from the table.
         const dataRange = employeesTable.getDataBodyRange();
         dataRange.load("values");
-
         await context.sync();
 
-        // Set up the entities by mapping the employee IDs in table to
+        // Create the entities by mapping the employee IDs in table to
         // the sample JSON employee data.
         const entities = dataRange.values.map((rowValues) => {
           // Get employee properties.
@@ -41,15 +38,14 @@ script:
 
           // Create employee entity from employee properties.
           const employeeEntity = makeEmployeeEntity(
-            rowValues[2] /* LastName */,
-            rowValues[3] /* FirstName */,
+            rowValues[2] /* Last name */,
+            rowValues[3] /* First name */,
             employee,
             references
           );
 
           // Add reference values to employee entity.
           const referencedValues: any[] = [{ type: "Root" }];
-
           references.slice(1).forEach((id) => {
             const referencedEmployee = getEmployee(id);
             referencedValues.push(
@@ -61,27 +57,22 @@ script:
           return [employeeEntity];
         });
 
-        // Add the complete entities to the Employees Table.
+        // Add the complete entities to the Employees table.
         employeeColumn.getDataBodyRange().valuesAsJson = entities;
-
         employeeColumn.getRange().format.autofitColumns();
-
         await context.sync();
       });
     }
 
-
-    // Collect all the references that is needed to make an employee entity.
-
+    // Collect all the references to include in the employee entity.
     function collectReferences(employee) {
       const references: number[] = [];
       collectReferencesM(employee, references);
       return references;
     }
 
-
     function collectReferencesM(employee, references: number[]) {
-      // Check if references has already been collected for the employee.
+      // Confirm references haven't already been collected for this employee.
       if (references.indexOf(employee.employeeID) > -1) {
         return;
       }
@@ -99,27 +90,21 @@ script:
 
       // Collect references for each of the direct reports of the employee, if any.
       const directReports = employee.directReports || getDirectReports(employee.employeeID);
-
       if (directReports.length > 0) {
         directReports.forEach((direct) => collectReferencesM(direct, references));
       }
     }
 
-
-    // Check whether a specific id exist in a list of ids. Add the id to the
-    list, if it doesn't exist
-
+    // Check whether a specific ID exists in a list of IDs. 
+    // If the ID doesn't exist, add it to the list.
     function ensureReferenceExist(list: number[], id: number) {
       if (list.indexOf(id) == -1) {
         list.push(id);
       }
     }
 
-
     // Create entities from employee properties.
-
-    function makeEmployeeEntity(lastName: string, firstName: string, employee:
-    any, references: number[]): Excel.EntityCellValue {
+    function makeEmployeeEntity(lastName: string, firstName: string, employee: any, references: number[]): Excel.EntityCellValue {
       const entity: Excel.EntityCellValue = {
         type: Excel.CellValueType.entity,
         text: `${firstName} ${lastName}`,
@@ -167,7 +152,7 @@ script:
         entity.layouts.card.sections[0].properties.push("Manager");
       }
 
-      // Add references for direct reports, if any
+      // Add references for direct reports, if any.
       if (employee.directReports.length > 0) {
         entity.properties["Direct Reports"] = {
           type: Excel.CellValueType.array,
@@ -186,27 +171,22 @@ script:
       return entity;
     }
 
-
     // Get employee properties.
-
     function getEmployee(employeeID: number): any {
       // Find the employee in the sample data.
       const employee = employees.find((e) => e.employeeID === employeeID);
+      
       // Add direct reports for the employee.
       employee["directReports"] = getDirectReports(employeeID);
       return employee;
     }
 
-
     // Get direct reports of employee.
-
     function getDirectReports(employeeID: number): any {
       return employees.filter((e) => e.reportsTo === employeeID);
     }
 
-
-    /** Set up Sample worksheet. */
-
+    /** Set up Sample worksheet with a table of employee data. */
     async function setup() {
       await Excel.run(async (context) => {
         context.workbook.worksheets.getItemOrNullObject("Sample").delete();
@@ -224,16 +204,13 @@ script:
 
         sheet.getUsedRange().format.autofitColumns();
         sheet.getUsedRange().format.autofitRows();
-
         sheet.activate();
 
         await context.sync();
       });
     }
 
-
     /** Default helper for invoking an action and handling errors. */
-
     async function tryCatch(callback) {
       try {
         await callback();
@@ -243,9 +220,7 @@ script:
       }
     }
 
-
-    /** Sample JSON product data. */
-
+    /** Sample JSON employee data. */
     const employees = [
       {
         employeeID: 1,
@@ -313,7 +288,24 @@ script:
     ];
   language: typescript
 template:
-  content: "<section class=\"ms-font-m\">\n\t<p>This sample shows how to create entity values with references to other entity values.</p>\n</section>\n<section class=\"setup ms-font-m\">\n\t<h3>Set up</h3>\n\t<button id=\"setup\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Create table</span>\n  </button>\n</section>\n<section class=\"samples ms-font-m\">\n\t<h3>Try it out</h3>\n\t<button id=\"addEntitiesToTable\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Add entity values</span>\n  </button>\n\t<p>To see the entity value, click the icon to the left of the title in the <strong>Employee</strong> column after\n\t\tselecting <strong>Add entity values</strong>. Extract the <strong>Manager</strong> field or the <strong>Direct Reports</strong> field to the grid to see the referenced entities.</p>\n</section>"
+  content: |
+    <section class="ms-font-m">
+      <p>This sample shows how to create entity values with references to other entity values.</p>
+    </section>
+    <section class="setup ms-font-m">
+      <h3>Set up</h3>
+      <button id="setup" class="ms-Button">
+        <span class="ms-Button-label">Create table</span>
+      </button>
+    </section>
+    <section class="samples ms-font-m">
+      <h3>Try it out</h3>
+      <button id="add-entities-to-table" class="ms-Button">
+        <span class="ms-Button-label">Add entity values</span>
+      </button>
+      <p>To see the entity value, click the icon to the left of the title in the <strong>Employee</strong> column after
+        selecting <strong>Add entity values</strong>. Extract the <strong>Manager</strong> field or the <strong>Direct Reports</strong> field to the grid to see the referenced entities.</p>
+    </section>  
   language: html
 style:
   content: |

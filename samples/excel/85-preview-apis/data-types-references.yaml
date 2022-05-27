@@ -1,4 +1,4 @@
-order: 8
+order: 6
 id: excel-data-types-references
 name: 'Data types: Entity values with references'
 description: This sample shows how to create entity values with references to other entity values. An entity value is a container for data, and this container can have references (or links) to other entity values outside the original entity value.
@@ -12,9 +12,10 @@ script:
 
     async function addEntitiesToTable() {
       await Excel.run(async (context) => {
-        // This method retrieves data for each of the existing employees in the table 
-        // on the worksheet, creates entity values for each of those employees, 
-        // and adds the entities to the table.
+        // This method creates entity values with references to other entity values. 
+        // It retrieves data and references for each of the employees in the table
+        // in the worksheet, creates entity values for each of those employees, and
+        // adds the entities to the table.
 
         const employeesTable = context.workbook.tables.getItem("EmployeesTable");
 
@@ -27,13 +28,14 @@ script:
         dataRange.load("values");
         await context.sync();
 
-        // Create the entities by mapping the employee IDs in table to
-        // the sample JSON employee data.
+        // Create the entities by mapping the employee IDs in table to the sample
+        // JSON employee data.
         const entities = dataRange.values.map((rowValues) => {
           // Get employee properties.
           const employee = getEmployee(rowValues[1] /* Employee ID */);
 
           // Collect all the references that are needed to make the employee entity.
+          // A reference is a link to another entity value outside the original entity.
           const references = collectReferences(employee);
 
           // Create employee entity from employee properties.
@@ -45,7 +47,6 @@ script:
           );
 
           // Collect reference values for the employee entity.
-          // A reference is a link to another entity value outside the original entity.
           const referencedValues: any[] = [{ type: "Root" }];
           references.slice(1).forEach((id) => {
             const referencedEmployee = getEmployee(id);
@@ -194,13 +195,13 @@ script:
         context.workbook.worksheets.getItemOrNullObject("Sample").delete();
         const sheet = context.workbook.worksheets.add("Sample");
 
-        const employeesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
+        const employeesTable = sheet.tables.add("A1:D1", true /* hasHeaders */);
         employeesTable.name = "EmployeesTable";
 
         employeesTable.getHeaderRowRange().values = [["Employee", "EmployeeID", "LastName", "FirstName"]];
 
         employeesTable.rows.add(
-          null /*add at the end*/,
+          null /* Add at the end. */,
           employees.map((e) => [null, e.employeeID, e.lastName, e.firstName])
         );
 
@@ -228,14 +229,14 @@ script:
         employeeID: 1,
         lastName: "Davolio",
         firstName: "Nancy",
-        title: "Sales Representative",
+        title: "Vice President, Sales",
         reportsTo: 2
       },
       {
         employeeID: 2,
         lastName: "Fuller",
         firstName: "Andrew",
-        title: "Vice President, Sales",
+        title: "Sales Representative",
         reportsTo: null
       },
       {
@@ -249,14 +250,14 @@ script:
         employeeID: 4,
         lastName: "Peacock",
         firstName: "Margaret",
-        title: "Sales Representative",
+        title: "Sales Manager",
         reportsTo: 2
       },
       {
         employeeID: 5,
         lastName: "Buchanan",
         firstName: "Steven",
-        title: "Sales Manager",
+        title: "Sales Representative",
         reportsTo: 2
       },
       {

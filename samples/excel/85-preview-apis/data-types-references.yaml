@@ -1,7 +1,7 @@
 order: 6
 id: excel-data-types-references
 name: 'Data types: Entity values with references'
-description: This sample shows how to create entity values with references to other entity values. An entity value is a container for data, and this container can have references (or links) to other entity values outside the original entity value.
+description: This sample shows how to create entity values with references to other entity values. An entity value is a container for data, and this container can have references (or links) to other entity values on the same worksheet.
 host: EXCEL
 api_set:
     ExcelApi: BETA (PREVIEW ONLY)
@@ -38,7 +38,7 @@ script:
           // A reference is a link to another entity value outside the original entity.
           const references = collectReferences(employee);
 
-          // Create employee entity from employee properties.
+          // Create employee entity from employee properties. 
           const employeeEntity = makeEmployeeEntity(
             rowValues[2] /* Last name */,
             rowValues[3] /* First name */,
@@ -46,7 +46,7 @@ script:
             references
           );
 
-          // Collect reference values for the employee entity.
+          // Collect reference values for the employee entity. 
           const referencedValues: any[] = [{ type: "Root" }];
           references.slice(1).forEach((id) => {
             const referencedEmployee = getEmployee(id);
@@ -59,7 +59,7 @@ script:
           return [employeeEntity];
         });
 
-        // Add the complete entities to the Employees Table.
+        // Add the complete entities to the Employees Table. 
         employeeColumn.getDataBodyRange().valuesAsJson = entities;
         employeeColumn.getRange().format.autofitColumns();
         await context.sync();
@@ -67,14 +67,14 @@ script:
     }
 
     // Collect all the references to include in the employee entity.
-    // A reference is a link to another entity value outside the original entity.
+    // A reference is a link to another entity value outside the original entity. 
     function collectReferences(employee) {
       const references: number[] = [];
-      collectReferencesM(employee, references);
+      collectManagerReferences(employee, references);
       return references;
     }
 
-    function collectReferencesM(employee, references: number[]) {
+    function collectManagerReferences(employee, references: number[]) {
       // Confirm references haven't already been collected for this employee.
       if (references.indexOf(employee.employeeID) > -1) {
         return;
@@ -83,18 +83,18 @@ script:
       // Record the reference for the employee.
       ensureReferenceExist(references, employee.employeeID);
 
-      // Record the reference for the manager, if the employee has a manager.
+      // Record the reference for the manager, if the employee has a manager. 
       if (employee.reportsTo != null) {
         // Get the manager.
         const manager = getEmployee(employee.reportsTo);
         // Collect references for the manager.
-        collectReferencesM(manager, references);
+        collectManagerReferences(manager, references);
       }
 
-      // Collect references for each of the direct reports of the employee, if any.
+      // Collect references for each of the direct reports of the employee, if any. 
       const directReports = employee.directReports || getDirectReports(employee.employeeID);
       if (directReports.length > 0) {
-        directReports.forEach((direct) => collectReferencesM(direct, references));
+        directReports.forEach((direct) => collectManagerReferences(direct, references));
       }
     }
 
@@ -106,7 +106,7 @@ script:
       }
     }
 
-    // Create entities from employee properties.
+    // Create entities from employee properties. 
     function makeEmployeeEntity(lastName: string, firstName: string, employee: any, references: number[]): Excel.EntityCellValue {
       const entity: Excel.EntityCellValue = {
         type: Excel.CellValueType.entity,
@@ -146,7 +146,7 @@ script:
         }
       };
 
-      // Add manager reference, if the employee has a manager.
+      // Add manager reference, if the employee has a manager. 
       if (employee.reportsTo != null) {
         entity.properties["Manager"] = {
           type: "Reference",
@@ -155,7 +155,7 @@ script:
         entity.layouts.card.sections[0].properties.push("Manager");
       }
 
-      // Add references for direct reports, if any.
+      // Add references for direct reports, if any. 
       if (employee.directReports.length > 0) {
         entity.properties["Direct Reports"] = {
           type: Excel.CellValueType.array,
@@ -174,22 +174,22 @@ script:
       return entity;
     }
 
-    // Get employee properties.
+    // Get employee properties. 
     function getEmployee(employeeID: number): any {
       // Find the employee in the sample data.
       const employee = employees.find((e) => e.employeeID === employeeID);
       
-      // Add direct reports for the employee.
+      // Add direct reports for the employee. 
       employee["directReports"] = getDirectReports(employeeID);
       return employee;
     }
 
-    // Get direct reports of employee.
+    // Get direct reports of employee. 
     function getDirectReports(employeeID: number): any {
       return employees.filter((e) => e.reportsTo === employeeID);
     }
 
-    /** Set up Sample worksheet with a table of employee data. */
+    /** Set up Sample worksheet with a table of employee data. */ 
     async function setup() {
       await Excel.run(async (context) => {
         context.workbook.worksheets.getItemOrNullObject("Sample").delete();
@@ -230,70 +230,70 @@ script:
         lastName: "Davolio",
         firstName: "Nancy",
         title: "Vice President, Sales",
-        reportsTo: 2
+        reportsTo: null
       },
       {
         employeeID: 2,
         lastName: "Fuller",
         firstName: "Andrew",
         title: "Sales Representative",
-        reportsTo: null
+        reportsTo: 1
       },
       {
         employeeID: 3,
         lastName: "Leverling",
         firstName: "Janet",
         title: "Sales Representative",
-        reportsTo: 2
+        reportsTo: 4
       },
       {
         employeeID: 4,
         lastName: "Peacock",
         firstName: "Margaret",
         title: "Sales Manager",
-        reportsTo: 2
+        reportsTo: 1
       },
       {
         employeeID: 5,
         lastName: "Buchanan",
         firstName: "Steven",
         title: "Sales Representative",
-        reportsTo: 2
+        reportsTo: 4
       },
       {
         employeeID: 6,
         lastName: "Suyama",
         firstName: "Michael",
         title: "Sales Representative",
-        reportsTo: 5
+        reportsTo: 4
       },
       {
         employeeID: 7,
         lastName: "King",
         firstName: "Robert",
         title: "Sales Representative",
-        reportsTo: 5
+        reportsTo: 4
       },
       {
         employeeID: 8,
         lastName: "Callahan",
         firstName: "Laura",
         title: "Inside Sales Coordinator",
-        reportsTo: 2
+        reportsTo: 1
       },
       {
         employeeID: 9,
         lastName: "Dodsworth",
         firstName: "Anne",
         title: "Sales Representative",
-        reportsTo: 5
+        reportsTo: 4
       }
     ];
   language: typescript
 template:
   content: |
     <section class="ms-font-m">
-      <p>This sample shows how to create entity values with references to other entity values. An entity value is a container for data, and this container can have references (or links) to other entity values outside the original entity value.</p>
+      <p>This sample shows how to create entity values with references to other entity values. An entity value is a container for data, and this container can have references (or links) to other entity values on the same worksheet.</p>
     </section>
     <section class="setup ms-font-m">
       <h3>Set up</h3>
@@ -307,7 +307,8 @@ template:
         <span class="ms-Button-label">Add entity values</span>
       </button>
       <p>To see the entity value, click the icon to the left of the title in the <strong>Employee</strong> column after
-        selecting <strong>Add entity values</strong>. Extract the <strong>Manager</strong> field or the <strong>Direct Reports</strong> field to the grid to see the referenced entities.</p>
+        selecting <strong>Add entity values</strong>.</p>
+      <p>Inside the card modal window, select the <strong>Extract to grid</strong> icon to the right of the <strong>Manager</strong> field or the <strong>Direct Reports</strong> field to the grid to display the referenced entities.</p>
     </section>  
   language: html
 style:

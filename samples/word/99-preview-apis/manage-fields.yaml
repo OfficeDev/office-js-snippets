@@ -1,0 +1,154 @@
+id: word-manage-fields
+name: Get fields
+description: This sample shows how to get existing fields.
+host: WORD
+api_set:
+    WordApi: '1.4'
+script:
+    content: |
+        $("#get-first").click(() => tryCatch(getFirstField));
+        $("#get-parent-body").click(() => tryCatch(getParentBodyOfFirstField));
+        $("#get-all").click(() => tryCatch(getAllFields));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function getFirstField() {
+          // Gets the first field in the document body.
+          await Word.run(async (context) => {
+            const field = context.document.body.fields.getFirstOrNullObject();
+            field.load(["code", "result"]);
+
+            await context.sync();
+
+            if (field.isNullObject) {
+              console.log("There are no fields in this document.");
+            } else {
+              console.log("Code of first field: " + field.code);
+              console.log("Result of first field: " + field.result);
+            }
+          });
+        }
+
+        async function getParentBodyOfFirstField() {
+          // Gets the parent body of the first field in the document.
+          await Word.run(async (context) => {
+            const field = context.document.body.fields.getFirstOrNullObject();
+            field.load("parentBody/text");
+
+            await context.sync();
+
+            if (field.isNullObject) {
+              console.log("This document has no fields.");
+            } else {
+              const parentBody = field.parentBody;
+              console.log("Text of first field's parent body: " + JSON.stringify(parentBody.text));
+            }
+          });
+        }
+
+        async function getAllFields() {
+          // Gets all fields in the document body.
+          await Word.run(async (context) => {
+            const fields = context.document.body.fields.load("items");
+
+            await context.sync();
+
+            if (fields.items.length === 0) {
+              console.log("No fields in this document.");
+            } else {
+              for (let i = 0; i < fields.items.length; i++) {
+                console.log(`Field ${i + 1}'s code: ${fields.items[i].code}`);
+                console.log(`Field ${i + 1}'s result: ${fields.items[i].result}`);
+              }
+            }
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            body.clear();
+            body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample demonstrates how to get fields, which are placeholders for dynamic data in your document. To learn
+                more
+                about fields, refer to <a target="_blank" href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
+                    edit, and view fields in Word</a>.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Set up</span>
+          </button>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h4>Add fields to document</h4>
+            <p>At present, Word on the web doesn't support adding
+                fields
+                to the document.</p>
+            <ol>
+                <li>Open Word on Windows or on Mac.</li>
+                <li>Insert at least one field. To learn how to do so, refer to <a
+                        target="_blank" href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
+                        edit, and view fields in Word</a>.</li>
+                <li>Optional: Open the same document in Word on the web.</li>
+            </ol>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-first" class="ms-Button">
+              <span class="ms-Button-label">Get first field</span>
+          </button>
+            <button id="get-parent-body" class="ms-Button">
+                  <span class="ms-Button-label">Get first field's parent body</span>
+              </button>
+            <button id="get-all" class="ms-Button">
+                  <span class="ms-Button-label">Get all fields</span>
+              </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

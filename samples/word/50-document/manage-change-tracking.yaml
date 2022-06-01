@@ -1,3 +1,4 @@
+order: 1
 id: word-manage-change-tracking
 name: Track changes
 description: This sample shows how to get and set the change tracking mode and get the before and after of reviewed text.
@@ -60,15 +61,22 @@ script:
           });
         }
 
-        /** Set two paragraphs of sample text. */
+        /** Check for requirement set support and set two paragraphs of sample text. */
         async function setup() {
+          if (!Office.context.requirements.isSetSupported("WordApiOnline", "1.1")) {
+            console.error(
+              "This version of Word doesn't support WordApiOnline 1.1 and so doesn't currently support the change tracking APIs."
+            );
+            return;
+          }
           await Word.run(async (context) => {
-            context.document.body.clear();
-            context.document.body.insertParagraph(
+            const body = context.document.body;
+            body.clear();
+            body.insertParagraph(
               "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
               "Start"
             );
-            context.document.body.paragraphs
+            body.paragraphs
               .getLast()
               .insertText(
                 "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.",
@@ -91,8 +99,11 @@ template:
     content: |-
         <section class="ms-font-m">
             <p>This sample shows basic operations of the Track Changes feature.</p>
+            <p><b>Important</b>: The WordApiOnline 1.1 requirement set is needed for this sample. See <a target="_blank"
+                    href="https://docs.microsoft.com/javascript/api/requirement-sets/word/word-api-requirement-sets">Word
+                    JavaScript
+                    API requirement sets</a> for supported Word clients.</p>
         </section>
-
         <section class="setup ms-font-m">
             <h3>Set up</h3>
             <button id="setup" class="ms-Button">
@@ -141,8 +152,8 @@ style:
         }
     language: css
 libraries: |
-    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-    @types/office-js-preview
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
 
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css

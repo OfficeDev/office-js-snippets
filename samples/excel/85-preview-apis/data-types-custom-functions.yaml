@@ -8,20 +8,24 @@ api_set:
 script:
     content: |
         /**
-         * Search for products that match a given substring.
+         * Search for products that match a given substring. Try =SCRIPTLAB.DATATYPESCUSTOMFUNCTIONS.PRODUCTSEARCH("syrup").
          * @customfunction
-         * @param search The string to search on
-         * @param [lookAt] Whether the search should be a match of the whole product name or part of the product name. If omitted, lookAt = "Part"
-         * @return {Promise<any[][]>} Search results found
+         * @param search The string to search.
+         * @param [lookAt] Define whether the search should be a match of the whole product name or part of the product name. If omitted is set to lookAt = "Part".
+         * @return {Promise<any[][]>} Search results found.
          */
         async function ProductSearch(query: string, lookAt?: string): Promise<any[][]> {
+          // This method searches a set of sample JSON for the string entered in the custom function, 
+          // and then returns the result of that search as one or more entity values.
+
+          // Set up an error to use if a matching product doesn't exist in the JSON data.
           const notAvailableError = {
             type: "Error",
             errorType: "NotAvailable"
           };
 
+          // Search the sample JSON data for matching product names.
           try {
-            
             if (lookAt === null) {
               lookAt = "Part"
             }
@@ -29,14 +33,13 @@ script:
             console.log(`Searching for ${query}...`);
             const searchResult = await searchProduct(query, lookAt);
 
-            // Check for empty search result
+            // If the search result is empty, return the error.
             if (searchResult.length == 0) {
               return [[notAvailableError]];
             }
 
-            // Create product entities for each of the products in the search result.
+            // Create product entities for each of the products returned in the search result.
             const entities = searchResult.map((product) => [makeProductEntity(product)]);
-            
             return entities;
           } catch (error) {
             console.error(error);
@@ -110,8 +113,7 @@ script:
           return entity;
         }
 
-
-        // Search for product
+        // Helper method to search the sample JSON product data.
         function searchProduct(query: string, lookAt: string): any {
           const queryUpperCase = query.toUpperCase();
           if (lookAt.toLowerCase() === "whole") {
@@ -120,7 +122,6 @@ script:
             return products.filter((p) => p.productName.toUpperCase().indexOf(queryUpperCase) >= 0);
           }
         }
-
 
         /** Sample JSON product data. */
         const products = [
@@ -228,109 +229,6 @@ script:
             discontinued: false,
             productImage: ""
           },
-          {
-            productID: 11,
-            productName: "Queso Cabrales",
-            supplierID: 5,
-            categoryID: 4,
-            quantityPerUnit: "1 kg pkg.",
-            unitPrice: 21,
-            discontinued: false,
-            productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Tilsit_cheese.jpg/190px-Tilsit_cheese.jpg"
-          },
-          {
-            productID: 12,
-            productName: "Queso Manchego La Pastora",
-            supplierID: 5,
-            categoryID: 4,
-            quantityPerUnit: "10 - 500 g pkgs.",
-            unitPrice: 38,
-            discontinued: false,
-            productImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Manchego.jpg/177px-Manchego.jpg"
-          },
-          {
-            productID: 13,
-            productName: "Konbu",
-            supplierID: 6,
-            categoryID: 8,
-            quantityPerUnit: "2 kg box",
-            unitPrice: 6,
-            discontinued: false,
-            productImage: ""
-          },
-          {
-            productID: 14,
-            productName: "Tofu",
-            supplierID: 6,
-            categoryID: 7,
-            quantityPerUnit: "40 - 100 g pkgs.",
-            unitPrice: 23.25,
-            discontinued: false,
-            productImage:
-              "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Korean.food-Dubu.gui-01.jpg/120px-Korean.food-Dubu.gui-01.jpg"
-          },
-          {
-            productID: 15,
-            productName: "Genen Shouyu",
-            supplierID: 6,
-            categoryID: 2,
-            quantityPerUnit: "24 - 250 ml bottles",
-            unitPrice: 15.5,
-            discontinued: false,
-            productImage: ""
-          },
-          {
-            productID: 16,
-            productName: "Pavlova",
-            supplierID: 7,
-            categoryID: 3,
-            quantityPerUnit: "32 - 500 g boxes",
-            unitPrice: 17.45,
-            discontinued: false,
-            productImage: ""
-          },
-          {
-            productID: 17,
-            productName: "Alice Mutton",
-            supplierID: 7,
-            categoryID: 6,
-            quantityPerUnit: "20 - 1 kg tins",
-            unitPrice: 39,
-            discontinued: true,
-            productImage: ""
-          },
-          {
-            productID: 18,
-            productName: "Carnarvon Tigers",
-            supplierID: 7,
-            categoryID: 8,
-            quantityPerUnit: "16 kg pkg.",
-            unitPrice: 62.5,
-            discontinued: false,
-            productImage: ""
-          },
-          {
-            productID: 19,
-            productName: "Teatime Chocolate Biscuits",
-            supplierID: 8,
-            categoryID: 3,
-            quantityPerUnit: "10 boxes x 12 pieces",
-            unitPrice: 9.2,
-            discontinued: false,
-            productImage:
-              "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Macau_Koi_Kei_Bakery_Almond_Biscuits_2.JPG/120px-Macau_Koi_Kei_Bakery_Almond_Biscuits_2.JPG"
-          },
-          {
-            productID: 20,
-            productName: "Sir Rodney's Marmalade",
-            supplierID: 8,
-            categoryID: 3,
-            quantityPerUnit: "30 gift boxes",
-            unitPrice: 81,
-            discontinued: false,
-            productImage:
-              "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Homemade_marmalade%2C_England.jpg/135px-Homemade_marmalade%2C_England.jpg"
-          }
         ];
 
         const categories = [

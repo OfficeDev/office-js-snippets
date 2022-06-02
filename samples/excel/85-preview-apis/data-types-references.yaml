@@ -7,7 +7,9 @@ api_set:
     ExcelApi: BETA (PREVIEW ONLY)
 script:
     content: |
-        $("#setup").click(() => tryCatch(setup)); $("#add-entities-to-table").click(() => tryCatch(addEntitiesToTable));
+        $("#setup").click(() => tryCatch(setup)); 
+        $("#add-entities-to-table").click(() => tryCatch(addEntitiesToTable));
+
         async function addEntitiesToTable() {
           await Excel.run(async (context) => {
             // This method creates entity values with references to other entity values. 
@@ -63,11 +65,16 @@ script:
             await context.sync();
           });
         }
-        // Collect all the references to include in the employee entity. // A reference is a link to another entity value outside the original entity.  function collectReferences(employee) {
+
+        // Collect all the references to include in the employee entity. 
+        // A reference is a link to another entity value outside the original entity.  
+        function collectReferences(employee) {
           const references: number[] = [];
           collectManagerReferences(employee, references);
           return references;
         }
+
+        // Helper method to collect manager and direct report references for each employee entity.
         function collectManagerReferences(employee, references: number[]) {
           // Confirm references haven't already been collected for this employee.
           if (references.indexOf(employee.employeeID) > -1) {
@@ -91,12 +98,17 @@ script:
             directReports.forEach((direct) => collectManagerReferences(direct, references));
           }
         }
-        // Check whether a specific ID exists in a list of IDs.  // If the ID doesn't exist, add it to the list. function ensureReferenceExist(list: number[], id: number) {
+
+        // Helper method to check whether a specific reference ID exists in a list of IDs.  
+        // If the ID doesn't exist, add it to the list. 
+        function ensureReferenceExist(list: number[], id: number) {
           if (list.indexOf(id) == -1) {
             list.push(id);
           }
         }
-        // Create entities from employee properties.  function makeEmployeeEntity(lastName: string, firstName: string, employee: any, references: number[]): Excel.EntityCellValue {
+
+        // Create entities from employee properties.  
+        function makeEmployeeEntity(lastName: string, firstName: string, employee: any, references: number[]): Excel.EntityCellValue {
           const entity: Excel.EntityCellValue = {
             type: Excel.CellValueType.entity,
             text: `${firstName} ${lastName}`,
@@ -162,7 +174,9 @@ script:
 
           return entity;
         }
-        // Get employee properties.  function getEmployee(employeeID: number): any {
+
+        // Get employee properties. 
+        function getEmployee(employeeID: number): any {
           // Find the employee in the sample data.
           const employee = employees.find((e) => e.employeeID === employeeID);
           
@@ -170,10 +184,14 @@ script:
           employee["directReports"] = getDirectReports(employeeID);
           return employee;
         }
-        // Get direct reports of employee.  function getDirectReports(employeeID: number): any {
+
+        // Get direct reports of employee. 
+        function getDirectReports(employeeID: number): any {
           return employees.filter((e) => e.reportsTo === employeeID);
         }
-        /** Set up Sample worksheet with a table of employee data. */  async function setup() {
+
+        /** Set up Sample worksheet with a table of employee data. */  
+        async function setup() {
           await Excel.run(async (context) => {
             context.workbook.worksheets.getItemOrNullObject("Sample").delete();
             const sheet = context.workbook.worksheets.add("Sample");
@@ -195,7 +213,9 @@ script:
             await context.sync();
           });
         }
-        /** Default helper for invoking an action and handling errors. */ async function tryCatch(callback) {
+
+        /** Default helper for invoking an action and handling errors. */ 
+        async function tryCatch(callback) {
           try {
             await callback();
           } catch (error) {
@@ -203,7 +223,9 @@ script:
             console.error(error);
           }
         }
-        /** Sample JSON employee data. */ const employees = [
+
+        /** Sample JSON employee data. */ 
+        const employees = [
           {
             employeeID: 1,
             lastName: "Davolio",

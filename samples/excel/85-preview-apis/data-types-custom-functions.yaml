@@ -8,13 +8,13 @@ api_set:
 script:
     content: |
         /**
-         * Search for products that match a given substring. Try =SCRIPTLAB.DATATYPESCUSTOMFUNCTIONS.PRODUCTSEARCH("syrup").
+         * Search for products that match a given substring. Try =SCRIPTLAB.DATATYPESCUSTOMFUNCTIONS.PRODUCTSEARCH("chef", false).
          * @customfunction
-         * @param search The string to search for in the sample JSON data.
-         * @param [lookAt] Define whether the search should be a match of the whole product name or part of the product name. If omitted, set to lookAt = "Part".
+         * @param {string} search The string to search for in the sample JSON data.
+         * @param {boolean} [completeMatch] Define whether the search should be a match of the whole product name or part of the product name. If omitted, completeMatch = false.
          * @return {Promise<any[][]>} Search results as one or more data type entity values.
          */
-        async function productSearch(query: string, lookAt?: string): Promise<any[][]> {
+        async function productSearch(query: string, completeMatch?: boolean): Promise<any[][]> {
           // This method searches a set of sample JSON data for the string entered in the 
           // custom function, and then returns the search result as one or more entity values.
 
@@ -26,12 +26,12 @@ script:
 
           // Search the sample JSON data for matching product names.
           try {
-            if (lookAt === null) {
-              lookAt = "Part"
+            if (completeMatch === null) {
+              completeMatch = false
             }
             
             console.log(`Searching for ${query}...`);
-            const searchResult = await searchProduct(query, lookAt);
+            const searchResult = await searchProduct(query, completeMatch);
 
             // If the search result is empty, return the error.
             if (searchResult.length == 0) {
@@ -114,9 +114,9 @@ script:
         }
 
         // Helper method to search the sample JSON product data.
-        function searchProduct(query: string, lookAt: string): any {
+        function searchProduct(query: string, completeMatch: boolean): any {
           const queryUpperCase = query.toUpperCase();
-          if (lookAt.toLowerCase() === "whole") {
+          if (completeMatch === true) {
             return products.filter((p) => p.productName.toUpperCase() === queryUpperCase);
           } else {
             return products.filter((p) => p.productName.toUpperCase().indexOf(queryUpperCase) >= 0);

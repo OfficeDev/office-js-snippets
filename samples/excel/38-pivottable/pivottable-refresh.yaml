@@ -1,42 +1,40 @@
-order: 7
-id: excel-pivottable-data-source
-name: PivotTable data source
-description: Gets information about the data source of a PivotTable.
+order: 8
+id: excel-pivottable-refresh
+name: Refresh
+description: Refreshes a PivotTable based on table row additions.
 host: EXCEL
 api_set:
-    ExcelApi: '1.15'
+    ExcelApi: '1.8'
 script:
     content: |
-        $("#setup").click(() => tryCatch(setup)); 
-        $("#get-pivottable-data-source").click(() => tryCatch(getPivotTableDataSource));
+        $("#setup").click(() => tryCatch(setup));
+        $("#refresh-pivottable").click(() => tryCatch(refreshPivotTable));
+        $("#add-table-row").click(() => tryCatch(addTableRow));
 
-        async function getPivotTableDataSource() {
+        async function refreshPivotTable() {
           await Excel.run(async (context) => {
-            // This method logs information about the data source of a PivotTable.
-
-            const worksheet = context.workbook.worksheets.getItem("TotalPivot");
-            const pivotTable = worksheet.pivotTables.getItem("All Farm Sales");
-
-            // Retrieve the type and string representation of the data source of the PivotTable.
-            const pivotTableDataSourceType = pivotTable.getDataSourceType();
-            const pivotTableDataSourceString = pivotTable.getDataSourceString();
+            // This method refreshes the "Farm Sales" PivotTable,
+            // which updates the PivotTable with changes made to the source table.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            pivotTable.refresh();
             await context.sync();
+          });
+        }
 
-            // Log the data source information.
-            console.log("Data source: " + pivotTableDataSourceString.value);
-            console.log("Source type: " + pivotTableDataSourceType.value);
+        async function addTableRow() {
+          await Excel.run(async (context) => {
+            // This method adds a row to the PivotTable's source table.
+            const dataTable = context.workbook.tables.getItem("DataTable");
+            dataTable.rows.add(null, [["G Farms", "Mango", "Organic", 200, 1000]]);
+            await context.sync();
           });
         }
 
         async function setup() {
           await Excel.run(async (context) => {
-            // Create the worksheets.
-            context.workbook.worksheets.getItemOrNullObject("Data").delete();
-            const dataSheet = context.workbook.worksheets.add("Data");
-            context.workbook.worksheets.getItemOrNullObject("TotalPivot").delete();
-            const totalPivot = context.workbook.worksheets.add("TotalPivot");
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
 
-            // Create farm data.
             const data = [
               ["Farm", "Type", "Classification", "Crates Sold at Farm", "Crates Sold Wholesale"],
               ["A Farms", "Lime", "Organic", 300, 2000],
@@ -61,25 +59,28 @@ script:
               ["F Farms", "Lemon", "Conventional", 150, 270]
             ];
 
-            const range = dataSheet.getRange("A1:E21");
+            const range = sheet.getRange("A1:E21");
             range.values = data;
+            const table = sheet.tables.add(range, true);
+            table.name = "DataTable";
             range.format.autofitColumns();
 
-            // Create the PivotTable.
-            const pivotTable = totalPivot.pivotTables.add("All Farm Sales", "Data!A1:E21", "TotalPivot!A2");
+            const rangeToPlacePivot = sheet.getRange("G1");
+
+            // Make the source of the PivotTable a Table so added rows are picked up by the refresh operation.
+            const pivotTable = sheet.pivotTables.add("Farm Sales", table, rangeToPlacePivot);
+
             pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
-            pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Type"));
-            pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
             pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+            pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
 
-            // Switch to the worksheet with a PivotTable.
-            totalPivot.activate();
-
+            sheet.activate();
             await context.sync();
           });
         }
 
-        /** Default helper for invoking an action and handling errors. */ async function tryCatch(callback) {
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
           try {
             await callback();
           } catch (error) {
@@ -91,26 +92,29 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-          <p>This sample shows how to get information about the data source of a PivotTable. It returns the type and string representation of the data source.</p>
-          <p><em>Note: This sample works in Excel on Windows and Excel on the web. It doesn't work in Excel on Mac; this is a known issue.</em></p>
+          <p>This sample shows how to refresh a PivotTable.</p>
         </section>
 
-        <section class="setup ms-font-m">
-          <h3>Set up</h3>
+        <section class="samples ms-font-m">
+          <h3>Setup</h3>
           <button id="setup" class="ms-Button">
-            <span class="ms-Button-label">Set up</span>
-          </button>
+                <span class="ms-Button-label">Add data and PivotTable</span>
+            </button>
         </section>
-
-        <section class="setup ms-font-m">
+        <section class="samples ms-font-m">
           <h3>Try it out</h3>
-          <button id="get-pivottable-data-source" class="ms-Button">
-            <span class="ms-Button-label">Get PivotTable data source</span>
-          </button>
-        </section>  
+          <p>Add a row to the table, then refresh the PivotTable. Note that the PivotTable doesn't automatically refresh.</p>
+          <button id="add-table-row" class="ms-Button">
+              <span class="ms-Button-label">Add table row</span>
+            </button>
+          </p>
+          <button id="refresh-pivottable" class="ms-Button">
+              <span class="ms-Button-label">Refresh PivotTable</span>
+            </button>
+        </section>
     language: html
 style:
-    content: |-
+    content: |
         section.samples {
             margin-top: 20px;
         }

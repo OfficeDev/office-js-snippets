@@ -8,23 +8,24 @@ api_set:
 script:
     content: |
         $("#setup").click(() => tryCatch(setup));
-        $("#add-table-row").click(() => tryCatch(addTableRow));
         $("#refresh-pivottable").click(() => tryCatch(refreshPivotTable));
+        $("#add-table-row").click(() => tryCatch(addTableRow));
 
-        async function addTableRow() {
+        async function refreshPivotTable() {
           await Excel.run(async (context) => {
-            // Add a row to the PivotTable's source table.
-            const dataTable = context.workbook.tables.getItem("DataTable");
-            dataTable.rows.add(null, [["G Farms", "Mango", "Organic", 200, 1000]]);
+            // This method refreshes the "Farm Sales" PivotTable,
+            // which updates the PivotTable with changes made to the source table.
+            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+            pivotTable.refresh();
             await context.sync();
           });
         }
 
-        async function refreshPivotTable() {
+        async function addTableRow() {
           await Excel.run(async (context) => {
-            // Refresh the "Farm Sales" PivotTable.
-            const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
-            pivotTable.refresh();
+            // This method adds a row to the PivotTable's source table.
+            const dataTable = context.workbook.tables.getItem("DataTable");
+            dataTable.rows.add(null, [["G Farms", "Mango", "Organic", 200, 1000]]);
             await context.sync();
           });
         }

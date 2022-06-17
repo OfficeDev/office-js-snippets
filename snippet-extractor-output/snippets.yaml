@@ -9631,30 +9631,35 @@
 'Office.Mailbox#makeEwsRequestAsync:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/85-tokens-and-service-calls/make-ews-request-async.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/85-tokens-and-service-calls/get-icaluid-as-attendee.yaml
 
-    var ewsId = Office.context.mailbox.item.itemId;
+    const ewsId = Office.context.mailbox.item.itemId;
 
-    var request = '<soap:Envelope
+    const request = `<soap:Envelope
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
     xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types"
-    xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">' +
-        '  <soap:Header><t:RequestServerVersion Version="Exchange2013" /></soap:Header>' +
-        '  <soap:Body>' +
-        '    <m:GetItem>' +
-        '      <m:ItemShape>' +
-        '        <t:BaseShape>IdOnly</t:BaseShape>' +
-        '      </m:ItemShape >' +
-        '      <m:ItemIds>' +
-        '        <t:ItemId Id="' + ewsId + '" />' +
-        '      </m:ItemIds>' +
-        '    </m:GetItem>' +
-        '  </soap:Body>' +
-        '</soap:Envelope>';
+    xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+          <soap:Header><t:RequestServerVersion Version="Exchange2013" /></soap:Header>
+          <soap:Body>
+            <m:GetItem>
+              <m:ItemShape>
+                <t:BaseShape>AllProperties</t:BaseShape>
+              </m:ItemShape >
+              <m:ItemIds>
+                <t:ItemId Id="${ewsId}" />
+              </m:ItemIds>
+            </m:GetItem>
+          </soap:Body>
+        </soap:Envelope>`;
 
-    Office.context.mailbox.makeEwsRequestAsync(request, function (result) {
-        console.log(result);
+    Office.context.mailbox.makeEwsRequestAsync(request, (result) => {
+      if (result.status === Office.AsyncResultStatus.Failed) {
+        console.error(result.error.message);
+        return;
+      }
+
+      console.log(getUID(result.value));
     });
   - >-
     // Link to full sample:

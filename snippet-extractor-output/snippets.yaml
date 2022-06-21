@@ -9631,30 +9631,35 @@
 'Office.Mailbox#makeEwsRequestAsync:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/85-tokens-and-service-calls/make-ews-request-async.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/85-tokens-and-service-calls/get-icaluid-as-attendee.yaml
 
-    var ewsId = Office.context.mailbox.item.itemId;
+    const ewsId = Office.context.mailbox.item.itemId;
 
-    var request = '<soap:Envelope
+    const request = `<soap:Envelope
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
     xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types"
-    xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">' +
-        '  <soap:Header><t:RequestServerVersion Version="Exchange2013" /></soap:Header>' +
-        '  <soap:Body>' +
-        '    <m:GetItem>' +
-        '      <m:ItemShape>' +
-        '        <t:BaseShape>IdOnly</t:BaseShape>' +
-        '      </m:ItemShape >' +
-        '      <m:ItemIds>' +
-        '        <t:ItemId Id="' + ewsId + '" />' +
-        '      </m:ItemIds>' +
-        '    </m:GetItem>' +
-        '  </soap:Body>' +
-        '</soap:Envelope>';
+    xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+          <soap:Header><t:RequestServerVersion Version="Exchange2013" /></soap:Header>
+          <soap:Body>
+            <m:GetItem>
+              <m:ItemShape>
+                <t:BaseShape>AllProperties</t:BaseShape>
+              </m:ItemShape >
+              <m:ItemIds>
+                <t:ItemId Id="${ewsId}" />
+              </m:ItemIds>
+            </m:GetItem>
+          </soap:Body>
+        </soap:Envelope>`;
 
-    Office.context.mailbox.makeEwsRequestAsync(request, function (result) {
-        console.log(result);
+    Office.context.mailbox.makeEwsRequestAsync(request, (result) => {
+      if (result.status === Office.AsyncResultStatus.Failed) {
+        console.error(result.error.message);
+        return;
+      }
+
+      console.log(getUID(result.value));
     });
   - >-
     // Link to full sample:
@@ -11543,6 +11548,19 @@
         }
       }
     });
+'Word.HeaderFooterType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
+
+    await Word.run(async (context) => {
+      context.document.sections
+        .getFirst()
+        .getHeader(Word.HeaderFooterType.primary)
+        .insertParagraph("This is a primary header.", "End");
+
+      await context.sync();
+    });
 'Word.InlinePicture#getBase64ImageSrc:member(1)':
   - >-
     // Link to full sample:
@@ -11987,8 +12005,10 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
 
     await Word.run(async (context) => {
-      context.document.sections.getFirst().getHeader("Primary")
-        .insertParagraph("This is a header", "End");
+      context.document.sections
+        .getFirst()
+        .getHeader(Word.HeaderFooterType.primary)
+        .insertParagraph("This is a primary header.", "End");
 
       await context.sync();
     });
@@ -11998,8 +12018,10 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
 
     await Word.run(async (context) => {
-      context.document.sections.getFirst().getFooter("Primary")
-        .insertParagraph("This is a footer", "End");
+      context.document.sections
+        .getFirst()
+        .getFooter("Primary")
+        .insertParagraph("This is a primary footer.", "End");
 
       await context.sync();
     });
@@ -12035,6 +12057,18 @@
       await context.sync();
     });
 'Word.Table#getCell:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/table-cell-access.yaml
+
+    await Word.run(async (context) => {
+      let firstCell = context.document.body.tables.getFirst().getCell(0, 0).body;
+      firstCell.load("text");
+
+      await context.sync();
+      console.log("First cell text is " + firstCell.text);
+    });
+'Word.TableCell:class':
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/table-cell-access.yaml

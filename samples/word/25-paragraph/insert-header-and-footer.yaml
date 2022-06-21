@@ -1,20 +1,27 @@
 order: 5
 id: word-paragraph-insert-header-and-footer
-name: Insert a header and footer
-description: Inserts a header and a footer in the document.
+name: Insert headers and footers
+description: Inserts headers and footers in the document.
 author: OfficeDev
 host: WORD
 api_set:
     WordApi: '1.1'
 script:
-    content: |-
+    content: |
         $("#add-header").click(() => tryCatch(addHeader));
         $("#add-footer").click(() => tryCatch(addFooter));
+        $("#add-first-page-header").click(() => tryCatch(addFirstPageHeader));
+        $("#add-first-page-footer").click(() => tryCatch(addFirstPageFooter));
+        $("#add-even-pages-header").click(() => tryCatch(addEvenPagesHeader));
+        $("#add-even-pages-footer").click(() => tryCatch(addEvenPagesFooter));
+        $("#setup").click(() => tryCatch(setup));
 
         async function addHeader() {
           await Word.run(async (context) => {
-            context.document.sections.getFirst().getHeader("Primary")
-              .insertParagraph("This is a header", "End");
+            context.document.sections
+              .getFirst()
+              .getHeader(Word.HeaderFooterType.primary)
+              .insertParagraph("This is a primary header.", "End");
 
             await context.sync();
           });
@@ -22,10 +29,89 @@ script:
 
         async function addFooter() {
           await Word.run(async (context) => {
-            context.document.sections.getFirst().getFooter("Primary")
-              .insertParagraph("This is a footer", "End");
+            context.document.sections
+              .getFirst()
+              .getFooter("Primary")
+              .insertParagraph("This is a primary footer.", "End");
 
             await context.sync();
+          });
+        }
+
+        async function addFirstPageHeader() {
+          await Word.run(async (context) => {
+            context.document.sections
+              .getFirst()
+              .getHeader("FirstPage")
+              .insertParagraph("This is a first-page header.", "End");
+
+            await context.sync();
+          });
+        }
+
+        async function addFirstPageFooter() {
+          await Word.run(async (context) => {
+            context.document.sections
+              .getFirst()
+              .getFooter(Word.HeaderFooterType.firstPage)
+              .insertParagraph("This is a first-page footer.", "End");
+
+            await context.sync();
+          });
+        }
+
+        async function addEvenPagesHeader() {
+          await Word.run(async (context) => {
+            context.document.sections
+              .getFirst()
+              .getHeader(Word.HeaderFooterType.evenPages)
+              .insertParagraph("This is an even-pages header.", "End");
+
+            await context.sync();
+          });
+        }
+
+        async function addEvenPagesFooter() {
+          await Word.run(async (context) => {
+            context.document.sections
+              .getFirst()
+              .getFooter("EvenPages")
+              .insertParagraph("This is an even-pages footer.", "End");
+
+            await context.sync();
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            // Set up text in the document body.
+            const body = context.document.body;
+            body.clear();
+            body.insertParagraph(
+              "HeaderFooterType.firstPage applies the header or footer to the first page of the current section. HeaderFooterType.evenPages applies the header or footer to the even pages of the current section. By default, HeaderFooterType.primary applies the header or footer to all pages in the current section. However, if either or both options for FirstPage and EvenPages are set, Primary excludes those pages.",
+              "Start"
+            );
+            body.insertBreak(Word.BreakType.page, Word.InsertLocation.end);
+            body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "End"
+            );
+            body.insertBreak(Word.BreakType.page, Word.InsertLocation.end);
+            body.insertParagraph(
+              "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.",
+              "End"
+            );
+
+            // Clear any headers and footers.
+            const section = context.document.sections.getFirst();
+
+            section.getHeader("Primary").clear();
+            section.getHeader("FirstPage").clear();
+            section.getHeader("EvenPages").clear();
+
+            section.getFooter("Primary").clear();
+            section.getFooter("FirstPage").clear();
+            section.getFooter("EvenPages").clear();
           });
         }
 
@@ -34,24 +120,55 @@ script:
           try {
             await callback();
           } catch (error) {
-              // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-              console.error(error);
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
           }
         }
     language: typescript
 template:
     content: |-
         <section class="ms-font-m">
-            This sample inserts a header and footer in the document.
+            This sample inserts headers and footers in the document.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <p>1. Set up sample text.
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add sample text</span>
+            </button>
+            <p>2. Open the <b>Header & Footer</b> ribbon (refer to <a target="_blank" href="https://support.microsoft.com/office/490423a3-3e5b-4080-aff0-c429ab5d6708">Edit your
+                existing headers and footers</a> for details).
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
+            <h4>Apply to all pages</h4>
             <button id="add-header" class="ms-Button">
-              <span class="ms-Button-label">Insert header</span>
-          </button><button id="add-footer" class="ms-Button">
-              <span class="ms-Button-label">Insert footer</span>
+            <span class="ms-Button-label">Insert header</span>
           </button>
+            <button id="add-footer" class="ms-Button">
+            <span class="ms-Button-label">Insert footer</span>
+          </button>
+            <div>To see the "Primary" header/footer in the document, turn off the <b>Different First Page</b> and
+                <b>Different Odd & Even Pages</b> options in the
+                <b>Header & Footer</b> ribbon.</div>
+            <h4>Apply to the first page</h4>
+            <button id="add-first-page-header" class="ms-Button">
+              <span class="ms-Button-label">Insert header</span>
+            </button>
+            <button id="add-first-page-footer" class="ms-Button">
+              <span class="ms-Button-label">Insert footer</span>
+            </button>
+            <div>To see the "FirstPage" header/footer in the document, turn on the <b>Different First Page</b> option in the <b>Header & Footer</b> ribbon then scroll to the first page.</div>
+            <h4>Apply to all even pages</h4>
+            <button id="add-even-pages-header" class="ms-Button">
+                <span class="ms-Button-label">Insert header</span>
+            </button>
+            <button id="add-even-pages-footer" class="ms-Button">
+              <span class="ms-Button-label">Insert footer</span>
+            </button>
+            <div>To see the "EvenPages" header/footer in the document, turn on the <b>Different Odd & Even Pages</b> option in the <b>Header & Footer</b> ribbon then scroll to an even-numbered page.</div>
         </section>
     language: html
 style:

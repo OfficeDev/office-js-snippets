@@ -10,11 +10,46 @@ script:
         $("#get-to").click(getTo);
 
         function getTo() {
-          const msgTo = Office.context.mailbox.item.to;
-          console.log("Message sent to:");
-          for (let i = 0; i < msgTo.length; i++) {
-            console.log(msgTo[i].displayName + " (" + msgTo[i].emailAddress + ")");
-          }
+            const msgTo = Office.context.mailbox.item.to;
+            const distributionLists = [];
+            const externalRecipients = [];
+            const internalRecipients = [];
+            const otherRecipients = [];
+            for (let i = 0; i < msgTo.length; i++) {
+                switch (msgTo[i].recipientType) {
+                case Office.MailboxEnums.RecipientType.DistributionList:
+                    distributionLists.push(msgTo[i]);
+                    break;
+                case Office.MailboxEnums.RecipientType.ExternalUser:
+                    externalRecipients.push(msgTo[i]);
+                    break;
+                case Office.MailboxEnums.RecipientType.User:
+                    internalRecipients.push(msgTo[i]);
+                    break;
+                case Office.MailboxEnums.RecipientType.Other:
+                    otherRecipients.push(msgTo[i]);
+                }
+            }
+            
+            if (distributionLists.length > 0) {
+                console.log("Distribution Lists:");
+                distributionLists.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+            }
+
+            if (externalRecipients.length > 0) {
+                console.log("External Recipients:");
+                externalRecipients.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+            }
+            
+            if (internalRecipients.length > 0) {
+                console.log("Internal Recipients:");
+                internalRecipients.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+            }
+
+            if (otherRecipients.length > 0) {
+                console.log("Other Recipients:");
+                otherRecipients.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+            }
         }
     language: typescript
 template:
@@ -27,7 +62,7 @@ template:
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
             <button id="get-to" class="ms-Button">
-            <span class="ms-Button-label">Who is this to?</span>
+            <span class="ms-Button-label">To whom is this sent?</span>
           </button>
         </section>
     language: html

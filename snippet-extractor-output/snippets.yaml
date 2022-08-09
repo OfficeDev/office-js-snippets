@@ -7920,7 +7920,7 @@
 
     const details =
       {
-        type: "progressIndicator",
+        type: Office.MailboxEnums.ItemNotificationMessageType.ProgressIndicator,
         message: "Progress indicator with id = " + id
       };
     Office.context.mailbox.item.notificationMessages.addAsync(id, details,
@@ -7933,7 +7933,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Non-persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: false
@@ -7948,7 +7948,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: true
@@ -7969,7 +7969,7 @@
     Office.context.mailbox.item.notificationMessages.replaceAsync(
       id,
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Notification message with id = " + id + " has been replaced with an informational message.",
         icon: "icon2",
         persistent: false
@@ -8256,9 +8256,9 @@
 
     let pattern : Office.Recurrence = {
       seriesTime: seriesTimeObject,
-      recurrenceType: "weekly",
-      recurrenceProperties: { interval: 1, days: ["tue", "thu"], firstDayOfWeek: "sun" },
-      recurrenceTimeZone: { name: "Pacific Standard Time" }
+      recurrenceType: Office.MailboxEnums.RecurrenceType.Weekly,
+      recurrenceProperties: { interval: 1, days: [Office.MailboxEnums.Days.Tue, Office.MailboxEnums.Days.Thu], firstDayOfWeek: Office.MailboxEnums.Days.Sun },
+      recurrenceTimeZone: { name: Office.MailboxEnums.RecurrenceTimeZone.PacificStandardTime }
     };
 
 
@@ -8706,7 +8706,7 @@
 
     const details =
       {
-        type: "progressIndicator",
+        type: Office.MailboxEnums.ItemNotificationMessageType.ProgressIndicator,
         message: "Progress indicator with id = " + id
       };
     Office.context.mailbox.item.notificationMessages.addAsync(id, details,
@@ -8719,7 +8719,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Non-persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: false
@@ -8734,7 +8734,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: true
@@ -8755,7 +8755,7 @@
     Office.context.mailbox.item.notificationMessages.replaceAsync(
       id,
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Notification message with id = " + id + " has been replaced with an informational message.",
         icon: "icon2",
         persistent: false
@@ -10134,6 +10134,77 @@
         console.log("masterCategories.addAsync call failed with error: " + asyncResult.error.message);
       }
     });
+'Office.MailboxEnums.ComposeType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/60-event-based-activation/work-with-client-signatures.yaml
+
+    // Get the compose type of the current message.
+
+    Office.context.mailbox.item.getComposeTypeAsync(function(asyncResult) {
+      if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+        console.log(
+          "getComposeTypeAsync succeeded with composeType: " +
+            asyncResult.value.composeType +
+            " and coercionType: " +
+            asyncResult.value.coercionType
+        );
+      } else {
+        console.error(asyncResult.error);
+      }
+    });
+'Office.MailboxEnums.Days:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/50-recurrence/get-set-recurrence-appointment-organizer.yaml
+
+    // Important: Can only set the recurrence pattern of an appointment series.
+
+
+    const currentDate = new Date();
+
+    let seriesTimeObject : Office.SeriesTime;
+
+    // Set series start date to tomorrow.
+
+    seriesTimeObject.setStartDate(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDay() + 1
+    );
+
+    // Set series end date to 1 month from now.
+
+    seriesTimeObject.setEndDate(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1,
+      currentDate.getDay()
+    );
+
+    // Set start time to 1:30 PM.
+
+    seriesTimeObject.setStartTime(13, 30);
+
+    // Set duration to 30 minutes.
+
+    seriesTimeObject.setDuration(30);
+
+
+    let pattern : Office.Recurrence = {
+      seriesTime: seriesTimeObject,
+      recurrenceType: Office.MailboxEnums.RecurrenceType.Weekly,
+      recurrenceProperties: { interval: 1, days: [Office.MailboxEnums.Days.Tue, Office.MailboxEnums.Days.Thu], firstDayOfWeek: Office.MailboxEnums.Days.Sun },
+      recurrenceTimeZone: { name: Office.MailboxEnums.RecurrenceTimeZone.PacificStandardTime }
+    };
+
+
+    Office.context.mailbox.item.recurrence.setAsync(pattern, (asyncResult) => {
+      if (asyncResult.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Failed to set recurrence. Error: ${asyncResult.error.message}`);
+        return;
+      }
+      console.log(`Succeeded in setting recurrence pattern ${JSON.stringify(pattern)}`);
+    });
 'Office.MailboxEnums.DelegatePermissions:enum':
   - >-
     // Link to full sample:
@@ -10186,6 +10257,20 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/75-entities-and-regex-matches/basic-entities.yaml
 
     console.log(Office.context.mailbox.item.getEntitiesByType(Office.MailboxEnums.EntityType.Address));
+'Office.MailboxEnums.ItemNotificationMessageType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/35-notifications/add-getall-remove.yaml
+
+    const id = $("#notificationId").val();
+
+    const details =
+      {
+        type: Office.MailboxEnums.ItemNotificationMessageType.ErrorMessage,
+        message: "Error notification message with id = " + id
+      };
+    Office.context.mailbox.item.notificationMessages.addAsync(id, details,
+    handleResult);
 'Office.MailboxEnums.LocationType:enum':
   - >-
     // Link to full sample:
@@ -10209,6 +10294,164 @@
       } else {
         console.error(`Failed to add locations. Error message: ${result.error.message}`);
       }
+    });
+'Office.MailboxEnums.RecipientType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/30-recipients-and-attendees/get-to-message-read.yaml
+
+    const msgTo = Office.context.mailbox.item.to;
+
+    const distributionLists = [];
+
+    const externalRecipients = [];
+
+    const internalRecipients = [];
+
+    const otherRecipients = [];
+
+    for (let i = 0; i < msgTo.length; i++) {
+        switch (msgTo[i].recipientType) {
+        case Office.MailboxEnums.RecipientType.DistributionList:
+            distributionLists.push(msgTo[i]);
+            break;
+        case Office.MailboxEnums.RecipientType.ExternalUser:
+            externalRecipients.push(msgTo[i]);
+            break;
+        case Office.MailboxEnums.RecipientType.User:
+            internalRecipients.push(msgTo[i]);
+            break;
+        case Office.MailboxEnums.RecipientType.Other:
+            otherRecipients.push(msgTo[i]);
+        }
+    }
+
+
+    if (distributionLists.length > 0) {
+        console.log("Distribution Lists:");
+        distributionLists.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+    }
+
+
+    if (externalRecipients.length > 0) {
+        console.log("External Recipients:");
+        externalRecipients.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+    }
+
+
+    if (internalRecipients.length > 0) {
+        console.log("Internal Recipients:");
+        internalRecipients.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+    }
+
+
+    if (otherRecipients.length > 0) {
+        console.log("Other Recipients:");
+        otherRecipients.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+    }
+'Office.MailboxEnums.RecurrenceTimeZone:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/50-recurrence/get-set-recurrence-appointment-organizer.yaml
+
+    // Important: Can only set the recurrence pattern of an appointment series.
+
+
+    const currentDate = new Date();
+
+    let seriesTimeObject : Office.SeriesTime;
+
+    // Set series start date to tomorrow.
+
+    seriesTimeObject.setStartDate(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDay() + 1
+    );
+
+    // Set series end date to 1 month from now.
+
+    seriesTimeObject.setEndDate(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1,
+      currentDate.getDay()
+    );
+
+    // Set start time to 1:30 PM.
+
+    seriesTimeObject.setStartTime(13, 30);
+
+    // Set duration to 30 minutes.
+
+    seriesTimeObject.setDuration(30);
+
+
+    let pattern : Office.Recurrence = {
+      seriesTime: seriesTimeObject,
+      recurrenceType: Office.MailboxEnums.RecurrenceType.Weekly,
+      recurrenceProperties: { interval: 1, days: [Office.MailboxEnums.Days.Tue, Office.MailboxEnums.Days.Thu], firstDayOfWeek: Office.MailboxEnums.Days.Sun },
+      recurrenceTimeZone: { name: Office.MailboxEnums.RecurrenceTimeZone.PacificStandardTime }
+    };
+
+
+    Office.context.mailbox.item.recurrence.setAsync(pattern, (asyncResult) => {
+      if (asyncResult.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Failed to set recurrence. Error: ${asyncResult.error.message}`);
+        return;
+      }
+      console.log(`Succeeded in setting recurrence pattern ${JSON.stringify(pattern)}`);
+    });
+'Office.MailboxEnums.RecurrenceType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/50-recurrence/get-set-recurrence-appointment-organizer.yaml
+
+    // Important: Can only set the recurrence pattern of an appointment series.
+
+
+    const currentDate = new Date();
+
+    let seriesTimeObject : Office.SeriesTime;
+
+    // Set series start date to tomorrow.
+
+    seriesTimeObject.setStartDate(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDay() + 1
+    );
+
+    // Set series end date to 1 month from now.
+
+    seriesTimeObject.setEndDate(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1,
+      currentDate.getDay()
+    );
+
+    // Set start time to 1:30 PM.
+
+    seriesTimeObject.setStartTime(13, 30);
+
+    // Set duration to 30 minutes.
+
+    seriesTimeObject.setDuration(30);
+
+
+    let pattern : Office.Recurrence = {
+      seriesTime: seriesTimeObject,
+      recurrenceType: Office.MailboxEnums.RecurrenceType.Weekly,
+      recurrenceProperties: { interval: 1, days: [Office.MailboxEnums.Days.Tue, Office.MailboxEnums.Days.Thu], firstDayOfWeek: Office.MailboxEnums.Days.Sun },
+      recurrenceTimeZone: { name: Office.MailboxEnums.RecurrenceTimeZone.PacificStandardTime }
+    };
+
+
+    Office.context.mailbox.item.recurrence.setAsync(pattern, (asyncResult) => {
+      if (asyncResult.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Failed to set recurrence. Error: ${asyncResult.error.message}`);
+        return;
+      }
+      console.log(`Succeeded in setting recurrence pattern ${JSON.stringify(pattern)}`);
     });
 'Office.MailboxEnums.RestVersion:enum':
   - >-
@@ -10458,7 +10701,7 @@
 
     const details =
       {
-        type: "progressIndicator",
+        type: Office.MailboxEnums.ItemNotificationMessageType.ProgressIndicator,
         message: "Progress indicator with id = " + id
       };
     Office.context.mailbox.item.notificationMessages.addAsync(id, details,
@@ -10471,7 +10714,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Non-persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: false
@@ -10486,7 +10729,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: true
@@ -10507,7 +10750,7 @@
     Office.context.mailbox.item.notificationMessages.replaceAsync(
       id,
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Notification message with id = " + id + " has been replaced with an informational message.",
         icon: "icon2",
         persistent: false
@@ -10831,7 +11074,7 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/60-event-based-activation/work-with-client-signatures.yaml
 
-    // Get the compose type of the current item (mail only).
+    // Get the compose type of the current message.
 
     Office.context.mailbox.item.getComposeTypeAsync(function(asyncResult) {
       if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
@@ -10998,10 +11241,52 @@
 
     const msgTo = Office.context.mailbox.item.to;
 
-    console.log("Message sent to:");
+    const distributionLists = [];
+
+    const externalRecipients = [];
+
+    const internalRecipients = [];
+
+    const otherRecipients = [];
 
     for (let i = 0; i < msgTo.length; i++) {
-      console.log(msgTo[i].displayName + " (" + msgTo[i].emailAddress + ")");
+        switch (msgTo[i].recipientType) {
+        case Office.MailboxEnums.RecipientType.DistributionList:
+            distributionLists.push(msgTo[i]);
+            break;
+        case Office.MailboxEnums.RecipientType.ExternalUser:
+            externalRecipients.push(msgTo[i]);
+            break;
+        case Office.MailboxEnums.RecipientType.User:
+            internalRecipients.push(msgTo[i]);
+            break;
+        case Office.MailboxEnums.RecipientType.Other:
+            otherRecipients.push(msgTo[i]);
+        }
+    }
+
+
+    if (distributionLists.length > 0) {
+        console.log("Distribution Lists:");
+        distributionLists.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+    }
+
+
+    if (externalRecipients.length > 0) {
+        console.log("External Recipients:");
+        externalRecipients.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+    }
+
+
+    if (internalRecipients.length > 0) {
+        console.log("Internal Recipients:");
+        internalRecipients.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
+    }
+
+
+    if (otherRecipients.length > 0) {
+        console.log("Other Recipients:");
+        otherRecipients.forEach((recipient) => console.log(`${recipient.displayName}, ${recipient.emailAddress}`));
     }
 'Office.MessageRead#notificationMessages:member':
   - >-
@@ -11012,7 +11297,7 @@
 
     const details =
       {
-        type: "progressIndicator",
+        type: Office.MailboxEnums.ItemNotificationMessageType.ProgressIndicator,
         message: "Progress indicator with id = " + id
       };
     Office.context.mailbox.item.notificationMessages.addAsync(id, details,
@@ -11025,7 +11310,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Non-persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: false
@@ -11040,7 +11325,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: true
@@ -11061,7 +11346,7 @@
     Office.context.mailbox.item.notificationMessages.replaceAsync(
       id,
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Notification message with id = " + id + " has been replaced with an informational message.",
         icon: "icon2",
         persistent: false
@@ -11624,7 +11909,7 @@
 
     const details =
       {
-        type: "progressIndicator",
+        type: Office.MailboxEnums.ItemNotificationMessageType.ProgressIndicator,
         message: "Progress indicator with id = " + id
       };
     Office.context.mailbox.item.notificationMessages.addAsync(id, details,
@@ -11637,7 +11922,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Non-persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: false
@@ -11652,7 +11937,7 @@
 
     const details =
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Persistent informational notification message with id = " + id,
         icon: "icon1",
         persistent: true
@@ -11667,7 +11952,7 @@
 
     const details =
       {
-        type: "errorMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.ErrorMessage,
         message: "Error notification message with id = " + id
       };
     Office.context.mailbox.item.notificationMessages.addAsync(id, details,
@@ -11688,7 +11973,7 @@
     Office.context.mailbox.item.notificationMessages.replaceAsync(
       id,
       {
-        type: "informationalMessage",
+        type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
         message: "Notification message with id = " + id + " has been replaced with an informational message.",
         icon: "icon2",
         persistent: false
@@ -11945,9 +12230,9 @@
 
     let pattern : Office.Recurrence = {
       seriesTime: seriesTimeObject,
-      recurrenceType: "weekly",
-      recurrenceProperties: { interval: 1, days: ["tue", "thu"], firstDayOfWeek: "sun" },
-      recurrenceTimeZone: { name: "Pacific Standard Time" }
+      recurrenceType: Office.MailboxEnums.RecurrenceType.Weekly,
+      recurrenceProperties: { interval: 1, days: [Office.MailboxEnums.Days.Tue, Office.MailboxEnums.Days.Thu], firstDayOfWeek: Office.MailboxEnums.Days.Sun },
+      recurrenceTimeZone: { name: Office.MailboxEnums.RecurrenceTimeZone.PacificStandardTime }
     };
 
 

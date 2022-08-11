@@ -121,7 +121,6 @@ function getExtractedDataFromSnippet(
         try {
             const script = (jsyaml.safeLoad(fs.readFileSync(filename).toString()) as ISnippet).script.content;
 
-
             const fullSnippetTextArray = script.split('\n')
                 .map(line => line.replace(/\r/, ''));
             const targetText = `function ${row.snippetFunction}(`;

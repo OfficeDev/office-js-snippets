@@ -3,17 +3,17 @@ import * as fs from 'fs';
 import * as jsyaml from 'js-yaml';
 import { Dictionary } from './helpers';
 
-import { SnippetProcessedData, banner, readDir, officeHostsToAppNames, writeFile, rmRf, mkDir } from './helpers';
+import { SnippetProcessedData, readDir, writeFile, rmRf, mkDir } from './helpers';
 import { status } from './status';
 const ExcelJS = require('exceljs');
 
 const SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME = 'snippet-extractor-metadata';
 
 interface MappingFileRowData {
-    class: string; member: string; memberId: string, snippetId: string; snippetFunction: string
+    package: string, class: string; member: string; memberId: string, snippetId: string; snippetFunction: string
 }
 const headerNames: (keyof MappingFileRowData)[] =
-   ['class', 'member', 'memberId', 'snippetId', 'snippetFunction'];
+   ['package', 'class', 'member', 'memberId', 'snippetId', 'snippetFunction'];
 
 
 export async function buildReferenceDocSnippetExtracts(
@@ -45,9 +45,6 @@ async function buildSnippetExtractsPerHost(
     snippetIdsToFilenames: { [key: string]: string },
     accumulatedErrors: Array<string | Error>
 ): Promise<{ [key: string]: string[] }> {
-    const hostName = officeHostsToAppNames[
-        filename.substr(0, filename.length - '.xlsx'.length).toUpperCase()];
-    banner(`Extracting reference-doc snippet bits for ${hostName}`);
 
     const lines: MappingFileRowData[] =
         await new Promise(async (resolve: (data: MappingFileRowData[]) => void, reject) => {
@@ -90,8 +87,9 @@ async function buildSnippetExtractsPerHost(
         .filter(item => item)
         .forEach((text, index) => {
             const row = lines[index];
-            let fullName;
+            let hostName = row.package;
 
+            let fullName;
             if (row.member) { /* If the mapping is for a field */
                 fullName = `${hostName}.${row.class.trim()}#${row.member.trim()}:member`;
                 if (row.memberId) {
@@ -123,6 +121,7 @@ function getExtractedDataFromSnippet(
         try {
             const script = (jsyaml.safeLoad(fs.readFileSync(filename).toString()) as ISnippet).script.content;
 
+
             const fullSnippetTextArray = script.split('\n')
                 .map(line => line.replace(/\r/, ''));
             const targetText = `function ${row.snippetFunction}(`;
@@ -131,13 +130,28 @@ function getExtractedDataFromSnippet(
             if (arrayIndex < 0) {
                 throw new Error(`Invalid entry in the metadata mapping file -- snippet function "${row.snippetFunction}" does not exist within snippet "${filename}"`);
             }
+
+            let jsDocCommentIndex = -1;
+            if (arrayIndex > 0 && fullSnippetTextArray[arrayIndex - 1].indexOf('*/') >= 0) {
+                for (let i = arrayIndex - 1; i >= 0; i--) {
+                    if (fullSnippetTextArray[i].indexOf('/**') >= 0) {
+                        jsDocCommentIndex = i;
+                        break;
+                    }
+                }
+            }
+
             const functionDeclarationLine = fullSnippetTextArray[arrayIndex];
             const functionHasNoParams = functionDeclarationLine.indexOf(targetText + ')') >= 0;
 
             const spaceFollowedByWordsRegex = /^(\s*)(.*)$/;
             const preWhitespaceCount = spaceFollowedByWordsRegex.exec(functionDeclarationLine)[1].length;
             const targetClosingText = ' '.repeat(preWhitespaceCount) + '}';
-            fullSnippetTextArray.splice(0, arrayIndex + (functionHasNoParams ? 1 : 0));
+            if (jsDocCommentIndex >= 0) {
+                fullSnippetTextArray.splice(0, jsDocCommentIndex);
+            } else {
+                fullSnippetTextArray.splice(0, arrayIndex + (functionHasNoParams ? 1 : 0));
+            }
 
             const closingIndex = fullSnippetTextArray.findIndex(text => text.indexOf(targetClosingText) === 0);
             if (closingIndex < 0) {

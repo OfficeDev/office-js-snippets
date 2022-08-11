@@ -7,16 +7,6 @@ import { console } from './status';
 import * as rimraf from 'rimraf';
 import { isObject, isNil, isString, isEmpty } from 'lodash';
 
-export const officeHostsToAppNames = {
-    'ACCESS': 'Access',
-    'EXCEL': 'Excel',
-    'ONENOTE': 'OneNote',
-    'OUTLOOK': 'Office',
-    'POWERPOINT': 'PowerPoint',
-    'PROJECT': 'Project',
-    'WORD': 'Word'
-};
-
 export interface SnippetFileInput {
     file_name: string;
     relativePath: string;

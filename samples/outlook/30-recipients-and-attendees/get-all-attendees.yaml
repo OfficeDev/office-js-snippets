@@ -1,0 +1,125 @@
+order: 15
+id: outlook-recipients-and-attendees-get-all-attendees
+name: Get all attendees
+description: Gets all appointment attendees and organizes them by their response.
+host: OUTLOOK
+api_set:
+    Mailbox: '1.7'
+script:
+    content: |-
+        $("#get-attendees").click(getAttendees);
+
+        function getAttendees() {
+          const appointment = Office.context.mailbox.item;
+          let attendees;
+          if (Object.keys(appointment.organizer).length === 0) {
+            // Get attendees as the meeting organizer.
+            appointment.requiredAttendees.getAsync((result) => {
+              if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                console.log(result.error.message);
+                return;
+              }
+
+              attendees = result.value;
+              appointment.optionalAttendees.getAsync((result) => {
+                if (result.status !== Office.AsyncResultStatus.Succeeded) {
+                  console.log(result.error.message);
+                  return;
+                }
+
+                attendees = attendees.concat(result.value);
+                organizeByResponse(attendees);
+              });
+            });
+          } else {
+            // Get attendees as a meeting attendee.
+            attendees = appointment.requiredAttendees;
+            attendees = attendees.concat(appointment.optionalAttendees);
+            organizeByResponse(attendees);
+          }
+        }
+
+        function organizeByResponse(attendees) {
+          const accepted = [];
+          const declined = [];
+          const noResponse = [];
+          const tentative = [];
+          attendees.forEach(attendee => {
+            switch (attendee.appointmentResponse) {
+              case Office.MailboxEnums.ResponseType.Accepted:
+                accepted.push(attendee);
+                break;
+              case Office.MailboxEnums.ResponseType.Declined:
+                declined.push(attendee);
+                break;
+              case Office.MailboxEnums.ResponseType.None:
+                noResponse.push(attendee);
+                break;
+              case Office.MailboxEnums.ResponseType.Tentative:
+                tentative.push(attendee);
+                break;
+              case Office.MailboxEnums.ResponseType.Organizer:
+                console.log(`Organizer: ${attendee.displayName}, ${attendee.emailAddress}`);
+            } 
+          });
+
+          // List attendees by their response
+          console.log("Accepted: ");
+          printAttendees(accepted);
+          console.log("Declined: ");
+          printAttendees(declined);
+          console.log("Tentative: ");
+          printAttendees(tentative);
+          console.log("No response: ");
+          printAttendees(noResponse);
+        }
+
+        function printAttendees(attendees) {
+          if (attendees.length === 0) {
+            console.log("None");
+          } else {
+            attendees.forEach(attendee => {
+              console.log(`${attendee.displayName}, ${attendee.emailAddress}`);
+            });
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p class="ms-font-m">This sample shows how to get all appointment attendees and organize them by their response.</p>
+            <p><b>Required mode</b>: Appointment Organizer, Appointment Read</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-attendees" class="ms-Button">
+              <span class="ms-Button-label">Get attendees</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

@@ -7814,7 +7814,7 @@
 'Office.AppointmentCompose#setSelectedDataAsync:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/20-item-body/set-selected-data.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/90-other-item-apis/set-selected-data.yaml
 
     Office.context.mailbox.item.setSelectedDataAsync("Replaced",
     function(asyncResult) {
@@ -9348,6 +9348,190 @@
         console.log("There are no locations.");
       }
     });
+'Office.Body#appendOnSendAsync:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/20-item-body/append-text-on-send.yaml
+
+    // This snippet appends text to the end of the message or appointment's body
+    once it's sent.
+
+    const text = $("#text-field").val();
+
+
+    // It's recommended to call getTypeAsync and pass its returned value to the
+    options.coercionType parameter of the appendOnSendAsync call.
+
+    Office.context.mailbox.item.body.getTypeAsync((asyncResult) => {
+      if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+        console.log("Action failed with error: " + asyncResult.error.message);
+        return;
+      }
+
+      const bodyFormat = asyncResult.value;
+      Office.context.mailbox.item.body.appendOnSendAsync(text, { coercionType: bodyFormat }, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.log("Action failed with error: " + asyncResult.error.message);
+          return;
+        }
+
+        console.log(`"${text}" will be appended to the body once the message or appointment is sent. Send the mail item to test this feature.`);
+      });
+    });
+'Office.Body#getAsync:member(2)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/20-item-body/add-inline-base64-image.yaml
+
+    const mailItem = Office.context.mailbox.item;
+
+    const base64String =
+      "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAMAAADVRocKAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAnUExURQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAN0S+bUAAAAMdFJOUwAQIDBAUI+fr7/P7yEupu8AAAAJcEhZcwAADsMAAA7DAcdvqGQAAAF8SURBVGhD7dfLdoMwDEVR6Cspzf9/b20QYOthS5Zn0Z2kVdY6O2WULrFYLBaLxd5ur4mDZD14b8ogWS/dtxV+dmx9ysA2QUj9TQRWv5D7HyKwuIW9n0vc8tkpHP0W4BOg3wQ8wtlvA+PC1e8Ao8Ld7wFjQtHvAiNC2e8DdqHqKwCrUPc1gE1AfRVgEXBfB+gF0lcCWoH2tYBOYPpqQCNwfT3QF9i+AegJfN8CtAWhbwJagtS3AbIg9o2AJMh9M5C+SVGBvx6zAfmT0r+Bv8JMwP4kyFPir+cswF5KL3WLv14zAFBCLf56Tw9cparFX4upgaJUtPhrOS1QlY5W+vWTXrGgBFB/b72ev3/0igUdQPppP/nfowfKUUEFcP207y/yxKmgAYQ+PywoAFOfCH3A2MdCFzD3kdADBvq10AGG+pXQBgb7pdAEhvuF0AIc/VtoAK7+JciAs38KIuDugyAC/v4hiMCE/i7IwLRBsh68N2WQjMVisVgs9i5bln8LGScNcCrONQAAAABJRU5ErkJggg==";
+
+    // Get the current body of the message or appointment.
+
+    mailItem.body.getAsync(Office.CoercionType.Html, (bodyResult) => {
+      if (bodyResult.status === Office.AsyncResultStatus.Succeeded) {
+        // Insert the base64 image to the beginning of the body.
+        const options = { isInline: true, asyncContext: bodyResult.value };
+        mailItem.addFileAttachmentFromBase64Async(base64String, "sample.png", options, (attachResult) => {
+          if (attachResult.status === Office.AsyncResultStatus.Succeeded) {
+            let body = attachResult.asyncContext;
+            body = body.replace("<p class=MsoNormal>", `<p class=MsoNormal><img src="cid:sample.png">`);
+
+            mailItem.body.setAsync(body, { coercionType: Office.CoercionType.Html }, (setResult) => {
+              if (setResult.status === Office.AsyncResultStatus.Succeeded) {
+                console.log("Inline base64 image added to the body.");
+              } else {
+                console.log(setResult.error.message);
+              }
+            });
+          } else {
+            console.log(attachResult.error.message);
+          }
+        });
+      } else {
+        console.log(bodyResult.error.message);
+      }
+    });
+'Office.Body#getTypeAsync:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/20-item-body/get-body-format.yaml
+
+    // Get the mail item's body format (plain text or HTML) and log it to the
+    console.
+
+    Office.context.mailbox.item.body.getTypeAsync((asyncResult) => {
+      if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+        console.log("Action failed with error: " + asyncResult.error.message);
+        return;
+      }
+
+      console.log("Body format: " + asyncResult.value);
+    });
+'Office.Body#prependAsync:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/20-item-body/prepend-text-to-item-body.yaml
+
+    /* This snippet adds text to the beginning of the message or appointment's
+    body. 
+      
+      When prepending a link in HTML markup to the body, you can disable the online link preview by setting the anchor tag's id attribute to "LPNoLP". For example, '<a id="LPNoLP" href="http://www.contoso.com">Click here!</a>'.
+    */
+
+    const text = $("#text-field").val();
+
+
+    // It's recommended to call getTypeAsync and pass its returned value to the
+    options.coercionType parameter of the prependAsync call.
+
+    Office.context.mailbox.item.body.getTypeAsync((asyncResult) => {
+      if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+        console.log("Action failed with error: " + asyncResult.error.message);
+        return;
+      }
+
+      const bodyFormat = asyncResult.value;
+      Office.context.mailbox.item.body.prependAsync(text, { coercionType: bodyFormat }, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.log("Action failed with error: " + asyncResult.error.message);
+          return;
+        }
+
+        console.log(`"${text}" prepended to the body.`);
+      });
+    });
+'Office.Body#setAsync:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/20-item-body/add-inline-base64-image.yaml
+
+    const mailItem = Office.context.mailbox.item;
+
+    const base64String =
+      "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAMAAADVRocKAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAnUExURQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAN0S+bUAAAAMdFJOUwAQIDBAUI+fr7/P7yEupu8AAAAJcEhZcwAADsMAAA7DAcdvqGQAAAF8SURBVGhD7dfLdoMwDEVR6Cspzf9/b20QYOthS5Zn0Z2kVdY6O2WULrFYLBaLxd5ur4mDZD14b8ogWS/dtxV+dmx9ysA2QUj9TQRWv5D7HyKwuIW9n0vc8tkpHP0W4BOg3wQ8wtlvA+PC1e8Ao8Ld7wFjQtHvAiNC2e8DdqHqKwCrUPc1gE1AfRVgEXBfB+gF0lcCWoH2tYBOYPpqQCNwfT3QF9i+AegJfN8CtAWhbwJagtS3AbIg9o2AJMh9M5C+SVGBvx6zAfmT0r+Bv8JMwP4kyFPir+cswF5KL3WLv14zAFBCLf56Tw9cparFX4upgaJUtPhrOS1QlY5W+vWTXrGgBFB/b72ev3/0igUdQPppP/nfowfKUUEFcP207y/yxKmgAYQ+PywoAFOfCH3A2MdCFzD3kdADBvq10AGG+pXQBgb7pdAEhvuF0AIc/VtoAK7+JciAs38KIuDugyAC/v4hiMCE/i7IwLRBsh68N2WQjMVisVgs9i5bln8LGScNcCrONQAAAABJRU5ErkJggg==";
+
+    // Get the current body of the message or appointment.
+
+    mailItem.body.getAsync(Office.CoercionType.Html, (bodyResult) => {
+      if (bodyResult.status === Office.AsyncResultStatus.Succeeded) {
+        // Insert the base64 image to the beginning of the body.
+        const options = { isInline: true, asyncContext: bodyResult.value };
+        mailItem.addFileAttachmentFromBase64Async(base64String, "sample.png", options, (attachResult) => {
+          if (attachResult.status === Office.AsyncResultStatus.Succeeded) {
+            let body = attachResult.asyncContext;
+            body = body.replace("<p class=MsoNormal>", `<p class=MsoNormal><img src="cid:sample.png">`);
+
+            mailItem.body.setAsync(body, { coercionType: Office.CoercionType.Html }, (setResult) => {
+              if (setResult.status === Office.AsyncResultStatus.Succeeded) {
+                console.log("Inline base64 image added to the body.");
+              } else {
+                console.log(setResult.error.message);
+              }
+            });
+          } else {
+            console.log(attachResult.error.message);
+          }
+        });
+      } else {
+        console.log(bodyResult.error.message);
+      }
+    });
+'Office.Body#setSelectedDataAsync:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/20-item-body/replace-selected-text.yaml
+
+    /* This snippet replaces selected text in a message or appointment's body
+    with specified text.
+      
+      If you want to use a link in HTML markup as a value of the setSelectedDataAsync call's data parameter, you can disable online link preview by setting the anchor tag's id attribute to "LPNoLP". For example, '<a id="LPNoLP" href="http://www.contoso.com">Click here!</a>'.
+    */
+
+    const text = $("#text-field").val();
+
+
+    // It's recommended to call getTypeAsync and pass its returned value to the
+    options.coercionType parameter of the prependAsync call.
+
+    Office.context.mailbox.item.body.getTypeAsync((asyncResult) => {
+      if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+        console.log("Action failed with error: " + asyncResult.error.message);
+        return;
+      }
+
+      const bodyFormat = asyncResult.value;
+      Office.context.mailbox.item.body.setSelectedDataAsync(text, { coercionType: bodyFormat }, (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.log("Action failed with error: " + asyncResult.error.message);
+          return;
+        }
+
+        console.log(`Replaced selected text with "${text}".`);
+      });
+    });
 'Office.Body#setSignatureAsync:member(1)':
   - >-
     // Link to full sample:
@@ -10855,7 +11039,7 @@
 'Office.MessageCompose#setSelectedDataAsync:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/20-item-body/set-selected-data.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/90-other-item-apis/set-selected-data.yaml
 
     Office.context.mailbox.item.setSelectedDataAsync("Replaced",
     function(asyncResult) {

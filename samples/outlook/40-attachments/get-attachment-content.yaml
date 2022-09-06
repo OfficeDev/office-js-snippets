@@ -1,66 +1,101 @@
 id: outlook-attachments-get-attachment-content
 name: Get attachment content
-description: Gets the attachment content.
+description: Gets the attachment content in read or compose mode.
 host: OUTLOOK
 api_set:
     Mailbox: '1.8'
 script:
     content: |
-        $("#run").click(run);
+        $("#attachment-content-compose").click(getAttachmentContentCompose);
+        $("#attachment-content-read").click(getAttachmentContentRead);
 
-        function run() {
-            const item = Office.context.mailbox.item;
-            const options = {asyncContext: {currentItem: item}};
-            item.getAttachmentsAsync(options, callback);
+        const item = Office.context.mailbox.item;
 
-            function callback(result) {
-                if (result.value.length > 0) {
-                    for (let i = 0 ; i < result.value.length ; i++) {
-                        result.asyncContext.currentItem.getAttachmentContentAsync(result.value[i].id, handleAttachmentsCallback);
-                    }
-                }
+        function getAttachmentContentCompose() {
+          // Gets the attachments of the current message or appointment in compose mode.
+          const options = { asyncContext: { currentItem: item } };
+          // The getAttachmentsAsync call can only be used in compose mode.
+          item.getAttachmentsAsync(options, callback);
+
+          function callback(result) {
+            if (result.status === Office.AsyncResultStatus.Failed) {
+              console.log(result.error.message);
+              return;
             }
 
-            function handleAttachmentsCallback(result) {
-                // Parse string to be a url, an .eml file, a base64-encoded string, or an .icalendar file.
-                switch (result.value.format) {
-                    case Office.MailboxEnums.AttachmentContentFormat.Base64:
-                        // Handle file attachment.
-                        console.log(result.value.content);
-                        break;
-                    case Office.MailboxEnums.AttachmentContentFormat.Eml:
-                        // Handle email item attachment.
-                        console.log("Attachment is a message.");
-                        break;
-                    case Office.MailboxEnums.AttachmentContentFormat.ICalendar:
-                        // Handle .icalender attachment.
-                        console.log("Attachment is a calendar item.");
-                        break;
-                    case Office.MailboxEnums.AttachmentContentFormat.Url:
-                        // Handle cloud attachment.
-                        console.log("Attachment is a cloud attachment.");
-                        break;
-                    default:
-                        // Handle attachment formats that are not supported.
-                }
+            if (result.value.length <= 0) {
+              console.log("Mail item has no attachments.");
+              return;
             }
+
+            for (let i = 0; i < result.value.length; i++) {
+              // Log the attachment type and its contents to the console.
+              result.asyncContext.currentItem.getAttachmentContentAsync(result.value[i].id, handleAttachmentsCallback);
+            }
+          }
+        }
+
+        function getAttachmentContentRead() {
+          // Gets the attachments of the current message or appointment in read mode.
+          // The item.attachments call can only be used in read mode.
+          const attachments = item.attachments;
+          if (attachments.length <= 0) {
+            console.log("Mail item has no attachments.");
+            return;
+          }
+
+          for (let i = 0; i < attachments.length; i++) {
+            // Log the attachment type and its contents to the console.
+            item.getAttachmentContentAsync(attachments[i].id, handleAttachmentsCallback);
+          }
+        }
+
+        function handleAttachmentsCallback(result) {
+          // Identifies whether the attachment is a base64-encoded string, .eml file, .icalendar file, or a URL.
+          switch (result.value.format) {
+            case Office.MailboxEnums.AttachmentContentFormat.Base64:
+              // Handle file attachment.
+              console.log("Attachment is a base64-encoded string.");
+              break;
+            case Office.MailboxEnums.AttachmentContentFormat.Eml:
+              // Handle email item attachment.
+              console.log("Attachment is a message.");
+              break;
+            case Office.MailboxEnums.AttachmentContentFormat.ICalendar:
+              // Handle .icalender attachment.
+              console.log("Attachment is a calendar item.");
+              break;
+            case Office.MailboxEnums.AttachmentContentFormat.Url:
+              // Handle cloud attachment.
+              console.log("Attachment is a cloud attachment.");
+              break;
+            default:
+            // Handle attachment formats that aren't supported.
+          }
+
+          console.log(result.value.content);
         }
     language: typescript
 template:
-    content: |
+    content: |-
         <section class="ms-font-m">
-          <p>This sample shows how to get the attachment content from a message or an appointment.</p>
+            <p>This sample gets the attachment content from a message or an appointment in read or compose mode.</p>
+            <p><b>Required mode</b>: Compose or Read</p>
         </section>
 
         <section class="samples ms-font-m">
-          <h3>Try it out</h3>
-          <button id="run" class="ms-Button">
-            <div class="ms-Button-label">Get attachment content</div>
+            <h3>Try it out</h3>
+            <button id="attachment-content-compose" class="ms-Button">
+            <span class="ms-Button-label">Get attachment content (Compose)</span>
+          </button>
+            <br>
+            <button id="attachment-content-read" class="ms-Button">
+            <span class="ms-Button-label">Get attachment content (Read)</span>
           </button>
         </section>
     language: html
 style:
-    content: |
+    content: |-
         section.samples {
             margin-top: 20px;
         }
@@ -68,7 +103,6 @@ style:
         section.samples .ms-Button, section.setup .ms-Button {
             display: block;
             margin-bottom: 5px;
-            margin-left: 20px;
             min-width: 80px;
         }
     language: css

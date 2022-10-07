@@ -1,0 +1,133 @@
+order: 6
+id: word-document-manage-settings
+name: Manage settings
+description: 'This sample shows how to add, get, and delete settings in the file.'
+host: WORD
+api_set:
+    WordApi: '1.4'
+script:
+    content: |
+        $("#create-setting").click(() => tryCatch(createSetting));
+        $("#get-settings").click(() => tryCatch(getSettings));
+        $("#delete-all-settings").click(() => tryCatch(deleteAllSettings));
+
+        async function createSetting() {
+          await Word.run(async (context) => {
+            let key = $("#key")
+              .val()
+              .toString();
+            let value = $("#value")
+              .val()
+              .toString();
+            const settings = context.document.settings;
+            let setting = settings.add(key, value);
+            setting.load();
+            await context.sync();
+
+            console.log("Setting added:");
+            console.log(setting);
+          });
+        }
+
+        async function getSettings() {
+          await Word.run(async (context) => {
+            let settings = context.document.settings;
+            settings.load("items");
+            await context.sync();
+
+            const allSettings = [];
+            for (let i = 0; i < settings.items.length; i++) {
+              let setting = settings.items[i];
+              setting.load();
+              allSettings.push(setting);
+            }
+
+            await context.sync();
+
+            if (allSettings.length <= 0) {
+              console.log("There are no settings");
+            } else {
+              console.log("All settings:");
+              for (let i = 0; i < allSettings.length; i++) {
+                console.log(allSettings[i]);
+              }
+            }
+          });
+        }
+
+        async function deleteAllSettings() {
+          await Word.run(async (context) => {
+            let settings = context.document.settings;
+            settings.deleteAll();
+            await context.sync();
+            console.log("All settings deleted");
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to add, get, and delete settings in the file.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Add a setting</p>
+            <p>
+                <div class="ms-TextField">
+                    <label class="msLabel">Key:</label>
+                    <input id="key" class="msTextField-field" type="text">
+                </div>
+                    <div class="ms-TextField">
+                        <label class="msLabel">Value:</label>
+                        <input id="value" class="msTextField-field" type="text">
+                </div>
+                        <button id="create-setting" class="ms-Button">
+                <span class="ms-Button-label">Add setting</span>
+            </button>
+            </p>
+            <p>Get all settings</p>
+            <button id="get-settings" class="ms-Button">
+                <span class="ms-Button-label">Get settings</span>
+          </button>
+            <p>Delete all settings</p>
+            <button id="delete-all-settings" class="ms-Button">
+                <span class="ms-Button-label">Delete settings</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

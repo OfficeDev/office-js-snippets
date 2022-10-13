@@ -16,7 +16,6 @@ script:
         async function addCustomXmlPart() {
           // Add a custom XML part.
           await Word.run(async (context) => {
-            // You must have the xmlns attribute to populate the CustomXmlPart.namespaceUri property.
             const originalXml =
               "<Reviewers><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
             const customXmlPart = context.document.customXmlParts.add(originalXml);
@@ -38,7 +37,7 @@ script:
         }
 
         async function query() {
-          // Query the specified custom XML part.
+          // Query a custom XML part for elements matching the search terms.
           await Word.run(async (context) => {
             const settings = context.document.settings;
             const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
@@ -47,14 +46,14 @@ script:
 
             if (xmlPartIDSetting.value) {
               const customXmlPart = context.document.customXmlParts.getItem(xmlPartIDSetting.value);
-              const toQueryFor = "/Reviewers/Reviewer";
-              const clientResult = customXmlPart.query(toQueryFor, {
+              const xpathToQueryFor = "/Reviewers/Reviewer";
+              const clientResult = customXmlPart.query(xpathToQueryFor, {
                 contoso: "http://schemas.contoso.com/review/1.0"
               });
 
               await context.sync();
 
-              console.log(`Queried custom XML part for ${toQueryFor} and found ${clientResult.value.length} matches:`);
+              console.log(`Queried custom XML part for ${xpathToQueryFor} and found ${clientResult.value.length} matches:`);
               for (let i = 0; i < clientResult.value.length; i++) {
                 console.log(clientResult.value[i]);
               }
@@ -65,7 +64,7 @@ script:
         }
 
         async function insertAttribute() {
-          // Insert an attribute in the specified custom XML part.
+          // Insert an attribute into a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
             const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
@@ -74,7 +73,7 @@ script:
             if (xmlPartIDSetting.value) {
               const customXmlPart = context.document.customXmlParts.getItem(xmlPartIDSetting.value);
 
-              // The insertAttribute method inserts an attribute with the given name and value to the element identified by xpath.
+              // The insertAttribute method inserts an attribute with the given name and value into the element identified by the xpath parameter.
               customXmlPart.insertAttribute("/Reviewers", { contoso: "http://schemas.contoso.com/review/1.0" }, "Nation", "US");
               const xmlBlob = customXmlPart.getXml();
               await context.sync();
@@ -89,7 +88,7 @@ script:
         }
 
         async function insertElement() {
-          // Insert an element into the specified custom XML part.
+          // Insert an element into a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
             const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
@@ -98,7 +97,7 @@ script:
             if (xmlPartIDSetting.value) {
               const customXmlPart = context.document.customXmlParts.getItem(xmlPartIDSetting.value);
 
-              // The insertElement method inserts the given XML under the parent element identified by xpath at child position index.
+              // The insertElement method inserts the given XML under the parent element identified by the xpath parameter at the provided child position index.
               customXmlPart.insertElement(
                 "/Reviewers",
                 "<Lead>Mark</Lead>",
@@ -118,7 +117,7 @@ script:
         }
 
         async function deleteCustomXmlPart() {
-          // Delete the specified custom XML part.
+          // Delete a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
             const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
@@ -133,9 +132,9 @@ script:
               await context.sync();
 
               if (customXmlPart.isNullObject) {
-                console.log(`The XML part with the id ${xmlPartIDSetting.value} has been deleted`);
+                console.log(`The XML part with the ID ${xmlPartIDSetting.value} has been deleted`);
 
-                // Delete the unneeded setting too.
+                // Delete the associated setting too.
                 xmlPartIDSetting.delete();
 
                 await context.sync();
@@ -169,27 +168,23 @@ template:
     content: |-
         <section class="ms-font-m">
             <p>This sample shows how to add, query, edit, and delete a custom XML part in a document.</p>
+          <p><b>Note</b>: For your production add-in, make sure to create and host your own XML schema.</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <p>Add a custom XML part</p>
             <button id="add-custom-xml-part" class="ms-Button">
             <span class="ms-Button-label">Add XML part</span>
             </button>
-            <p>Query the custom XML part</p>
             <button id="query" class="ms-Button">
               <span class="ms-Button-label">Query</span>
             </button>
-            <p>Insert an attribute</p>
             <button id="insert-attribute" class="ms-Button">
                 <span class="ms-Button-label">Insert attribute</span>
             </button>
-            <p>Insert an element</p>
             <button id="insert-element" class="ms-Button">
                 <span class="ms-Button-label">Insert element</span>
             </button>
-            <p>Delete the custom XML part</p>
             <button id="delete-custom-xml-part" class="ms-Button">
             <span class="ms-Button-label">Delete XML part</span>
             </button>

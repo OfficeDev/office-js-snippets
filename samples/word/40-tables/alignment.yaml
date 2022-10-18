@@ -1,0 +1,138 @@
+order: 3
+id: word-tables-alignment
+name: Get the alignment of a table
+description: 'Get alignment details of a table, a table row, and a table cell.'
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.3'
+script:
+    content: |
+        $("#get-table-alignment").click(() => tryCatch(getTableAlignment));
+        $("#get-table-row-alignment").click(() => tryCatch(getTableRowAlignment));
+        $("#get-table-cell-alignment").click(() => tryCatch(getTableCellAlignment));
+        $("#setup").click(() => tryCatch(insertTable));
+
+        async function getTableAlignment() {
+          // Get alignment details about the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable = context.document.body.tables.getFirst();
+            firstTable.load(["horizontalAlignment", "verticalAlignment"]);
+            await context.sync();
+
+            console.log(`Details about the alignment of the first table:`);
+            console.log(`Horizontal: ${firstTable.horizontalAlignment}`);
+            console.log(`Vertical: ${firstTable.verticalAlignment}`);
+          });
+        }
+
+        async function getTableRowAlignment() {
+          // Get alignment details about the first row of the first table in the document.
+          await Word.run(async (context) => {
+            const firstTableRow = context.document.body.tables.getFirst().rows.getFirst();
+            firstTableRow.load(["horizontalAlignment", "verticalAlignment"]);
+            await context.sync();
+
+            console.log(`Details about the alignment of the first table's first row:`);
+            console.log(`Horizontal: ${firstTableRow.horizontalAlignment}`);
+            console.log(`Vertical: ${firstTableRow.verticalAlignment}`);
+          });
+        }
+
+        async function getTableCellAlignment() {
+          // Get alignment details about the first cell of the first table in the document.
+          await Word.run(async (context) => {
+            const firstCell = context.document.body.tables.getFirst().getCell(0, 0);
+            firstCell.load(["horizontalAlignment", "verticalAlignment"]);
+            await context.sync();
+
+            console.log(`Details about the alignment of the first table's first cell:`);
+            console.log(`Horizontal: ${firstCell.horizontalAlignment}`);
+            console.log(`Vertical: ${firstCell.verticalAlignment}`);
+          });
+        }
+
+        async function insertTable() {
+          await Word.run(async (context) => {
+            // Use a two-dimensional array to hold the initial table values.
+            const data = [
+              ["Tokyo", "Beijing", "Seattle"],
+              ["Apple", "Orange", "Pineapple"]
+            ];
+            const table = context.document.body.insertTable(2, 3, "Start", data);
+            table.styleBuiltIn = Word.Style.gridTable5Dark_Accent2;
+            table.styleFirstColumn = false;
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to get the alignment details of a table, a table row, and a table cell.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Add table</span>
+          </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>
+                <span class="ms-font-m">Get details about the first table's alignment</span>
+                <button id="get-table-alignment" class="ms-Button">
+                  <span class="ms-Button-label">Get table alignment </span>
+              </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Get details about the first table row's alignment</span>
+                <button id="get-table-row-alignment" class="ms-Button">
+                  <span class="ms-Button-label">Get row alignment</span>
+              </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Get details about the first table cell's alignment</span>
+                <button id="get-table-cell-alignment" class="ms-Button">
+                <span class="ms-Button-label">Get cell alignment</span>
+              </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

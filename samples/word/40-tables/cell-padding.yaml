@@ -1,0 +1,135 @@
+order: 4
+id: word-tables-cell-padding
+name: Get cell padding of a table
+description: 'Get cell padding details of a table, a table row, and a table cell.'
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.3'
+script:
+    content: |
+        $("#get-table-cell-padding").click(() => tryCatch(getTableCellPadding));
+        $("#get-table-row-cell-padding").click(() => tryCatch(getTableRowCellPadding));
+        $("#get-table-cell-cell-padding").click(() => tryCatch(getTableCellCellPadding));
+        $("#setup").click(() => tryCatch(insertTable));
+
+        async function getTableCellPadding() {
+          // Get cell padding details about the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable = context.document.body.tables.getFirst();
+            const cellPaddingLocation = Word.CellPaddingLocation.top;
+            const cellPadding = firstTable.getCellPadding(cellPaddingLocation);
+            await context.sync();
+
+            console.log(`Cell padding details about the ${cellPaddingLocation} border of the first table: ${cellPadding.value} points`);
+          });
+        }
+
+        async function getTableRowCellPadding() {
+          // Get cell padding details about the first row of the first table in the document.
+          await Word.run(async (context) => {
+            const firstTableRow = context.document.body.tables.getFirst().rows.getFirst();
+            const cellPaddingLocation = Word.CellPaddingLocation.bottom;
+            const cellPadding = firstTableRow.getCellPadding(cellPaddingLocation);
+            await context.sync();
+
+            console.log(`Cell padding details about the ${cellPaddingLocation} border of the first table's first row: ${cellPadding.value} points`);
+          });
+        }
+
+        async function getTableCellCellPadding() {
+          // Get cell padding details about the first cell of the first table in the document.
+          await Word.run(async (context) => {
+            const firstCell = context.document.body.tables.getFirst().getCell(0, 0);
+            const cellPaddingLocation = "Left";
+            const cellPadding = firstCell.getCellPadding(cellPaddingLocation);
+            await context.sync();
+
+            console.log(`Cell padding details about the ${cellPaddingLocation} border of the first table's first cell: ${cellPadding.value} points`);
+          });
+        }
+
+        async function insertTable() {
+          await Word.run(async (context) => {
+            // Use a two-dimensional array to hold the initial table values.
+            const data = [
+              ["Tokyo", "Beijing", "Seattle"],
+              ["Apple", "Orange", "Pineapple"]
+            ];
+            const table = context.document.body.insertTable(2, 3, "Start", data);
+            table.styleBuiltIn = Word.Style.gridTable5Dark_Accent2;
+            table.styleFirstColumn = false;
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to get the cell padding details of a table, a table row, and a table cell.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Add table</span>
+          </button>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>
+                <span class="ms-font-m">Get details about the first table's cell padding</span>
+                <button id="get-table-cell-padding" class="ms-Button">
+                  <span class="ms-Button-label">Get table cell padding </span>
+              </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Get details about the first table row's cell padding</span>
+                <button id="get-table-row-cell-padding" class="ms-Button">
+                  <span class="ms-Button-label">Get row cell padding</span>
+              </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Get details about the first table cell's padding</span>
+                <button id="get-table-cell-cell-padding" class="ms-Button">
+                <span class="ms-Button-label">Get cell padding</span>
+              </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

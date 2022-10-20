@@ -1,6 +1,6 @@
 order: 4
 id: word-document-manage-footnotes
-name: Footnotes
+name: Manage footnotes
 description: 'This sample shows how to perform basic footnote operations, including insert, get, and delete.'
 host: WORD
 api_set:
@@ -48,16 +48,21 @@ script:
           });
         }
         async function getFootnoteType() {
-          // Get the referenced note's type, which is footnote.
+          // Get the referenced note's item type and body type, which are both "Footnote".
           await Word.run(async (context) => {
             const footnotes = context.document.body.footnotes;
-            footnotes.load("items/type");
+            footnotes.load("items");
             await context.sync();
 
             const referenceNumber = $("#input-reference").val();
             const mark = (referenceNumber as number) - 1;
-            const itemType = footnotes.items[mark].type;
-            console.log(`Note type of footnote ${referenceNumber}: ${itemType}`);
+            const item = footnotes.items[mark];
+            console.log(`Note type of footnote ${referenceNumber}: ${item.type}`);
+
+            item.body.load("type");
+            await context.sync();
+
+            console.log(`Body type of note: ${item.body.type}`);
           });
         }
         async function getFootnoteBody() {

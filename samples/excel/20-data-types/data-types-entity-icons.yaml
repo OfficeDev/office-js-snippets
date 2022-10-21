@@ -1,0 +1,100 @@
+order: 5
+name: 'Data types: Create entity icons'
+description: Display all the icons available for entity data types.
+host: EXCEL
+api_set:
+    ExcelApi: '1.16'
+script:
+  content: |
+    $("#setup").click(() => tryCatch(setup));
+    $("#create-icons").click(() => tryCatch(createIcons));
+
+    // Retrieve the entity card icons enum.
+    const iconNames = Excel.EntityCompactLayoutIcons;
+
+    function createEntitiesWitIcons(icons): Excel.EntityCellValue[][] {
+      // This function creates an entity card for each
+      // icon in the `EntityCompactLayoutIcons` enum, 
+      // and then displays the icon name in that card.
+      var entities = [];
+      icons.forEach(function(iconName, index, array) {
+        var icon = iconNames[iconName];
+        entities.push([
+          {
+            type: "Entity",
+            text: iconName,
+            properties: {},
+            layouts: {
+              compact: {
+                icon
+              }
+            }
+          }
+        ]);
+      });
+      return entities;
+    }
+
+    async function createIcons() {
+      await Excel.run(async (context) => {
+        // This function populates Column A in the worksheet 
+        // with all of the entities and icons created by the 
+        // `createEntitiesWitIcons` method.
+        const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
+        var rangeStr = "A1:A" + Object.keys(iconNames).length;
+        var range = sheet.getRange(rangeStr);
+        
+        range.valuesAsJson = createEntitiesWitIcons(Object.keys(iconNames));
+
+        await context.sync();
+      });
+    }
+
+    async function setup() {
+      await Excel.run(async (context) => {
+        // Create a new worksheet called "Sample" and activate it.
+        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+        const sheet = context.workbook.worksheets.add("Sample");
+        sheet.activate();
+        await context.sync();
+      });
+    }
+
+    /** Default helper for invoking an action and handling errors. */
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+  language: typescript
+template:
+  content: "<section class=\"ms-font-m\">\n\t<p>This sample shows how to display all the icons available for entity data types, along with the name of each icon.\n\t</p>\n</section>\n<section class=\"setup ms-font-m\">\n\t<h3>Set up</h3>\n\t<button id=\"setup\" class=\"ms-Button\">\n\t\t<span class=\"ms-Button-label\">Set up</span>\n\t</button>\n</section>\n<section class=\"samples ms-font-m\">\n\t<h3>Run sample</h3>\n\t<button id=\"create-icons\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Create icons</span> \n  </button>\n</section>"
+  language: html
+style:
+  content: |-
+    section.samples {
+        margin-top: 20px;
+    }
+
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+libraries: |-
+  https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+  @types/office-js
+
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
+
+  jquery@3.1.1
+  @types/jquery@3.3.1

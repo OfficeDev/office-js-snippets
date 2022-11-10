@@ -19,29 +19,26 @@ script:
             await context.sync();
             const allSlidesList = {};
             const allSlidesCount = context.presentation.slides.getCount();
+            context.presentation.slides.load("items");
             await context.sync();
-            for (let i = 0; i < allSlideCount.value; i++) {
-              let allSlideItems = context.presentation.slides.getItemAt(i);
-              allSlideItem.load("id");
-              await context.sync();
-              allSlideList[allSlideItem.id] = `Slide ${i + 1}`;
-            }
+            let allSlideItems = context.presentation.slides.items;
+            allSlideItems.map((slide, index) => {
+              allSlidesList[slide.id] = `Slide ${index + 1}`;
+            });
+
             if ($("#id-check-usenative").is(":checked")) {
               context.presentation.load("tags");
             }
             const slides = context.presentation.getSelectedSlides();
             const slideCount = slides.getCount();
+            slides.load("items");
             await context.sync();
             finalTable += "<br>getSelectedSlides.getCount returned:<b>" + slideCount.value + "</b><br>";
             finalTable +=
               "<br><table border=1 cellpadding=3 cellspacing=0><tr><td bgcolor=#3333EE><font color=white>Index</font></td><td bgcolor=#3333EE><font color=white>Id</font></td></tr>";
-            for (let i = 0; i < slideCount.value; i++) {
-              const thisItem = slides.getItemAt(i);
-              await context.sync();
-              thisItem.load("id");
-              await context.sync();
-              finalTable += "<tr><td>" + i + " - " + allSlideList[thisItem.id] + "</td><td>" + thisItem.id + "</td></tr>";
-            }
+            slides.items.map((slide, index) => {
+              finalTable += "<tr><td>" + index + " - " + allSlidesList[slide.id] + "</td><td>" + slide.id + "</td></tr>";
+            });
             finalTable += "</table>";
             $("#outputSpan").empty();
             $("#outputSpan").append(finalTable);
@@ -53,13 +50,14 @@ script:
             await context.sync();
             const slides = context.presentation.getSelectedSlides();
             const slideCount = slides.getCount();
+            slides.load("items");
             await context.sync();
-            for (let i = 0; i < slideCount.value; i++) {
-              let thisItem = slides.getItemAt(i);
-              thisItem.delete();
-            }
+            slides.items.map((slide) => {
+              slide.delete();
+            });
           });
         }
+
         async function setSelectedSlides() {
           await PowerPoint.run(async (context) => {
             context.presentation.load("slides");
@@ -67,11 +65,11 @@ script:
             const slide2 = context.presentation.slides.getItemAt(1);
             const slide4 = context.presentation.slides.getItemAt(3);
             const slide5 = context.presentation.slides.getItemAt(4);
-            slide1.load("id");
-            slide3.load("id");
+            slide2.load("id");
             slide4.load("id");
+            slide5.load("id");
             await context.sync();
-            context.presentation.setSelectedSlides([slide1.id, slide3.id, slide4.id]);
+            context.presentation.setSelectedSlides([slide2.id, slide4.id, slide5.id]);
             await context.sync();
           });
         }
@@ -102,6 +100,7 @@ script:
             $("#outputSpan").append(finalTable);
           });
         }
+
         async function loadSlideSelection() {
           await PowerPoint.run(async (context) => {
             context.presentation.setSelectedSlides(savedSlideSelection);

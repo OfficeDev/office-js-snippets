@@ -46,18 +46,24 @@ script:
             const shapeCount = shapes.getCount();
             await context.sync();
             if (shapeCount.value !== 1) {
-              console.log("You must select at least one shape with text in it.");
+              console.warn("You must select only one shape with text in it.");
               return;
             }
             const shape = shapes.getItemAt(0);
             shape.textFrame.load("textRange");
             shape.textFrame.load("hasText");
             await context.sync();
+            if (shape.textFrame.hasText != true) {
+              console.warn("You must select only one shape with text in it.");
+              return;
+            }
+
             const textrange1 = shape.textFrame.textRange.getSubstring(0, 10);
             textrange1.setSelected();
             await context.sync();
           });
         }
+
         async function changeColor() {
           await PowerPoint.run(async (context) => {
             const textRange = context.presentation.getSelectedTextRange();
@@ -65,6 +71,7 @@ script:
             await context.sync();
           });
         }
+
         let savedTextSlideSelection = [];
         let savedTextShapeSelection = [];
         let savedTextTextRangeStart;
@@ -76,34 +83,33 @@ script:
             await context.sync();
             const slides = context.presentation.getSelectedSlides();
             const slideCount = slides.getCount();
+            slides.load("items");
             await context.sync();
             savedTextSlideSelection = [];
-            for (let i = 0; i < slideCount.value; i++) {
-              const thisItem = slides.getItemAt(i);
-              await context.sync();
-              thisItem.load("id");
-              await context.sync();
-              savedTextSlideSelection.push(thisItem.id);
-            }
+            slides.items.map((slide) => {
+              savedTextSlideSelection.push(slide.id);
+            });
+
             const shapes = context.presentation.getSelectedShapes();
-            const shapeCount = shapes.getCount();
+            shapes.load("items");
             await context.sync();
             savedTextShapeSelection = [];
-            for (let i = 0; i < 1; i++) {
-              const thisItem = shapes.getItemAt(i);
-              await context.sync();
-              thisItem.load("id");
-              await context.sync();
-              savedTextShapeSelection.push(thisItem.id);
-            }
-            const savedTextRange = context.presentation.getSelectedTextRange();
+            shapes.items.map((shape) => {
+              savedTextShapeSelection.push(shape.id);
+            });
+            const savedTextRange = context.presentation.getSelectedTextRangeOrNullObject();
             savedTextRange.load("start");
             savedTextRange.load("length");
             await context.sync();
+            if (savedTextRange.isNullObject) {
+              console.warn("You must select only one shape with text in it.");
+              return;
+            }
             savedTextTextRangeStart = savedTextRange.start;
             savedTextTextRangeLength = savedTextRange.length;
           });
         }
+
         async function loadTextSelection() {
           await PowerPoint.run(async (context) => {
             const slide1 = context.presentation.slides.getItem(savedTextSlideSelection[0]);

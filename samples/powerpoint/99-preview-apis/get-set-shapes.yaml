@@ -13,7 +13,6 @@ script:
         $("#loadShapeSelection").click(() => tryCatch(loadShapeSelection));
         $("#createShapes").click(() => tryCatch(createShapes));
         $("#arrangeSelected").click(() => tryCatch(arrangeSelected));
-        $("#arrangeCircular").click(() => tryCatch(arrangeCircular));
 
         async function getSelectedShapes() {
           await PowerPoint.run(async (context) => {
@@ -59,16 +58,16 @@ script:
           await PowerPoint.run(async (context) => {
             const shapes = context.presentation.getSelectedShapes();
             const shapeCount = shapes.getCount();
+            shapes.load("items");
             await context.sync();
-            for (let i = 0; i < shapeCount.value; i++) {
-              const thisItem = shapes.getItemAt(i);
-              thisItem.fill.setSolidColor("red");
-            }
+            shapes.items.map((shape) => {
+              shape.fill.setSolidColor("red");
+            });
             await context.sync();
           });
         }
 
-        let savedShapeSlideSelection = [];
+        let savedSlideSelection = [];
         let savedShapeSelection = [];
         async function saveShapeSelection() {
           await PowerPoint.run(async (context) => {
@@ -76,33 +75,28 @@ script:
             await context.sync();
             const slides = context.presentation.getSelectedSlides();
             const slideCount = slides.getCount();
+            slides.load("items");
             await context.sync();
-            savedShapeSlideSelection = [];
-            for (let i = 0; i < slideCount.value; i++) {
-              const thisItem = slides.getItemAt(i);
-              await context.sync();
-              thisItem.load("id");
-              await context.sync();
-              savedShapeSlideSelection.push(thisItem.id);
-            }
+            savedSlideSelection = [];
+            slides.items.map((slide) => {
+              savedSlideSelection.push(slide.id);
+            });
             const shapes = context.presentation.getSelectedShapes();
             const shapeCount = shapes.getCount();
+            shapes.load("items");
             await context.sync();
-            savedShapeShapeSelection = [];
-            for (let i = 0; i < shapeCount.value; i++) {
-              const thisItem = shapes.getItemAt(i);
-              await context.sync();
-              thisItem.load("id");
-              await context.sync();
-              savedShapeShapeSelection.push(thisItem.id);
-            }
+            shapes.items.map((shape) => {
+              savedShapeSelection.push(shape.id);
+            });
           });
+
         }
 
         async function loadShapeSelection() {
           await PowerPoint.run(async (context) => {
-            const slide1 = context.presentation.slides.getItem(savedShapeSlideSelection[0]);
-            slide1.setSelectedShapes(savedShapeShapeSelection);
+            const slide1 = context.presentation.slides.getItem(savedSlideSelection[0]);
+            await context.sync();
+            slide1.setSelectedShapes(savedShapeSelection);
             await context.sync();
           });
         }
@@ -147,62 +141,22 @@ script:
           await PowerPoint.run(async (context) => {
             const shapes = context.presentation.getSelectedShapes();
             const shapeCount = shapes.getCount();
+            shapes.load("items");
             await context.sync();
             let maxHeight = 0;
-            for (let i = 0; i < shapeCount.value; i++) {
-              let thisItem = shapes.getItemAt(i);
-              thisItem.load("width,height");
-              await context.sync();
-              thisItem.left = currentLeft;
-              thisItem.top = currentTop;
-              currentLeft += thisItem.width;
-              if (thisItem.height > maxHeight) maxHeight = thisItem.height;
-            }
+            shapes.items.map((shape) => {
+              shape.load("width,height");
+            });
+            await context.sync();
+            shapes.items.map((shape) => {
+              shape.left = currentLeft;
+              shape.top = currentTop;
+              currentLeft += shape.width;
+              if (shape.height > maxHeight) maxHeight = shape.height;
+            });
+            await context.sync();
             currentLeft = 0;
             if (currentTop > slideHeight - 200) currentTop = 0;
-            await context.sync();
-          });
-        }
-
-        async function arrangeCircular() {
-          await PowerPoint.run(async (context) => {
-            const shapes = context.presentation.getSelectedShapes();
-            const shapeCount = shapes.getCount();
-            await context.sync();
-            if (shapeCount.value === 0) return;
-            const degrees = (2 * Math.PI) / shapeCount.value;
-            const currentDegree = 0;
-            //let distance = slideHeight * 0.75;
-            
-            let minX = 0;
-            let maxX = 0;
-            let minY = 0;
-            let maxY = 0;
-            let distance = 0;
-            for (let i = 0; i < shapeCount.value; i++) {
-              const thisItem = shapes.getItemAt(i);
-              thisItem.load("left,top,width,height");
-              await context.sync();
-              if (thisItem.left < minX) minX = thisItem.left;
-              if (thisItem.top < minY) minY = thisItem.top;
-              if (thisItem.left + thisItem.width > maxX) maxX = thisItem.left + thisItem.width;
-              if (thisItem.top + thisItem.height > maxY) maxY = thisItem.top + thisItem.height;
-              if (thisItem.width > distance) distance = thisItem.width;
-              if (thisItem.height > distance) distance = thisItem.height;
-            }
-            distance *= 1.25;
-            const centerX = (maxX - minX) / 2 + minX;
-            const centerY = (maxY - minY) / 2 + minY;
-            for (let i = 0; i < shapeCount.value; i++) {
-              let thisItem = shapes.getItemAt(i);
-              thisItem.load("width,height");
-              await context.sync();
-              const thisX = centerX + distance * Math.cos(i * degrees);
-              const thisY = centerY + distance * Math.sin(i * degrees);
-              thisItem.left = thisX - thisItem.width / 2;
-              thisItem.top = thisY - thisItem.height / 2;
-            }
-            await context.sync();
           });
         }
 
@@ -231,7 +185,6 @@ template:
         <br><button id="saveShapeSelection" class="ms-Button"><span class="ms-Button-label">Save selected shapes</span></button>
         <br><button id="loadShapeSelection" class="ms-Button"><span class="ms-Button-label">Load selected shapes</span></button>
         <br><button id="arrangeSelected" class="ms-Button"><span class="ms-Button-label">Arrange selected shapes</span></button>
-        <br><button id="arrangeCircular" class="ms-Button"><span class="ms-Button-label">Arrange shapes in a circle</span></button>
           <span id="outputSpan"></span>
         </section>
     language: html

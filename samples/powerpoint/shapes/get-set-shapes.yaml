@@ -16,6 +16,7 @@ script:
         $("#arrangeSelected").click(() => tryCatch(arrangeSelected));
 
         async function getSelectedShapes() {
+          // Gets the shapes you selected on the slide and displays their ids on the task pane.
           await PowerPoint.run(async (context) => {
             let finalTable = "";
             const shapes = context.presentation.getSelectedShapes();
@@ -24,13 +25,11 @@ script:
             finalTable += "<br>getSelectedShapes.getCount returned:<b>" + shapeCount.value + "</b><br>";
             finalTable +=
               "<br><table border=1 cellpadding=3 cellspacing=0><tr><td bgcolor=#3333EE><font color=white>Index</font></td><td bgcolor=#3333EE><font color=white>Id</font></td></tr>";
-            for (let i = 0; i < shapeCount.value; i++) {
-              const thisItem = shapes.getItemAt(i);
-              await context.sync();
-              thisItem.load("id");
-              await context.sync();
-              finalTable += "<tr><td>" + i + "</td><td>" + thisItem.id + "</td></tr>";
-            }
+            shapes.load("items");
+            await context.sync();
+            shapes.items.map((shape, index) => {
+              finalTable += "<tr><td>" + index + "</td><td>" + shape.id + "</td></tr>";
+            });
             finalTable += "</table>";
             $("#outputSpan").empty();
             $("#outputSpan").append(finalTable);
@@ -38,6 +37,7 @@ script:
         }
 
         async function setSelectedShapes() {
+          // Selects the first two shapes on the selected slide.
           await PowerPoint.run(async (context) => {
             context.presentation.load("slides");
             await context.sync();
@@ -45,17 +45,18 @@ script:
             slide1.load("shapes");
             await context.sync();
             const shapes = slide1.shapes;
-            const shape0 = shapes.getItemAt(0);
+            const shape1 = shapes.getItemAt(0);
             const shape2 = shapes.getItemAt(1);
-            shape0.load("id");
+            shape1.load("id");
             shape2.load("id");
             await context.sync();
-            slide1.setSelectedShapes([shape0.id, shape2.id]);
+            slide1.setSelectedShapes([shape1.id, shape2.id]);
             await context.sync();
           });
         }
 
         async function changeFill() {
+          // Changes the selected shapes fill color to red.
           await PowerPoint.run(async (context) => {
             const shapes = context.presentation.getSelectedShapes();
             const shapeCount = shapes.getCount();
@@ -90,10 +91,10 @@ script:
               savedShapeSelection.push(shape.id);
             });
           });
-
         }
 
         async function loadShapeSelection() {
+          // Reselects shapes that were saved previously.
           await PowerPoint.run(async (context) => {
             const slide1 = context.presentation.slides.getItem(savedSlideSelection[0]);
             await context.sync();
@@ -115,6 +116,7 @@ script:
         }
 
         async function createShapes() {
+          // Creates random shapes on the selected slide.
           await PowerPoint.run(async (context) => {
             let finalTable = "";
             const currentSlide = context.presentation.getSelectedSlides().getItemAt(0);
@@ -139,6 +141,7 @@ script:
         let currentLeft = 0;
         let currentTop = 0;
         async function arrangeSelected() {
+          // Arranges the selected shapes in a line from left to right.
           await PowerPoint.run(async (context) => {
             const shapes = context.presentation.getSelectedShapes();
             const shapeCount = shapes.getCount();

@@ -6,113 +6,113 @@ host: EXCEL
 api_set:
     ExcelApi: '1.16'
 script:
-  content: |
-    $("#setup").click(() => tryCatch(setup));
-    $("#create-icons").click(() => tryCatch(createIcons));
+    content: |
+        $("#setup").click(() => tryCatch(setup));
+        $("#create-icons").click(() => tryCatch(createIcons));
 
-    // Retrieve the entity card icons enum.
-    const iconNames = Excel.EntityCompactLayoutIcons;
-    let icons;
+        // Retrieve the entity card icons enum.
+        const iconNames = Excel.EntityCompactLayoutIcons;
+        let icons;
 
-    function createEntitiesWithIcons(icons): Excel.EntityCellValue[][] {
-      // This method creates an entity data type for each
-      // icon in the `EntityCompactLayoutIcons` enum,
-      // and then displays the icon name with its icon.
-      let entities = [];
-      icons.forEach(function(iconName, index, array) {
-        let icon = iconNames[iconName];
-        entities.push([
-          {
-            type: "Entity",
-            text: iconName,
-            properties: {},
-            layouts: {
-              compact: {
-                icon
+        function createEntitiesWithIcons(icons): Excel.EntityCellValue[][] {
+          // This method creates an entity data type for each
+          // icon in the `EntityCompactLayoutIcons` enum,
+          // and then displays the icon name with its icon.
+          let entities = [];
+          icons.forEach(function(iconName, index, array) {
+            let icon = iconNames[iconName];
+            entities.push([
+              {
+                type: "Entity",
+                text: iconName,
+                properties: {},
+                layouts: {
+                  compact: {
+                    icon
+                  }
+                }
               }
-            }
+            ]);
+          });
+          return entities;
+        }
+
+        async function createIcons() {
+          await Excel.run(async (context) => {
+            // This method populates Column A in the worksheet
+            // with all of the entities and icons created by the
+            // `createEntitiesWithIcons` method.
+            const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
+            let rangeStr = "A1:A" + Object.keys(iconNames).length;
+            let range = sheet.getRange(rangeStr);
+
+            range.valuesAsJson = createEntitiesWithIcons(Object.keys(iconNames));
+
+            await context.sync();
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            // Create a new worksheet called "Sample" and activate it.
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
           }
-        ]);
-      });
-      return entities;
-    }
-
-    async function createIcons() {
-      await Excel.run(async (context) => {
-        // This method populates Column A in the worksheet
-        // with all of the entities and icons created by the
-        // `createEntitiesWithIcons` method.
-        const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
-        let rangeStr = "A1:A" + Object.keys(iconNames).length;
-        let range = sheet.getRange(rangeStr);
-
-        range.valuesAsJson = createEntitiesWithIcons(Object.keys(iconNames));
-
-        await context.sync();
-      });
-    }
-
-    async function setup() {
-      await Excel.run(async (context) => {
-        // Create a new worksheet called "Sample" and activate it.
-        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
-        const sheet = context.workbook.worksheets.add("Sample");
-        sheet.activate();
-        await context.sync();
-      });
-    }
-
-    /** Default helper for invoking an action and handling errors. */
-    async function tryCatch(callback) {
-      try {
-        await callback();
-      } catch (error) {
-        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-        console.error(error);
-      }
-    }
-  language: typescript
+        }
+    language: typescript
 template:
-  content: |-
-    <section class="ms-font-m">
-      <p>This sample shows how to display all the icons available for entity data types, along with the name of each icon.</p>
-      <p>After creating the icons, select an icon to open the entity card for that data type. The entity cards in this sample display only the icon names.</p>
-    </section>
-    <section class="setup ms-font-m">
-      <h3>Set up</h3>
-      <button id="setup" class="ms-Button">
-        <span class="ms-Button-label">Set up</span>
-      </button>
-    </section>
-    <section class="samples ms-font-m">
-      <h3>Run sample</h3>
-      <button id="create-icons" class="ms-Button">
-        <span class="ms-Button-label">Create icons</span> 
-      </button>
-    </section>
-  language: html
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to display all the icons available for entity data types, along with the name of each icon.</p>
+          <p>After creating the icons, select an icon to open the entity card for that data type. The entity cards in this sample display only the icon names.</p>
+        </section>
+        <section class="setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Set up</span>
+          </button>
+        </section>
+        <section class="samples ms-font-m">
+          <h3>Run sample</h3>
+          <button id="create-icons" class="ms-Button">
+            <span class="ms-Button-label">Create icons</span> 
+          </button>
+        </section>
+    language: html
 style:
-  content: |-
-    section.samples {
-        margin-top: 20px;
-    }
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
 
-    section.samples .ms-Button, section.setup .ms-Button {
-        display: block;
-        margin-bottom: 5px;
-        margin-left: 20px;
-        min-width: 80px;
-    }
-  language: css
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
 libraries: |-
-  https://appsforoffice.microsoft.com/lib/1/hosted/office.js
-  @types/office-js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
 
-  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
-  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
 
-  core-js@2.4.1/client/core.min.js
-  @types/core-js
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
 
-  jquery@3.1.1
-  @types/jquery@3.3.1
+    jquery@3.1.1
+    @types/jquery@3.3.1

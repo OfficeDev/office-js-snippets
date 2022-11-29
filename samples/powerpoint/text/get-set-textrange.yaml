@@ -59,16 +59,21 @@ script:
               return;
             }
             const shape = shapes.getItemAt(0);
-            shape.textFrame.load("textRange");
-            shape.textFrame.load("hasText");
+            const textFrame = shape.textFrame.load("textRange,hasText");
             await context.sync();
-            if (shape.textFrame.hasText != true) {
+            if (textFrame.hasText != true) {
               console.warn("You must select only one shape with text in it.");
               return;
             }
-
-            const textrange1 = shape.textFrame.textRange.getSubstring(0, 10);
-            textrange1.setSelected();
+            const textRange = textFrame.textRange;
+            textRange.load("text");
+            await context.sync();
+            if (textRange.text.length < 10) {
+              console.warn("You must select only one shape with at lest 10 characters in it.");
+              return;
+            }
+            const textRange10 = textRange.getSubstring(0, 10);
+            textRange10.setSelected();
             await context.sync();
           });
         }
@@ -109,8 +114,7 @@ script:
               savedTextShapeSelection.push(shape.id);
             });
             const savedTextRange = context.presentation.getSelectedTextRangeOrNullObject();
-            savedTextRange.load("start");
-            savedTextRange.load("length");
+            savedTextRange.load("start,length");
             await context.sync();
             if (savedTextRange.isNullObject) {
               console.warn("You must select only one shape with text in it.");
@@ -140,20 +144,20 @@ script:
             // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
             console.error(error);
           }
-        } 
+        }
     language: typescript
 template:
     content: |
         <section class="ms-font-m">
-            <p>This sample shows how to get selected text, and how to select specific text.</p>
+          <p>This sample shows how to get selected text, and how to select specific text.</p>
         </section>
         <section class="samples ms-font-m">
-            <h3>Try it out</h3>
-        <button id="getSelectedTextRange" class="ms-Button"><span class="ms-Button-label">Get selected text range</span></button>
-        <br><button id="setSelectedTextRange" class="ms-Button"><span class="ms-Button-label">Selects the first 10 characters of the selected shape.</span></button>
-        <br><button id="changeColor" class="ms-Button"><span class="ms-Button-label">Change color of selected text</span></button>
-        <br><button id="saveTextSelection" class="ms-Button"><span class="ms-Button-label">Save text selection</span></button>
-        <br><button id="loadTextSelection" class="ms-Button"><span class="ms-Button-label">Load the saved selection</span></button>
+          <h3>Try it out</h3>
+          <button id="getSelectedTextRange" class="ms-Button"><span class="ms-Button-label">Get selected text range</span></button>
+          <br><button id="setSelectedTextRange" class="ms-Button"><span class="ms-Button-label">Selects the first 10 characters of the selected shape.</span></button>
+          <br><button id="changeColor" class="ms-Button"><span class="ms-Button-label">Change color of selected text</span></button>
+          <br><button id="saveTextSelection" class="ms-Button"><span class="ms-Button-label">Save text selection</span></button>
+          <br><button id="loadTextSelection" class="ms-Button"><span class="ms-Button-label">Load the saved selection</span></button>
           <span id="outputSpan"></span>
         </section>
     language: html

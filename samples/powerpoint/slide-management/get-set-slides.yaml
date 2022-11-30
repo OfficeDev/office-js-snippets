@@ -1,0 +1,178 @@
+order: 4
+id: powerpoint-slide-management-get-set-slides
+name: 'Get, set, load, and save slides'
+description: Get and set one or more selected slides. Load and save one or more slides.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.5'
+script:
+    content: |-
+        $("#getSelectedSlides").click(() => tryCatch(getSelectedSlides));
+        $("#setSelectedSlides").click(() => tryCatch(setSelectedSlides));
+        $("#deleteSlides").click(() => tryCatch(deleteSlides));
+        $("#saveSlideSelection").click(() => tryCatch(saveSlideSelection));
+        $("#loadSlideSelection").click(() => tryCatch(loadSlideSelection));
+
+        async function getSelectedSlides() {
+          // Gets the selected slides and displays their IDs on the task pane.
+          await PowerPoint.run(async (context) => {
+            let finalTable = "";
+            context.presentation.load("slides");
+            await context.sync();
+            const allSlidesList = {};
+            const allSlidesCount = context.presentation.slides.getCount();
+            context.presentation.slides.load("items");
+            await context.sync();
+            let allSlideItems = context.presentation.slides.items;
+            allSlideItems.map((slide, index) => {
+              allSlidesList[slide.id] = `Slide ${index + 1}`;
+            });
+
+            if ($("#id-check-usenative").is(":checked")) {
+              context.presentation.load("tags");
+            }
+            const slides = context.presentation.getSelectedSlides();
+            const slideCount = slides.getCount();
+            slides.load("items");
+            await context.sync();
+            finalTable += "<br>getSelectedSlides.getCount returned:<b>" + slideCount.value + "</b><br>";
+            finalTable +=
+              "<br><table border=1 cellpadding=3 cellspacing=0><tr><td bgcolor=#3333EE><font color=white>Index</font></td><td bgcolor=#3333EE><font color=white>Id</font></td></tr>";
+            slides.items.map((slide, index) => {
+              finalTable += "<tr><td>" + index + " - " + allSlidesList[slide.id] + "</td><td>" + slide.id + "</td></tr>";
+            });
+            finalTable += "</table>";
+            $("#outputSpan").empty();
+            $("#outputSpan").append(finalTable);
+          });
+        }
+        async function deleteSlides() {
+          // Deletes the selected slides.
+          await PowerPoint.run(async (context) => {
+            context.presentation.load("slides");
+            await context.sync();
+            const slides = context.presentation.getSelectedSlides();
+            const slideCount = slides.getCount();
+            slides.load("items");
+            await context.sync();
+            slides.items.map((slide) => {
+              slide.delete();
+            });
+          });
+        }
+
+        async function setSelectedSlides() {
+          // Selects slides 2, 4, and 5.
+          await PowerPoint.run(async (context) => {
+            context.presentation.load("slides");
+            await context.sync();
+            const slide2 = context.presentation.slides.getItemAt(1);
+            const slide4 = context.presentation.slides.getItemAt(3);
+            const slide5 = context.presentation.slides.getItemAt(4);
+            slide2.load("id");
+            slide4.load("id");
+            slide5.load("id");
+            try {
+              await context.sync();
+            } catch (error) {
+              console.warn("This action requires at least 5 slides in the presentation.");
+              return;
+            }
+            await context.sync();
+            context.presentation.setSelectedSlides([slide2.id, slide4.id, slide5.id]);
+            await context.sync();
+          });
+        }
+
+        let savedSlideSelection = [];
+        async function saveSlideSelection() {
+          // Saves which slides are currently selected so they can be reselected later.
+          await PowerPoint.run(async (context) => {
+            let finalTable = "";
+            context.presentation.load("slides");
+            await context.sync();
+            const slides = context.presentation.getSelectedSlides();
+            const slideCount = slides.getCount();
+            await context.sync();
+            finalTable += "<br>getSelectedSlides.getCount returned:<b>" + slideCount.value + "</b><br>";
+            finalTable +=
+              "<br><table border=1 cellpadding=3 cellspacing=0><tr><td bgcolor=#3333EE><font color=white>Index</font></td><td bgcolor=#3333EE><font color=white>Id</font></td></tr>";
+            savedSlideSelection = [];
+            slides.load("items");
+            await context.sync();
+            slides.items.map((slide, index) => {
+              finalTable += "<tr><td>" + index + "</td><td>" + slide.id + "</td></tr>";
+              savedSlideSelection.push(slide.id);
+            });
+            finalTable += "</table>";
+            $("#outputSpan").empty();
+            $("#outputSpan").append(finalTable);
+          });
+        }
+
+        async function loadSlideSelection() {
+          // Sets selection to the slides that were saved.
+          await PowerPoint.run(async (context) => {
+            context.presentation.setSelectedSlides(savedSlideSelection);
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to get selected slides, and how to select specific slides.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+          <button id="getSelectedSlides" class="ms-Button"><span class="ms-Button-label">Get selected slides</span></button>
+          <br><button id="setSelectedSlides" class="ms-Button"><span class="ms-Button-label">Set selection to slides 2, 4, and 5</span></button>
+          <br><button id="deleteSlides" class="ms-Button"><span class="ms-Button-label">Delete selected slides</span></button>
+          <br><button id="saveSlideSelection" class="ms-Button"><span class="ms-Button-label">Save selected slides</span></button>
+          <br><button id="loadSlideSelection" class="ms-Button"><span class="ms-Button-label">Load the saved slide selection</span></button>
+          <span id="outputSpan"></span>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+        .content {
+          padding: 0 18px;
+          /* display: none; */
+          overflow: hidden;
+          background-color: #f1f1f1;
+          max-height: 0;
+          transition: max-height 0.2s ease-out;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

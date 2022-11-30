@@ -1,0 +1,227 @@
+order: 2
+id: powerpoint-shapes-get-set-shapes
+name: 'Get, set, load, and save shapes'
+description: Get and set one or more selected shapes. Load and save one or more shapes.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.5'
+script:
+    content: |
+        $("#getSelectedShapes").click(() => tryCatch(getSelectedShapes));
+        $("#setSelectedShapes").click(() => tryCatch(setSelectedShapes));
+        $("#changeFill").click(() => tryCatch(changeFill));
+        $("#saveShapeSelection").click(() => tryCatch(saveShapeSelection));
+        $("#loadShapeSelection").click(() => tryCatch(loadShapeSelection));
+        $("#createShapes").click(() => tryCatch(createShapes));
+        $("#arrangeSelected").click(() => tryCatch(arrangeSelected));
+
+        async function getSelectedShapes() {
+          // Gets the shapes you selected on the slide and displays their IDs on the task pane.
+          await PowerPoint.run(async (context) => {
+            let finalTable = "";
+            const shapes = context.presentation.getSelectedShapes();
+            const shapeCount = shapes.getCount();
+            await context.sync();
+            finalTable += "<br>getSelectedShapes.getCount returned:<b>" + shapeCount.value + "</b><br>";
+            finalTable +=
+              "<br><table border=1 cellpadding=3 cellspacing=0><tr><td bgcolor=#3333EE><font color=white>Index</font></td><td bgcolor=#3333EE><font color=white>Id</font></td></tr>";
+            shapes.load("items");
+            await context.sync();
+            shapes.items.map((shape, index) => {
+              finalTable += "<tr><td>" + index + "</td><td>" + shape.id + "</td></tr>";
+            });
+            finalTable += "</table>";
+            $("#outputSpan").empty();
+            $("#outputSpan").append(finalTable);
+          });
+        }
+
+        async function setSelectedShapes() {
+          // Selects the first two shapes on slide 1.
+          await PowerPoint.run(async (context) => {
+            context.presentation.load("slides");
+            await context.sync();
+            const slide1 = context.presentation.slides.getItemAt(0);
+            slide1.load("shapes");
+            await context.sync();
+            const shapes = slide1.shapes;
+            const shape1 = shapes.getItemAt(0);
+            const shape2 = shapes.getItemAt(1);
+            shape1.load("id");
+            shape2.load("id");
+            await context.sync();
+            slide1.setSelectedShapes([shape1.id, shape2.id]);
+            await context.sync();
+          });
+        }
+
+        async function changeFill() {
+          // Changes the selected shapes fill color to red.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedShapes();
+            const shapeCount = shapes.getCount();
+            shapes.load("items");
+            await context.sync();
+            shapes.items.map((shape) => {
+              shape.fill.setSolidColor("red");
+            });
+            await context.sync();
+          });
+        }
+
+        let savedSlideSelection = [];
+        let savedShapeSelection = [];
+        async function saveShapeSelection() {
+          // Saves which shapes are selected so that they can be reselected later.
+          await PowerPoint.run(async (context) => {
+            context.presentation.load("slides");
+            await context.sync();
+            const slides = context.presentation.getSelectedSlides();
+            const slideCount = slides.getCount();
+            slides.load("items");
+            await context.sync();
+            savedSlideSelection = [];
+            slides.items.map((slide) => {
+              savedSlideSelection.push(slide.id);
+            });
+            const shapes = context.presentation.getSelectedShapes();
+            const shapeCount = shapes.getCount();
+            shapes.load("items");
+            await context.sync();
+            shapes.items.map((shape) => {
+              savedShapeSelection.push(shape.id);
+            });
+          });
+        }
+
+        async function loadShapeSelection() {
+          // Reselects shapes that were saved previously.
+          await PowerPoint.run(async (context) => {
+            const slide1 = context.presentation.slides.getItem(savedSlideSelection[0]);
+            await context.sync();
+            slide1.setSelectedShapes(savedShapeSelection);
+            await context.sync();
+          });
+        }
+
+        const slideWidth = 960;
+        const slideHeight = 540;
+        function getRandomBetween(a, b) {
+          return Math.random() * (b - a) + a;
+        }
+
+        function generateRandomHexColor() {
+          return `#${Math.random()
+            .toString(16)
+            .substring(2, 8)}`;
+        }
+
+        async function createShapes() {
+          // Creates random shapes on the selected slide.
+          await PowerPoint.run(async (context) => {
+            let finalTable = "";
+            const currentSlide = context.presentation.getSelectedSlides().getItemAt(0);
+            const maxNewShapeWidth = 200;
+            const maxNewShapeHeight = 200;
+            const minNewShapeWidth = 50;
+            const minNewShapeHeight = 50;
+            for (let i = 0; i < 20; i++) {
+              const rectangle = currentSlide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+              rectangle.height = getRandomBetween(minNewShapeWidth, maxNewShapeWidth);
+              rectangle.width = getRandomBetween(minNewShapeHeight, maxNewShapeHeight);
+              rectangle.left = getRandomBetween(0, slideWidth - rectangle.width);
+              rectangle.top = getRandomBetween(0, slideHeight - rectangle.height);
+              rectangle.fill.foregroundColor = generateRandomHexColor();
+            }
+            finalTable += "Done<br>";
+            $("#slide-tags").empty();
+            $("#slide-tags").append(finalTable);
+          });
+        }
+
+        let currentLeft = 0;
+        let currentTop = 0;
+        async function arrangeSelected() {
+          // Arranges the selected shapes in a line from left to right.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedShapes();
+            const shapeCount = shapes.getCount();
+            shapes.load("items");
+            await context.sync();
+            let maxHeight = 0;
+            shapes.items.map((shape) => {
+              shape.load("width,height");
+            });
+            await context.sync();
+            shapes.items.map((shape) => {
+              shape.left = currentLeft;
+              shape.top = currentTop;
+              currentLeft += shape.width;
+              if (shape.height > maxHeight) maxHeight = shape.height;
+            });
+            await context.sync();
+            currentLeft = 0;
+            if (currentTop > slideHeight - 200) currentTop = 0;
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+            <p>This sample shows how to get selected shapes, and how to select and change specific shapes.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+        <button id="createShapes" class="ms-Button"><span class="ms-Button-label">Create shapes</span></button>
+        <br><button id="getSelectedShapes" class="ms-Button"><span class="ms-Button-label">Get selected shapes</span></button>
+        <br><button id="setSelectedShapes" class="ms-Button"><span class="ms-Button-label">Select first two shapes on slide one</span></button>
+        <br><button id="changeFill" class="ms-Button"><span class="ms-Button-label">Change fill color of selected shapes</span></button>
+        <br><button id="saveShapeSelection" class="ms-Button"><span class="ms-Button-label">Save selected shapes</span></button>
+        <br><button id="loadShapeSelection" class="ms-Button"><span class="ms-Button-label">Load the saved shapes selection</span></button>
+        <br><button id="arrangeSelected" class="ms-Button"><span class="ms-Button-label">Arrange selected shapes</span></button>
+          <span id="outputSpan"></span>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+        .content {
+          padding: 0 18px;
+          /* display: none; */
+          overflow: hidden;
+          background-color: #f1f1f1;
+          max-height: 0;
+          transition: max-height 0.2s ease-out;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

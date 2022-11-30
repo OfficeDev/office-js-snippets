@@ -1,0 +1,195 @@
+order: 1
+id: powerpoint-text-get-set-textrange
+name: Work with text range selections
+description: 'Get, set, load, and save text range selections.'
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.5'
+script:
+    content: |
+        $("#getSelectedTextRange").click(() => tryCatch(getSelectedTextRange));
+        $("#setSelectedTextRange").click(() => tryCatch(setSelectedTextRange));
+        $("#changeColor").click(() => tryCatch(changeColor));
+        $("#saveTextSelection").click(() => tryCatch(saveTextSelection));
+        $("#loadTextSelection").click(() => tryCatch(loadTextSelection));
+
+        async function getSelectedTextRange() {
+          // Gets the selected text range and prints data about the range on the task pane.
+          await PowerPoint.run(async (context) => {
+            const textRange = context.presentation.getSelectedTextRange();
+            try {
+              await context.sync();
+            } catch (error) {
+              console.warn("You must select only one range of text for this action to work.");
+              return;
+            }
+            textRange.load("text");
+            textRange.load("start");
+            textRange.load("length");
+            await context.sync();
+            let txtHtml = textRange.text;
+            txtHtml = txtHtml.replace(/\n/g, "<br>");
+            txtHtml = txtHtml.replace(/\r/g, "<br>");
+            txtHtml = txtHtml.replace(/\v/g, "<br>");
+            let txtExplained = textRange.text;
+            txtExplained = txtExplained.replace(/\n/g, "<font color=red>NL</font>");
+            txtExplained = txtExplained.replace(/\r/g, "<font color=red>CR</font>");
+            txtExplained = txtExplained.replace(/\v/g, "<font color=red>VV</font>");
+            let finalTable = "";
+            finalTable +=
+              "<br><table border=1 cellpadding=3 cellspacing=0><tr><td bgcolor=#3333EE><font color=white>Index</font></td><td bgcolor=#3333EE><font color=white>Id</font></td></tr>";
+            finalTable += "<tr><td>Raw</td><td>" + textRange.text + "</td></tr>";
+            finalTable += "<tr><td>Html</td><td>" + txtHtml + "</td></tr>";
+            finalTable += "<tr><td>Exp</td><td>" + txtExplained + "</td></tr>";
+            finalTable += "<tr><td>Start</td><td>" + textRange.start + "</td></tr>";
+            finalTable += "<tr><td>Length</td><td>" + textRange.length + "</td></tr>";
+            finalTable += "</table>";
+            $("#outputSpan").empty();
+            $("#outputSpan").append(finalTable);
+          });
+        }
+        async function setSelectedTextRange() {
+          // Selects the first 10 characters of the selected shape.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedShapes();
+            const shapeCount = shapes.getCount();
+            await context.sync();
+            if (shapeCount.value !== 1) {
+              console.warn("You must select only one shape with text in it.");
+              return;
+            }
+            const shape = shapes.getItemAt(0);
+            const textFrame = shape.textFrame.load("textRange,hasText");
+            await context.sync();
+            if (textFrame.hasText != true) {
+              console.warn("You must select only one shape with text in it.");
+              return;
+            }
+            const textRange = textFrame.textRange;
+            textRange.load("text");
+            await context.sync();
+            if (textRange.text.length < 10) {
+              console.warn("You must select only one shape with at least 10 characters in it.");
+              return;
+            }
+            const textRange10 = textRange.getSubstring(0, 10);
+            textRange10.setSelected();
+            await context.sync();
+          });
+        }
+
+        async function changeColor() {
+          // Sets the color of the selected text range to green.
+          await PowerPoint.run(async (context) => {
+            const textRange = context.presentation.getSelectedTextRange();
+            textRange.font.color = "green";
+            await context.sync();
+          });
+        }
+
+        let savedTextSlideSelection = [];
+        let savedTextShapeSelection = [];
+        let savedTextTextRangeStart;
+        let savedTextTextRangeLength;
+        async function saveTextSelection() {
+          // Saves the range that is currently selected so it can be reselected later.
+          await PowerPoint.run(async (context) => {
+            let finalTable = "";
+            context.presentation.load("slides");
+            await context.sync();
+            const slides = context.presentation.getSelectedSlides();
+            const slideCount = slides.getCount();
+            slides.load("items");
+            await context.sync();
+            savedTextSlideSelection = [];
+            slides.items.map((slide) => {
+              savedTextSlideSelection.push(slide.id);
+            });
+
+            const shapes = context.presentation.getSelectedShapes();
+            shapes.load("items");
+            await context.sync();
+            savedTextShapeSelection = [];
+            shapes.items.map((shape) => {
+              savedTextShapeSelection.push(shape.id);
+            });
+            const savedTextRange = context.presentation.getSelectedTextRangeOrNullObject();
+            savedTextRange.load("start,length");
+            await context.sync();
+            if (savedTextRange.isNullObject) {
+              console.warn("You must select only one shape with text in it.");
+              return;
+            }
+            savedTextTextRangeStart = savedTextRange.start;
+            savedTextTextRangeLength = savedTextRange.length;
+          });
+        }
+
+        async function loadTextSelection() {
+          // Sets the range selection to the range that was saved previously.
+          await PowerPoint.run(async (context) => {
+            const slide1 = context.presentation.slides.getItem(savedTextSlideSelection[0]);
+            const shape1 = slide1.shapes.getItem(savedTextShapeSelection[0]);
+            const textRange = shape1.textFrame.textRange.getSubstring(savedTextTextRangeStart, savedTextTextRangeLength);
+            textRange.setSelected();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |
+        <section class="ms-font-m">
+          <p>This sample shows how to get selected text, and how to select specific text.</p>
+        </section>
+        <section class="samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="getSelectedTextRange" class="ms-Button"><span class="ms-Button-label">Get selected text range</span></button>
+          <br><button id="setSelectedTextRange" class="ms-Button"><span class="ms-Button-label">Selects the first 10 characters of the selected shape.</span></button>
+          <br><button id="changeColor" class="ms-Button"><span class="ms-Button-label">Change color of selected text</span></button>
+          <br><button id="saveTextSelection" class="ms-Button"><span class="ms-Button-label">Save text selection</span></button>
+          <br><button id="loadTextSelection" class="ms-Button"><span class="ms-Button-label">Load the saved selection</span></button>
+          <span id="outputSpan"></span>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+        .content {
+          padding: 0 18px;
+          /* display: none; */
+          overflow: hidden;
+          background-color: #f1f1f1;
+          max-height: 0;
+          transition: max-height 0.2s ease-out;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

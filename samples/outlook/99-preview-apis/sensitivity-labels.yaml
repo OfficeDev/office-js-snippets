@@ -1,0 +1,102 @@
+order: 4
+id: outlook-sensitivity-labels-sensitivity-labels
+name: Work with sensitivity labels (Compose)
+description: Gets and sets the sensitivity label on a message or appointment in compose mode.
+host: OUTLOOK
+api_set:
+    Mailbox: preview
+script:
+    content: |
+        $("#get-sensitivity-label").click(getCurrentSensitivityLabel);
+        $("#set-sensitivity-label").click(setSensitivityLabel);
+
+        function getCurrentSensitivityLabel() {
+          // This snippet gets the current mail item's sensitivity label.
+          Office.context.sensitivityLabelsCatalog.getIsEnabledAsync((asyncResult) => {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded && asyncResult.value == true) {
+              Office.context.mailbox.item.sensitivityLabel.getAsync((asyncResult) => {
+                if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+                  console.log(asyncResult.value);
+                } else {
+                  console.log("Action failed with error: " + asyncResult.error.message);
+                }
+              });
+            } else {
+              console.log("Action failed with error: " + asyncResult.error.message);
+            }
+          });
+        }
+
+        function setSensitivityLabel() {
+          // This snippet sets the sensitivity label on the current mail item.
+          Office.context.sensitivityLabelsCatalog.getIsEnabledAsync((asyncResult) => {
+            if (asyncResult.status === Office.AsyncResultStatus.Succeeded && asyncResult.value == true) {
+              Office.context.sensitivityLabelsCatalog.getAsync((asyncResult) => {
+                if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+                  const catalog = asyncResult.value;
+                  if (catalog.length > 0) {
+                    var id = catalog[0].id;
+                    Office.context.mailbox.item.sensitivityLabel.setAsync(id, (asyncResult) => {
+                      if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+                        console.log(asyncResult.status);
+                      } else {
+                        console.log("Action failed with error: " + asyncResult.error.message);
+                      }
+                    });
+                  }
+                  else {
+                    console.log("Catalog list is empty");
+                  }
+                } else {
+                  console.log("Action failed with error: " + asyncResult.error.message);
+                }
+              });
+            } else {
+              console.log("Action failed with error: " + asyncResult.error.message);
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p class="ms-font-m">This sample shows how to get and set the sensitivity label on a message or appointment being composed.</p>
+            <p><b>Required mode</b>: Compose</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-sensitivity-label" class="ms-Button">
+              <span class="ms-Button-label">Get sensitivity label</span>
+          </button>
+            <button id="set-sensitivity-label" class="ms-Button">
+            <span class="ms-Button-label">Set sensitivity label</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.d.ts
+    @types//office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

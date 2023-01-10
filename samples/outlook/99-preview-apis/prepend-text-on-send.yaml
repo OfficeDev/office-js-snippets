@@ -1,0 +1,79 @@
+order: 2
+id: outlook-item-body-prepend-text-on-send
+name: Prepend text to item body on send
+description: Prepends text to the beginning of the message or appointment's body once it's sent.
+host: OUTLOOK
+api_set:
+    Mailbox: preview
+script:
+    content: |
+        $("#prepend-on-send").click(prependOnSend);
+
+        function prependOnSend() {
+          // This snippet prepends text to the beginning of the message or appointment's body once it's sent.
+          const text = $("#text-field").val();
+
+          // It's recommended to call getTypeAsync and pass its returned value to the options.coercionType parameter of the prependOnSendAsync call.
+          Office.context.mailbox.item.body.getTypeAsync((asyncResult) => {
+            if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+              console.log("Action failed with error: " + asyncResult.error.message);
+              return;
+            }
+
+            const bodyFormat = asyncResult.value;
+            Office.context.mailbox.item.body.prependOnSendAsync(text, { coercionType: bodyFormat }, (asyncResult) => {
+              if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+                console.log("Action failed with error: " + asyncResult.error.message);
+                return;
+              }
+
+              console.log(`"${text}" will be prepended to the body once the message or appointment is sent. Send the mail item to test this feature.`);
+            });
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p class="ms-font-m">This sample prepends text to the beginning of the message or appointment's body once it's sent.</p>
+            <p><b>Required mode</b>: Compose</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p><b>Important</b>: To use <code>prependOnSendAsync</code>, you must set <code>AppendOnSend</code> as an extended permission in the <code>ExtendedPermissions</code> manifest element. <code>appendOnSendAsync</code> and <code>prependOnSendAsync</code> both use the <code>AppendOnSend</code> extended permission.
+            <div class="ms-TextField">
+                <label class="ms-Label">Enter text to prepend to the body: </label>
+                <input id="text-field" type="text" class="ms-TextField-field" value="P.S. This text was prepended on send.">
+            </div>
+            <br>
+            <button id="prepend-on-send" class="ms-Button">
+                <span class="ms-Button-label">Prepend text on send</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

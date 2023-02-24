@@ -12,11 +12,13 @@ script:
         $("#count").click(() => tryCatch(run));
 
         async function run() {
+          // Count how many times each term appears in the document.
           await Word.run(async (context) => {
             const paragraphs = context.document.body.paragraphs;
             paragraphs.load("text");
             await context.sync();
 
+            // Split up the document text using existing spaces as the delimiter.
             let text = [];
             paragraphs.items.forEach((item) => {
               let paragraph = item.text.trim();
@@ -30,6 +32,7 @@ script:
               }
             });
 
+            // Determine the list of unique terms.
             let makeTextDistinct = new Set(text);
             let distinctText = Array.from(makeTextDistinct);
             let allSearchResults = [];
@@ -38,7 +41,7 @@ script:
               let results = context.document.body.search(distinctText[i], { matchCase: true, matchWholeWord: true });
               results.load("text");
 
-              // Map search term with its results.
+              // Map each search term with its results.
               let correlatedResults = {
                 searchTerm: distinctText[i],
                 hits: results
@@ -49,7 +52,7 @@ script:
 
             await context.sync();
 
-            // Display counts.
+            // Display the count for each search term.
             allSearchResults.forEach((result) => {
               let length = result.hits.items.length;
 

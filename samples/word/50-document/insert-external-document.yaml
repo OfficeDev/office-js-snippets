@@ -1,0 +1,102 @@
+order: 2
+id: word-document-insert-external-document
+name: Insert an external document
+description: Inserts the text of an external document into the current document.
+host: WORD
+api_set:
+    WordApi: '1.3'
+script:
+    content: |
+        $("#file").change(getBase64);
+        $("#insert-document").click(() => tryCatch(insertDocument));
+
+        let externalDocument;
+
+        async function insertDocument() {
+          // Update the text of the current document with the text from another document passed in as a Base64-encoded string.
+          await Word.run(async (context) => {
+            // Use the Base64-encoded string representation of the selected .docx file.
+            const externalDoc = context.application.createDocument(externalDocument);
+            await context.sync();
+
+            const externalDocBody = externalDoc.body;
+            externalDocBody.load("text");
+            await context.sync();
+
+            // Insert the external document's text at the beginning of the current document's body.
+            const externalDocBodyText = externalDocBody.text;
+            const currentDocBody = context.document.body;
+            currentDocBody.insertText(externalDocBodyText, Word.InsertLocation.start);
+            await context.sync();
+          });
+        }
+
+        function getBase64() {
+          // Retrieve the file and set up an HTML FileReader element.
+          const myFile = <HTMLInputElement>document.getElementById("file");
+          const reader = new FileReader();
+
+          reader.onload = (event) => {
+            // Remove the metadata before the Base64-encoded string.
+            const startIndex = reader.result.toString().indexOf("base64,");
+            externalDocument = reader.result.toString().substr(startIndex + 7);
+          };
+
+          // Read the file as a data URL so that we can parse the Base64-encoded string.
+          reader.readAsDataURL(myFile.files[0]);
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to insert the body text from an external document into the current document.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Select a Word document to copy its body text into the current document.</p>
+            <form>
+                <input type="file" id="file" />
+          </form>
+                <br>
+                <p>Insert the body text from the selected document.</p>
+                <button id="insert-document" class="ms-Button">
+            <span class="ms-Button-label">Insert document</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

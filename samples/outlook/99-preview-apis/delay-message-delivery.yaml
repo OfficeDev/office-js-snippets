@@ -1,0 +1,123 @@
+order: 5
+id: outlook-delay-message-delivery
+name: Get and set message delivery (Message Compose)
+description: Get and set the delivery date and time of a message in compose mode.
+host: OUTLOOK
+api_set:
+    Mailbox: preview
+script:
+    content: |
+        $("#get-date").click(getDeliveryDate);
+        $("#set-time-five-minutes").click(() => computeDelay("set-time-five-minutes"));
+        $("#set-time-fifteen-minutes").click(() => computeDelay("set-time-fifteen-minutes"));
+        $("#set-time-thirty-minutes").click(() => computeDelay("set-time-thirty-minutes"));
+        $("#set-time-sixty-minutes").click(() => computeDelay("set-time-sixty-minutes"));
+        $("#set-time-one-day").click(() => computeDelay("set-time-one-day"));
+
+        let totalDelay = 0;
+
+        function computeDelay(input) {
+          // This snippet identifies additional delivery delay time in minutes and adds it to the total delivery delay time of a message.
+          const element = document.getElementById(input) as HTMLInputElement | null;
+          if (element != null) {
+            const minutes = Number(element.value);
+            totalDelay += minutes;
+            setDeliveryDate(minutes);
+          }
+        }
+
+        function getDeliveryDate() {
+          // This snippet gets the delivery date and time of a message.
+          Office.context.mailbox.item.delayDeliveryTime.getAsync((asyncResult) => {
+            if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+              console.log(asyncResult.error.message);
+              return;
+            }
+
+            const deliveryDate = asyncResult.value;
+
+            if (deliveryDate.toString() === "0") {
+              console.log(`Message delivery date and time: ${new Date()}`);
+            } else {
+              const date = new Date(deliveryDate);
+              console.log(`Message delivery date and time: ${date.toString()}`);
+            }
+          });
+        }
+
+        function setDeliveryDate(minutes) {
+          // This snippet sets the delivery date and time of a message.
+          const currentTime = new Date().getTime();
+          const milliseconds = totalDelay * 60000;
+          const timeDelay = new Date(currentTime + milliseconds);
+          Office.context.mailbox.item.delayDeliveryTime.setAsync(timeDelay, (asyncResult) => {
+            if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+              console.log(asyncResult.error.message);
+              return;
+            }
+
+            if (minutes === 1440) {
+              console.log(`Delayed delivery by an additional one day.`);
+            } else {
+              console.log(`Delayed delivery by an additional ${minutes} minutes.`);
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p class="ms-font-m">This sample gets and sets the delivery date and time of a message in compose mode.</p>
+            <p><b>Required mode</b>: Compose</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <div class="ms-TextField">
+                <button id="get-date" class="ms-Button">
+                        <span class="ms-Button-label">View message delivery date and time</span>
+                </button>
+                <br>
+                <p class="ms-font-m"><b>Delay message delivery by:</b></p>
+                <button id="set-time-five-minutes" value="5" class="ms-Button">
+                        <span class="ms-Button-label">5 minutes</span>
+                </button>
+                <button id="set-time-fifteen-minutes" value="15" class="ms-Button">
+                        <span class="ms-Button-label">15 minutes</span>
+                </button>
+                <button id="set-time-thirty-minutes" value="30" class="ms-Button">
+                        <span class="ms-Button-label">30 minutes</span>
+                </button>
+                <button id="set-time-sixty-minutes" value="60" class="ms-Button">
+                        <span class="ms-Button-label">60 minutes</span>
+                </button>
+                <button id="set-time-one-day" value="1440" class="ms-Button">
+                        <span class="ms-Button-label">1 day</span>
+                </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

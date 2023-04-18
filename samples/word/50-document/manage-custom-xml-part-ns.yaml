@@ -1,7 +1,7 @@
-order: 8
-id: word-document-manage-custom-xml-part
-name: Manage a CustomXmlPart without namespace
-description: 'This sample shows how to add, query, edit, and delete a custom XML part in a document.'
+order: 9
+id: word-document-manage-custom-xml-part-ns
+name: Manage a CustomXmlPart with namespace
+description: 'This sample shows how to add, query, replace, edit, and delete a custom XML part with namespace in a document.'
 host: WORD
 api_set:
     WordApi: '1.4'
@@ -9,28 +9,31 @@ script:
     content: |
         $("#add-custom-xml-part").click(() => tryCatch(addCustomXmlPart));
         $("#query").click(() => tryCatch(query));
+        $("#get-namespace").click(() => tryCatch(getNamespace));
+        $("#replace-custom-xml-part").click(() => tryCatch(replace));
         $("#insert-attribute").click(() => tryCatch(insertAttribute));
         $("#insert-element").click(() => tryCatch(insertElement));
         $("#delete-custom-xml-part").click(() => tryCatch(deleteCustomXmlPart));
 
         async function addCustomXmlPart() {
           // Add a custom XML part.
+          // If you want to populate the CustomXml.namespaceUri property, you must include the xmlns attribute.
           await Word.run(async (context) => {
             const originalXml =
-              "<Reviewers><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
+              "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
             const customXmlPart = context.document.customXmlParts.add(originalXml);
-            customXmlPart.load("id");
+            customXmlPart.load(["id", "namespaceUri"]);
             const xmlBlob = customXmlPart.getXml();
 
             await context.sync();
 
             const readableXml = addLineBreaksToXML(xmlBlob.value);
-            console.log("Added custom XML part:");
+            console.log(`Added custom XML part with namespace URI ${customXmlPart.namespaceUri}:`);
             console.log(readableXml);
 
             // Store the XML part's ID in a setting so the ID is available to other functions.
             const settings = context.document.settings;
-            settings.add("ContosoReviewXmlPartId", customXmlPart.id);
+            settings.add("ContosoReviewXmlPartIdNS", customXmlPart.id);
 
             await context.sync();
           });
@@ -40,13 +43,13 @@ script:
           // Query a custom XML part for elements matching the search terms.
           await Word.run(async (context) => {
             const settings = context.document.settings;
-            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
+            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartIdNS").load("value");
 
             await context.sync();
 
             if (xmlPartIDSetting.value) {
               const customXmlPart = context.document.customXmlParts.getItem(xmlPartIDSetting.value);
-              const xpathToQueryFor = "/Reviewers/Reviewer";
+              const xpathToQueryFor = "/contoso:Reviewers";
               const clientResult = customXmlPart.query(xpathToQueryFor, {
                 contoso: "http://schemas.contoso.com/review/1.0"
               });
@@ -63,18 +66,76 @@ script:
           });
         }
 
+        async function getNamespace() {
+          // Get the namespace URI from a custom XML part.
+          await Word.run(async (context) => {
+            const settings = context.document.settings;
+            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartIdNS").load("value");
+
+            await context.sync();
+
+            if (xmlPartIDSetting.value) {
+              const customXmlPart = context.document.customXmlParts.getItem(xmlPartIDSetting.value);
+              customXmlPart.load("namespaceUri");
+              await context.sync();
+
+              const namespaceUri = customXmlPart.namespaceUri;
+              console.log(`Namespace URI: ${JSON.stringify(namespaceUri)}`);
+            } else {
+              console.warn("Didn't find custom XML part");
+            }
+          });
+        }
+
+        async function replace() {
+          // Replace a custom XML part.
+          await Word.run(async (context) => {
+            const settings = context.document.settings;
+            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartIdNS").load("value");
+            await context.sync();
+
+            if (xmlPartIDSetting.value) {
+              const customXmlPart = context.document.customXmlParts.getItem(xmlPartIDSetting.value);
+              const originalXmlBlob = customXmlPart.getXml();
+              await context.sync();
+
+              let readableXml = addLineBreaksToXML(originalXmlBlob.value);
+              console.log("Original custom XML part:");
+              console.log(readableXml);
+
+              // The setXml method replaces the entire XML part.
+              customXmlPart.setXml(
+                "<Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>John</Reviewer><Reviewer>Hitomi</Reviewer></Reviewers>"
+              );
+              const updatedXmlBlob = customXmlPart.getXml();
+              await context.sync();
+
+              readableXml = addLineBreaksToXML(updatedXmlBlob.value);
+              console.log("Replaced custom XML part:");
+              console.log(readableXml);
+            } else {
+              console.warn("Didn't find custom XML part to replace");
+            }
+          });
+        }
+
         async function insertAttribute() {
           // Insert an attribute into a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
-            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
+            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartIdNS").load("value");
             await context.sync();
 
             if (xmlPartIDSetting.value) {
               const customXmlPart = context.document.customXmlParts.getItem(xmlPartIDSetting.value);
 
               // The insertAttribute method inserts an attribute with the given name and value into the element identified by the xpath parameter.
-              customXmlPart.insertAttribute("/Reviewers", { contoso: "http://schemas.contoso.com/review/1.0" }, "Nation", "US");
+              customXmlPart.insertAttribute(
+                "/contoso:Reviewers",
+                { contoso: "http://schemas.contoso.com/review/1.0" },
+                "Nation",
+                "US"
+              );
               const xmlBlob = customXmlPart.getXml();
               await context.sync();
 
@@ -91,7 +152,7 @@ script:
           // Insert an element into a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
-            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
+            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartIdNS").load("value");
             await context.sync();
 
             if (xmlPartIDSetting.value) {
@@ -99,7 +160,7 @@ script:
 
               // The insertElement method inserts the given XML under the parent element identified by the xpath parameter at the provided child position index.
               customXmlPart.insertElement(
-                "/Reviewers",
+                "/contoso:Reviewers",
                 "<Lead>Mark</Lead>",
                 { contoso: "http://schemas.contoso.com/review/1.0" },
                 0
@@ -120,7 +181,7 @@ script:
           // Delete a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
-            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartId").load("value");
+            const xmlPartIDSetting = settings.getItemOrNullObject("ContosoReviewXmlPartIdNS").load("value");
             await context.sync();
 
             if (xmlPartIDSetting.value) {
@@ -167,27 +228,33 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows how to add, query, edit, and delete a custom XML part in a document.</p>
-          <p><b>Note</b>: For your production add-in, make sure to create and host your own XML schema.</p>
+            <p>This sample shows how to add, query, replace, edit, and delete a custom XML part in a document.</p>
+            <p><b>Note</b>: For your production add-in, make sure to create and host your own XML schema.</p>
         </section>
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
             <button id="add-custom-xml-part" class="ms-Button">
             <span class="ms-Button-label">Add XML part</span>
-            </button>
+           </button>
             <button id="query" class="ms-Button">
-              <span class="ms-Button-label">Query</span>
-            </button>
+            <span class="ms-Button-label">Query</span>
+           </button>
+            <button id="get-namespace" class="ms-Button">
+            <span class="ms-Button-label">Get namespace URI</span>
+          </button>
+            <button id="replace-custom-xml-part" class="ms-Button">
+            <span class="ms-Button-label">Replace XML part</span>
+          </button>
             <button id="insert-attribute" class="ms-Button">
-                <span class="ms-Button-label">Insert attribute</span>
+              <span class="ms-Button-label">Insert attribute</span>
             </button>
             <button id="insert-element" class="ms-Button">
-                <span class="ms-Button-label">Insert element</span>
-            </button>
+            <span class="ms-Button-label">Insert element</span>
+          </button>
             <button id="delete-custom-xml-part" class="ms-Button">
             <span class="ms-Button-label">Delete XML part</span>
-            </button>
+          </button>
         </section>
     language: html
 style:

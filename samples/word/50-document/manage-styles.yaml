@@ -1,0 +1,278 @@
+order: 10
+id: word-document-manage-styles
+name: Manage styles
+description: This sample shows how to perform operations on the styles in the current document and and how to add and delete custom styles.
+host: WORD
+api_set:
+    WordApi: '1.5'
+script:
+    content: |
+        $("#count").click(() => tryCatch(getCount));
+        $("#add-style").click(() => tryCatch(addStyle));
+        $("#properties").click(() => tryCatch(getProperties));
+        $("#apply-style").click(() => tryCatch(applyStyle));
+        $("#font-color").click(() => tryCatch(setFontColor));
+        $("#font-size").click(() => tryCatch(setFontSize));
+        $("#left-indent").click(() => tryCatch(setParagraphFormatLeftIndent));
+        $("#align").click(() => tryCatch(setParagraphFormatAlignment));
+        $("#delete-style").click(() => tryCatch(deleteStyle));
+
+        async function getCount() {
+          // Get the number of styles.
+          await Word.run(async (context) => {
+            const styles = context.document.getStyles();
+            const count = styles.getCount();
+            await context.sync();
+
+            console.log(`Number of styles: ${count.value}`);
+          });
+        }
+
+        async function addStyle() {
+          // Add a new style.
+          await Word.run(async (context) => {
+            const newStyleName = $("#new-style-name").val() as string;
+            if (newStyleName == "") {
+              return;
+            }
+            const style = context.document.getStyles().getByNameOrNullObject(newStyleName);
+            style.load();
+            await context.sync();
+            if (style.nameLocal) {
+              console.log("There's an existing style with the same style name! Please provide another style name.");
+              return;
+            }
+            const newStyleType = ($("#new-style-type").val() as unknown) as Word.StyleType;
+            context.document.addStyle(newStyleName, newStyleType);
+            console.log(newStyleName + " has been added to the style list.");
+          });
+        }
+
+        async function getProperties() {
+          // Get the properties of the specified style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+            if (!style.nameLocal) {
+              console.log("There's no existing style with this style name.");
+            } else {
+              style.font.load();
+              style.paragraphFormat.load();
+              await context.sync();
+
+              console.log(`Properties of specified style: ${style}`);
+            }
+          });
+        }
+
+        async function applyStyle() {
+          // Apply the specified style to a paragraph.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+            if (!style.nameLocal) {
+              console.log("There's no existing style with this style name.");
+            } else if (style.type != Word.StyleType.paragraph) {
+              console.log("The style isn't a paragraph style.");
+            } else {
+              const body = context.document.body;
+              body.clear();
+              body.insertParagraph(
+                "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+                "Start"
+              );
+              const paragraph = body.paragraphs.getFirst();
+              paragraph.style = style.nameLocal;
+              console.log("Specified style applied to first paragraph.");
+            }
+          });
+        }
+
+        async function setFontColor() {
+          // Update the font color of the specified style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+            if (!style.nameLocal) {
+              console.log("There's no existing style with this style name.");
+            } else {
+              const font = style.font;
+              font.color = "#FF0000";
+              console.log("Successfully updated font color of specified style.");
+            }
+          });
+        }
+
+        async function setFontSize() {
+          // Update the font size of the specified style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+            if (!style.nameLocal) {
+              console.log("There's no existing style with this style name.");
+            } else {
+              style.font.size = 20;
+              console.log("Successfully updated font size of specified style.");
+            }
+          });
+        }
+
+        async function setParagraphFormatLeftIndent() {
+          // Set the left indent size of the specified style's paragraph format.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+            if (!style.nameLocal) {
+              console.log("There's no existing style with this style name.");
+            } else {
+              style.paragraphFormat.leftIndent = 30;
+              console.log("Successfully set size of left indent.");
+            }
+          });
+        }
+
+        async function setParagraphFormatAlignment() {
+          // Set the specified style's paragraph alignment to centered.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+            if (!style.nameLocal) {
+              console.log("There's no existing style with this style name.");
+            } else {
+              style.paragraphFormat.alignment = Word.Alignment.centered;
+              console.log("Successfully set paragraph alignment to centered.");
+            }
+          });
+        }
+
+        async function deleteStyle() {
+          // Delete the custom style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name-to-delete").val() as string;
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+            if (!style.nameLocal) {
+              console.log("There's no existing style with this style name.");
+            } else {
+              style.delete();
+              console.log("Successfully deleted custom style.");
+            }
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to manage styles.
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>
+                <h4>Get current number of styles</h4>
+                <button id="count" class="ms-Button">
+                        <span class="ms-Button-label">Get count</span>
+                </button>
+            </p>
+
+            <h4>Add a new style</h4>
+            <p>
+                <label style="margin-left: 20px">Name:</label>
+                <input id="new-style-name"/>
+            </p>
+                <p />
+                <label style="margin-left: 20px">Type:</label>
+                <select id="new-style-type">
+                <option>Paragraph</option>
+            <option>Character</option>  
+            <option>List</option>  
+            <option>Table</option>
+          </select>
+                <p />
+                <button id="add-style" class="ms-Button">
+            <span class="ms-Button-label">Add style</span>
+          </button>
+
+                <h4>Update custom style</h4>
+                <label style="margin-left: 20px">Style name:</label>
+                <input id="style-name"/>
+                <p />
+                <button id="properties" class="ms-Button">
+              <span class="ms-Button-label">Get style's properties</span>
+            </button>
+                <p />
+                <button id="apply-style" class="ms-Button">
+              <span class="ms-Button-label">Apply a paragraph style</span>
+            </button>
+                <p />
+                <button id="font-color" class="ms-Button">
+            <span class="ms-Button-label">Set style's font color to red</span>
+          </button>
+                <p />
+                <button id="font-size" class="ms-Button">
+            <span class="ms-Button-label">Set style's font size to 20</span>
+          </button>
+                <p />
+                <button id="left-indent" class="ms-Button">
+            <span class="ms-Button-label">Set style's paragraph left indent to 30</span>
+          </button>
+                <p />
+                <button id="align" class="ms-Button">
+            <span class="ms-Button-label">Set style's paragraph alignment to center</span>
+          </button>
+
+                <h4>Delete custom style</h4>
+                <p>
+                    <label style="margin-left: 20px">Style name:</label>
+                    <input id="style-name-to-delete"/>
+                    <button id="delete-style" class="ms-Button">
+              <span class="ms-Button-label">Delete style</span>
+              </button>
+                </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+    jquery@3.1.1
+    @types/jquery@3.3.1

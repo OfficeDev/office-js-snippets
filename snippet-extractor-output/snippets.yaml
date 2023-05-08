@@ -15057,6 +15057,49 @@
         console.warn("Didn't find custom XML part to query");
       }
     });
+'Word.Document#addStyle:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Add a new style.
+
+    await Word.run(async (context) => {
+      const newStyleName = $("#new-style-name").val() as string;
+      if (newStyleName == "") {
+        console.warn("Enter a style name to add.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(newStyleName);
+      style.load();
+      await context.sync();
+
+      if (style.nameLocal) {
+        console.warn(
+          `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
+        );
+        return;
+      }
+
+      const newStyleType = ($("#new-style-type").val() as unknown) as Word.StyleType;
+      context.document.addStyle(newStyleName, newStyleType);
+      console.log(newStyleName + " has been added to the style list.");
+    });
+'Word.Document#getStyles:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Get the number of styles.
+
+    await Word.run(async (context) => {
+      const styles = context.document.getStyles();
+      const count = styles.getCount();
+      await context.sync();
+
+      console.log(`Number of styles: ${count.value}`);
+    });
 'Word.Document#changeTrackingMode:member':
   - >-
     // Link to full sample:
@@ -16123,6 +16166,40 @@
 
       await context.sync();
     });
+'Word.Paragraph#style:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Apply the specified style to a paragraph.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name-to-use").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to apply.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (!style.nameLocal) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else if (style.type != Word.StyleType.paragraph) {
+        console.log(`The '${styleName}' style isn't a paragraph style.`);
+      } else {
+        const body = context.document.body;
+        body.clear();
+        body.insertParagraph(
+          "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+          "Start"
+        );
+        const paragraph = body.paragraphs.getFirst();
+        paragraph.style = style.nameLocal;
+        console.log(`'${styleName}' style applied to first paragraph.`);
+      }
+    });
 'Word.Paragraph#styleBuiltIn:member':
   - >-
     // Link to full sample:
@@ -16215,6 +16292,56 @@
       list.insertParagraph("New paragraph goes after (not part of the list)", "After");
 
       await context.sync();
+    });
+'Word.ParagraphFormat#alignment:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Set the specified style's paragraph alignment to centered.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update alignment.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (!style.nameLocal) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        style.paragraphFormat.alignment = Word.Alignment.centered;
+        console.log(`Successfully set paragraph alignment to centered of the '${styleName}' style.`);
+      }
+    });
+'Word.ParagraphFormat#leftIndent:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Set the left indent size of the specified style's paragraph format.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update left indent.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (!style.nameLocal) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        style.paragraphFormat.leftIndent = 30;
+        console.log(`Successfully set size of left indent of the '${styleName}' style.`);
+      }
     });
 'Word.Range#compareLocationWith:member(1)':
   - >-
@@ -16546,6 +16673,193 @@
         for (let i = 0; i < settings.items.length; i++) {
           console.log(settings.items[i]);
         }
+      }
+    });
+'Word.Style#delete:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Delete the custom style.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name-to-delete").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to delete.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (!style.nameLocal) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        style.delete();
+        console.log(`Successfully deleted custom style '${styleName}'.`);
+      }
+    });
+'Word.Style#font:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Update the font color of the specified style.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update font color.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (!style.nameLocal) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        const font = style.font;
+        font.color = "#FF0000";
+        console.log(`Successfully updated font color of the '${styleName}' style.`);
+      }
+    });
+'Word.Style#nameLocal:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Apply the specified style to a paragraph.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name-to-use").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to apply.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (!style.nameLocal) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else if (style.type != Word.StyleType.paragraph) {
+        console.log(`The '${styleName}' style isn't a paragraph style.`);
+      } else {
+        const body = context.document.body;
+        body.clear();
+        body.insertParagraph(
+          "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+          "Start"
+        );
+        const paragraph = body.paragraphs.getFirst();
+        paragraph.style = style.nameLocal;
+        console.log(`'${styleName}' style applied to first paragraph.`);
+      }
+    });
+'Word.Style#paragraphFormat:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Set the left indent size of the specified style's paragraph format.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update left indent.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (!style.nameLocal) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        style.paragraphFormat.leftIndent = 30;
+        console.log(`Successfully set size of left indent of the '${styleName}' style.`);
+      }
+    });
+'Word.StyleCollection#getByNameOrNullObject:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Add a new style.
+
+    await Word.run(async (context) => {
+      const newStyleName = $("#new-style-name").val() as string;
+      if (newStyleName == "") {
+        console.warn("Enter a style name to add.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(newStyleName);
+      style.load();
+      await context.sync();
+
+      if (style.nameLocal) {
+        console.warn(
+          `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
+        );
+        return;
+      }
+
+      const newStyleType = ($("#new-style-type").val() as unknown) as Word.StyleType;
+      context.document.addStyle(newStyleName, newStyleType);
+      console.log(newStyleName + " has been added to the style list.");
+    });
+'Word.StyleCollection#getCount:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Get the number of styles.
+
+    await Word.run(async (context) => {
+      const styles = context.document.getStyles();
+      const count = styles.getCount();
+      await context.sync();
+
+      console.log(`Number of styles: ${count.value}`);
+    });
+'Word.StyleType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Apply the specified style to a paragraph.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name-to-use").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to apply.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (!style.nameLocal) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else if (style.type != Word.StyleType.paragraph) {
+        console.log(`The '${styleName}' style isn't a paragraph style.`);
+      } else {
+        const body = context.document.body;
+        body.clear();
+        body.insertParagraph(
+          "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+          "Start"
+        );
+        const paragraph = body.paragraphs.getFirst();
+        paragraph.style = style.nameLocal;
+        console.log(`'${styleName}' style applied to first paragraph.`);
       }
     });
 'Word.Table:class':

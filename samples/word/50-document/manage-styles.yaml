@@ -33,15 +33,21 @@ script:
           await Word.run(async (context) => {
             const newStyleName = $("#new-style-name").val() as string;
             if (newStyleName == "") {
+              console.warn("Enter a style name to add.");
               return;
             }
+
             const style = context.document.getStyles().getByNameOrNullObject(newStyleName);
             style.load();
             await context.sync();
+
             if (style.nameLocal) {
-              console.log("There's an existing style with the same style name! Please provide another style name.");
+              console.warn(
+                `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
+              );
               return;
             }
+
             const newStyleType = ($("#new-style-type").val() as unknown) as Word.StyleType;
             context.document.addStyle(newStyleName, newStyleType);
             console.log(newStyleName + " has been added to the style list.");
@@ -51,18 +57,25 @@ script:
         async function getProperties() {
           // Get the properties of the specified style.
           await Word.run(async (context) => {
-            const styleName = $("#style-name").val() as string;
+            const styleName = $("#style-name-to-use").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to get properties.");
+              return;
+            }
+
             const style = context.document.getStyles().getByNameOrNullObject(styleName);
             style.load();
             await context.sync();
+
             if (!style.nameLocal) {
-              console.log("There's no existing style with this style name.");
+              console.warn(`There's no existing style with the name '${styleName}'.`);
             } else {
               style.font.load();
               style.paragraphFormat.load();
               await context.sync();
 
-              console.log(`Properties of specified style: ${style}`);
+              console.log(`Properties of the '${styleName}' style:`);
+              console.log(style);
             }
           });
         }
@@ -70,14 +83,20 @@ script:
         async function applyStyle() {
           // Apply the specified style to a paragraph.
           await Word.run(async (context) => {
-            const styleName = $("#style-name").val() as string;
+            const styleName = $("#style-name-to-use").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to apply.");
+              return;
+            }
+
             const style = context.document.getStyles().getByNameOrNullObject(styleName);
             style.load();
             await context.sync();
+
             if (!style.nameLocal) {
-              console.log("There's no existing style with this style name.");
+              console.warn(`There's no existing style with the name '${styleName}'.`);
             } else if (style.type != Word.StyleType.paragraph) {
-              console.log("The style isn't a paragraph style.");
+              console.log(`The '${styleName}' style isn't a paragraph style.`);
             } else {
               const body = context.document.body;
               body.clear();
@@ -87,7 +106,7 @@ script:
               );
               const paragraph = body.paragraphs.getFirst();
               paragraph.style = style.nameLocal;
-              console.log("Specified style applied to first paragraph.");
+              console.log(`'${styleName}' style applied to first paragraph.`);
             }
           });
         }
@@ -96,15 +115,21 @@ script:
           // Update the font color of the specified style.
           await Word.run(async (context) => {
             const styleName = $("#style-name").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to update font color.");
+              return;
+            }
+
             const style = context.document.getStyles().getByNameOrNullObject(styleName);
             style.load();
             await context.sync();
+
             if (!style.nameLocal) {
-              console.log("There's no existing style with this style name.");
+              console.warn(`There's no existing style with the name '${styleName}'.`);
             } else {
               const font = style.font;
               font.color = "#FF0000";
-              console.log("Successfully updated font color of specified style.");
+              console.log(`Successfully updated font color of the '${styleName}' style.`);
             }
           });
         }
@@ -113,14 +138,20 @@ script:
           // Update the font size of the specified style.
           await Word.run(async (context) => {
             const styleName = $("#style-name").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to update font size.");
+              return;
+            }
+
             const style = context.document.getStyles().getByNameOrNullObject(styleName);
             style.load();
             await context.sync();
+
             if (!style.nameLocal) {
-              console.log("There's no existing style with this style name.");
+              console.warn(`There's no existing style with the name '${styleName}'.`);
             } else {
               style.font.size = 20;
-              console.log("Successfully updated font size of specified style.");
+              console.log(`Successfully updated font size of the '${styleName}' style.`);
             }
           });
         }
@@ -129,14 +160,20 @@ script:
           // Set the left indent size of the specified style's paragraph format.
           await Word.run(async (context) => {
             const styleName = $("#style-name").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to update left indent.");
+              return;
+            }
+
             const style = context.document.getStyles().getByNameOrNullObject(styleName);
             style.load();
             await context.sync();
+
             if (!style.nameLocal) {
-              console.log("There's no existing style with this style name.");
+              console.warn(`There's no existing style with the name '${styleName}'.`);
             } else {
               style.paragraphFormat.leftIndent = 30;
-              console.log("Successfully set size of left indent.");
+              console.log(`Successfully set size of left indent of the '${styleName}' style.`);
             }
           });
         }
@@ -145,14 +182,20 @@ script:
           // Set the specified style's paragraph alignment to centered.
           await Word.run(async (context) => {
             const styleName = $("#style-name").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to update alignment.");
+              return;
+            }
+
             const style = context.document.getStyles().getByNameOrNullObject(styleName);
             style.load();
             await context.sync();
+
             if (!style.nameLocal) {
-              console.log("There's no existing style with this style name.");
+              console.warn(`There's no existing style with the name '${styleName}'.`);
             } else {
               style.paragraphFormat.alignment = Word.Alignment.centered;
-              console.log("Successfully set paragraph alignment to centered.");
+              console.log(`Successfully set paragraph alignment to centered of the '${styleName}' style.`);
             }
           });
         }
@@ -161,14 +204,20 @@ script:
           // Delete the custom style.
           await Word.run(async (context) => {
             const styleName = $("#style-name-to-delete").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to delete.");
+              return;
+            }
+
             const style = context.document.getStyles().getByNameOrNullObject(styleName);
             style.load();
             await context.sync();
+
             if (!style.nameLocal) {
-              console.log("There's no existing style with this style name.");
+              console.warn(`There's no existing style with the name '${styleName}'.`);
             } else {
               style.delete();
-              console.log("Successfully deleted custom style.");
+              console.log(`Successfully deleted custom style '${styleName}'.`);
             }
           });
         }
@@ -199,6 +248,7 @@ template:
             </p>
 
             <h4>Add a new style</h4>
+            <div>Name the style using letters. Can include digits. Examples: NewName, newname1</div>
             <p>
                 <label style="margin-left: 20px">Name:</label>
                 <input id="new-style-name"/>
@@ -216,32 +266,36 @@ template:
             <span class="ms-Button-label">Add style</span>
           </button>
 
+                <h4>Use custom style</h4>
+                <label style="margin-left: 20px">Style name:</label>
+                <input id="style-name-to-use"/>
+                <p />
+                <button id="properties" class="ms-Button">
+              <span class="ms-Button-label">Get properties</span>
+            </button>
+                <p />
+                <button id="apply-style" class="ms-Button">
+              <span class="ms-Button-label">Apply style to paragraph</span>
+            </button>
+
                 <h4>Update custom style</h4>
                 <label style="margin-left: 20px">Style name:</label>
                 <input id="style-name"/>
                 <p />
-                <button id="properties" class="ms-Button">
-              <span class="ms-Button-label">Get style's properties</span>
-            </button>
-                <p />
-                <button id="apply-style" class="ms-Button">
-              <span class="ms-Button-label">Apply a paragraph style</span>
-            </button>
-                <p />
                 <button id="font-color" class="ms-Button">
-            <span class="ms-Button-label">Set style's font color to red</span>
+            <span class="ms-Button-label">Set font color to red</span>
           </button>
                 <p />
                 <button id="font-size" class="ms-Button">
-            <span class="ms-Button-label">Set style's font size to 20</span>
+            <span class="ms-Button-label">Set font size to 20</span>
           </button>
                 <p />
                 <button id="left-indent" class="ms-Button">
-            <span class="ms-Button-label">Set style's paragraph left indent to 30</span>
+            <span class="ms-Button-label">Set paragraph left indent to 30</span>
           </button>
                 <p />
                 <button id="align" class="ms-Button">
-            <span class="ms-Button-label">Set style's paragraph alignment to center</span>
+            <span class="ms-Button-label">Set paragraph alignment to center</span>
           </button>
 
                 <h4>Delete custom style</h4>

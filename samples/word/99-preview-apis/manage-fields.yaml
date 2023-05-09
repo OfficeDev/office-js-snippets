@@ -1,5 +1,4 @@
-order: 6
-id: word-document-manage-fields
+id: word-manage-fields
 name: Manage fields
 description: 'This sample shows how to perform basic operations on fields, including insert, get, and delete.'
 host: WORD
@@ -15,6 +14,7 @@ script:
         $("#get-selected-field-and-update").click(() => tryCatch(getSelectedFieldAndUpdate));
         $("#get-first-addin-field-and-set-data").click(() => tryCatch(getFirstAddinFieldAndSetData));
         $("#get-selected-field-and-lock-or-unlock").click(() => tryCatch(getFieldAndLockOrUnlock));
+        $("#get-selected-field-and-toggle").click(() => tryCatch(getFirstSelectionFieldAndToggle));
         $("#delete-first-field").click(() => tryCatch(deleteFirstField));
         $("#setup").click(() => tryCatch(setup));
 
@@ -59,7 +59,7 @@ script:
           // Gets the first field in the document.
           await Word.run(async (context) => {
             const field = context.document.body.fields.getFirstOrNullObject();
-            field.load(["code", "result", "locked", "type", "data", "kind"]);
+            field.load(["code", "result", "showCodes", "locked", "type", "data", "kind"]);
 
             await context.sync();
 
@@ -69,6 +69,7 @@ script:
               console.log("Code of first field: " + field.code);
               console.log("Result of first field: " + JSON.stringify(field.result));
               console.log("Type of first field: " + field.type);
+              console.log("Is the first field showing code? " + field.showCodes);
               console.log("Is the first field locked? " + field.locked);
               console.log("Kind of the first field: " + field.kind);
             }
@@ -192,6 +193,22 @@ script:
           });
         }
 
+        async function getFirstSelectionFieldAndToggle() {
+          // Gets the first field in the selection and toggles between showing the field code and showing the result.
+          await Word.run(async (context) => {
+            var field = context.document.getSelection().fields.getFirstOrNullObject();
+            field.load(["code", "result", "type", "locked", "showCodes"]);
+            await context.sync();
+
+            if (field.isNullObject) {
+              console.log("This document has no fields.");
+            } else {
+              field.showCodes = !field.showCodes;
+              await context.sync();
+            }
+          });
+        }
+
         async function deleteFirstField() {
           // Deletes the first field in the document.
           await Word.run(async (context) => {
@@ -288,6 +305,12 @@ template:
                 <div>Toggle the first field of the selection between locked and unlocked.</div>
                 <button id="get-selected-field-and-lock-or-unlock" class="ms-Button">
                     <span class="ms-Button-label">Toggle locked/unlocked</span>
+                </button>
+            </p>
+            <p>
+                <div>Toggle the first field of the selection between showing the code and showing the result.</div>
+                <button id="get-selected-field-and-toggle" class="ms-Button">
+                    <span class="ms-Button-label">Toggle showing code or result</span>
                 </button>
             </p>
 

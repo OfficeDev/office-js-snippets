@@ -13723,6 +13723,21 @@
       currentDocBody.insertText(externalDocBodyText, Word.InsertLocation.start);
       await context.sync();
     });
+'Word.Application#retrieveStylesFromBase64:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Gets style info from another document passed in as a Base64-encoded
+    string.
+
+    await Word.run(async (context) => {
+      const retrievedStyles = context.application.retrieveStylesFromBase64(externalDocument);
+      await context.sync();
+
+      console.log("Styles from the other document:");
+      console.log(retrievedStyles.value);
+    });
 'Word.Body#getComments:member(1)':
   - >-
     // Link to full sample:
@@ -15062,7 +15077,7 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Add a new style.
+    // Adds a new style.
 
     await Word.run(async (context) => {
       const newStyleName = $("#new-style-name").val() as string;
@@ -15075,7 +15090,7 @@
       style.load();
       await context.sync();
 
-      if (style.nameLocal) {
+      if (!style.isNullObject) {
         console.warn(
           `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
         );
@@ -15091,7 +15106,7 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Get the number of styles.
+    // Gets the number of styles.
 
     await Word.run(async (context) => {
       const styles = context.document.getStyles();
@@ -15245,6 +15260,8 @@
       } else {
         field.delete();
         await context.sync();
+
+        console.log("The first field in the document was deleted.");
       }
     });
 'Word.Field#select:member(1)':
@@ -15410,8 +15427,11 @@
       if (field.isNullObject) {
         console.log("The selection has no fields.");
       } else {
+        console.log(`The first field in the selection is currently ${field.locked ? "locked" : "unlocked"}`);
         field.locked = !field.locked;
         await context.sync();
+
+        console.log(`The first field in the selection is now ${field.locked ? "locked" : "unlocked"}`);
       }
     });
 'Word.Field#parentBody:member':
@@ -15455,26 +15475,6 @@
         console.log("Type of first field: " + field.type);
         console.log("Is the first field locked? " + field.locked);
         console.log("Kind of the first field: " + field.kind);
-      }
-    });
-'Word.Field#showCodes:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-fields.yaml
-
-    // Gets the first field in the selection and toggles between showing the
-    field code and showing the result.
-
-    await Word.run(async (context) => {
-      var field = context.document.getSelection().fields.getFirstOrNullObject();
-      field.load(["code", "result", "type", "locked", "showCodes"]);
-      await context.sync();
-
-      if (field.isNullObject) {
-        console.log("This document has no fields.");
-      } else {
-        field.showCodes = !field.showCodes;
-        await context.sync();
       }
     });
 'Word.Field#type:member':
@@ -16424,7 +16424,7 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Apply the specified style to a paragraph.
+    // Applies the specified style to a paragraph.
 
     await Word.run(async (context) => {
       const styleName = $("#style-name-to-use").val() as string;
@@ -16437,7 +16437,7 @@
       style.load();
       await context.sync();
 
-      if (!style.nameLocal) {
+      if (style.isNullObject) {
         console.warn(`There's no existing style with the name '${styleName}'.`);
       } else if (style.type != Word.StyleType.paragraph) {
         console.log(`The '${styleName}' style isn't a paragraph style.`);
@@ -16551,12 +16551,13 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Set the specified style's paragraph alignment to centered.
+    // Sets certain aspects of the specified style's paragraph format e.g., the
+    left indent size and the alignment.
 
     await Word.run(async (context) => {
       const styleName = $("#style-name").val() as string;
       if (styleName == "") {
-        console.warn("Enter a style name to update alignment.");
+        console.warn("Enter a style name to update its paragraph format.");
         return;
       }
 
@@ -16564,11 +16565,12 @@
       style.load();
       await context.sync();
 
-      if (!style.nameLocal) {
+      if (style.isNullObject) {
         console.warn(`There's no existing style with the name '${styleName}'.`);
       } else {
+        style.paragraphFormat.leftIndent = 30;
         style.paragraphFormat.alignment = Word.Alignment.centered;
-        console.log(`Successfully set paragraph alignment to centered of the '${styleName}' style.`);
+        console.log(`Successfully the paragraph format of the '${styleName}' style.`);
       }
     });
 'Word.ParagraphFormat#leftIndent:member':
@@ -16576,12 +16578,13 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Set the left indent size of the specified style's paragraph format.
+    // Sets certain aspects of the specified style's paragraph format e.g., the
+    left indent size and the alignment.
 
     await Word.run(async (context) => {
       const styleName = $("#style-name").val() as string;
       if (styleName == "") {
-        console.warn("Enter a style name to update left indent.");
+        console.warn("Enter a style name to update its paragraph format.");
         return;
       }
 
@@ -16589,11 +16592,12 @@
       style.load();
       await context.sync();
 
-      if (!style.nameLocal) {
+      if (style.isNullObject) {
         console.warn(`There's no existing style with the name '${styleName}'.`);
       } else {
         style.paragraphFormat.leftIndent = 30;
-        console.log(`Successfully set size of left indent of the '${styleName}' style.`);
+        style.paragraphFormat.alignment = Word.Alignment.centered;
+        console.log(`Successfully the paragraph format of the '${styleName}' style.`);
       }
     });
 'Word.Range#compareLocationWith:member(1)':
@@ -16955,7 +16959,7 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Delete the custom style.
+    // Deletes the custom style.
 
     await Word.run(async (context) => {
       const styleName = $("#style-name-to-delete").val() as string;
@@ -16968,7 +16972,7 @@
       style.load();
       await context.sync();
 
-      if (!style.nameLocal) {
+      if (style.isNullObject) {
         console.warn(`There's no existing style with the name '${styleName}'.`);
       } else {
         style.delete();
@@ -16980,12 +16984,12 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Update the font color of the specified style.
+    // Updates font properties (e.g., color, size) of the specified style.
 
     await Word.run(async (context) => {
       const styleName = $("#style-name").val() as string;
       if (styleName == "") {
-        console.warn("Enter a style name to update font color.");
+        console.warn("Enter a style name to update font properties.");
         return;
       }
 
@@ -16993,12 +16997,13 @@
       style.load();
       await context.sync();
 
-      if (!style.nameLocal) {
+      if (style.isNullObject) {
         console.warn(`There's no existing style with the name '${styleName}'.`);
       } else {
         const font = style.font;
         font.color = "#FF0000";
-        console.log(`Successfully updated font color of the '${styleName}' style.`);
+        font.size = 20;
+        console.log(`Successfully updated font properties of the '${styleName}' style.`);
       }
     });
 'Word.Style#nameLocal:member':
@@ -17006,7 +17011,7 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Apply the specified style to a paragraph.
+    // Applies the specified style to a paragraph.
 
     await Word.run(async (context) => {
       const styleName = $("#style-name-to-use").val() as string;
@@ -17019,7 +17024,7 @@
       style.load();
       await context.sync();
 
-      if (!style.nameLocal) {
+      if (style.isNullObject) {
         console.warn(`There's no existing style with the name '${styleName}'.`);
       } else if (style.type != Word.StyleType.paragraph) {
         console.log(`The '${styleName}' style isn't a paragraph style.`);
@@ -17040,12 +17045,13 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Set the left indent size of the specified style's paragraph format.
+    // Sets certain aspects of the specified style's paragraph format e.g., the
+    left indent size and the alignment.
 
     await Word.run(async (context) => {
       const styleName = $("#style-name").val() as string;
       if (styleName == "") {
-        console.warn("Enter a style name to update left indent.");
+        console.warn("Enter a style name to update its paragraph format.");
         return;
       }
 
@@ -17053,11 +17059,12 @@
       style.load();
       await context.sync();
 
-      if (!style.nameLocal) {
+      if (style.isNullObject) {
         console.warn(`There's no existing style with the name '${styleName}'.`);
       } else {
         style.paragraphFormat.leftIndent = 30;
-        console.log(`Successfully set size of left indent of the '${styleName}' style.`);
+        style.paragraphFormat.alignment = Word.Alignment.centered;
+        console.log(`Successfully the paragraph format of the '${styleName}' style.`);
       }
     });
 'Word.StyleCollection#getByNameOrNullObject:member(1)':
@@ -17065,7 +17072,7 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Add a new style.
+    // Adds a new style.
 
     await Word.run(async (context) => {
       const newStyleName = $("#new-style-name").val() as string;
@@ -17078,7 +17085,7 @@
       style.load();
       await context.sync();
 
-      if (style.nameLocal) {
+      if (!style.isNullObject) {
         console.warn(
           `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
         );
@@ -17094,7 +17101,7 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Get the number of styles.
+    // Gets the number of styles.
 
     await Word.run(async (context) => {
       const styles = context.document.getStyles();
@@ -17108,7 +17115,7 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
 
-    // Apply the specified style to a paragraph.
+    // Applies the specified style to a paragraph.
 
     await Word.run(async (context) => {
       const styleName = $("#style-name-to-use").val() as string;
@@ -17121,7 +17128,7 @@
       style.load();
       await context.sync();
 
-      if (!style.nameLocal) {
+      if (style.isNullObject) {
         console.warn(`There's no existing style with the name '${styleName}'.`);
       } else if (style.type != Word.StyleType.paragraph) {
         console.log(`The '${styleName}' style isn't a paragraph style.`);

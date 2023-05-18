@@ -13723,6 +13723,21 @@
       currentDocBody.insertText(externalDocBodyText, Word.InsertLocation.start);
       await context.sync();
     });
+'Word.Application#retrieveStylesFromBase64:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Gets style info from another document passed in as a Base64-encoded
+    string.
+
+    await Word.run(async (context) => {
+      const retrievedStyles = context.application.retrieveStylesFromBase64(externalDocument);
+      await context.sync();
+
+      console.log("Styles from the other document:");
+      console.log(retrievedStyles.value);
+    });
 'Word.Body#getComments:member(1)':
   - >-
     // Link to full sample:
@@ -13773,7 +13788,7 @@
         ["Apple", "Orange", "Pineapple"]
       ];
       const table = context.document.body.insertTable(2, 3, "Start", data);
-      table.styleBuiltIn = Word.Style.gridTable5Dark_Accent2;
+      table.styleBuiltIn = Word.BuiltInStyleName.gridTable5Dark_Accent2;
       table.styleFirstColumn = false;
 
       await context.sync();
@@ -14042,7 +14057,7 @@
 'Word.BuiltInStyleName:enum':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-formatted-text.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-formatted-text.yaml
 
     await Word.run(async (context) => {
       const sentence = context.document.body.insertParagraph(
@@ -14259,7 +14274,7 @@
 'Word.ContentControl#delete:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/content-control-ondeleted-event.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondeleted-event.yaml
 
     await Word.run(async (context) => {
       const contentControls = context.document.contentControls.getByTag("forTesting");
@@ -14314,10 +14329,45 @@
 
       await context.sync();
     });
+'Word.ContentControl#onDataChanged:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondatachanged-event.yaml
+
+    await Word.run(async (context) => {
+      const contentControls = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      // Register the onDataChanged event handler on each content control.
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onDataChanged.add(contentControlDataChanged);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when data is changed in content controls.");
+      }
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondatachanged-event.yaml
+
+    async function contentControlDataChanged(event:
+    Word.ContentControlDataChangedEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. IDs of content controls where data was changed:`);
+        console.log(event.ids);
+      });
+    }
 'Word.ContentControl#onDeleted:member':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/content-control-ondeleted-event.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondeleted-event.yaml
 
     await Word.run(async (context) => {
       const contentControls = context.document.contentControls;
@@ -14340,12 +14390,115 @@
     });
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/content-control-ondeleted-event.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondeleted-event.yaml
 
-    async function contentControlDeleted(event: Word.ContentControlEventArgs) {
+    async function contentControlDeleted(event:
+    Word.ContentControlDeletedEventArgs) {
       await Word.run(async (context) => {
-        // Display the deleted content control's ID.
-        console.log(`${event.eventType} event detected. ID of content control that was deleted: ${event.contentControl.id}`);
+        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`);
+        console.log(event.ids);
+      });
+    }
+'Word.ContentControl#onEntered:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onentered-event.yaml
+
+    await Word.run(async (context) => {
+      const contentControls = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      // Register the onEntered event handler on each content control.
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onEntered.add(contentControlEntered);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when the cursor is placed in content controls.");
+      }
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onentered-event.yaml
+
+    async function contentControlEntered(event:
+    Word.ContentControlEnteredEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. ID of content control that was entered: ${event.ids[0]}`);
+      });
+    }
+'Word.ContentControl#onExited:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onexited-event.yaml
+
+    await Word.run(async (context) => {
+      const contentControls = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      // Register the onExited event handler on each content control.
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onExited.add(contentControlExited);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when the cursor is removed from within content controls.");
+      }
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onexited-event.yaml
+
+    async function contentControlExited(event:
+    Word.ContentControlExitedEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. ID of content control that was exited: ${event.ids[0]}`);
+      });
+    }
+'Word.ContentControl#onSelectionChanged:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onselectionchanged-event.yaml
+
+    await Word.run(async (context) => {
+      const contentControls = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onSelectionChanged.add(contentControlSelectionChanged);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when selections are changed in content controls.");
+      }
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onselectionchanged-event.yaml
+
+    async function contentControlSelectionChanged(event:
+    Word.ContentControlSelectionChangedEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. IDs of content controls where selection was changed:`);
+        console.log(event.ids);
       });
     }
 'Word.ContentControl#tag:member':
@@ -14375,6 +14528,30 @@
 
       await context.sync();
     });
+'Word.ContentControlAddedEventArgs#eventType:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onadded-event.yaml
+
+    async function contentControlAdded(event: Word.ContentControlAddedEventArgs)
+    {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. IDs of content controls that were added:`);
+        console.log(event.ids);
+      });
+    }
+'Word.ContentControlAddedEventArgs#ids:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onadded-event.yaml
+
+    async function contentControlAdded(event: Word.ContentControlAddedEventArgs)
+    {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. IDs of content controls that were added:`);
+        console.log(event.ids);
+      });
+    }
 'Word.ContentControlAppearance:enum':
   - >-
     // Link to full sample:
@@ -14431,26 +14608,120 @@
 
         await context.sync();
     });
-'Word.ContentControlEventArgs#contentControl:member':
+'Word.ContentControlDataChangedEventArgs#eventType:member':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/content-control-ondeleted-event.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondatachanged-event.yaml
 
-    async function contentControlDeleted(event: Word.ContentControlEventArgs) {
+    async function contentControlDataChanged(event:
+    Word.ContentControlDataChangedEventArgs) {
       await Word.run(async (context) => {
-        // Display the deleted content control's ID.
-        console.log(`${event.eventType} event detected. ID of content control that was deleted: ${event.contentControl.id}`);
+        console.log(`${event.eventType} event detected. IDs of content controls where data was changed:`);
+        console.log(event.ids);
       });
     }
-'Word.ContentControlEventArgs#eventType:member':
+'Word.ContentControlDataChangedEventArgs#ids:member':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/content-control-ondeleted-event.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondatachanged-event.yaml
 
-    async function contentControlDeleted(event: Word.ContentControlEventArgs) {
+    async function contentControlDataChanged(event:
+    Word.ContentControlDataChangedEventArgs) {
       await Word.run(async (context) => {
-        // Display the deleted content control's ID.
-        console.log(`${event.eventType} event detected. ID of content control that was deleted: ${event.contentControl.id}`);
+        console.log(`${event.eventType} event detected. IDs of content controls where data was changed:`);
+        console.log(event.ids);
+      });
+    }
+'Word.ContentControlDeletedEventArgs#eventType:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondeleted-event.yaml
+
+    async function contentControlDeleted(event:
+    Word.ContentControlDeletedEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`);
+        console.log(event.ids);
+      });
+    }
+'Word.ContentControlDeletedEventArgs#ids:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondeleted-event.yaml
+
+    async function contentControlDeleted(event:
+    Word.ContentControlDeletedEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`);
+        console.log(event.ids);
+      });
+    }
+'Word.ContentControlEnteredEventArgs#eventType:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onentered-event.yaml
+
+    async function contentControlEntered(event:
+    Word.ContentControlEnteredEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. ID of content control that was entered: ${event.ids[0]}`);
+      });
+    }
+'Word.ContentControlEnteredEventArgs#ids:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onentered-event.yaml
+
+    async function contentControlEntered(event:
+    Word.ContentControlEnteredEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. ID of content control that was entered: ${event.ids[0]}`);
+      });
+    }
+'Word.ContentControlExitedEventArgs#eventType:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onexited-event.yaml
+
+    async function contentControlExited(event:
+    Word.ContentControlExitedEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. ID of content control that was exited: ${event.ids[0]}`);
+      });
+    }
+'Word.ContentControlExitedEventArgs#ids:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onexited-event.yaml
+
+    async function contentControlExited(event:
+    Word.ContentControlExitedEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. ID of content control that was exited: ${event.ids[0]}`);
+      });
+    }
+'Word.ContentControlSelectionChangedEventArgs#eventType:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onselectionchanged-event.yaml
+
+    async function contentControlSelectionChanged(event:
+    Word.ContentControlSelectionChangedEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. IDs of content controls where selection was changed:`);
+        console.log(event.ids);
+      });
+    }
+'Word.ContentControlSelectionChangedEventArgs#ids:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onselectionchanged-event.yaml
+
+    async function contentControlSelectionChanged(event:
+    Word.ContentControlSelectionChangedEventArgs) {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. IDs of content controls where selection was changed:`);
+        console.log(event.ids);
       });
     }
 'Word.CustomProperty:class':
@@ -14792,6 +15063,51 @@
         console.warn("Didn't find custom XML part to query");
       }
     });
+'Word.Document#addStyle:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Adds a new style.
+
+    await Word.run(async (context) => {
+      const newStyleName = $("#new-style-name").val() as string;
+      if (newStyleName == "") {
+        console.warn("Enter a style name to add.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(newStyleName);
+      style.load();
+      await context.sync();
+
+      if (!style.isNullObject) {
+        console.warn(
+          `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
+        );
+        return;
+      }
+
+      const newStyleType = ($("#new-style-type").val() as unknown) as Word.StyleType;
+      context.document.addStyle(newStyleName, newStyleType);
+      await context.sync();
+      
+      console.log(newStyleName + " has been added to the style list.");
+    });
+'Word.Document#getStyles:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Gets the number of styles.
+
+    await Word.run(async (context) => {
+      const styles = context.document.getStyles();
+      const count = styles.getCount();
+      await context.sync();
+
+      console.log(`Number of styles: ${count.value}`);
+    });
 'Word.Document#changeTrackingMode:member':
   - >-
     // Link to full sample:
@@ -14812,6 +15128,30 @@
         console.log("No changes are being tracked.");
       }
     });
+'Word.Document#onContentControlAdded:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onadded-event.yaml
+
+    // Registers the onAdded event handler on the document.
+
+    await Word.run(async (context) => {
+      eventContext = context.document.onContentControlAdded.add(contentControlAdded);
+      await context.sync();
+
+      console.log("Added event handler for when content controls are added.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onadded-event.yaml
+
+    async function contentControlAdded(event: Word.ContentControlAddedEventArgs)
+    {
+      await Word.run(async (context) => {
+        console.log(`${event.eventType} event detected. IDs of content controls that were added:`);
+        console.log(event.ids);
+      });
+    }
 'Word.Document#properties:member':
   - >-
     // Link to full sample:
@@ -14884,32 +15224,205 @@
 'Word.EventType:enum':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/content-control-ondeleted-event.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondeleted-event.yaml
 
-    async function contentControlDeleted(event: Word.ContentControlEventArgs) {
+    async function contentControlDeleted(event:
+    Word.ContentControlDeletedEventArgs) {
       await Word.run(async (context) => {
-        // Display the deleted content control's ID.
-        console.log(`${event.eventType} event detected. ID of content control that was deleted: ${event.contentControl.id}`);
+        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`);
+        console.log(event.ids);
       });
     }
+'Word.Field#delete:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+    // Deletes the first field in the document.
+
+    await Word.run(async (context) => {
+      const field = context.document.body.fields.getFirstOrNullObject();
+      field.load();
+
+      await context.sync();
+
+      if (field.isNullObject) {
+        console.log("This document has no fields.");
+      } else {
+        field.delete();
+        await context.sync();
+
+        console.log("The first field in the document was deleted.");
+      }
+    });
+'Word.Field#select:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+    // Gets and updates the first field in the selection.
+
+    await Word.run(async (context) => {
+      var field = context.document.getSelection().fields.getFirstOrNullObject();
+      field.load(["code", "result", "type", "locked"]);
+
+      await context.sync();
+
+      if (field.isNullObject) {
+        console.log("No field in selection.");
+      } else {
+        console.log("Before updating:");
+        console.log("Code of first field: " + field.code);
+        console.log("Result of first field: " + JSON.stringify(field.result));
+
+        field.updateResult();
+        field.select();
+        await context.sync();
+
+        field.load(["code", "result"]);
+        await context.sync();
+
+        console.log("After updating:");
+        console.log("Code of first field: " + field.code);
+        console.log("Result of first field: " + JSON.stringify(field.result));
+      }
+    });
+'Word.Field#updateResult:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+    // Gets and updates the first field in the selection.
+
+    await Word.run(async (context) => {
+      var field = context.document.getSelection().fields.getFirstOrNullObject();
+      field.load(["code", "result", "type", "locked"]);
+
+      await context.sync();
+
+      if (field.isNullObject) {
+        console.log("No field in selection.");
+      } else {
+        console.log("Before updating:");
+        console.log("Code of first field: " + field.code);
+        console.log("Result of first field: " + JSON.stringify(field.result));
+
+        field.updateResult();
+        field.select();
+        await context.sync();
+
+        field.load(["code", "result"]);
+        await context.sync();
+
+        console.log("After updating:");
+        console.log("Code of first field: " + field.code);
+        console.log("Result of first field: " + JSON.stringify(field.result));
+      }
+    });
 'Word.Field#code:member':
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
 
-    // Gets the first field in the document body.
+    // Gets the first field in the document.
 
     await Word.run(async (context) => {
       const field = context.document.body.fields.getFirstOrNullObject();
-      field.load(["code", "result"]);
+      field.load(["code", "result", "locked", "type", "data", "kind"]);
 
       await context.sync();
 
       if (field.isNullObject) {
-        console.log("There are no fields in this document.");
+        console.log("This document has no fields.");
       } else {
         console.log("Code of first field: " + field.code);
         console.log("Result of first field: " + JSON.stringify(field.result));
+        console.log("Type of first field: " + field.type);
+        console.log("Is the first field locked? " + field.locked);
+        console.log("Kind of the first field: " + field.kind);
+      }
+    });
+'Word.Field#data:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+    // Gets the first Addin field in the document and sets its data.
+
+    await Word.run(async (context) => {
+      var myFieldTypes = new Array();
+      myFieldTypes[0] = Word.FieldType.addin;
+
+      const addinFields = context.document.body.fields.getByTypes(myFieldTypes);
+      let fields = addinFields.load("items");
+      await context.sync();
+
+      if (fields.items.length === 0) {
+        console.log("No Addin fields in this document.");
+      } else {
+        fields.load();
+        await context.sync();
+
+        const firstAddinField = fields.items[0];
+        firstAddinField.load("code,result,data");
+        await context.sync();
+
+        console.log("The data of the Addin field before being set:");
+        console.log(firstAddinField.data);
+
+        const data = $("#input-reference").val();
+        firstAddinField.data = data;
+        firstAddinField.load("data");
+        await context.sync();
+
+        console.log("The data of the Addin field after being set:");
+        console.log(firstAddinField.data);
+      }
+    });
+'Word.Field#kind:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+    // Gets the first field in the document.
+
+    await Word.run(async (context) => {
+      const field = context.document.body.fields.getFirstOrNullObject();
+      field.load(["code", "result", "locked", "type", "data", "kind"]);
+
+      await context.sync();
+
+      if (field.isNullObject) {
+        console.log("This document has no fields.");
+      } else {
+        console.log("Code of first field: " + field.code);
+        console.log("Result of first field: " + JSON.stringify(field.result));
+        console.log("Type of first field: " + field.type);
+        console.log("Is the first field locked? " + field.locked);
+        console.log("Kind of the first field: " + field.kind);
+      }
+    });
+'Word.Field#locked:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+    // Gets the first field in the selection and toggles between setting it to
+    locked or unlocked.
+
+    await Word.run(async (context) => {
+      var field = context.document.getSelection().fields.getFirstOrNullObject();
+      field.load(["code", "result", "type", "locked"]);
+      await context.sync();
+
+      if (field.isNullObject) {
+        console.log("The selection has no fields.");
+      } else {
+        console.log(`The first field in the selection is currently ${field.locked ? "locked" : "unlocked"}.`);
+        field.locked = !field.locked;
+        await context.sync();
+
+        console.log(`The first field in the selection is now ${field.locked ? "locked" : "unlocked"}.`);
       }
     });
 'Word.Field#parentBody:member':
@@ -14937,19 +15450,45 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
 
-    // Gets the first field in the document body.
+    // Gets the first field in the document.
 
     await Word.run(async (context) => {
       const field = context.document.body.fields.getFirstOrNullObject();
-      field.load(["code", "result"]);
+      field.load(["code", "result", "locked", "type", "data", "kind"]);
 
       await context.sync();
 
       if (field.isNullObject) {
-        console.log("There are no fields in this document.");
+        console.log("This document has no fields.");
       } else {
         console.log("Code of first field: " + field.code);
         console.log("Result of first field: " + JSON.stringify(field.result));
+        console.log("Type of first field: " + field.type);
+        console.log("Is the first field locked? " + field.locked);
+        console.log("Kind of the first field: " + field.kind);
+      }
+    });
+'Word.Field#type:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+    // Gets the first field in the document.
+
+    await Word.run(async (context) => {
+      const field = context.document.body.fields.getFirstOrNullObject();
+      field.load(["code", "result", "locked", "type", "data", "kind"]);
+
+      await context.sync();
+
+      if (field.isNullObject) {
+        console.log("This document has no fields.");
+      } else {
+        console.log("Code of first field: " + field.code);
+        console.log("Result of first field: " + JSON.stringify(field.result));
+        console.log("Type of first field: " + field.type);
+        console.log("Is the first field locked? " + field.locked);
+        console.log("Kind of the first field: " + field.kind);
       }
     });
 'Word.FieldCollection#getFirstOrNullObject:member(1)':
@@ -14957,19 +15496,22 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
 
-    // Gets the first field in the document body.
+    // Gets the first field in the document.
 
     await Word.run(async (context) => {
       const field = context.document.body.fields.getFirstOrNullObject();
-      field.load(["code", "result"]);
+      field.load(["code", "result", "locked", "type", "data", "kind"]);
 
       await context.sync();
 
       if (field.isNullObject) {
-        console.log("There are no fields in this document.");
+        console.log("This document has no fields.");
       } else {
         console.log("Code of first field: " + field.code);
         console.log("Result of first field: " + JSON.stringify(field.result));
+        console.log("Type of first field: " + field.type);
+        console.log("Is the first field locked? " + field.locked);
+        console.log("Kind of the first field: " + field.kind);
       }
     });
 'Word.FieldCollection#items:member':
@@ -14994,6 +15536,43 @@
           console.log(`Field ${i + 1}'s code: ${fields.items[i].code}`);
           console.log(`Field ${i + 1}'s result: ${JSON.stringify(fields.items[i].result)}`);
         }
+      }
+    });
+'Word.FieldType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+    // Gets the first Addin field in the document and sets its data.
+
+    await Word.run(async (context) => {
+      var myFieldTypes = new Array();
+      myFieldTypes[0] = Word.FieldType.addin;
+
+      const addinFields = context.document.body.fields.getByTypes(myFieldTypes);
+      let fields = addinFields.load("items");
+      await context.sync();
+
+      if (fields.items.length === 0) {
+        console.log("No Addin fields in this document.");
+      } else {
+        fields.load();
+        await context.sync();
+
+        const firstAddinField = fields.items[0];
+        firstAddinField.load("code,result,data");
+        await context.sync();
+
+        console.log("The data of the Addin field before being set:");
+        console.log(firstAddinField.data);
+
+        const data = $("#input-reference").val();
+        firstAddinField.data = data;
+        firstAddinField.load("data");
+        await context.sync();
+
+        console.log("The data of the Addin field after being set:");
+        console.log(firstAddinField.data);
       }
     });
 'Word.HeaderFooterType:enum':
@@ -15831,6 +16410,74 @@
 
       await context.sync();
     });
+'Word.Paragraph#style:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Applies the specified style to a paragraph.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name-to-use").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to apply.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else if (style.type != Word.StyleType.paragraph) {
+        console.log(`The '${styleName}' style isn't a paragraph style.`);
+      } else {
+        const body = context.document.body;
+        body.clear();
+        body.insertParagraph(
+          "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+          "Start"
+        );
+        const paragraph = body.paragraphs.getFirst();
+        paragraph.style = style.nameLocal;
+        console.log(`'${styleName}' style applied to first paragraph.`);
+      }
+    });
+'Word.Paragraph#styleBuiltIn:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/doc-assembly.yaml
+
+    await Word.run(async (context) => {
+        const paragraph = context.document.body.insertParagraph("Timeline", "End");
+        paragraph.styleBuiltIn = "Heading2";
+        const paragraph2 = context.document.body.insertParagraph("The Services shall commence on July 31, 2015, and shall continue through July 29, 2015.", "End");
+        paragraph2.styleBuiltIn = "Normal";
+        const paragraph3 = context.document.body.insertParagraph("Project Costs by Phase", "End");
+        paragraph3.styleBuiltIn = "Heading2";
+        // Note a content control with the title of "ProjectCosts" is added. Content will be replaced later.
+        const paragraph4 = context.document.body.insertParagraph("<Add Project Costs Here>", "End");
+        paragraph4.styleBuiltIn = "Normal";
+        paragraph4.font.highlightColor = "#FFFF00";
+        const contentControl = paragraph4.insertContentControl();
+        contentControl.title = "ProjectCosts";
+        const paragraph5 = context.document.body.insertParagraph("Project Team", "End");
+        paragraph5.styleBuiltIn = "Heading2";
+        paragraph5.font.highlightColor = "#FFFFFF";
+        const paragraph6 = context.document.body.insertParagraph("Terms of Work", "End");
+        paragraph6.styleBuiltIn = "Heading1";
+        const paragraph7 = context.document.body.insertParagraph("Contractor shall provide the Services and Deliverable(s) as follows:", "End");
+        paragraph7.styleBuiltIn = "Normal";
+        const paragraph8 = context.document.body.insertParagraph("Out-of-Pocket Expenses / Invoice Procedures", "End");
+        paragraph8.styleBuiltIn = "Heading2";
+        const paragraph9 = context.document.body.insertParagraph("Client will be invoiced monthly for the consulting services and T&L expenses. Standard Contractor invoicing is assumed to be acceptable. Invoices are due upon receipt. client will be invoiced all costs associated with out-of-pocket expenses (including, without limitation, costs and expenses associated with meals, lodging, local transportation and any other applicable business expenses) listed on the invoice as a separate line item. Reimbursement for out-of-pocket expenses in connection with performance of this SOW, when authorized and up to the limits set forth in this SOW, shall be in accordance with Client's then-current published policies governing travel and associated business expenses, which information shall be provided by the Client Project Manager.", "End");
+        paragraph9.styleBuiltIn = "Normal";
+        // Insert a page break at the end of the document.
+        context.document.body.insertBreak("Page", "End");
+
+        await context.sync();
+    });
 'Word.Paragraph#text:member':
   - >-
     // Link to full sample:
@@ -15889,6 +16536,60 @@
       list.insertParagraph("New paragraph goes after (not part of the list)", "After");
 
       await context.sync();
+    });
+'Word.ParagraphFormat#alignment:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Sets certain aspects of the specified style's paragraph format e.g., the
+    left indent size and the alignment.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update its paragraph format.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        style.paragraphFormat.leftIndent = 30;
+        style.paragraphFormat.alignment = Word.Alignment.centered;
+        console.log(`Successfully the paragraph format of the '${styleName}' style.`);
+      }
+    });
+'Word.ParagraphFormat#leftIndent:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Sets certain aspects of the specified style's paragraph format e.g., the
+    left indent size and the alignment.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update its paragraph format.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        style.paragraphFormat.leftIndent = 30;
+        style.paragraphFormat.alignment = Word.Alignment.centered;
+        console.log(`Successfully the paragraph format of the '${styleName}' style.`);
+      }
     });
 'Word.Range#compareLocationWith:member(1)':
   - >-
@@ -16029,6 +16730,28 @@
       }
         await context.sync();
     });
+'Word.Range#insertField:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+    // Inserts a Date field before selection.
+
+    await Word.run(async (context) => {
+      var range = context.document.getSelection().getRange();
+
+      const field = range.insertField(Word.InsertLocation.before, Word.FieldType.date, '\\@ "M/d/yyyy h:mm am/pm"', true);
+
+      field.load("result,code");
+      await context.sync();
+
+      if (field.isNullObject) {
+        console.log("There are no fields in this document.");
+      } else {
+        console.log("Code of the field: " + field.code);
+        console.log("Result of the field: " + JSON.stringify(field.result));
+      }
+    });
 'Word.Range#insertFootnote:member(1)':
   - >-
     // Link to full sample:
@@ -16058,6 +16781,18 @@
       await context.sync();
 
       console.log("Number of footnotes in the selected range: " + footnotes.items.length);
+    });
+'Word.Range#styleBuiltIn:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/doc-assembly.yaml
+
+    await Word.run(async (context) => {
+        const header = context.document.body.insertText("This is a sample Heading 1 Title!!\n",
+            "Start" /*this means at the beginning of the body */);
+        header.styleBuiltIn = Word.BuiltInStyleName.heading1;
+
+        await context.sync();
     });
 'Word.RangeLocation:enum':
   - >-
@@ -16174,7 +16909,9 @@
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-settings.yaml
 
-    // Adds a new custom setting, or edit the value of an existing one.
+    // Adds a new custom setting or
+
+    // edits the value of an existing one.
 
     await Word.run(async (context) => {
       const key = $("#key")
@@ -16219,21 +16956,197 @@
         }
       }
     });
-'Word.Style:enum':
+'Word.Style#delete:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-formatted-text.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Deletes the custom style.
 
     await Word.run(async (context) => {
-      const sentence = context.document.body.insertParagraph(
-        "To be or not to be",
-        "End"
-      );
+      const styleName = $("#style-name-to-delete").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to delete.");
+        return;
+      }
 
-      // Use styleBuiltIn to use an enumeration of existing styles. If your style is custom make sure to use: range.style = "name of your style";
-      sentence.styleBuiltIn = Word.Style.intenseReference;
-
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
       await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        style.delete();
+        console.log(`Successfully deleted custom style '${styleName}'.`);
+      }
+    });
+'Word.Style#font:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Updates font properties (e.g., color, size) of the specified style.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update font properties.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        const font = style.font;
+        font.color = "#FF0000";
+        font.size = 20;
+        console.log(`Successfully updated font properties of the '${styleName}' style.`);
+      }
+    });
+'Word.Style#nameLocal:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Applies the specified style to a paragraph.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name-to-use").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to apply.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else if (style.type != Word.StyleType.paragraph) {
+        console.log(`The '${styleName}' style isn't a paragraph style.`);
+      } else {
+        const body = context.document.body;
+        body.clear();
+        body.insertParagraph(
+          "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+          "Start"
+        );
+        const paragraph = body.paragraphs.getFirst();
+        paragraph.style = style.nameLocal;
+        console.log(`'${styleName}' style applied to first paragraph.`);
+      }
+    });
+'Word.Style#paragraphFormat:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Sets certain aspects of the specified style's paragraph format e.g., the
+    left indent size and the alignment.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update its paragraph format.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        style.paragraphFormat.leftIndent = 30;
+        style.paragraphFormat.alignment = Word.Alignment.centered;
+        console.log(`Successfully the paragraph format of the '${styleName}' style.`);
+      }
+    });
+'Word.StyleCollection#getByNameOrNullObject:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Adds a new style.
+
+    await Word.run(async (context) => {
+      const newStyleName = $("#new-style-name").val() as string;
+      if (newStyleName == "") {
+        console.warn("Enter a style name to add.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(newStyleName);
+      style.load();
+      await context.sync();
+
+      if (!style.isNullObject) {
+        console.warn(
+          `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
+        );
+        return;
+      }
+
+      const newStyleType = ($("#new-style-type").val() as unknown) as Word.StyleType;
+      context.document.addStyle(newStyleName, newStyleType);
+      await context.sync();
+      
+      console.log(newStyleName + " has been added to the style list.");
+    });
+'Word.StyleCollection#getCount:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Gets the number of styles.
+
+    await Word.run(async (context) => {
+      const styles = context.document.getStyles();
+      const count = styles.getCount();
+      await context.sync();
+
+      console.log(`Number of styles: ${count.value}`);
+    });
+'Word.StyleType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-styles.yaml
+
+    // Applies the specified style to a paragraph.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name-to-use").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to apply.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else if (style.type != Word.StyleType.paragraph) {
+        console.log(`The '${styleName}' style isn't a paragraph style.`);
+      } else {
+        const body = context.document.body;
+        body.clear();
+        body.insertParagraph(
+          "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+          "Start"
+        );
+        const paragraph = body.paragraphs.getFirst();
+        paragraph.style = style.nameLocal;
+        console.log(`'${styleName}' style applied to first paragraph.`);
+      }
     });
 'Word.Table:class':
   - >-
@@ -16247,7 +17160,7 @@
         ["Apple", "Orange", "Pineapple"]
       ];
       const table = context.document.body.insertTable(2, 3, "Start", data);
-      table.styleBuiltIn = Word.Style.gridTable5Dark_Accent2;
+      table.styleBuiltIn = Word.BuiltInStyleName.gridTable5Dark_Accent2;
       table.styleFirstColumn = false;
 
       await context.sync();

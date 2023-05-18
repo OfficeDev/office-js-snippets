@@ -1,0 +1,146 @@
+order: 11
+id: word-document-save-close
+name: Manage document save and close
+description: Shows how to manage saving and closing document.
+host: WORD
+api_set:
+    WordApi: '1.5'
+script:
+    content: |
+        $("#save-no-prompt").click(() => tryCatch(saveNoPrompt));
+        $("#save-after-prompt").click(() => tryCatch(saveAfterPrompt));
+        $("#close-after-save").click(() => tryCatch(closeAfterSave));
+        $("#close-no-save").click(() => tryCatch(closeWithoutSave));
+        $("#save").click(() => tryCatch(save));
+        $("#close").click(() => tryCatch(close));
+
+        async function saveNoPrompt() {
+          // Saves the document with the provided file name
+          // if it hasn't been saved before.
+          await Word.run(async (context) => {
+            const text = $("#fileName-text")
+              .val()
+              .toString();
+            context.document.save("Save", text);
+            await context.sync();
+          });
+        }
+
+        async function saveAfterPrompt() {
+          // If the document hasn't been saved before, prompts
+          // user with options for if or how they want to save.
+          await Word.run(async (context) => {
+            context.document.save("Prompt");
+            await context.sync();
+          });
+        }
+
+        async function closeAfterSave() {
+          // Closes the document after saving.
+          await Word.run(async (context) => {
+            context.document.close("Save");
+          });
+        }
+
+        async function closeWithoutSave() {
+          // Closes the document without saving any changes.
+          await Word.run(async (context) => {
+            context.document.close("SkipSave");
+            await context.sync();
+          });
+        }
+
+        async function save() {
+          // Saves the document with default behavior
+          // for current state of the document.
+          await Word.run(async (context) => {
+            context.document.save();
+            await context.sync();
+          });
+        }
+
+        async function close() {
+          // Closes the document with default behavior
+          // for current state of the document.
+          await Word.run(async (context) => {
+            context.document.close();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how use the options for saving and closing the current document.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>
+                <label>File name without extension:</label>
+                <input id="fileName-text">
+                <button id="save-no-prompt" class="ms-Button">
+              <span class="ms-Button-label">Save without prompt</span>
+            </button>
+            </p>
+            <p>
+                <button id="save-after-prompt" class="ms-Button">
+              <span class="ms-Button-label">Save after prompt</span>
+            </button>
+            </p>
+            <p>
+                <button id="close-after-save" class="ms-Button">
+              <span class="ms-Button-label">Close after save</span>
+            </button>
+            </p>
+            <p>
+                <button id="close-no-save" class="ms-Button">
+              <span class="ms-Button-label">Close without save</span>
+            </button>
+            </p>
+            <p>
+                <button id="save" class="ms-Button">
+              <span class="ms-Button-label"> Save</span>
+            </button>
+            </p>
+            <p>
+                <button id="close" class="ms-Button">
+              <span class="ms-Button-label">Close</span>
+            </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

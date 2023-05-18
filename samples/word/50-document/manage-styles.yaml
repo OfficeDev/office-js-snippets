@@ -1,0 +1,324 @@
+order: 10
+id: word-document-manage-styles
+name: Manage styles
+description: This sample shows how to perform operations on the styles in the current document and how to add and delete custom styles.
+host: WORD
+api_set:
+    WordApi: '1.5'
+script:
+    content: |
+        $("#count").click(() => tryCatch(getCount));
+        $("#add-style").click(() => tryCatch(addStyle));
+        $("#properties").click(() => tryCatch(getProperties));
+        $("#apply-style").click(() => tryCatch(applyStyle));
+        $("#font-properties").click(() => tryCatch(setFontProperties));
+        $("#paragraph-format").click(() => tryCatch(setParagraphFormat));
+        $("#delete-style").click(() => tryCatch(deleteStyle));
+        $("#file").change(getBase64);
+        $("#get-external-styles").click(() => tryCatch(getExternalStyles));
+
+        async function getCount() {
+          // Gets the number of styles.
+          await Word.run(async (context) => {
+            const styles = context.document.getStyles();
+            const count = styles.getCount();
+            await context.sync();
+
+            console.log(`Number of styles: ${count.value}`);
+          });
+        }
+
+        async function addStyle() {
+          // Adds a new style.
+          await Word.run(async (context) => {
+            const newStyleName = $("#new-style-name").val() as string;
+            if (newStyleName == "") {
+              console.warn("Enter a style name to add.");
+              return;
+            }
+
+            const style = context.document.getStyles().getByNameOrNullObject(newStyleName);
+            style.load();
+            await context.sync();
+
+            if (!style.isNullObject) {
+              console.warn(
+                `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
+              );
+              return;
+            }
+
+            const newStyleType = ($("#new-style-type").val() as unknown) as Word.StyleType;
+            context.document.addStyle(newStyleName, newStyleType);
+            await context.sync();
+            
+            console.log(newStyleName + " has been added to the style list.");
+          });
+        }
+
+        async function getProperties() {
+          // Gets the properties of the specified style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name-to-use").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to get properties.");
+              return;
+            }
+
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else {
+              style.font.load();
+              style.paragraphFormat.load();
+              await context.sync();
+
+              console.log(`Properties of the '${styleName}' style:`);
+              console.log(style);
+            }
+          });
+        }
+
+        async function applyStyle() {
+          // Applies the specified style to a paragraph.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name-to-use").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to apply.");
+              return;
+            }
+
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else if (style.type != Word.StyleType.paragraph) {
+              console.log(`The '${styleName}' style isn't a paragraph style.`);
+            } else {
+              const body = context.document.body;
+              body.clear();
+              body.insertParagraph(
+                "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+                "Start"
+              );
+              const paragraph = body.paragraphs.getFirst();
+              paragraph.style = style.nameLocal;
+              console.log(`'${styleName}' style applied to first paragraph.`);
+            }
+          });
+        }
+
+        async function setFontProperties() {
+          // Updates font properties (e.g., color, size) of the specified style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to update font properties.");
+              return;
+            }
+
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else {
+              const font = style.font;
+              font.color = "#FF0000";
+              font.size = 20;
+              console.log(`Successfully updated font properties of the '${styleName}' style.`);
+            }
+          });
+        }
+
+        async function setParagraphFormat() {
+          // Sets certain aspects of the specified style's paragraph format e.g., the left indent size and the alignment.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to update its paragraph format.");
+              return;
+            }
+
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else {
+              style.paragraphFormat.leftIndent = 30;
+              style.paragraphFormat.alignment = Word.Alignment.centered;
+              console.log(`Successfully the paragraph format of the '${styleName}' style.`);
+            }
+          });
+        }
+
+        async function deleteStyle() {
+          // Deletes the custom style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name-to-delete").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to delete.");
+              return;
+            }
+
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else {
+              style.delete();
+              console.log(`Successfully deleted custom style '${styleName}'.`);
+            }
+          });
+        }
+
+        let externalDocument;
+
+        async function getExternalStyles() {
+          // Gets style info from another document passed in as a Base64-encoded string.
+          await Word.run(async (context) => {
+            const retrievedStyles = context.application.retrieveStylesFromBase64(externalDocument);
+            await context.sync();
+
+            console.log("Styles from the other document:");
+            console.log(retrievedStyles.value);
+          });
+        }
+
+        function getBase64() {
+          // Retrieve the file and set up an HTML FileReader element.
+          const myFile = <HTMLInputElement>document.getElementById("file");
+          const reader = new FileReader();
+
+          reader.onload = (event) => {
+            // Remove the metadata before the Base64-encoded string.
+            const startIndex = reader.result.toString().indexOf("base64,");
+            externalDocument = reader.result.toString().substr(startIndex + 7);
+          };
+
+          // Read the file as a data URL so that we can parse the Base64-encoded string.
+          reader.readAsDataURL(myFile.files[0]);
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to manage styles.
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>
+                <h4>Get current number of styles</h4>
+                <button id="count" class="ms-Button">
+                        <span class="ms-Button-label">Get count</span>
+                </button>
+            </p>
+
+            <h4>Add a new style</h4>
+            <div>Name the style using letters. Can include digits. Examples: NewName, newname1</div>
+            <p>
+                <label style="margin-left: 20px">Name:</label>
+                <input id="new-style-name"/>
+            </p>
+                <p />
+                <label style="margin-left: 20px">Type:</label>
+                <select id="new-style-type">
+                <option>Paragraph</option>
+            <option>Character</option>  
+            <option>List</option>  
+            <option>Table</option>
+          </select>
+                <p />
+                <button id="add-style" class="ms-Button">
+            <span class="ms-Button-label">Add style</span>
+          </button>
+
+                <h4>Use custom style</h4>
+                <label style="margin-left: 20px">Style name:</label>
+                <input id="style-name-to-use"/>
+                <p />
+                <button id="properties" class="ms-Button">
+              <span class="ms-Button-label">Get properties</span>
+            </button>
+                <p />
+                <button id="apply-style" class="ms-Button">
+              <span class="ms-Button-label">Apply style to paragraph</span>
+            </button>
+
+                <h4>Update custom style</h4>
+                <label style="margin-left: 20px">Style name:</label>
+                <input id="style-name"/>
+                <p />
+                <div>Set font color to red and font size to 20.</div>
+                <button id="font-properties" class="ms-Button">
+            <span class="ms-Button-label">Set font properties</span>
+          </button>
+                <p />
+                <div>Set paragraph left indent size to 30 and alignment to center.</div>
+                <button id="paragraph-format" class="ms-Button">
+            <span class="ms-Button-label">Set paragraph format</span>
+          </button>
+
+                <h4>Delete custom style</h4>
+                <p>
+                    <label style="margin-left: 20px">Style name:</label>
+                    <input id="style-name-to-delete"/>
+                    <button id="delete-style" class="ms-Button">
+              <span class="ms-Button-label">Delete style</span>
+              </button>
+                </p>
+                <h4>Get style info from external document</h4>
+                <p>Select a Word document to get its style info.</p>
+                <form>
+                    <input type="file" id="file" />
+                </form>
+                    <br>
+                    <p>Get style info from the selected document.</p>
+                    <button id="get-external-styles" class="ms-Button">
+                      <span class="ms-Button-label">Get styles</span>
+                    </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+    jquery@3.1.1
+    @types/jquery@3.3.1

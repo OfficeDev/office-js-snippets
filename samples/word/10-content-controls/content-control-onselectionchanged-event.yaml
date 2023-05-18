@@ -1,0 +1,162 @@
+order: 4
+id: word-content-controls-content-control-onselectionchanged-event
+name: On changing selection in content controls
+description: 'Registers, triggers, and deregisters onSelectionChanged event that tracks when selections are changed in content controls.'
+host: WORD
+api_set:
+    WordApi: '1.5'
+script:
+    content: |
+        $("#insert-content-controls").click(() => tryCatch(insertContentControls));
+        $("#register-event-handlers").click(() => tryCatch(registerEventHandlers));
+        $("#deregister-event-handlers").click(() => tryCatch(deregisterEventHandlers));
+        $("#setup").click(() => tryCatch(setup));
+
+        let eventContexts = [];
+
+        async function insertContentControls() {
+          // Traverses each paragraph of the document and wraps a content control on each.
+          await Word.run(async (context) => {
+            const paragraphs = context.document.body.paragraphs;
+            paragraphs.load("$none"); // Don't need any properties; just wrap each paragraph with a content control.
+
+            await context.sync();
+
+            for (let i = 0; i < paragraphs.items.length; i++) {
+              let contentControl = paragraphs.items[i].insertContentControl();
+              contentControl.tag = "forTesting";
+            }
+
+            console.log("Content controls inserted: " + paragraphs.items.length);
+
+            await context.sync();
+          });
+        }
+
+        async function registerEventHandlers() {
+          await Word.run(async (context) => {
+            const contentControls = context.document.contentControls;
+            contentControls.load("items");
+            await context.sync();
+
+            if (contentControls.items.length === 0) {
+              console.log("There aren't any content controls in this document so can't register event handlers.");
+            } else {
+              for (let i = 0; i < contentControls.items.length; i++) {
+                eventContexts[i] = contentControls.items[i].onSelectionChanged.add(contentControlSelectionChanged);
+                contentControls.items[i].track();
+              }
+
+              await context.sync();
+
+              console.log("Added event handlers for when selections are changed in content controls.");
+            }
+          });
+        }
+
+        async function contentControlSelectionChanged(event: Word.ContentControlSelectionChangedEventArgs) {
+          await Word.run(async (context) => {
+            console.log(`${event.eventType} event detected. IDs of content controls where selection was changed:`);
+            console.log(event.ids);
+          });
+        }
+
+        async function deregisterEventHandlers() {
+          await Word.run(async (context) => {
+            for (let i = 0; i < eventContexts.length; i++) {
+              await Word.run(eventContexts[i].context, async (context) => {
+                eventContexts[i].remove();
+              });
+            }
+
+            await context.sync();
+
+            eventContexts = null;
+            console.log("Removed event handlers that were tracking when selection is changed in content controls.");
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            body.clear();
+            body.insertParagraph("One more paragraph. ", "Start");
+            body.insertParagraph("Inserting another paragraph. ", "Start");
+            body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            body.paragraphs
+              .getLast()
+              .insertText(
+                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ",
+                "Replace"
+              );
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to use the onSelectionChanged event on content controls.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <span class="ms-font-m">1. Insert content controls.</span>
+            <button id="insert-content-controls" class="ms-Button">
+            <span class="ms-Button-label">Insert</span>
+          </button>
+            <span class="ms-font-m">2. Register event handlers.</span>
+            <button id="register-event-handlers" class="ms-Button">
+            <span class="ms-Button-label">Register</span>
+          </button>
+            <p><span class="ms-font-m">3. Select text within a content control.</span></p>
+            <span class="ms-font-m">4. Remove event handlers.</span>
+            <button id="deregister-event-handlers" class="ms-Button">
+            <span class="ms-Button-label">Remove</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

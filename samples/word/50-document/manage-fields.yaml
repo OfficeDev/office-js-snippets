@@ -1,30 +1,76 @@
 order: 6
 id: word-document-manage-fields
-name: Get fields
-description: This sample shows how to get existing fields.
+name: Manage fields
+description: 'This sample shows how to perform basic operations on fields, including insert, get, and delete.'
 host: WORD
 api_set:
-    WordApi: '1.4'
+    WordApi: '1.5'
 script:
     content: |
+        $("#insert-date-field").click(() => tryCatch(rangeInsertDateField));
+        $("#insert-addin-field").click(() => tryCatch(rangeInsertAddinField));
         $("#get-first").click(() => tryCatch(getFirstField));
         $("#get-parent-body").click(() => tryCatch(getParentBodyOfFirstField));
         $("#get-all").click(() => tryCatch(getAllFields));
+        $("#get-selected-field-and-update").click(() => tryCatch(getSelectedFieldAndUpdate));
+        $("#get-first-addin-field-and-set-data").click(() => tryCatch(getFirstAddinFieldAndSetData));
+        $("#get-selected-field-and-lock-or-unlock").click(() => tryCatch(getFieldAndLockOrUnlock));
+        $("#delete-first-field").click(() => tryCatch(deleteFirstField));
         $("#setup").click(() => tryCatch(setup));
 
-        async function getFirstField() {
-          // Gets the first field in the document body.
+        async function rangeInsertDateField() {
+          // Inserts a Date field before selection.
           await Word.run(async (context) => {
-            const field = context.document.body.fields.getFirstOrNullObject();
-            field.load(["code", "result"]);
+            var range = context.document.getSelection().getRange();
 
+            const field = range.insertField(Word.InsertLocation.before, Word.FieldType.date, '\\@ "M/d/yyyy h:mm am/pm"', true);
+
+            field.load("result,code");
             await context.sync();
 
             if (field.isNullObject) {
               console.log("There are no fields in this document.");
             } else {
+              console.log("Code of the field: " + field.code);
+              console.log("Result of the field: " + JSON.stringify(field.result));
+            }
+          });
+        }
+
+        async function rangeInsertAddinField() {
+          // Inserts an Addin field before selection.
+          await Word.run(async (context) => {
+            var range = context.document.getSelection().getRange();
+
+            const field = range.insertField(Word.InsertLocation.before, Word.FieldType.addin);
+            field.load("result,code");
+            await context.sync();
+
+            if (field.isNullObject) {
+              console.log("There are no fields in this document.");
+            } else {
+              console.log("Code of the field: " + field.code);
+              console.log("Result of the field: " + JSON.stringify(field.result));
+            }
+          });
+        }
+
+        async function getFirstField() {
+          // Gets the first field in the document.
+          await Word.run(async (context) => {
+            const field = context.document.body.fields.getFirstOrNullObject();
+            field.load(["code", "result", "locked", "type", "data", "kind"]);
+
+            await context.sync();
+
+            if (field.isNullObject) {
+              console.log("This document has no fields.");
+            } else {
               console.log("Code of first field: " + field.code);
               console.log("Result of first field: " + JSON.stringify(field.result));
+              console.log("Type of first field: " + field.type);
+              console.log("Is the first field locked? " + field.locked);
+              console.log("Kind of the first field: " + field.kind);
             }
           });
         }
@@ -67,6 +113,107 @@ script:
           });
         }
 
+        async function getSelectedFieldAndUpdate() {
+          // Gets and updates the first field in the selection.
+          await Word.run(async (context) => {
+            var field = context.document.getSelection().fields.getFirstOrNullObject();
+            field.load(["code", "result", "type", "locked"]);
+
+            await context.sync();
+
+            if (field.isNullObject) {
+              console.log("No field in selection.");
+            } else {
+              console.log("Before updating:");
+              console.log("Code of first field: " + field.code);
+              console.log("Result of first field: " + JSON.stringify(field.result));
+
+              field.updateResult();
+              field.select();
+              await context.sync();
+
+              field.load(["code", "result"]);
+              await context.sync();
+
+              console.log("After updating:");
+              console.log("Code of first field: " + field.code);
+              console.log("Result of first field: " + JSON.stringify(field.result));
+            }
+          });
+        }
+
+        async function getFirstAddinFieldAndSetData() {
+          // Gets the first Addin field in the document and sets its data.
+          await Word.run(async (context) => {
+            var myFieldTypes = new Array();
+            myFieldTypes[0] = Word.FieldType.addin;
+
+            const addinFields = context.document.body.fields.getByTypes(myFieldTypes);
+            let fields = addinFields.load("items");
+            await context.sync();
+
+            if (fields.items.length === 0) {
+              console.log("No Addin fields in this document.");
+            } else {
+              fields.load();
+              await context.sync();
+
+              const firstAddinField = fields.items[0];
+              firstAddinField.load("code,result,data");
+              await context.sync();
+
+              console.log("The data of the Addin field before being set:");
+              console.log(firstAddinField.data);
+
+              const data = $("#input-reference").val();
+              firstAddinField.data = data;
+              firstAddinField.load("data");
+              await context.sync();
+
+              console.log("The data of the Addin field after being set:");
+              console.log(firstAddinField.data);
+            }
+          });
+        }
+
+        async function getFieldAndLockOrUnlock() {
+          // Gets the first field in the selection and toggles between setting it to locked or unlocked.
+          await Word.run(async (context) => {
+            var field = context.document.getSelection().fields.getFirstOrNullObject();
+            field.load(["code", "result", "type", "locked"]);
+            await context.sync();
+
+            if (field.isNullObject) {
+              console.log("The selection has no fields.");
+            } else {
+              console.log(`The first field in the selection is currently ${field.locked ? "locked" : "unlocked"}.`);
+              field.locked = !field.locked;
+              await context.sync();
+
+              console.log(`The first field in the selection is now ${field.locked ? "locked" : "unlocked"}.`);
+            }
+          });
+        }
+
+        async function deleteFirstField() {
+          // Deletes the first field in the document.
+          await Word.run(async (context) => {
+            const field = context.document.body.fields.getFirstOrNullObject();
+            field.load();
+
+            await context.sync();
+
+            if (field.isNullObject) {
+              console.log("This document has no fields.");
+            } else {
+              field.delete();
+              await context.sync();
+
+              console.log("The first field in the document was deleted.");
+            }
+          });
+        }
+
         async function setup() {
           await Word.run(async (context) => {
             const body = context.document.body;
@@ -91,10 +238,10 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample demonstrates how to get fields, which are placeholders for dynamic data in your document. To learn
-                more
-                about fields, refer to <a target="_blank" href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
-                    edit, and view fields in Word</a>.</p>
+            <p>This sample demonstrates how to manage fields, which are placeholders for dynamic data in your document. To learn
+                more about fields, refer to <a target="_blank"
+                    href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert, edit, and view
+                    fields in Word</a>.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -104,31 +251,55 @@ template:
           </button>
         </section>
 
-        <section class="setup ms-font-m">
-            <h4>Add fields to document</h4>
-            <p>At present, Word on the web doesn't support adding
-                fields
-                to the document.</p>
-            <ol>
-                <li>Open Word on Windows or on Mac.</li>
-                <li>Insert at least one field. To learn how to do so, refer to <a
-                        target="_blank" href="https://support.microsoft.com/office/c429bbb0-8669-48a7-bd24-bab6ba6b06bb">Insert,
-                        edit, and view fields in Word</a>.</li>
-                <li>Optional: Open the same document in Word on the web.</li>
-            </ol>
-        </section>
-
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
+            <h4>Insert fields</h4>
+            <p>First, select some text.</p>
+            <p>
+                <div>Insert a Date field before the selection.</div>
+                <button id="insert-date-field" class="ms-Button">
+                  <span class="ms-Button-label">Insert Date field</span>
+            </button>
+            </p>
+            <p>
+                <div>Insert an Addin field before the selection.</div>
+                <button id="insert-addin-field" class="ms-Button">
+                    <span class="ms-Button-label">Insert Addin field</span>
+            </button>
+            </p>
+
+            <h4>Get and update fields</h4>
             <button id="get-first" class="ms-Button">
-              <span class="ms-Button-label">Get first field</span>
+            <span class="ms-Button-label">Get first field</span>
           </button>
             <button id="get-parent-body" class="ms-Button">
-                  <span class="ms-Button-label">Get first field's parent body</span>
-              </button>
+              <span class="ms-Button-label">Get first field's parent body</span>
+          </button>
             <button id="get-all" class="ms-Button">
-                  <span class="ms-Button-label">Get all fields</span>
-              </button>
+              <span class="ms-Button-label">Get all fields</span>
+          </button>
+            <button id="get-selected-field-and-update" class="ms-Button">
+                  <span class="ms-Button-label">Update first field in selection</span>
+            </button>
+            <p>
+                <label>Data you want to set on the Addin field:</label>
+                <input id="input-reference" style="width:100px;">
+                <button id="get-first-addin-field-and-set-data" class="ms-Button">
+                    <span class="ms-Button-label">Set data on first Addin field in document</span>
+                </button>
+            </p>
+            <br>
+            <p>
+                <div>Toggle the first field of the selection between locked and unlocked.</div>
+                <button id="get-selected-field-and-lock-or-unlock" class="ms-Button">
+                    <span class="ms-Button-label">Toggle locked/unlocked</span>
+                </button>
+            </p>
+
+            <h4>Delete fields</h4>
+            <button id="delete-first-field"" class="ms-Button">
+                        <span class="ms-Button-label">Delete first field</span>
+            </button>
         </section>
     language: html
 style:

@@ -9,6 +9,7 @@ api_set:
 script:
     content: |
         $("#insert-list").click(() => tryCatch(insertOrganizeList));
+        $("#get-list-props").click(() => tryCatch(getListProps));
         $("#setup").click(() => tryCatch(setup));
 
         async function insertOrganizeList() {
@@ -41,11 +42,38 @@ script:
             list.load("levelTypes");
 
             await context.sync();
+          });
+        }
+
+        async function getListProps() {
+          // Gets information about the first list in the document.
+          await Word.run(async (context) => {
+            const lists = context.document.body.lists;
+            lists.load("items");
+
+            await context.sync();
+
+            if (lists.items.length === 0) {
+              console.warn("There are no lists in this document");
+              return;
+            }
+            
+            // Get the first list.
+            const list = lists.getFirst();
+            list.load("levelTypes,levelExistences");
+
+            await context.sync();
 
             const levelTypes = list.levelTypes;
-            console.log("Level types of this list:");
+            console.log("Level types of the first list:");
             for (let i = 0; i < levelTypes.length; i++) {
               console.log(`- Level ${i + 1} (index ${i}): ${levelTypes[i]}`);
+            }
+
+            const levelExistences = list.levelExistences;
+            console.log("Level existences of the first list:");
+            for (let i = 0; i < levelExistences.length; i++) {
+              console.log(`- Level ${i + 1} (index ${i}): ${levelExistences[i]}`);
             }
           });
         }
@@ -87,8 +115,11 @@ template:
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
             <button id="insert-list" class="ms-Button">
-              <span class="ms-Button-label">Insert list</span>
+            <span class="ms-Button-label">Insert list</span>
           </button>
+            <button id="get-list-props" class="ms-Button">
+              <span class="ms-Button-label">Get list info</span>
+            </button>
         </section>
     language: html
 style:

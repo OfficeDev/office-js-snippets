@@ -9,6 +9,7 @@ api_set:
 script:
     content: |
         $("#compare").click(() => tryCatch(compareLocations));
+        $("#compare-to-selection").click(() => tryCatch(compareWithSelection));
         $("#setup").click(() => tryCatch(setup));
 
         async function compareLocations() {
@@ -27,6 +28,27 @@ script:
             await context.sync();
 
             console.log(`Location of the first paragraph in relation to the second paragraph: ${comparedLocation.value}`);
+          });
+        }
+
+        async function compareWithSelection() {
+          // Compares the location of the second paragraph in relation to the cursor's location.
+          await Word.run(async (context) => {
+            const paragraphs = context.document.body.paragraphs;
+            paragraphs.load("items");
+
+            await context.sync();
+
+            const secondParagraphAsRange = paragraphs.items[1].getRange();
+            const selection = context.document.getSelection();
+
+            const comparedLocation = secondParagraphAsRange.compareLocationWith(selection);
+
+            await context.sync();
+
+            console.log(
+              `Location of the second paragraph in relation to the cursor's location: ${comparedLocation.value}`
+            );
           });
         }
 
@@ -71,9 +93,17 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
+            <h4>Compare location of first paragraph with location of second paragraph</h4>
             <button id="compare" class="ms-Button">
                 <span class="ms-Button-label">Compare range locations</span>
-            </button>
+          </button>
+            <h4>Compare location of second paragraph with cursor's location</h4>
+            <p>
+                <div>Move cursor or select text in the document.</div>
+                <button id="compare-to-selection" class="ms-Button">
+                  <span class="ms-Button-label">Compare with cursor's location</span>
+                </button>
+            </p>
         </section>
     language: html
 style:

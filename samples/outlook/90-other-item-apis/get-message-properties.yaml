@@ -1,0 +1,79 @@
+order: 23
+id: outlook-other-item-apis-get-message-properties
+name: 'Get properties of selected messages (Message Compose, Message Read)'
+description: Gets the properties of multiple selected messages.
+host: OUTLOOK
+api_set:
+    Mailbox: '1.13'
+script:
+    content: |
+        Office.onReady(() => {
+          // Registers an event handler to identify when messages are selected.
+          Office.context.mailbox.addHandlerAsync(Office.EventType.SelectedItemsChanged, getMessageProperties, (asyncResult) => {
+            if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+              console.log(asyncResult.error.message);
+              return;
+            }
+
+            console.log("Event handler added for the SelectedItemsChanged event.");
+          });
+        });
+
+        function getMessageProperties() {
+          // Retrieves the selected messages' properties and logs them to the console.
+          Office.context.mailbox.getSelectedItemsAsync((asyncResult) => {
+            if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+              console.log(asyncResult.error.message);
+              return;
+            }
+
+            asyncResult.value.forEach((message) => {
+              console.log(`Item ID: ${message.itemId}`);
+              console.log(`Subject: ${message.subject}`);
+              console.log(`Item type: ${message.itemType}`);
+              console.log(`Item mode: ${message.itemMode}`);
+            });
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to get the properties of multiple selected messages.</p>
+            <p><b>Required mode</b>: Message Compose, Message Read</p>
+        </section>
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <ol>
+                <li><p>Turn on the Reading Pane in Outlook. For guidance, see <a href="https://support.microsoft.com/office/2fd687ed-7fc4-4ae3-8eab-9f9b8c6d53f0" target="_blank">Use and configure the Reading Pane to preview messages</a>.</p></li>
+                <li><p>Hold <b>Ctrl</b> (Windows) or <b>Command</b> (Mac) while selecting multiple messages from your mailbox. You can select a maximum of 100 messages at a time.</p></li>
+            </ol>
+            <p>The properties of the selected messages are automatically logged to the console.</p>
+            <p>To learn more about the item multi-select feature, see <a href="https://learn.microsoft.com/office/dev/add-ins/outlook/item-multi-select" target="_blank">Activate your Outlook add-in on multiple messages</a>.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

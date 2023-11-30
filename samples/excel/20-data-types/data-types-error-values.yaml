@@ -1,70 +1,97 @@
 order: 4
 id: excel-data-types-error-values
-name: 'Data types: Set error values'
-description: This sample shows how to set a cell value to an error data type.
+name: 'Data types: Set and change error values'
+description: This sample shows how to set a cell value to an error data type, and then update the value of a cell that contains an error data type.
 host: EXCEL
 api_set:
     ExcelApi: '1.16'
 script:
     content: |
-        $("#setup").click(() => tryCatch(setup));
-        $("#setBusyError").click(() => tryCatch(setBusyError));
+      $("#setup").click(() => tryCatch(setup));
+      $("#set-busy-error").click(() => tryCatch(setBusyError));
+      $("#change-busy-error").click(() => tryCatch(changeBusyError));
+      
+      async function setBusyError() {
+        // This function sets the value of cell A1 to a #BUSY! error using data types.
+        await Excel.run(async (context) => {
+          // Retrieve the Sample worksheet and cell A1 on that sheet.
+          const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
+          const range = sheet.getRange("A1");
+          
+          // Get the error data type and set its type to `busy`.
+          const error: Excel.ErrorCellValue = {
+            type: Excel.CellValueType.error,
+            errorType: Excel.ErrorCellValueType.busy
+          };
+          
+          // Set cell A1 as the busy error.
+          range.valuesAsJson = [[error]];
+          await context.sync();
+        });
+      }
 
-        async function setBusyError() {
-          // This function sets the value of cell A1 to a #BUSY! error using data types.
-          await Excel.run(async (context) => {
-            // Retrieve the Sample worksheet and cell A1 on that sheet.
-            const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
-            const range = sheet.getRange("A1");
-
-            // Get the error data type and set its type to `busy`. 
-            const error: Excel.ErrorCellValue = {
-              type: Excel.CellValueType.error,
-              errorType: Excel.ErrorCellValueType.busy
-            };
-
-            // Set cell A1 as the busy error.
-            range.valuesAsJson = [[error]];
+      async function changeBusyError() {
+        // This function checks if a range contains a #BUSY! error, and then updates the range if it contains the error.
+        await Excel.run(async (context) => {
+          // Retrieve the Sample worksheet and cell A1 on that sheet.
+          const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
+          const range = sheet.getRange("A1");
+          
+          // Load the `valuesAsJson` property for comparison.
+          range.load("valuesAsJson");
+          await context.sync();
+          
+          // Check if the range contains a #BUSY! error.
+          if (range.valuesAsJson[0][0]["errorType"] == Excel.ErrorCellValueType.busy) {
+            // If the range contains a #BUSY! error, load and change the value of the range.
+            range.load("values");
             await context.sync();
-          });
-        }
-
-        async function setup() {
-          await Excel.run(async (context) => {
-            // Create a new worksheet called "Sample" and activate it.
-            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
-            const sheet = context.workbook.worksheets.add("Sample");
-            sheet.activate();
-
-            await context.sync();
-          });
-        }
-
-        /** Default helper for invoking an action and handling errors. */
-        async function tryCatch(callback) {
-          try {
-            await callback();
-          } catch (error) {
-            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-            console.error(error);
+            range.values = [["Process unavailable."]];
           }
+          
+          await context.sync();
+        });
+      }
+
+      async function setup() {
+        await Excel.run(async (context) => {
+          // Create a new worksheet called "Sample" and activate it.
+          context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+          const sheet = context.workbook.worksheets.add("Sample");
+          sheet.activate();
+          await context.sync();
+        });
+      }
+
+      /** Default helper for invoking an action and handling errors. */
+      async function tryCatch(callback) {
+        try {
+          await callback();
+        } catch (error) {
+          // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+          console.error(error);
         }
+      }
     language: typescript
 template:
     content: |-
-        <section class="ms-font-m">
-          <p>This sample shows how to set the value of cell A1 to the #BUSY! error data type.</p>
-        </section>
-        <section class="setup ms-font-m">
-          <h3>Set up</h3>
-          <button id="setup" class="ms-Button">
-            <span class="ms-Button-label">Add worksheet</span>
-          </button>
-          <h3>Try it out</h3>
-          <button id="setBusyError" class="ms-Button">
-            <span class="ms-Button-label">Set A1 to busy error</span>
-          </button>
-        </section>
+      <section class="ms-font-m">
+        <p>This sample shows how to set the value of cell A1 to the #BUSY! error data type. The sample then checks to see if
+          cell A1 contains a #BUSY! error, and updates the cell value if it does.</p>
+      </section>
+      <section class="setup ms-font-m">
+        <h3>Set up</h3>
+        <button id="setup" class="ms-Button">
+          <span class="ms-Button-label">Add worksheet</span>
+        </button>
+        <h3>Try it out</h3>
+        <button id="set-busy-error" class="ms-Button">
+          <span class="ms-Button-label">Set A1 to #BUSY! error</span>
+        </button>
+        <button id="change-busy-error" class="ms-Button">
+          <span class="ms-Button-label">Change output of cell with #BUSY! error</span>
+        </button>
+      </section>
     language: html
 style:
     content: |-

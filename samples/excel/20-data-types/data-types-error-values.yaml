@@ -1,7 +1,7 @@
 order: 4
 id: excel-data-types-error-values
 name: 'Data types: Set and change error values'
-description: 'This sample shows how to set a cell value to an error data type, and then update the value of a cell that contains an error data type.'
+description: 'This sample shows how to set a cell value to an error data type, and then update the value of cells that contain an error data type.'
 host: EXCEL
 api_set:
     ExcelApi: '1.16'
@@ -31,22 +31,22 @@ script:
         }
 
         async function changeBusyError() {
-          // This function checks if a range contains a #BUSY! error, and then updates the range if it contains the error.
+          // This function checks if the used range contains a #BUSY! error, and then updates all the cells in the range that contain the error.
           await Excel.run(async (context) => {
-            // Retrieve the Sample worksheet and cell A1 on that sheet.
+            // Retrieve the Sample worksheet and the used range on that sheet.
             const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
-            const range = sheet.getRange("A1");
+            const usedRange = sheet.getUsedRange();
 
             // Load the `valuesAsJson` property for comparison.
-            range.load("valuesAsJson");
+            usedRange.load("valuesAsJson");
             await context.sync();
 
-            // Check if the range contains a #BUSY! error.
-            if (range.valuesAsJson[0][0]["errorType"] == Excel.ErrorCellValueType.busy) {
-              // If the range contains a #BUSY! error, load and change the value of the range.
-              range.load("values");
+            // Check if the used range contains a #BUSY! error.
+            if (usedRange.valuesAsJson[0][0]["errorType"] == Excel.ErrorCellValueType.busy) {
+              // If the used range contains a #BUSY! error, load and change those values.
+              usedRange.load("values");
               await context.sync();
-              range.values = [["Process unavailable."]];
+              usedRange.values = [["Process unavailable."]];
             }
 
             await context.sync();
@@ -75,23 +75,22 @@ script:
     language: typescript
 template:
     content: |-
-        <section class="ms-font-m">
-          <p>This sample shows how to set the value of cell A1 to the #BUSY! error data type. The sample then checks to see if
-            cell A1 contains a #BUSY! error, and updates the cell value if it does.</p>
-        </section>
-        <section class="setup ms-font-m">
-          <h3>Set up</h3>
-          <button id="setup" class="ms-Button">
-            <span class="ms-Button-label">Add worksheet</span>
-          </button>
-          <h3>Try it out</h3>
-          <button id="set-busy-error" class="ms-Button">
-            <span class="ms-Button-label">Set A1 to #BUSY! error</span>
-          </button>
-          <button id="change-busy-error" class="ms-Button">
-            <span class="ms-Button-label">Change #BUSY! error cell value</span>
-          </button>
-        </section>
+      <section class="ms-font-m">
+        <p>This sample shows how to set the value of cell A1 to the #BUSY! error data type. The sample then checks to see if the worksheet contains a #BUSY! error, and then updates all cells that contain a #BUSY! error.</p>
+      </section>
+      <section class="setup ms-font-m">
+        <h3>Set up</h3>
+        <button id="setup" class="ms-Button">
+          <span class="ms-Button-label">Add worksheet</span>
+        </button>
+        <h3>Try it out</h3>
+        <button id="set-busy-error" class="ms-Button">
+          <span class="ms-Button-label">Set A1 to #BUSY! error</span>
+        </button>
+        <button id="change-busy-error" class="ms-Button">
+          <span class="ms-Button-label">Change output of cells with #BUSY! error</span>
+        </button>
+      </section>
     language: html
 style:
     content: |-

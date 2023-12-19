@@ -1,0 +1,220 @@
+order: 5
+id: word-document-manage-tracked-changes
+name: Manage tracked changes
+description: 'This samples shows how to manage tracked changes, including accepting and rejecting changes.'
+host: WORD
+api_set:
+    WordApi: '1.6'
+script:
+    content: |
+        $("#get-all-tracked-changes").click(() => tryCatch(getAllTrackedChanges));
+        $("#get-first-tracked-change-range").click(() => tryCatch(getFirstTrackedChangeRange));
+        $("#get-next-tracked-change").click(() => tryCatch(getNextTrackedChange));
+        $("#accept-first-tracked-change").click(() => tryCatch(acceptFirstTrackedChange));
+        $("#reject-first-tracked-change").click(() => tryCatch(rejectFirstTrackedChange));
+        $("#accept-all-tracked-changes").click(() => tryCatch(acceptAllTrackedChanges));
+        $("#reject-all-tracked-changes").click(() => tryCatch(rejectAllTrackedChanges));
+        $("#setup").click(() => tryCatch(setup));
+
+        async function getAllTrackedChanges() {
+          // Gets all tracked changes.
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            const trackedChanges = body.getTrackedChanges();
+            trackedChanges.load();
+            await context.sync();
+
+            console.log(trackedChanges);
+          });
+        }
+
+        async function getFirstTrackedChangeRange() {
+          // Gets the range of the first tracked change.
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            const trackedChanges = body.getTrackedChanges();
+            const trackedChange = trackedChanges.getFirst();
+            await context.sync();
+
+            const range = trackedChange.getRange();
+            range.load();
+            await context.sync();
+
+            console.log("range.text: " + range.text);
+          });
+        }
+
+        async function getNextTrackedChange() {
+          // Gets the next (second) tracked change.
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            const trackedChanges = body.getTrackedChanges();
+            await context.sync();
+
+            const trackedChange = trackedChanges.getFirst();
+            await context.sync();
+
+            const nextTrackedChange = trackedChange.getNext();
+            await context.sync();
+
+            nextTrackedChange.load();
+            await context.sync();
+
+            console.log(nextTrackedChange);
+          });
+        }
+
+        async function acceptFirstTrackedChange() {
+          // Accepts the first tracked change.
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            const trackedChanges = body.getTrackedChanges();
+            const trackedChange = trackedChanges.getFirst();
+            trackedChange.load();
+            await context.sync();
+
+            console.log("First tracked change:");
+            console.log(trackedChange);
+            trackedChange.accept();
+            console.log("Accepted the first tracked change");
+          });
+        }
+
+        async function rejectFirstTrackedChange() {
+          // Rejects the first tracked change.
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            const trackedChanges = body.getTrackedChanges();
+            const trackedChange = trackedChanges.getFirst();
+            trackedChange.load();
+            await context.sync();
+
+            console.log("First tracked change:");
+            console.log(trackedChange);
+            trackedChange.reject();
+            console.log("Rejected the first tracked change");
+          });
+        }
+
+        async function acceptAllTrackedChanges() {
+          // Accepts all tracked changes.
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            const trackedChanges = body.getTrackedChanges();
+            trackedChanges.acceptAll();
+            console.log("Accepted all tracked changes");
+          });
+        }
+
+        async function rejectAllTrackedChanges() {
+          // Rejects all tracked changes.
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            const trackedChanges = body.getTrackedChanges();
+            trackedChanges.rejectAll();
+            console.log("Rejected all tracked changes");
+          });
+        }
+
+        async function setup() {
+          // Updates the text and sets the font color to red.
+          await Word.run(async (context) => {
+            context.document.changeTrackingMode = Word.ChangeTrackingMode.off;
+
+            context.document.body.insertText("AAA BBB CCC DDD EEE FFF", "Replace");
+
+            context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+            context.document.body
+              .search("BBB")
+              .getFirst()
+              .insertText("WWW", "Replace");
+            context.document.body
+              .search("DDD ")
+              .getFirst()
+              .delete();
+            context.document.body
+              .search("FFF")
+              .getFirst()
+              .insertText("XXX ", "Start");
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample shows how to manage tracked changes.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add sample text</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-all-tracked-changes" class="ms-Button">
+            <span class="ms-Button-label">Get all tracked changes</span>
+          </button>
+            <button id="get-first-tracked-change-range" class="ms-Button">
+                <span class="ms-Button-label">Get the first tracked change's range</span>
+            </button>
+            <button id="get-next-tracked-change" class="ms-Button">
+            <span class="ms-Button-label">Get the next tracked change</span>
+          </button>
+            <button id="accept-first-tracked-change" class="ms-Button">
+            <span class="ms-Button-label">Accept the first tracked change</span>
+          </button>
+            <button id="reject-first-tracked-change" class="ms-Button">
+            <span class="ms-Button-label">Reject the first tracked change</span>
+          </button>
+        </section>
+        <section class="samples ms-font-m">
+            <p>First, choose the <b>Add sample text</b> button.
+                <button id="accept-all-tracked-changes" class="ms-Button">
+                    <span class="ms-Button-label">Accept all tracked changes</span>
+                </button>
+            </p>
+            <p>First, choose the <b>Add sample text</b> button.
+                <button id="reject-all-tracked-changes" class="ms-Button">
+                    <span class="ms-Button-label">Reject all tracked changes</span>
+                  </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

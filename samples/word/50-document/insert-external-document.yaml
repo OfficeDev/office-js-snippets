@@ -1,14 +1,15 @@
 order: 3
 id: word-document-insert-external-document
 name: Insert an external document
-description: Inserts the text of an external document into the current document.
+description: 'Inserts the content (with or without settings) of an external document into the current document. Settings include formatting, change-tracking mode, custom properties, and XML parts.'
 host: WORD
 api_set:
-    WordApi: '1.3'
+    WordApi: '1.6'
 script:
     content: |
         $("#file").change(getBase64);
         $("#insert-document").click(() => tryCatch(insertDocument));
+        $("#insert-document-with-settings").click(() => tryCatch(insertDocumentWithSettings));
 
         let externalDocument;
 
@@ -27,6 +28,23 @@ script:
             const externalDocBodyText = externalDocBody.text;
             const currentDocBody = context.document.body;
             currentDocBody.insertText(externalDocBodyText, Word.InsertLocation.start);
+            await context.sync();
+          });
+        }
+
+        async function insertDocumentWithSettings() {
+          // Inserts content (applying selected settings) from another document passed in as a Base64-encoded string.
+          await Word.run(async (context) => {
+            // Use the Base64-encoded string representation of the selected .docx file.
+            context.document.insertFileFromBase64(externalDocument, "Replace", {
+              importTheme: true,
+              importStyles: true,
+              importParagraphSpacing: true,
+              importPageColor: true,
+              importChangeTrackingMode: true,
+              importCustomProperties: true,
+              importCustomXmlParts: true
+            });
             await context.sync();
           });
         }
@@ -64,14 +82,19 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <p>Select a Word document to copy its body text into the current document.</p>
+            <p>Select a Word document.</p>
             <form>
                 <input type="file" id="file" />
           </form>
                 <br>
                 <p>Insert the body text from the selected document.</p>
                 <button id="insert-document" class="ms-Button">
-            <span class="ms-Button-label">Insert document</span>
+          <span class="ms-Button-label">Insert document (no settings)</span>
+          </button>
+                <br>
+                <p>Insert the body text with settings applied from the selected document.</p>
+                <button id="insert-document-with-settings" class="ms-Button">
+            <span class="ms-Button-label">Insert document and apply settings</span>
           </button>
         </section>
     language: html

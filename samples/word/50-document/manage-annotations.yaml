@@ -1,0 +1,350 @@
+order: 14
+id: word-document-manage-annotations
+name: Manage annotations
+description: Shows how to leverage the Writing Assistance API to manage annotations and use annotation events.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.7'
+script:
+    content: |
+        $("#register-event-handlers").click(() => tryCatch(registerEventHandlers));
+        $("#insert-annotations").click(() => tryCatch(insertAnnotations));
+        $("#get-annotations").click(() => tryCatch(getAnnotations));
+        $("#accept-first").click(() => tryCatch(acceptFirst));
+        $("#reject-last").click(() => tryCatch(rejectLast));
+        $("#delete-annotations").click(() => tryCatch(deleteAnnotations));
+        $("#deregister-event-handlers").click(() => tryCatch(deregisterEventHandlers));
+        $("#setup").click(() => tryCatch(setup));
+
+        let eventContexts = [];
+
+        async function registerEventHandlers() {
+          // Registers event handlers.
+          await Word.run(async (context) => {
+            eventContexts[0] = context.document.onParagraphAdded.add(paragraphChanged);
+            eventContexts[1] = context.document.onParagraphChanged.add(paragraphChanged);
+
+            eventContexts[2] = context.document.onAnnotationClicked.add(onClickedHandler);
+            eventContexts[3] = context.document.onAnnotationHovered.add(onHoveredHandler);
+            eventContexts[4] = context.document.onAnnotationInserted.add(onInsertedHandler);
+            eventContexts[5] = context.document.onAnnotationRemoved.add(onRemovedHandler);
+
+            await context.sync();
+
+            console.log("Event handlers registered.");
+          });
+        }
+
+        async function paragraphChanged(args: Word.ParagraphChangedEventArgs) {
+          await Word.run(async (context) => {
+            const results = [];
+            for (let id of args.uniqueLocalIds) {
+              let para = context.document.getParagraphByUniqueLocalId(id);
+              para.load("uniqueLocalId");
+
+              results.push({ para: para, text: para.getText() });
+            }
+
+            await context.sync();
+
+            for (let result of results) {
+              console.log(`${args.type}: ${result.para.uniqueLocalId} - ${result.text.value}`);
+            }
+          });
+        }
+
+        async function insertAnnotations() {
+          // Adds annotations to the selected paragraph.
+          await Word.run(async (context) => {
+            const paragraph = context.document.getSelection().paragraphs.getFirst();
+            const critique1 = {
+              colorScheme: Word.CritiqueColorScheme.red,
+              start: 1,
+              length: 3
+            };
+            const critique2 = {
+              colorScheme: Word.CritiqueColorScheme.green,
+              start: 6,
+              length: 1
+            };
+            const critique3 = {
+              colorScheme: Word.CritiqueColorScheme.blue,
+              start: 10,
+              length: 3
+            };
+            const critique4 = {
+              colorScheme: Word.CritiqueColorScheme.lavender,
+              start: 14,
+              length: 3
+            };
+            const critique5 = {
+              colorScheme: Word.CritiqueColorScheme.berry,
+              start: 18,
+              length: 10
+            };
+            const annotationSet: Word.AnnotationSet = {
+              critiques: [critique1, critique2, critique3, critique4, critique5]
+            };
+
+            const annotationIds = paragraph.insertAnnotations(annotationSet);
+
+            await context.sync();
+
+            console.log("Annotations inserted:", annotationIds.value);
+          });
+        }
+
+        async function getAnnotations() {
+          // Gets annotations found in the selected paragraph.
+          await Word.run(async (context) => {
+            const paragraph = context.document.getSelection().paragraphs.getFirst();
+            const annotations = paragraph.getAnnotations();
+            annotations.load("id,state,critiqueAnnotation");
+
+            await context.sync();
+
+            console.log("Annotations found:");
+
+            for (var i = 0; i < annotations.items.length; i++) {
+              const annotation = annotations.items[i];
+
+              console.log(`${annotation.id} - ${annotation.state} - ${JSON.stringify(annotation.critiqueAnnotation.critique)}`);
+            }
+          });
+        }
+
+        async function acceptFirst() {
+          // Accepts the first annotation found in the selected paragraph.
+          await Word.run(async (context) => {
+            const paragraph = context.document.getSelection().paragraphs.getFirst();
+            const annotations = paragraph.getAnnotations();
+            annotations.load("id,state,critiqueAnnotation");
+
+            await context.sync();
+
+            for (var i = 0; i < annotations.items.length; i++) {
+              const annotation = annotations.items[i];
+
+              if (annotation.state === Word.AnnotationState.created) {
+                console.log(`Accepting ${annotation.id}`);
+                annotation.critiqueAnnotation.accept();
+
+                await context.sync();
+                break;
+              }
+            }
+          });
+        }
+
+        async function rejectLast() {
+          // Rejects the last annotation found in the selected paragraph.
+          await Word.run(async (context) => {
+            const paragraph = context.document.getSelection().paragraphs.getFirst();
+            const annotations = paragraph.getAnnotations();
+            annotations.load("id,state,critiqueAnnotation");
+
+            await context.sync();
+
+            for (var i = annotations.items.length - 1; i >= 0; i--) {
+              const annotation = annotations.items[i];
+
+              if (annotation.state === Word.AnnotationState.created) {
+                console.log(`Rejecting ${annotation.id}`);
+                annotation.critiqueAnnotation.reject();
+
+                await context.sync();
+                break;
+              }
+            }
+          });
+        }
+
+        async function deleteAnnotations() {
+          // Deletes all annotations found in the selected paragraph.
+          await Word.run(async (context) => {
+            const paragraph = context.document.getSelection().paragraphs.getFirst();
+            const annotations = paragraph.getAnnotations();
+            annotations.load("id");
+
+            await context.sync();
+
+            const ids = [];
+            for (var i = 0; i < annotations.items.length; i++) {
+              const annotation = annotations.items[i];
+
+              ids.push(annotation.id);
+              annotation.delete();
+            }
+
+            await context.sync();
+
+            console.log("Annotations deleted:", ids);
+          });
+        }
+
+        async function onClickedHandler(args: Word.AnnotationClickedEventArgs) {
+          await Word.run(async (context) => {
+            const annotation = context.document.getAnnotationById(args.id);
+            annotation.load("critiqueAnnotation");
+
+            await context.sync();
+
+            console.log(`AnnotationClicked: ${args.id} - ${JSON.stringify(annotation.critiqueAnnotation.critique)}`);
+          });
+        }
+
+        async function onHoveredHandler(args: Word.AnnotationHoveredEventArgs) {
+          await Word.run(async (context) => {
+            const annotation = context.document.getAnnotationById(args.id);
+            annotation.load("critiqueAnnotation");
+
+            await context.sync();
+
+            console.log(`AnnotationHovered: ${args.id} - ${JSON.stringify(annotation.critiqueAnnotation.critique)}`);
+          });
+        }
+
+        async function onInsertedHandler(args: Word.AnnotationInsertedEventArgs) {
+          await Word.run(async (context) => {
+            const annotations = [];
+            for (let i = 0; i < args.ids.length; i++) {
+              let annotation = context.document.getAnnotationById(args.ids[i]);
+              annotation.load("id,critiqueAnnotation");
+
+              annotations.push(annotation);
+            }
+
+            await context.sync();
+
+            for (let annotation of annotations) {
+              console.log(`AnnotationInserted: ${annotation.id} - ${JSON.stringify(annotation.critiqueAnnotation.critique)}`);
+            }
+          });
+        }
+
+        async function onRemovedHandler(args: Word.AnnotationRemovedEventArgs) {
+          await Word.run(async (context) => {
+            for (let id of args.ids) {
+              console.log(`AnnotationRemoved: ${id}`);
+            }
+          });
+        }
+
+        async function deregisterEventHandlers() {
+          // Deregisters event handlers.
+          await Word.run(async (context) => {
+            for (let i = 0; i < eventContexts.length; i++) {
+              await Word.run(eventContexts[i].context, async (context) => {
+                eventContexts[i].remove();
+              });
+            }
+
+            await context.sync();
+
+            eventContexts = [];
+            console.log("Removed event handlers.");
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            body.clear();
+            body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            body.insertParagraph(
+              "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries.",
+              "End"
+            );
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample demonstrates how to manage annotations and use annotation events.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <span class="ms-font-m">Register event handlers.</span>
+            <button id="register-event-handlers" class="ms-Button">
+                <span class="ms-Button-label">Register</span>
+            </button>
+            <br>
+            <span class="ms-font-m">Insert annotations.</span>
+            <button id="insert-annotations" class="ms-Button">
+            <span class="ms-Button-label">Insert</span>
+          </button>
+            <br>
+            <span class="ms-font-m">Get annotations.</span>
+            <button id="get-annotations" class="ms-Button">
+            <span class="ms-Button-label">Get</span>    
+          </button>
+            <br>
+            <span class="ms-font-m">Accept first.</span>
+            <button id="accept-first" class="ms-Button">
+            <span class="ms-Button-label">Accept</span>    
+          </button>
+            <br>
+            <span class="ms-font-m">Reject last.</span>
+            <button id="reject-last" class="ms-Button">
+            <span class="ms-Button-label">Reject</span>    
+          </button>
+            <br>
+            <span class="ms-font-m">Delete annotations.</span>
+            <button id="delete-annotations" class="ms-Button">
+                <span class="ms-Button-label">Delete</span>
+            </button>
+            <br>
+            <span class="ms-font-m">Deregister event handlers.</span>
+            <button id="deregister-event-handlers" class="ms-Button">
+                <span class="ms-Button-label">Deregister</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

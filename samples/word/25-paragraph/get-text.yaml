@@ -1,63 +1,29 @@
-order: 8
-id: word-paragraph-get-word-count
-name: Get word count
-description: Counts how many times a word or term appears in the document.
+order: 9
+id: word-paragraph-get-text
+name: Get text
+description: 'Shows how to get paragraph text, including hidden text and text marked for deletion.'
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: '1.1'
+    WordApi: '1.7'
 script:
     content: |
+        $("#run").click(() => tryCatch(run));
         $("#setup").click(() => tryCatch(setup));
-        $("#count").click(() => tryCatch(run));
 
         async function run() {
-          // Counts how many times each term appears in the document.
           await Word.run(async (context) => {
-            const paragraphs = context.document.body.paragraphs;
-            paragraphs.load("text");
-            await context.sync();
+            const paragraph = context.document.getSelection().paragraphs.getFirst();
 
-            // Split up the document text using existing spaces as the delimiter.
-            let text = [];
-            paragraphs.items.forEach((item) => {
-              let paragraph = item.text.trim();
-              if (paragraph) {
-                paragraph.split(" ").forEach((term) => {
-                  let currentTerm = term.trim();
-                  if (currentTerm) {
-                    text.push(currentTerm);
-                  }
-                });
-              }
-            });
-
-            // Determine the list of unique terms.
-            let makeTextDistinct = new Set(text);
-            let distinctText = Array.from(makeTextDistinct);
-            let allSearchResults = [];
-
-            for (let i = 0; i < distinctText.length; i++) {
-              let results = context.document.body.search(distinctText[i], { matchCase: true, matchWholeWord: true });
-              results.load("text");
-
-              // Map each search term with its results.
-              let correlatedResults = {
-                searchTerm: distinctText[i],
-                hits: results
-              };
-
-              allSearchResults.push(correlatedResults);
-            }
+            const text = paragraph.getText();
+            const textIncludingHidden = paragraph.getText({ IncludeHiddenText: true });
+            const textIncludingDeleted = paragraph.getText({ IncludeTextMarkedAsDeleted: true });
 
             await context.sync();
 
-            // Display the count for each search term.
-            allSearchResults.forEach((result) => {
-              let length = result.hits.items.length;
-
-              console.log("Search term: " + result.searchTerm + " => Count: " + length);
-            });
+            console.log("Text:- " + text.value);
+            console.log("Including hidden text:- " + textIncludingHidden.value);
+            console.log("Including text marked as deleted:- " + textIncludingDeleted.value);
           });
         }
 
@@ -89,24 +55,33 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-          This sample demonstrates how to get the count for words and terms in the document body.
+            <p>This sample demonstrates how to get paragraph text, including hidden text and text marked for deletion.</p>
+            <ul>
+                <li>How to hide selected text (only available on Windows):
+                    <ol>
+                        <li>Open the <b>Font</b> dialog (e.g., right-click the text then select Font from the context menu).</li>
+                        <li>Turn on the <b>Hidden</b> checkbox.</li>
+                        <li>Choose <b>OK</b>.</li>
+                        </ol>
+                    </li>
+                    <li>How to <a target="_blank"
+                        href="https://support.microsoft.com/office/197ba630-0f5f-4a8e-9a77-3712475e806a">Track changes in
+                        Word</a>.</li>
+            </ul>
         </section>
 
         <section class="setup ms-font-m">
-          <h3>Set up</h3>
-          <button id="setup" class="ms-Button">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
             <span class="ms-Button-label">Setup</span>
           </button>
         </section>
 
         <section class="samples ms-font-m">
-          <h3>Try it out</h3>
-          <span class="ms-font-m">Get the word/term count.</span>
-          <p>
-            <button id="count" class="ms-Button">
-              <span class="ms-Button-label">Get word count</span>
-            </button>
-          </p>
+            <h3>Try it out</h3>
+            <button id="run" class="ms-Button">
+            <span class="ms-Button-label">Get text</span>
+          </button>
         </section>
     language: html
 style:

@@ -1,0 +1,487 @@
+id: word-tables-manage-custom-style
+name: Manage custom table style
+description: Shows how to manage primarily margins and alignments of a custom table style in the current document.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.8'
+script:
+    content: |
+        $("#add-style").click(() => tryCatch(addStyle));
+        $("#apply-style").click(() => tryCatch(applyStyle));
+        $("#show-style-properties").click(() => tryCatch(getTableStyle));
+        $("#set-alignment").click(() => tryCatch(setAlignment));
+        $("#set-allow-break-across-page").click(() => tryCatch(setAllowBreakAcrossPage));
+        $("#set-top-cell-margin").click(() => tryCatch(setTopCellMargin));
+        $("#set-bottom-cell-margin").click(() => tryCatch(setBottomCellMargin));
+        $("#set-left-cell-margin").click(() => tryCatch(setLeftCellMargin));
+        $("#set-right-cell-margin").click(() => tryCatch(setRightCellMargin));
+        $("#set-cell-spacing").click(() => tryCatch(setCellSpacing));
+        $("#delete-style").click(() => tryCatch(deleteStyle));
+        $("#import-styles-from-json").click(() => tryCatch(importStylesFromJson));
+
+        async function addStyle() {
+          // Adds a new table style.
+          const newStyleName = $("#new-style-name").val() as string;
+          if (newStyleName == "") {
+            console.warn("Enter a style name to add.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const style = context.document.getStyles().getByNameOrNullObject(newStyleName);
+            style.load();
+            await context.sync();
+
+            if (!style.isNullObject) {
+              console.warn(
+                `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
+              );
+              return;
+            }
+
+            context.document.addStyle(newStyleName, Word.StyleType.table);
+            await context.sync();
+
+            console.log(newStyleName + " has been added to the style list.");
+          });
+        }
+
+        async function applyStyle() {
+          // Applies the specified style to a new table.
+          const styleName = $("#style-name").val() as string;
+          if (styleName == "") {
+            console.warn("Enter a style name to apply.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else if (style.type != Word.StyleType.table) {
+              console.warn(`The '${styleName}' style isn't a table style.`);
+            } else {
+              const body = context.document.body;
+              body.clear();
+              const data = [
+                ["Tokyo", "Beijing", "Seattle"],
+                ["Apple", "Orange", "Pineapple"]
+              ];
+              const table = body.insertTable(2, 3, "Start", data);
+              table.style = style.nameLocal;
+              table.styleFirstColumn = false;
+              await context.sync();
+
+              console.log(`'${styleName}' style applied to first table.`);
+              console.log(style);
+            }
+          });
+        }
+
+        async function getTableStyle() {
+          // Gets the table style properties and displays them in the form.
+          const styleName = $("#style-name")
+            .val()
+            .toString();
+          if (styleName == "") {
+            console.warn("Please input a table style name.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const tableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+            tableStyle.load();
+            await context.sync();
+
+            if (tableStyle.isNullObject) {
+              console.warn(`There's no existing table style with the name '${styleName}'.`);
+              return;
+            }
+
+            console.log(tableStyle);
+            $("#alignment").val(tableStyle.alignment);
+            $("#allow-break-across-page").val(tableStyle.allowBreakAcrossPage.toString());
+            $("#top-cell-margin").val(tableStyle.topCellMargin);
+            $("#bottom-cell-margin").val(tableStyle.bottomCellMargin);
+            $("#left-cell-margin").val(tableStyle.leftCellMargin);
+            $("#right-cell-margin").val(tableStyle.rightCellMargin);
+            $("#cell-spacing").val(tableStyle.cellSpacing);
+          });
+        }
+
+        async function setAlignment() {
+          // Sets the table alignment.
+          const styleName = $("#style-name")
+            .val()
+            .toString();
+          if (styleName == "") {
+            console.warn("Please input a table style name.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const alignment = $("#alignment")
+              .val()
+              .toString();
+            const tableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+            tableStyle.alignment = alignment as Word.Alignment;
+            await context.sync();
+
+            tableStyle.load();
+            await context.sync();
+            console.log("Alignment: " + tableStyle.alignment);
+          });
+        }
+
+        async function setAllowBreakAcrossPage() {
+          // Sets the allowBreakAcrossPage property.
+          const styleName = $("#style-name")
+            .val()
+            .toString();
+          if (styleName == "") {
+            console.warn("Please input a table style name.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const allowBreakAcrossPage = $("#allow-break-across-page").val() as string;
+            const tableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+            tableStyle.allowBreakAcrossPage = allowBreakAcrossPage === "true";
+            await context.sync();
+
+            tableStyle.load();
+            await context.sync();
+            console.log("allowBreakAcrossPage: " + tableStyle.allowBreakAcrossPage);
+          });
+        }
+
+        async function setTopCellMargin() {
+          // Sets the top cell margin.
+          const styleName = $("#style-name")
+            .val()
+            .toString();
+          if (styleName == "") {
+            console.warn("Please input a table style name.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const topCellMargin = Number(
+              $("#top-cell-margin")
+                .val()
+                .toString()
+            );
+            const tableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+            tableStyle.topCellMargin = topCellMargin;
+            await context.sync();
+
+            tableStyle.load();
+            await context.sync();
+            console.log("Top cell margin: " + tableStyle.topCellMargin);
+          });
+        }
+
+        async function setBottomCellMargin() {
+          // Sets the bottom cell margin.
+          const styleName = $("#style-name")
+            .val()
+            .toString();
+          if (styleName == "") {
+            console.warn("Please input a table style name.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const bottomCellMargin = Number(
+              $("#bottom-cell-margin")
+                .val()
+                .toString()
+            );
+            const tableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+            tableStyle.bottomCellMargin = bottomCellMargin;
+            await context.sync();
+
+            tableStyle.load();
+            await context.sync();
+            console.log("Bottom cell margin: " + tableStyle.bottomCellMargin);
+          });
+        }
+
+        async function setLeftCellMargin() {
+          // Sets the left cell margin.
+          const styleName = $("#style-name")
+            .val()
+            .toString();
+          if (styleName == "") {
+            console.warn("Please input a table style name.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const leftCellMargin = Number(
+              $("#left-cell-margin")
+                .val()
+                .toString()
+            );
+            const tableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+            tableStyle.leftCellMargin = leftCellMargin;
+            await context.sync();
+
+            tableStyle.load();
+            await context.sync();
+            console.log("Left cell margin: " + tableStyle.leftCellMargin);
+          });
+        }
+
+        async function setRightCellMargin() {
+          // Sets the right cell margin.
+          const styleName = $("#style-name")
+            .val()
+            .toString();
+          if (styleName == "") {
+            console.warn("Please input a table style name.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const rightCellMargin = Number(
+              $("#right-cell-margin")
+                .val()
+                .toString()
+            );
+            const tableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+            tableStyle.rightCellMargin = rightCellMargin;
+            await context.sync();
+
+            tableStyle.load();
+            await context.sync();
+            console.log("Right cell margin: " + tableStyle.rightCellMargin);
+          });
+        }
+
+        async function setCellSpacing() {
+          // Sets the cell spacing.
+          const styleName = $("#style-name")
+            .val()
+            .toString();
+          if (styleName == "") {
+            console.warn("Please input a table style name.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const cellSpacing = Number(
+              $("#cell-spacing")
+                .val()
+                .toString()
+            );
+            const tableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+            tableStyle.cellSpacing = cellSpacing;
+            await context.sync();
+
+            tableStyle.load();
+            await context.sync();
+            console.log("Cell spacing: " + tableStyle.cellSpacing);
+          });
+        }
+
+        async function deleteStyle() {
+          // Deletes the custom style.
+          const styleName = $("#style-name-to-delete").val() as string;
+          if (styleName == "") {
+            console.warn("Enter a style name to delete.");
+            return;
+          }
+
+          await Word.run(async (context) => {
+            const style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else {
+              style.delete();
+              console.log(`Successfully deleted custom style '${styleName}'.`);
+            }
+          });
+        }
+
+        async function importStylesFromJson() {
+          // Imports styles from JSON.
+          await Word.run(async (context) => {
+            const str =
+              '{"styles":[{"baseStyle":"Default Paragraph Font","builtIn":false,"inUse":true,"linked":false,"nameLocal":"NewCharStyle","priority":2,"quickStyle":true,"type":"Character","unhideWhenUsed":false,"visibility":false,"paragraphFormat":null,"font":{"name":"DengXian Light","size":16.0,"bold":true,"italic":false,"color":"#F1A983","underline":"None","subscript":false,"superscript":true,"strikeThrough":true,"doubleStrikeThrough":false,"highlightColor":null,"hidden":false},"shading":{"backgroundPatternColor":"#FF0000"}},{"baseStyle":"Normal","builtIn":false,"inUse":true,"linked":false,"nextParagraphStyle":"NewParaStyle","nameLocal":"NewParaStyle","priority":1,"quickStyle":true,"type":"Paragraph","unhideWhenUsed":false,"visibility":false,"paragraphFormat":{"alignment":"Centered","firstLineIndent":0.0,"keepTogether":false,"keepWithNext":false,"leftIndent":72.0,"lineSpacing":18.0,"lineUnitAfter":0.0,"lineUnitBefore":0.0,"mirrorIndents":false,"outlineLevel":"OutlineLevelBodyText","rightIndent":72.0,"spaceAfter":30.0,"spaceBefore":30.0,"widowControl":true},"font":{"name":"DengXian","size":14.0,"bold":true,"italic":true,"color":"#8DD873","underline":"Single","subscript":false,"superscript":false,"strikeThrough":false,"doubleStrikeThrough":true,"highlightColor":null,"hidden":false},"shading":{"backgroundPatternColor":"#00FF00"}},{"baseStyle":"Table Normal","builtIn":false,"inUse":true,"linked":false,"nextParagraphStyle":"NewTableStyle","nameLocal":"NewTableStyle","priority":100,"type":"Table","unhideWhenUsed":false,"visibility":false,"paragraphFormat":{"alignment":"Left","firstLineIndent":0.0,"keepTogether":false,"keepWithNext":false,"leftIndent":0.0,"lineSpacing":12.0,"lineUnitAfter":0.0,"lineUnitBefore":0.0,"mirrorIndents":false,"outlineLevel":"OutlineLevelBodyText","rightIndent":0.0,"spaceAfter":0.0,"spaceBefore":0.0,"widowControl":true},"font":{"name":"DengXian","size":20.0,"bold":false,"italic":true,"color":"#D86DCB","underline":"None","subscript":false,"superscript":false,"strikeThrough":false,"doubleStrikeThrough":false,"highlightColor":null,"hidden":false},"tableStyle":{"allowBreakAcrossPage":true,"alignment":"Left","bottomCellMargin":0.0,"leftCellMargin":0.08,"rightCellMargin":0.08,"topCellMargin":0.0,"cellSpacing":0.0},"shading":{"backgroundPatternColor":"#60CAF3"}}]}';
+            const styles = context.document.importStylesFromJson(str);
+            await context.sync();
+            console.log("Styles imported from JSON:");
+            console.log(styles);
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample demonstrates how to manage a custom table style and use Document.importStylesFromJson.
+            </p>
+            <p><b>Important</b>: Some TableStyle properties are currently in preview. If this snippet doesn't work, try using Word
+                on a different platform.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <h4>Add a new table style</h4>
+            <p>Name the style using letters. Can include digits. Examples: NewName, newname1</p>
+            <p>
+                <label style="margin-left: 20px">Name:</label>
+                <input id="new-style-name"/>
+          </p>
+                <button id="add-style" class="ms-Button">
+              <span class="ms-Button-label">Add style</span>
+          </button>
+                <h4>Use custom style</h4>
+                <label style="margin-left: 20px">Style name:</label>
+                <input id="style-name"/>
+                <p />
+                <button id="apply-style" class="ms-Button">
+                <span class="ms-Button-label">Add table and apply style</span>
+            </button>
+                <p />
+                <button id="show-style-properties" class="ms-Button">
+                <span class="ms-Button-label">Display style properties</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h4>Update custom style</h4> <label class="msLabel">Alignment:</label>
+            <select id="alignment">
+                <option>Centered</option>    
+                <option>Justified</option>
+                <option>Left</option>
+                <option>Mixed</option>
+                <option>Right</option>
+                <option>Unknown</option>
+            </select>
+            <div><i>Note</i>: Mixed and Unknown aren't valid when setting.<div>
+                    <button id="set-alignment" class="ms-Button margin">
+                    <span class="ms-Button-label">Set alignment</span>
+              </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <label style="msLabel">allowBreakAcrossPage:</label>
+            <select id="allow-break-across-page">
+              <option>false</option>    
+                <option>true</option>
+          </select>
+            <br>
+            <button id="set-allow-break-across-page" class="ms-Button margin">
+                    <span class="ms-Button-label">Set allowBreakAcrossPage property</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <label class="msLabel">Top cell margin:</label>
+            <input id="top-cell-margin" type="text" />
+            </br>
+            <button id="set-top-cell-margin" class="ms-Button margin">
+                    <span class="ms-Button-label">Set top cell margin</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <label class="msLabel">Bottom cell margin:</label>
+            <input id="bottom-cell-margin" type="text" />
+            <br>
+            <button id="set-bottom-cell-margin" class="ms-Button margin">
+                    <span class="ms-Button-label">Set bottom cell margin</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <label class="msLabel">Left cell margin:</label>
+            <input id="left-cell-margin" type="text" />
+            <br>
+            <button id="set-left-cell-margin" class="ms-Button margin">
+                    <span class="ms-Button-label">Set left cell margin</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <label class="msLabel">Right cell margin:</label>
+            <input id="right-cell-margin" type="text" />
+            <br>
+            <button id="set-right-cell-margin" class="ms-Button margin">
+                    <span class="ms-Button-label">Set right cell margin</span>
+            </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <label class="msLabel">Cell spacing:</label>
+            <input id="cell-spacing" type="text" />
+            <br>
+            <button id="set-cell-spacing" class="ms-Button margin">
+                    <span class="ms-Button-label">Set cell spacing</span>
+            </button>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h4>Delete custom style</h4>
+            <label style="margin-left: 20px">Style name:</label>
+            <input id="style-name-to-delete"/>
+            <br>
+            <button id="delete-style" class="ms-Button margin">
+            <span class="ms-Button-label">Delete style</span>
+            </button>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h4>Import styles from JSON string</h4>
+            <button id="import-styles-from-json" class="ms-Button margin">
+                    <span class="ms-Button-label">Import</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+
+        .margin {
+          margin-top: 5px;
+          margin-bottom: 5px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

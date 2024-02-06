@@ -14,8 +14,6 @@ script:
         $("#font-properties").click(() => tryCatch(setFontProperties));
         $("#paragraph-format").click(() => tryCatch(setParagraphFormat));
         $("#delete-style").click(() => tryCatch(deleteStyle));
-        $("#file").change(getBase64);
-        $("#get-external-styles").click(() => tryCatch(getExternalStyles));
 
         async function getCount() {
           // Gets the number of styles.
@@ -182,34 +180,6 @@ script:
           });
         }
 
-        let externalDocument;
-
-        async function getExternalStyles() {
-          // Gets style info from another document passed in as a Base64-encoded string.
-          await Word.run(async (context) => {
-            const retrievedStyles = context.application.retrieveStylesFromBase64(externalDocument);
-            await context.sync();
-
-            console.log("Styles from the other document:");
-            console.log(retrievedStyles.value);
-          });
-        }
-
-        function getBase64() {
-          // Retrieve the file and set up an HTML FileReader element.
-          const myFile = <HTMLInputElement>document.getElementById("file");
-          const reader = new FileReader();
-
-          reader.onload = (event) => {
-            // Remove the metadata before the Base64-encoded string.
-            const startIndex = reader.result.toString().indexOf("base64,");
-            externalDocument = reader.result.toString().substr(startIndex + 7);
-          };
-
-          // Read the file as a data URL so that we can parse the Base64-encoded string.
-          reader.readAsDataURL(myFile.files[0]);
-        }
-
         // Default helper for invoking an action and handling errors.
         async function tryCatch(callback) {
           try {
@@ -280,24 +250,13 @@ template:
             <span class="ms-Button-label">Set paragraph format</span>
           </button>
 
-                <h4>Delete custom style</h4>
-                <p>
-                    <label style="margin-left: 20px">Style name:</label>
-                    <input id="style-name-to-delete"/>
-                    <button id="delete-style" class="ms-Button">
-              <span class="ms-Button-label">Delete style</span>
-              </button>
-                </p>
-                <h4>Get style info from external document</h4>
-                <p>Select a Word document to get its style info.</p>
-                <form>
-                    <input type="file" id="file" />
-                </form>
-                    <br>
-                    <p>Get style info from the selected document.</p>
-                    <button id="get-external-styles" class="ms-Button">
-                      <span class="ms-Button-label">Get styles</span>
-                    </button>
+              <h4>Delete custom style</h4>
+              <p>
+                  <label style="margin-left: 20px">Style name:</label>
+                  <input id="style-name-to-delete"/>
+                  <button id="delete-style" class="ms-Button">
+            <span class="ms-Button-label">Delete style</span>
+          </button>
         </section>
     language: html
 style:

@@ -1,0 +1,78 @@
+id: word-document-compare-documents
+name: Compare documents
+description: Compares two documents (the current one and a specified external one).
+author: YijunMS
+host: WORD
+api_set:
+    WordApi: '1.8'
+script:
+    content: |
+        $("#run").click(() => tryCatch(run));
+
+        async function run() {
+          // Compares the current document with a specified external document.
+          await Word.run(async (context) => {
+            // Absolute path of an online or local document.
+            const filePath = $("#filePath")
+              .val()
+              .toString();
+            // Options that configure the compare operation.
+            const options = { compareTarget: "CompareTargetCurrent" };
+            context.document.compare(filePath, options);
+
+            await context.sync();
+
+            console.log("Differences shown in the current document.");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows how to compare two documents (the current one and a specified external one).</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <label>File (with absolute path): </label>
+            <input id="filePath">
+            <button id="run" class="ms-Button">
+            <span class="ms-Button-label">Run</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

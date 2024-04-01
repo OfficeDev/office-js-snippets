@@ -10,16 +10,23 @@ script:
         $("#get-conversation-index").click(getConversationIndex);
 
         function getConversationIndex() {
-          // This snippet returns the position of the current message in a conversation thread (PR_CONVERSATION_INDEX).
-          // The API call is supported on a message being composed and isn't supported on read items.
-          const conversationIndex = Office.context.mailbox.item.conversationIndex;
-          if (conversationIndex) {
-            console.log("Position in the conversation thread: " + conversationIndex);
-          }
-          else
-          {
-            console.log("The current message doesn't belong to a conversation thread.");
-          }
+          // This snippet returns the Base64-encoded position of the current message in a conversation thread (PR_CONVERSATION_INDEX).
+          // The API call is supported on a message being composed and isn't supported on read items or appointments.
+          Office.context.mailbox.item.getConversationIndexAsync((result) => {
+             if (result.status === Office.AsyncResultStatus.Failed) {
+                console.log(result.error.message);
+                return;
+             }
+             
+             const conversationIndex = result.value;
+             if (conversationIndex) {
+                console.log("Position in the conversation thread: " + conversationIndex);
+             }
+             else
+             {
+                console.log("The current message doesn't belong to a conversation thread.");
+             }
+          });
         }
     language: typescript
 template:

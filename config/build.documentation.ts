@@ -161,13 +161,13 @@ function getExtractedDataFromSnippet(
             const whitespaceCountOnFirstLine = spaceFollowedByWordsRegex.exec(fullSnippetTextArray[0])[1].length;
 
             // Place snippet location as comment.
-            const editedFilename = filename.substr(filename.lastIndexOf('samples')).replace(/\\/g, '/');
-            text = '// Link to full sample: https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/' + editedFilename + '\n';
+            const editedFilename = filename.substring(filename.lastIndexOf('samples')).replace(/\\/g, '/');
+            text = '// Link to full sample: https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/' + editedFilename + '\n\n';
 
             text += indented
                 .map(line => {
-                    if (line.substr(0, whitespaceCountOnFirstLine).trim().length === 0) {
-                        return line.substr(whitespaceCountOnFirstLine);
+                    if (line.substring(0, whitespaceCountOnFirstLine).trim().length === 0) {
+                        return line.substring(whitespaceCountOnFirstLine);
                     } else {
                         return line;
                     }

@@ -1,19 +1,19 @@
 id: outlook-notifications-add-getall-remove
 name: Work with notification messages
-description: 'Adds different kinds of notification messages, gets all, and replaces and removes an individual notification message.'
+description: 'Adds different kinds of notification messages, gets all notifications, and replaces and removes an individual notification message.'
 host: OUTLOOK
 api_set:
     Mailbox: '1.10'
 script:
     content: |
-        $("#addProgress").click(addProgress);
-        $("#addInformational").click(addInformational);
-        $("#addInformationalPersisted").click(addInformationalPersisted);
-        $("#addInsight").click(addInsight);
-        $("#addError").click(addError);
-        $("#getAll").click(getAll);
-        $("#replace").click(replace);
-        $("#remove").click(remove);
+        $("#addProgress").on("click", addProgress);
+        $("#addInformational").on("click", addInformational);
+        $("#addInformationalPersisted").on("click", addInformationalPersisted);
+        $("#addInsight").on("click", addInsight);
+        $("#addError").on("click", addError);
+        $("#getAll").on("click", getAll);
+        $("#replace").on("click", replace);
+        $("#remove").on("click", remove);
           
         function addProgress() {
           // Adds a progress indicator to the mail item.
@@ -55,20 +55,23 @@ script:
         function addInsight() {
           // Adds an informational message with actions to the mail item.
           const id = $("#notificationId").val().toString();
-          const details = 
-            {
-              type: Office.MailboxEnums.ItemNotificationMessageType.InsightMessage,
-              message: "This is an insight notification",
-              icon: "icon1",
-              actions: [
-                {
-                  actionText: "Open insight",
-                  actionType: Office.MailboxEnums.ActionType.ShowTaskPane,
-                  commandId: "msgComposeOpenPaneButton",
-                  contextData: { a: "aValue", b: "bValue" }
-                }
-              ]
-            };
+
+          const itemId = Office.context.mailbox.item.itemId;
+          const details = {
+            type: Office.MailboxEnums.ItemNotificationMessageType.InsightMessage,
+            message: "This is an insight notification with id = " + id,
+            icon: "icon1",
+            actions: [
+              {
+                actionText: "Open insight",
+                actionType: Office.MailboxEnums.ActionType.ShowTaskPane,
+                // Identify whether the current mail item is in read or compose mode to set the appropriate commandId value.
+                commandId: (itemId == undefined ? "PG.HelpCommand.Compose" : "PG.HelpCommand.Read"),
+                contextData: { a: "aValue", b: "bValue" }
+              }
+            ]
+          };
+
           Office.context.mailbox.item.notificationMessages.addAsync(id, details, handleResult);
         }
 
@@ -127,34 +130,51 @@ template:
         </section>
 
         <section class="samples ms-font-m">
-          <h3>Try it out</h3>
+          <h2>Try it out</h2>
           <div class="ms-TextField">
-            <label class="ms-Label">Notification ID to use with add/replace/remove:</label>
+            <label class="ms-Label">Notification ID to add, replace, or remove that notification:</label>
             <input id="notificationId" class="ms-TextField-field" type="text" value="my_id_00" placeholder="">
           </div>
+          <h3>Add a notification</h3>
+          <p>To add a notification, enter a unique ID for the notification in the text field, then select one of the notification types below.</p>
+          <p><b>Note</b>:</p>
+          <ul>
+            <li>You can add a maximum of five notifications per mail item.</li>
+            <li>You can only add one insight notification to a mail item.</li>
+            <li>In Outlook on the web and in new Outlook on Windows (preview), you can only add an insight notification to an item in compose mode.</li>
+          </ul>
           <button id="addProgress" class="ms-Button">
             <div class="ms-Button-label">Add a progress notification</div>
           </button>
+          <br>
           <button id="addInformational" class="ms-Button">
             <div class="ms-Button-label">Add an informational notification</div>
           </button>
+          <br>
           <button id="addInformationalPersisted" class="ms-Button">
             <div class="ms-Button-label">Add a persisted informational notification</div>
           </button>
+          <br>
           <button id="addInsight" class="ms-Button">
             <div class="ms-Button-label">Add an insight notification</div>
           </button>
+          <br>
           <button id="addError" class="ms-Button">
             <div class="ms-Button-label">Add an error notification</div>
           </button>
+          <h3>Get all notifications</h3>
           <button id="getAll" class="ms-Button">
-            <div class="ms-Button-label">Get all</div>
+            <div class="ms-Button-label">Get notifications</div>
           </button>
+          <h3>Replace a notification</h3>
+          <p>To replace a notification with an informational message, enter the ID of the notification you want to replace in the text field, then select <b>Replace notification</b>.</p>
           <button id="replace" class="ms-Button">
-            <div class="ms-Button-label">Replace</div>
+            <div class="ms-Button-label">Replace notification</div>
           </button>
+          <h3>Remove a notification</h3>
+          <p>To remove a notification, enter the ID of the notification you want to remove in the text field, then select <b>Remove notification</b>.</p>
           <button id="remove" class="ms-Button">
-            <div class="ms-Button-label">Remove</div>
+            <div class="ms-Button-label">Remove notification</div>
           </button>
         </section>
     language: html

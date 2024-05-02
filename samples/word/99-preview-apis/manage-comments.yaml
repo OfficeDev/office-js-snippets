@@ -1,0 +1,340 @@
+id: word-manage-comments
+name: Manage comments
+description: 'This sample shows how to perform operations on comments (including insert, reply, get, edit, resolve, and delete) and use comment events.'
+host: WORD
+api_set:
+    WordApi: '1.8'
+script:
+    content: |
+        $("#register-event-handlers").on("click", () => tryCatch(registerEventHandlers));
+        $("#insert").on("click", () => tryCatch(insertComment));
+        $("#edit").on("click", () => tryCatch(editFirstCommentInSelection));
+        $("#reply").on("click", () => tryCatch(replyToFirstActiveCommentInSelection));
+        $("#resolve").on("click", () => tryCatch(toggleResolvedStatusOfFirstCommentInSelection));
+        $("#range").on("click", () => tryCatch(getFirstCommentRange));
+        $("#get-comments-in-selection").on("click", () => tryCatch(getCommentsInSelection));
+        $("#delete").on("click", () => tryCatch(deleteFirstCommentInSelection));
+        $("#get-comments").on("click", () => tryCatch(getComments));
+        $("#deregister-event-handlers").on("click", () => tryCatch(deregisterEventHandlers));
+        $("#setup").on("click", () => tryCatch(setup));
+
+        let eventContexts = [];
+
+        async function registerEventHandlers() {
+          // Registers event handlers.
+          await Word.run(async (context) => {
+            let body = context.document.body;
+            eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+            eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+            eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+            eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+            eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+
+            await context.sync();
+
+            console.log("Event handlers registered.");
+          });
+        }
+
+        async function insertComment() {
+          // Sets a comment on the selected content.
+          await Word.run(async (context) => {
+            const text = $("#comment-text")
+              .val()
+              .toString();
+            const comment = context.document.getSelection().insertComment(text);
+
+            // Load object for display in Script Lab console.
+            comment.load();
+            await context.sync();
+
+            console.log("Comment inserted:");
+            console.log(comment);
+          });
+        }
+
+        async function editFirstCommentInSelection() {
+          // Edits the first comment in the selected content.
+          await Word.run(async (context) => {
+            const text = $("#edit-comment-text")
+              .val()
+              .toString();
+            const comment = context.document
+              .getSelection()
+              .getComments()
+              .getFirst();
+            comment.content = text;
+
+            // Load object for display in Script Lab console.
+            comment.load();
+            await context.sync();
+
+            console.log("Comment content changed:");
+            console.log(comment);
+          });
+        }
+
+        async function replyToFirstActiveCommentInSelection() {
+          // Replies to the first active comment in the selected content.
+          await Word.run(async (context) => {
+            const text = $("#reply-text")
+              .val()
+              .toString();
+            const comments = context.document.getSelection().getComments();
+            comments.load("items");
+            await context.sync();
+            const firstActiveComment = comments.items.find((item) => item.resolved !== true);
+            if (firstActiveComment) {
+              const reply = firstActiveComment.reply(text);
+              console.log("Reply added.");
+            } else {
+              console.log("No active comment was found in the selection so couldn't reply.");
+            }
+          });
+        }
+
+        async function toggleResolvedStatusOfFirstCommentInSelection() {
+          // Toggles Resolved status of the first comment in the selected content.
+          await Word.run(async (context) => {
+            const comment = context.document
+              .getSelection()
+              .getComments()
+              .getFirst();
+            comment.load("resolved");
+            await context.sync();
+
+            // Toggle resolved status.
+            // If the comment is active, set as resolved.
+            // If it's resolved, set resolved to false.
+            const toggleResolved: boolean = comment.resolved;
+            comment.resolved = !toggleResolved;
+            comment.load();
+            await context.sync();
+
+            console.log(`Comment Resolved status: ${comment.resolved}`);
+            console.log(comment);
+          });
+        }
+
+        async function getFirstCommentRange() {
+          // Gets the range of the first comment in the selected content.
+          await Word.run(async (context) => {
+            const range = context.document
+              .getSelection()
+              .getComments()
+              .getFirst()
+              .getRange();
+            range.load("text");
+            await context.sync();
+
+            console.log(`Comment location: ${range.text}`);
+          });
+        }
+
+        async function getCommentsInSelection() {
+          // Gets the comments in the selected content.
+          await Word.run(async (context) => {
+            const comments = context.document.getSelection().getComments();
+
+            // Load objects for display in Script Lab console.
+            comments.load();
+            await context.sync();
+
+            console.log("Comments:");
+            console.log(comments);
+          });
+        }
+
+        async function deleteFirstCommentInSelection() {
+          // Deletes the first comment in the selected content.
+          await Word.run(async (context) => {
+            context.document
+              .getSelection()
+              .getComments()
+              .getFirst()
+              .delete();
+            await context.sync();
+
+            console.log("Comment deleted.");
+          });
+        }
+
+        async function getComments() {
+          // Gets the comments in the document body.
+          await Word.run(async (context) => {
+            const comments = context.document.body.getComments();
+
+            // Load objects for display in Script Lab console.
+            comments.load();
+            await context.sync();
+
+            console.log("All comments:");
+            console.log(comments);
+          });
+        }
+
+        async function deregisterEventHandlers() {
+          // Deregisters event handlers.
+          await Word.run(async (context) => {
+            for (let i = 0; i < eventContexts.length; i++) {
+              await Word.run(eventContexts[i].context, async (context) => {
+                eventContexts[i].remove();
+              });
+            }
+
+            await context.sync();
+
+            eventContexts = [];
+            console.log("Removed event handlers.");
+          });
+        }
+
+        async function onEventHandler(event: Word.CommentEventArgs) {
+          // Handler for all events except onCommentChanged.
+          await Word.run(async (context) => {
+            console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`);
+            console.log(event.commentDetails);
+          });
+        }
+
+        async function onChangedHandler(event: Word.CommentEventArgs) {
+          await Word.run(async (context) => {
+            console.log(
+              `${event.type} event detected. ${event.changeType} change made. Event source: ${event.source}. Comment info:`
+            );
+            console.log(event.commentDetails);
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            body.clear();
+            body.insertParagraph(
+              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
+              "Start"
+            );
+            body.paragraphs
+              .getLast()
+              .insertText(
+                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching Online cover page, header, and sidebar. Click Insert and then choose the Online elements you want from the different Online galleries.",
+                "Replace"
+              );
+          });
+        }
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p>This sample shows operations on comments and how to use comment events.</p>
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add sample text</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+              <p>First, select content in document body.</p>
+            <p>
+              <label class="ms-font-m">Register event handlers.</label>
+            <button id="register-event-handlers" class="ms-Button">
+              <span class="ms-Button-label">Register</span>
+            </button>
+            </p>
+            <p>
+                <label>Comment text:</label>
+                <input id = "comment-text">
+                <button id="insert" class="ms-Button">
+              <span class="ms-Button-label">Insert comment</span>
+            </button>
+            </p>
+            <p>
+                <label>Replacement text:</label>
+                <input id = "edit-comment-text">
+                <button id="edit" class="ms-Button">
+                    <span class="ms-Button-label">Edit first comment in selection</span>
+                </button>
+            </p>
+            <p>
+                <label>Reply text:</label>
+                <input id = "reply-text">
+                <button id="reply" class="ms-Button">
+                    <span class="ms-Button-label">Reply to first active comment in selection</span>
+              </button>
+            </p>
+            <p>
+                <label>Change Resolved state of first comment in selection.</label>
+                <button id="resolve" class="ms-Button">
+                        <span class="ms-Button-label">Toggle Resolved state</span>
+                  </button>
+            </p>
+            <p>
+                <label>Get range of first comment in selection.</label>
+                <button id="range" class="ms-Button">
+                        <span class="ms-Button-label">Get range</span>
+                  </button>
+            </p>
+            <p>
+                <label>Get comments in selection.</label>
+                <button id="get-comments-in-selection" class="ms-Button">
+                            <span class="ms-Button-label">Get comments</span>
+                      </button>
+            </p>
+            <p>
+                <label>Delete first comment in selection.</label>
+                <button id="delete" class="ms-Button">
+                        <span class="ms-Button-label">Delete comment</span>
+                  </button>
+            </p>
+            <p>
+                <label>Get all comments in document body.</label>
+                <button id="get-comments" class="ms-Button">
+                    <span class="ms-Button-label">Get all comments</span>
+              </button>
+            </p>
+            <p>
+              <label class="ms-font-m">Deregister event handlers.</label>
+              <button id="deregister-event-handlers" class="ms-Button">
+                <span class="ms-Button-label">Deregister</span>
+              </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

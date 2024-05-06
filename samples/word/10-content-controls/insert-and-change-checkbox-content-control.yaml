@@ -1,14 +1,16 @@
 order: 8
 id: word-content-controls-insert-and-change-checkbox-content-control
 name: Manage checkbox content controls
-description: 'Inserts, updates, and retrieves checkbox content controls.'
+description: 'Inserts, updates, retrieves, and deletes checkbox content controls.'
 host: WORD
 api_set:
     WordApi: '1.7'
 script:
     content: |
         $("#insert-controls").on("click", () => tryCatch(insertCheckboxContentControls));
+        $("#toggle-control").on("click", () => tryCatch(toggleCheckboxContentControl));
         $("#change-controls").on("click", () => tryCatch(toggleCheckboxContentControls));
+        $("#delete-control").on("click", () => tryCatch(deleteCheckboxContentControl));
         $("#setup").on("click", () => tryCatch(setup));
 
         async function insertCheckboxContentControls() {
@@ -30,8 +32,47 @@ script:
           });
         }
 
+        async function toggleCheckboxContentControl() {
+          // Toggles the isChecked property of the first checkbox content control found in the selection.
+          await Word.run(async (context) => {
+            const selectedRange = context.document.getSelection();
+            let selectedContentControl = selectedRange
+              .getContentControls({
+                types: [Word.ContentControlType.checkBox]
+              })
+              .getFirstOrNullObject();
+            selectedContentControl.load("id,checkboxContentControl/isChecked");
+
+            await context.sync();
+
+            if (selectedContentControl.isNullObject) {
+              const parentContentControl = selectedRange.parentContentControl;
+              parentContentControl.load("id,type,checkboxContentControl/isChecked");
+              await context.sync();
+
+              if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.checkBox) {
+                console.warn("No checkbox content control is currently selected.");
+                return;
+              } else {
+                selectedContentControl = parentContentControl;
+              }
+            }
+
+            let isCheckedBefore = selectedContentControl.checkboxContentControl.isChecked;
+            console.log("isChecked state before:", `id: ${selectedContentControl.id} ... isChecked: ${isCheckedBefore}`);
+            selectedContentControl.checkboxContentControl.isChecked = !isCheckedBefore;
+            selectedContentControl.load("id,checkboxContentControl/isChecked");
+            await context.sync();
+
+            console.log(
+              "isChecked state after:",
+              `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
+            );
+          });
+        }
+
         async function toggleCheckboxContentControls() {
-          // Toggles the isChecked property on checkbox content controls.
+          // Toggles the isChecked property on all checkbox content controls.
           await Word.run(async (context) => {
             let contentControls = context.document.getContentControls({
               types: [Word.ContentControlType.checkBox]
@@ -60,10 +101,10 @@ script:
             const updatedCheckboxContentControls = [];
             for (let i = 0; i < checkboxContentControls.length; i++) {
               const currentCheckboxContentControl = checkboxContentControls[i];
-              const isChecked = currentCheckboxContentControl.checkboxContentControl.isChecked;
-              console.log(`id: ${currentCheckboxContentControl.id} ... isChecked: ${isChecked}`);
+              const isCheckedBefore = currentCheckboxContentControl.checkboxContentControl.isChecked;
+              console.log(`id: ${currentCheckboxContentControl.id} ... isChecked: ${isCheckedBefore}`);
 
-              currentCheckboxContentControl.checkboxContentControl.isChecked = !isChecked;
+              currentCheckboxContentControl.checkboxContentControl.isChecked = !isCheckedBefore;
               currentCheckboxContentControl.load("id,checkboxContentControl/isChecked");
               updatedCheckboxContentControls.push(currentCheckboxContentControl);
             }
@@ -80,22 +121,48 @@ script:
           });
         }
 
+        async function deleteCheckboxContentControl() {
+          // Deletes the first checkbox content control found in the selection.
+          await Word.run(async (context) => {
+            const selectedRange = context.document.getSelection();
+            let selectedContentControl = selectedRange
+              .getContentControls({
+                types: [Word.ContentControlType.checkBox]
+              })
+              .getFirstOrNullObject();
+            selectedContentControl.load("id");
+
+            await context.sync();
+
+            if (selectedContentControl.isNullObject) {
+              const parentContentControl = selectedRange.parentContentControl;
+              parentContentControl.load("id,type");
+              await context.sync();
+
+              if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.checkBox) {
+                console.warn("No checkbox content control is currently selected.");
+                return;
+              } else {
+                selectedContentControl = parentContentControl;
+              }
+            }
+
+            console.log(`About to delete checkbox content control with id: ${selectedContentControl.id}`);
+            selectedContentControl.delete(false);
+            await context.sync();
+
+            console.log("Deleted checkbox content control.");
+          });
+        }
+
         async function setup() {
           await Word.run(async (context) => {
             const body = context.document.body;
             body.clear();
-            body.insertParagraph("One more paragraph. ", "Start");
-            body.insertParagraph("Inserting another paragraph. ", "Start");
-            body.insertParagraph(
-              "Video provides a powerful way to help you prove your point. When you click Online Video, you can paste in the embed code for the video you want to add. You can also type a keyword to search online for the video that best fits your document.",
-              "Start"
-            );
-            body.paragraphs
-              .getLast()
-              .insertText(
-                "To make your document look professionally produced, Word provides header, footer, cover page, and text box designs that complement each other. For example, you can add a matching cover page, header, and sidebar. Click Insert and then choose the elements you want from the different galleries. ",
-                "Replace"
-              );
+            body.insertParagraph("Task 3", "Start");
+            body.insertParagraph("Task 2", "Start");
+            body.insertParagraph("Task 1", "Start");
+            body.paragraphs.getLast().insertText("Task 4", "Replace");
           });
         }
 
@@ -112,7 +179,7 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            This sample demonstrates how to insert and change checkbox content controls.
+            This sample demonstrates how to insert, change, and delete checkbox content controls.
         </section>
 
         <section class="setup ms-font-m">
@@ -124,15 +191,32 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <span class="ms-font-m">Insert checkbox content controls on each paragraph.</span>
-            <button id="insert-controls" class="ms-Button">
+            <p>
+                <span class="ms-font-m">Insert checkbox content controls on each paragraph.</span>
+                <button id="insert-controls" class="ms-Button">
             <span class="ms-Button-label">Insert</span>
           </button>
+            </p>
+            <p>
+                <div>1. Select content that includes at least one checkbox content control.</div>
+                <span class="ms-font-m">2. Modify isChecked property of the first checkbox content control found in the selection.</span>
+                <button id="toggle-control" class="ms-Button">
+                        <span class=ms-Button-label>Toggle</span>
+                    </button>
+            </p>
             <p>
                 <span class="ms-font-m">Modify isChecked property of all checkbox content controls.</span>
                 <button id="change-controls" class="ms-Button">
-            <span class="ms-Button-label">Toggle</span>
-          </button>
+              <span class="ms-Button-label">Toggle all</span>
+            </button>
+            </p>
+            <p>
+                <div>1. Select content that includes at least one checkbox content control.</div>
+                <span class="ms-font-m">2. Delete the first checkbox content control found in the selection.</span>
+                <button id="delete-control" class="ms-Button">
+                            <span class=ms-Button-label>Delete</span>
+                        </button>
+            </p>
         </section>
     language: html
 style:

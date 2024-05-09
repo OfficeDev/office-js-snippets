@@ -15439,8 +15439,7 @@
       comments.load();
       await context.sync();
 
-      console.log("All comments:");
-      console.log(comments);
+      console.log("All comments:", comments);
     });
 'Word.Body#getHtml:member(1)':
   - >-
@@ -15715,7 +15714,7 @@
       // Synchronize the document state by executing the queued commands, and return a promise to indicate task completion.
       await context.sync();
 
-      console.log('Text added to the beginning of the document body.');
+      console.log("Text added to the beginning of the document body.");
     });
 'Word.Body#search:member(1)':
   - >-
@@ -15800,8 +15799,7 @@
         await context.sync();
 
         for (let i = 0; i < fields.items.length; i++) {
-          console.log(`Field ${i + 1}'s code: ${fields.items[i].code}`);
-          console.log(`Field ${i + 1}'s result: ${JSON.stringify(fields.items[i].result)}`);
+          console.log(`Field ${i + 1}'s code: ${fields.items[i].code}`, `Field ${i + 1}'s result: ${JSON.stringify(fields.items[i].result)}`);
         }
       }
     });
@@ -15874,6 +15872,209 @@
       await context.sync();
       console.log(base64.value);
     });
+'Word.Body#lists:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/organize-list.yaml
+
+
+    // Gets information about the first list in the document.
+
+    await Word.run(async (context) => {
+      const lists = context.document.body.lists;
+      lists.load("items");
+
+      await context.sync();
+
+      if (lists.items.length === 0) {
+        console.warn("There are no lists in this document.");
+        return;
+      }
+      
+      // Get the first list.
+      const list = lists.getFirst();
+      list.load("levelTypes,levelExistences");
+
+      await context.sync();
+
+      const levelTypes = list.levelTypes;
+      console.log("Level types of the first list:");
+      for (let i = 0; i < levelTypes.length; i++) {
+        console.log(`- Level ${i + 1} (index ${i}): ${levelTypes[i]}`);
+      }
+
+      const levelExistences = list.levelExistences;
+      console.log("Level existences of the first list:");
+      for (let i = 0; i < levelExistences.length; i++) {
+        console.log(`- Level ${i + 1} (index ${i}): ${levelExistences[i]}`);
+      }
+    });
+'Word.Body#onCommentAdded:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    // Registers event handlers.
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.track();
+      await context.sync();
+
+      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+      await context.sync();
+
+      console.log("Event handlers registered.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    async function onEventHandler(event: Word.CommentEventArgs) {
+      // Handler for all events except onCommentChanged.
+      await Word.run(async (context) => {
+        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
+      });
+    }
+'Word.Body#onCommentChanged:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    // Registers event handlers.
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.track();
+      await context.sync();
+
+      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+      await context.sync();
+
+      console.log("Event handlers registered.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    async function onChangedHandler(event: Word.CommentEventArgs) {
+      await Word.run(async (context) => {
+        console.log(
+          `${event.type} event detected. ${event.changeType} change made. Event source: ${event.source}. Comment info:`, event.commentDetails
+        );
+      });
+    }
+'Word.Body#onCommentDeleted:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    // Registers event handlers.
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.track();
+      await context.sync();
+
+      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+      await context.sync();
+
+      console.log("Event handlers registered.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    async function onEventHandler(event: Word.CommentEventArgs) {
+      // Handler for all events except onCommentChanged.
+      await Word.run(async (context) => {
+        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
+      });
+    }
+'Word.Body#onCommentDeselected:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    // Registers event handlers.
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.track();
+      await context.sync();
+
+      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+      await context.sync();
+
+      console.log("Event handlers registered.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    async function onEventHandler(event: Word.CommentEventArgs) {
+      // Handler for all events except onCommentChanged.
+      await Word.run(async (context) => {
+        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
+      });
+    }
+'Word.Body#onCommentSelected:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    // Registers event handlers.
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.track();
+      await context.sync();
+
+      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+      await context.sync();
+
+      console.log("Event handlers registered.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    async function onEventHandler(event: Word.CommentEventArgs) {
+      // Handler for all events except onCommentChanged.
+      await Word.run(async (context) => {
+        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
+      });
+    }
 'Word.Body#paragraphs:member':
   - >-
     // Link to full sample:
@@ -16043,7 +16244,7 @@
         borders.outsideBorderType = Word.BorderType.dashed;
         borders.outsideBorderWidth = Word.BorderWidth.pt025;
         borders.outsideBorderColor = "green";
-        console.log("Updated outside borders");
+        console.log("Updated outside borders.");
       }
     });
 'Word.BorderCollection#outsideBorderColor:member':
@@ -16076,7 +16277,7 @@
         borders.outsideBorderType = Word.BorderType.dashed;
         borders.outsideBorderWidth = Word.BorderWidth.pt025;
         borders.outsideBorderColor = "green";
-        console.log("Updated outside borders");
+        console.log("Updated outside borders.");
       }
     });
 'Word.BorderCollection#outsideBorderType:member':
@@ -16109,7 +16310,7 @@
         borders.outsideBorderType = Word.BorderType.dashed;
         borders.outsideBorderWidth = Word.BorderWidth.pt025;
         borders.outsideBorderColor = "green";
-        console.log("Updated outside borders");
+        console.log("Updated outside borders.");
       }
     });
 'Word.BorderCollection#outsideBorderWidth:member':
@@ -16142,7 +16343,7 @@
         borders.outsideBorderType = Word.BorderType.dashed;
         borders.outsideBorderWidth = Word.BorderWidth.pt025;
         borders.outsideBorderColor = "green";
-        console.log("Updated outside borders");
+        console.log("Updated outside borders.");
       }
     });
 'Word.BorderLocation:enum':
@@ -16160,10 +16361,7 @@
       border.load(["type", "color", "width"]);
       await context.sync();
 
-      console.log(`Details about the ${borderLocation} border of the first table:`);
-      console.log(`- Color: ${border.color}`);
-      console.log(`- Type: ${border.type}`);
-      console.log(`- Width: ${border.width} points`);
+      console.log(`Details about the ${borderLocation} border of the first table:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
     });
 'Word.BorderType:enum':
   - >-
@@ -16181,10 +16379,7 @@
       border.load(["type", "color", "width"]);
       await context.sync();
 
-      console.log(`Details about the ${borderLocation} border of the first table's first cell:`);
-      console.log(`- Color: ${border.color}`);
-      console.log(`- Type: ${border.type}`);
-      console.log(`- Width: ${border.width} points`);
+      console.log(`Details about the ${borderLocation} border of the first table's first cell:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
     });
 'Word.BorderWidth:enum':
   - >-
@@ -16216,7 +16411,7 @@
         borders.outsideBorderType = Word.BorderType.dashed;
         borders.outsideBorderWidth = Word.BorderWidth.pt025;
         borders.outsideBorderColor = "green";
-        console.log("Updated outside borders");
+        console.log("Updated outside borders.");
       }
     });
 'Word.BreakType:enum':
@@ -16302,8 +16497,7 @@
 
       await context.sync();
 
-      console.log(`Reviewed text (before):\n${before.value}`);
-      console.log(`Reviewed text (after):\n${after.value}`);
+      console.log("Reviewed text (before):", before.value, "Reviewed text (after):", after.value);
     });
 'Word.CheckboxContentControl:class':
   - >-
@@ -16358,6 +16552,17 @@
           `id: ${currentCheckboxContentControl.id} ... isChecked: ${currentCheckboxContentControl.checkboxContentControl.isChecked}`
         );
       }
+    });
+'Word.CloseBehavior:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/save-close.yaml
+
+
+    // Closes the document after saving.
+
+    await Word.run(async (context) => {
+      context.document.close(Word.CloseBehavior.save);
     });
 'Word.Comment#delete:member(1)':
   - >-
@@ -16442,8 +16647,7 @@
       comment.load();
       await context.sync();
 
-      console.log("Comment content changed:");
-      console.log(comment);
+      console.log("Comment content changed:", comment);
     });
 'Word.Comment#resolved:member':
   - >-
@@ -16469,9 +16673,42 @@
       comment.load();
       await context.sync();
 
-      console.log(`Comment Resolved status: ${comment.resolved}`);
-      console.log(comment);
+      console.log(`Comment Resolved status: ${comment.resolved}`, comment);
     });
+'Word.CommentChangeType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    // Registers event handlers.
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.track();
+      await context.sync();
+
+      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+      await context.sync();
+
+      console.log("Event handlers registered.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    async function onChangedHandler(event: Word.CommentEventArgs) {
+      await Word.run(async (context) => {
+        console.log(
+          `${event.type} event detected. ${event.changeType} change made. Event source: ${event.source}. Comment info:`, event.commentDetails
+        );
+      });
+    }
 'Word.CommentCollection#getFirst:member(1)':
   - >-
     // Link to full sample:
@@ -16492,6 +16729,97 @@
       console.log(`Comment location: ${range.text}`);
     });
 'Word.CommentCollection#items:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
+
+
+    // Replies to the first active comment in the selected content.
+
+    await Word.run(async (context) => {
+      const text = $("#reply-text")
+        .val()
+        .toString();
+      const comments = context.document.getSelection().getComments();
+      comments.load("items");
+      await context.sync();
+
+      const firstActiveComment = comments.items.find((item) => item.resolved !== true);
+      if (firstActiveComment) {
+        const reply = firstActiveComment.reply(text);
+        console.log("Reply added");
+      } else {
+        console.log("No active comment was found in the selection so couldn't reply.");
+      }
+    });
+'Word.CommentDetail:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    // Registers event handlers.
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.track();
+      await context.sync();
+
+      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+      await context.sync();
+
+      console.log("Event handlers registered.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    async function onEventHandler(event: Word.CommentEventArgs) {
+      // Handler for all events except onCommentChanged.
+      await Word.run(async (context) => {
+        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
+      });
+    }
+'Word.CommentEventArgs:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    // Registers event handlers.
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.track();
+      await context.sync();
+
+      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+      await context.sync();
+
+      console.log("Event handlers registered.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    async function onChangedHandler(event: Word.CommentEventArgs) {
+      await Word.run(async (context) => {
+        console.log(
+          `${event.type} event detected. ${event.changeType} change made. Event source: ${event.source}. Comment info:`, event.commentDetails
+        );
+      });
+    }
+'Word.CommentReply:class':
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
@@ -16554,8 +16882,7 @@
       if (contentControls.items.length === 0) {
         console.log("There are no content controls in this document.");
       } else {
-        console.log("Control to be deleted:");
-        console.log(contentControls.items[0]);
+        console.log("Control to be deleted:", contentControls.items[0]);
         contentControls.items[0].delete(false);
         await context.sync();
       }
@@ -16600,6 +16927,50 @@
 
       await context.sync();
     });
+'Word.ContentControl#checkboxContentControl:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-checkbox-content-control.yaml
+
+
+    // Toggles the isChecked property of the first checkbox content control
+    found in the selection.
+
+    await Word.run(async (context) => {
+      const selectedRange = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.checkBox]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,checkboxContentControl/isChecked");
+
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,checkboxContentControl/isChecked");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.checkBox) {
+          console.warn("No checkbox content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      const isCheckedBefore = selectedContentControl.checkboxContentControl.isChecked;
+      console.log("isChecked state before:", `id: ${selectedContentControl.id} ... isChecked: ${isCheckedBefore}`);
+      selectedContentControl.checkboxContentControl.isChecked = !isCheckedBefore;
+      selectedContentControl.load("id,checkboxContentControl/isChecked");
+      await context.sync();
+
+      console.log(
+        "isChecked state after:",
+        `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
+      );
+    });
 'Word.ContentControl#onDataChanged:member':
   - >-
     // Link to full sample:
@@ -16633,8 +17004,7 @@
     async function contentControlDataChanged(event:
     Word.ContentControlDataChangedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls where data was changed:`);
-        console.log(event.ids);
+        console.log(`${event.eventType} event detected. IDs of content controls where data was changed:`, event.ids);
       });
     }
 'Word.ContentControl#onDeleted:member':
@@ -16670,8 +17040,7 @@
     async function contentControlDeleted(event:
     Word.ContentControlDeletedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`);
-        console.log(event.ids);
+        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`, event.ids);
       });
     }
 'Word.ContentControl#onEntered:member':
@@ -16778,8 +17147,7 @@
     async function contentControlSelectionChanged(event:
     Word.ContentControlSelectionChangedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls where selection was changed:`);
-        console.log(event.ids);
+        console.log(`${event.eventType} event detected. IDs of content controls where selection was changed:`, event.ids);
       });
     }
 'Word.ContentControl#tag:member':
@@ -16810,7 +17178,20 @@
 
       await context.sync();
     });
-'Word.ContentControlAddedEventArgs#eventType:member':
+'Word.ContentControlAddedEventArgs:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onadded-event.yaml
+
+
+    // Registers the onAdded event handler on the document.
+
+    await Word.run(async (context) => {
+      eventContext = context.document.onContentControlAdded.add(contentControlAdded);
+      await context.sync();
+
+      console.log("Added event handler for when content controls are added.");
+    });
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onadded-event.yaml
@@ -16819,21 +17200,7 @@
     async function contentControlAdded(event: Word.ContentControlAddedEventArgs)
     {
       await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls that were added:`);
-        console.log(event.ids);
-      });
-    }
-'Word.ContentControlAddedEventArgs#ids:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onadded-event.yaml
-
-
-    async function contentControlAdded(event: Word.ContentControlAddedEventArgs)
-    {
-      await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls that were added:`);
-        console.log(event.ids);
+        console.log(`${event.eventType} event detected. IDs of content controls that were added:`, event.ids);
       });
     }
 'Word.ContentControlAppearance:enum':
@@ -16894,7 +17261,75 @@
 
         await context.sync();
     });
+'Word.ContentControlCollection#getFirstOrNullObject:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-checkbox-content-control.yaml
+
+
+    // Toggles the isChecked property of the first checkbox content control
+    found in the selection.
+
+    await Word.run(async (context) => {
+      const selectedRange = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.checkBox]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,checkboxContentControl/isChecked");
+
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,checkboxContentControl/isChecked");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.checkBox) {
+          console.warn("No checkbox content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      const isCheckedBefore = selectedContentControl.checkboxContentControl.isChecked;
+      console.log("isChecked state before:", `id: ${selectedContentControl.id} ... isChecked: ${isCheckedBefore}`);
+      selectedContentControl.checkboxContentControl.isChecked = !isCheckedBefore;
+      selectedContentControl.load("id,checkboxContentControl/isChecked");
+      await context.sync();
+
+      console.log(
+        "isChecked state after:",
+        `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
+      );
+    });
 'Word.ContentControlDataChangedEventArgs:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondatachanged-event.yaml
+
+
+    await Word.run(async (context) => {
+      const contentControls = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      // Register the onDataChanged event handler on each content control.
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onDataChanged.add(contentControlDataChanged);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when data is changed in content controls.");
+      }
+    });
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondatachanged-event.yaml
@@ -16903,8 +17338,7 @@
     async function contentControlDataChanged(event:
     Word.ContentControlDataChangedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls where data was changed:`);
-        console.log(event.ids);
+        console.log(`${event.eventType} event detected. IDs of content controls where data was changed:`, event.ids);
       });
     }
 'Word.ContentControlDeletedEventArgs:interface':
@@ -16913,14 +17347,61 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondeleted-event.yaml
 
 
+    await Word.run(async (context) => {
+      const contentControls = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      // Register the onDeleted event handler on each content control.
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onDeleted.add(contentControlDeleted);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when content controls are deleted.");
+      }
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondeleted-event.yaml
+
+
     async function contentControlDeleted(event:
     Word.ContentControlDeletedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`);
-        console.log(event.ids);
+        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`, event.ids);
       });
     }
 'Word.ContentControlEnteredEventArgs:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onentered-event.yaml
+
+
+    await Word.run(async (context) => {
+      const contentControls = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      // Register the onEntered event handler on each content control.
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onEntered.add(contentControlEntered);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when the cursor is placed in content controls.");
+      }
+    });
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onentered-event.yaml
@@ -16938,13 +17419,104 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onexited-event.yaml
 
 
+    await Word.run(async (context) => {
+      const contentControls = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      // Register the onExited event handler on each content control.
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onExited.add(contentControlExited);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when the cursor is removed from within content controls.");
+      }
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onexited-event.yaml
+
+
     async function contentControlExited(event:
     Word.ContentControlExitedEventArgs) {
       await Word.run(async (context) => {
         console.log(`${event.eventType} event detected. ID of content control that was exited: ${event.ids[0]}`);
       });
     }
+'Word.ContentControlOptions:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-checkbox-content-control.yaml
+
+
+    // Toggles the isChecked property of the first checkbox content control
+    found in the selection.
+
+    await Word.run(async (context) => {
+      const selectedRange = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.checkBox]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,checkboxContentControl/isChecked");
+
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,checkboxContentControl/isChecked");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.checkBox) {
+          console.warn("No checkbox content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      const isCheckedBefore = selectedContentControl.checkboxContentControl.isChecked;
+      console.log("isChecked state before:", `id: ${selectedContentControl.id} ... isChecked: ${isCheckedBefore}`);
+      selectedContentControl.checkboxContentControl.isChecked = !isCheckedBefore;
+      selectedContentControl.load("id,checkboxContentControl/isChecked");
+      await context.sync();
+
+      console.log(
+        "isChecked state after:",
+        `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
+      );
+    });
 'Word.ContentControlSelectionChangedEventArgs:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onselectionchanged-event.yaml
+
+
+    await Word.run(async (context) => {
+      const contentControls = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onSelectionChanged.add(contentControlSelectionChanged);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when selections are changed in content controls.");
+      }
+    });
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-onselectionchanged-event.yaml
@@ -16953,8 +17525,7 @@
     async function contentControlSelectionChanged(event:
     Word.ContentControlSelectionChangedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls where selection was changed:`);
-        console.log(event.ids);
+        console.log(`${event.eventType} event detected. IDs of content controls where selection was changed:`, event.ids);
       });
     }
 'Word.ContentControlType:enum':
@@ -17103,6 +17674,51 @@
         console.log(`${annotation.id} - ${annotation.state} - ${JSON.stringify(annotation.critiqueAnnotation.critique)}`);
       }
     });
+'Word.CritiqueColorScheme:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-annotations.yaml
+
+
+    // Adds annotations to the selected paragraph.
+
+    await Word.run(async (context) => {
+      const paragraph = context.document.getSelection().paragraphs.getFirst();
+      const critique1 = {
+        colorScheme: Word.CritiqueColorScheme.red,
+        start: 1,
+        length: 3
+      };
+      const critique2 = {
+        colorScheme: Word.CritiqueColorScheme.green,
+        start: 6,
+        length: 1
+      };
+      const critique3 = {
+        colorScheme: Word.CritiqueColorScheme.blue,
+        start: 10,
+        length: 3
+      };
+      const critique4 = {
+        colorScheme: Word.CritiqueColorScheme.lavender,
+        start: 14,
+        length: 3
+      };
+      const critique5 = {
+        colorScheme: Word.CritiqueColorScheme.berry,
+        start: 18,
+        length: 10
+      };
+      const annotationSet: Word.AnnotationSet = {
+        critiques: [critique1, critique2, critique3, critique4, critique5]
+      };
+
+      const annotationIds = paragraph.insertAnnotations(annotationSet);
+
+      await context.sync();
+
+      console.log("Annotations inserted:", annotationIds.value);
+    });
 'Word.CustomProperty:class':
   - >-
     // Link to full sample:
@@ -17180,7 +17796,7 @@
         await context.sync();
 
         if (customXmlPart.isNullObject) {
-          console.log(`The XML part with the ID ${xmlPartIDSetting.value} has been deleted`);
+          console.log(`The XML part with the ID ${xmlPartIDSetting.value} has been deleted.`);
 
           // Delete the associated setting too.
           xmlPartIDSetting.delete();
@@ -17188,11 +17804,10 @@
           await context.sync();
         } else {
           const readableXml = addLineBreaksToXML(xmlBlob.value);
-          const strangeMessage = `This is strange. The XML part with the id ${xmlPartIDSetting.value} wasn't deleted:\n${readableXml}`;
-          console.error(strangeMessage);
+          console.error(`This is strange. The XML part with the id ${xmlPartIDSetting.value} wasn't deleted:`, readableXml);
         }
       } else {
-        console.warn("Didn't find custom XML part to delete");
+        console.warn("Didn't find custom XML part to delete.");
       }
     });
   - >-
@@ -17220,7 +17835,7 @@
         await context.sync();
 
         if (customXmlPart.isNullObject) {
-          console.log(`The XML part with the ID ${xmlPartIDSetting.value} has been deleted`);
+          console.log(`The XML part with the ID ${xmlPartIDSetting.value} has been deleted.`);
 
           // Delete the associated setting too.
           xmlPartIDSetting.delete();
@@ -17228,11 +17843,10 @@
           await context.sync();
         } else {
           const readableXml = addLineBreaksToXML(xmlBlob.value);
-          const strangeMessage = `This is strange. The XML part with the id ${xmlPartIDSetting.value} wasn't deleted:\n${readableXml}`;
-          console.error(strangeMessage);
+          console.error(`This is strange. The XML part with the id ${xmlPartIDSetting.value} wasn't deleted:`, readableXml);
         }
       } else {
-        console.warn("Didn't find custom XML part to delete");
+        console.warn("Didn't find custom XML part to delete.");
       }
     });
 'Word.CustomXmlPart#getXml:member(1)':
@@ -17256,8 +17870,7 @@
       await context.sync();
 
       const readableXml = addLineBreaksToXML(xmlBlob.value);
-      console.log(`Added custom XML part with namespace URI ${customXmlPart.namespaceUri}:`);
-      console.log(readableXml);
+      console.log(`Added custom XML part with namespace URI ${customXmlPart.namespaceUri}:`, readableXml);
 
       // Store the XML part's ID in a setting so the ID is available to other functions.
       const settings = context.document.settings;
@@ -17282,8 +17895,7 @@
       await context.sync();
 
       const readableXml = addLineBreaksToXML(xmlBlob.value);
-      console.log("Added custom XML part:");
-      console.log(readableXml);
+      console.log("Added custom XML part:", readableXml);
 
       // Store the XML part's ID in a setting so the ID is available to other functions.
       const settings = context.document.settings;
@@ -17322,10 +17934,9 @@
         await context.sync();
 
         const readableXml = addLineBreaksToXML(xmlBlob.value);
-        console.log("Successfully inserted attribute:");
-        console.log(readableXml);
+        console.log("Successfully inserted attribute:", readableXml);
       } else {
-        console.warn("Didn't find custom XML part to insert attribute into");
+        console.warn("Didn't find custom XML part to insert attribute into.");
       }
     });
   - >-
@@ -17353,10 +17964,9 @@
         await context.sync();
 
         const readableXml = addLineBreaksToXML(xmlBlob.value);
-        console.log("Successfully inserted attribute:");
-        console.log(readableXml);
+        console.log("Successfully inserted attribute:", readableXml);
       } else {
-        console.warn("Didn't find custom XML part to insert attribute into");
+        console.warn("Didn't find custom XML part to insert attribute into.");
       }
     });
 'Word.CustomXmlPart#insertElement:member(1)':
@@ -17390,10 +18000,9 @@
         await context.sync();
 
         const readableXml = addLineBreaksToXML(xmlBlob.value);
-        console.log("Successfully inserted element:");
-        console.log(readableXml);
+        console.log("Successfully inserted element:", readableXml);
       } else {
-        console.warn("Didn't find custom XML part to insert element into");
+        console.warn("Didn't find custom XML part to insert element into.");
       }
     });
   - >-
@@ -17426,10 +18035,9 @@
         await context.sync();
 
         const readableXml = addLineBreaksToXML(xmlBlob.value);
-        console.log("Successfully inserted element:");
-        console.log(readableXml);
+        console.log("Successfully inserted element:", readableXml);
       } else {
-        console.warn("Didn't find custom XML part to insert element into");
+        console.warn("Didn't find custom XML part to insert element into.");
       }
     });
 'Word.CustomXmlPart#query:member(1)':
@@ -17464,7 +18072,7 @@
           console.log(clientResult.value[i]);
         }
       } else {
-        console.warn("Didn't find custom XML part to query");
+        console.warn("Didn't find custom XML part to query.");
       }
     });
   - >-
@@ -17498,7 +18106,7 @@
           console.log(clientResult.value[i]);
         }
       } else {
-        console.warn("Didn't find custom XML part to query");
+        console.warn("Didn't find custom XML part to query.");
       }
     });
 'Word.CustomXmlPart#setXml:member(1)':
@@ -17524,8 +18132,7 @@
         await context.sync();
 
         let readableXml = addLineBreaksToXML(originalXmlBlob.value);
-        console.log("Original custom XML part:");
-        console.log(readableXml);
+        console.log("Original custom XML part:", readableXml);
 
         // The setXml method replaces the entire XML part.
         customXmlPart.setXml(
@@ -17535,10 +18142,9 @@
         await context.sync();
 
         readableXml = addLineBreaksToXML(updatedXmlBlob.value);
-        console.log("Replaced custom XML part:");
-        console.log(readableXml);
+        console.log("Replaced custom XML part:", readableXml);
       } else {
-        console.warn("Didn't find custom XML part to replace");
+        console.warn("Didn't find custom XML part to replace.");
       }
     });
 'Word.CustomXmlPart#id:member':
@@ -17559,8 +18165,7 @@
       await context.sync();
 
       const readableXml = addLineBreaksToXML(xmlBlob.value);
-      console.log("Added custom XML part:");
-      console.log(readableXml);
+      console.log("Added custom XML part:", readableXml);
 
       // Store the XML part's ID in a setting so the ID is available to other functions.
       const settings = context.document.settings;
@@ -17594,7 +18199,7 @@
         const namespaceUri = customXmlPart.namespaceUri;
         console.log(`Namespace URI: ${JSON.stringify(namespaceUri)}`);
       } else {
-        console.warn("Didn't find custom XML part");
+        console.warn("Didn't find custom XML part.");
       }
     });
 'Word.CustomXmlPartCollection#add:member(1)':
@@ -17618,8 +18223,7 @@
       await context.sync();
 
       const readableXml = addLineBreaksToXML(xmlBlob.value);
-      console.log(`Added custom XML part with namespace URI ${customXmlPart.namespaceUri}:`);
-      console.log(readableXml);
+      console.log(`Added custom XML part with namespace URI ${customXmlPart.namespaceUri}:`, readableXml);
 
       // Store the XML part's ID in a setting so the ID is available to other functions.
       const settings = context.document.settings;
@@ -17644,8 +18248,7 @@
       await context.sync();
 
       const readableXml = addLineBreaksToXML(xmlBlob.value);
-      console.log("Added custom XML part:");
-      console.log(readableXml);
+      console.log("Added custom XML part:", readableXml);
 
       // Store the XML part's ID in a setting so the ID is available to other functions.
       const settings = context.document.settings;
@@ -17685,7 +18288,7 @@
           console.log(clientResult.value[i]);
         }
       } else {
-        console.warn("Didn't find custom XML part to query");
+        console.warn("Didn't find custom XML part to query.");
       }
     });
   - >-
@@ -17719,7 +18322,7 @@
           console.log(clientResult.value[i]);
         }
       } else {
-        console.warn("Didn't find custom XML part to query");
+        console.warn("Didn't find custom XML part to query.");
       }
     });
 'Word.Document#addStyle:member(1)':
@@ -17753,6 +18356,19 @@
       await context.sync();
       
       console.log(newStyleName + " has been added to the style list.");
+    });
+'Word.Document#close:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/save-close.yaml
+
+
+    // Closes the document with default behavior
+
+    // for current state of the document.
+
+    await Word.run(async (context) => {
+      context.document.close();
     });
 'Word.Document#compare:member(1)':
   - >-
@@ -17875,8 +18491,7 @@
         '{"styles":[{"baseStyle":"Default Paragraph Font","builtIn":false,"inUse":true,"linked":false,"nameLocal":"NewCharStyle","priority":2,"quickStyle":true,"type":"Character","unhideWhenUsed":false,"visibility":false,"paragraphFormat":null,"font":{"name":"DengXian Light","size":16.0,"bold":true,"italic":false,"color":"#F1A983","underline":"None","subscript":false,"superscript":true,"strikeThrough":true,"doubleStrikeThrough":false,"highlightColor":null,"hidden":false},"shading":{"backgroundPatternColor":"#FF0000"}},{"baseStyle":"Normal","builtIn":false,"inUse":true,"linked":false,"nextParagraphStyle":"NewParaStyle","nameLocal":"NewParaStyle","priority":1,"quickStyle":true,"type":"Paragraph","unhideWhenUsed":false,"visibility":false,"paragraphFormat":{"alignment":"Centered","firstLineIndent":0.0,"keepTogether":false,"keepWithNext":false,"leftIndent":72.0,"lineSpacing":18.0,"lineUnitAfter":0.0,"lineUnitBefore":0.0,"mirrorIndents":false,"outlineLevel":"OutlineLevelBodyText","rightIndent":72.0,"spaceAfter":30.0,"spaceBefore":30.0,"widowControl":true},"font":{"name":"DengXian","size":14.0,"bold":true,"italic":true,"color":"#8DD873","underline":"Single","subscript":false,"superscript":false,"strikeThrough":false,"doubleStrikeThrough":true,"highlightColor":null,"hidden":false},"shading":{"backgroundPatternColor":"#00FF00"}},{"baseStyle":"Table Normal","builtIn":false,"inUse":true,"linked":false,"nextParagraphStyle":"NewTableStyle","nameLocal":"NewTableStyle","priority":100,"type":"Table","unhideWhenUsed":false,"visibility":false,"paragraphFormat":{"alignment":"Left","firstLineIndent":0.0,"keepTogether":false,"keepWithNext":false,"leftIndent":0.0,"lineSpacing":12.0,"lineUnitAfter":0.0,"lineUnitBefore":0.0,"mirrorIndents":false,"outlineLevel":"OutlineLevelBodyText","rightIndent":0.0,"spaceAfter":0.0,"spaceBefore":0.0,"widowControl":true},"font":{"name":"DengXian","size":20.0,"bold":false,"italic":true,"color":"#D86DCB","underline":"None","subscript":false,"superscript":false,"strikeThrough":false,"doubleStrikeThrough":false,"highlightColor":null,"hidden":false},"tableStyle":{"allowBreakAcrossPage":true,"alignment":"Left","bottomCellMargin":0.0,"leftCellMargin":0.08,"rightCellMargin":0.08,"topCellMargin":0.0,"cellSpacing":0.0},"shading":{"backgroundPatternColor":"#60CAF3"}}]}';
       const styles = context.document.importStylesFromJson(str);
       await context.sync();
-      console.log("Styles imported from JSON:");
-      console.log(styles);
+      console.log("Styles imported from JSON:", styles);
     });
 'Word.Document#insertFileFromBase64:member(1)':
   - >-
@@ -17899,6 +18514,20 @@
         importCustomXmlParts: true,
         importDifferentOddEvenPages: true
       });
+      await context.sync();
+    });
+'Word.Document#save:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/save-close.yaml
+
+
+    // Saves the document with default behavior
+
+    // for current state of the document.
+
+    await Word.run(async (context) => {
+      context.document.save();
       await context.sync();
     });
 'Word.Document#changeTrackingMode:member':
@@ -17944,8 +18573,7 @@
     async function contentControlAdded(event: Word.ContentControlAddedEventArgs)
     {
       await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls that were added:`);
-        console.log(event.ids);
+        console.log(`${event.eventType} event detected. IDs of content controls that were added:`, event.ids);
       });
     }
 'Word.Document#onParagraphAdded:member':
@@ -17969,8 +18597,7 @@
 
     async function paragraphAdded(event: Word.ParagraphAddedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.type} event detected. IDs of paragraphs that were added:`);
-        console.log(event.uniqueLocalIds);
+        console.log(`${event.type} event detected. IDs of paragraphs that were added:`, event.uniqueLocalIds);
       });
     }
 'Word.Document#onParagraphChanged:member':
@@ -17994,8 +18621,7 @@
 
     async function paragraphChanged(event: Word.ParagraphChangedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.type} event detected. IDs of paragraphs where content was changed:`);
-        console.log(event.uniqueLocalIds);
+        console.log(`${event.type} event detected. IDs of paragraphs where content was changed:`, event.uniqueLocalIds);
       });
     }
 'Word.Document#onParagraphDeleted:member':
@@ -18019,8 +18645,7 @@
 
     async function paragraphDeleted(event: Word.ParagraphDeletedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.type} event detected. IDs of paragraphs that were deleted:`);
-        console.log(event.uniqueLocalIds);
+        console.log(`${event.type} event detected. IDs of paragraphs that were deleted:`, event.uniqueLocalIds);
       });
     }
 'Word.Document#properties:member':
@@ -18050,7 +18675,7 @@
       await context.sync();
 
       if (settings.items.length == 0) {
-        console.log("There are no settings");
+        console.log("There are no settings.");
       } else {
         console.log("All settings:");
         for (let i = 0; i < settings.items.length; i++) {
@@ -18121,6 +18746,57 @@
         for (let i = 0; i < properties.items.length; i++)
             console.log("Property Name:" + properties.items[i].key + "; Type=" + properties.items[i].type + "; Property Value=" + properties.items[i].value);
     });
+'Word.ErrorCodes:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-checkbox-content-control.yaml
+
+
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        if (error.code === Word.ErrorCodes.itemNotFound) {
+          console.warn("No checkbox content control is currently selected.");
+        } else {
+          console.error(error);
+        }
+      }
+    }
+'Word.EventSource:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    // Registers event handlers.
+
+    await Word.run(async (context) => {
+      const body = context.document.body;
+      body.track();
+      await context.sync();
+
+      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+      await context.sync();
+
+      console.log("Event handlers registered.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+
+
+    async function onEventHandler(event: Word.CommentEventArgs) {
+      // Handler for all events except onCommentChanged.
+      await Word.run(async (context) => {
+        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
+      });
+    }
 'Word.EventType:enum':
   - >-
     // Link to full sample:
@@ -18130,8 +18806,7 @@
     async function contentControlDeleted(event:
     Word.ContentControlDeletedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`);
-        console.log(event.ids);
+        console.log(`${event.eventType} event detected. IDs of content controls that were deleted:`, event.ids);
       });
     }
 'Word.Field#delete:member(1)':
@@ -18174,9 +18849,7 @@
       if (field.isNullObject) {
         console.log("No field in selection.");
       } else {
-        console.log("Before updating:");
-        console.log("Code of first field: " + field.code);
-        console.log("Result of first field: " + JSON.stringify(field.result));
+        console.log("Before updating:", "Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result));
 
         field.updateResult();
         field.select();
@@ -18185,9 +18858,7 @@
         field.load(["code", "result"]);
         await context.sync();
 
-        console.log("After updating:");
-        console.log("Code of first field: " + field.code);
-        console.log("Result of first field: " + JSON.stringify(field.result));
+        console.log("After updating:", "Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result));
       }
     });
 'Word.Field#updateResult:member(1)':
@@ -18207,9 +18878,7 @@
       if (field.isNullObject) {
         console.log("No field in selection.");
       } else {
-        console.log("Before updating:");
-        console.log("Code of first field: " + field.code);
-        console.log("Result of first field: " + JSON.stringify(field.result));
+        console.log("Before updating:", "Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result));
 
         field.updateResult();
         field.select();
@@ -18218,9 +18887,7 @@
         field.load(["code", "result"]);
         await context.sync();
 
-        console.log("After updating:");
-        console.log("Code of first field: " + field.code);
-        console.log("Result of first field: " + JSON.stringify(field.result));
+        console.log("After updating:", "Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result));
       }
     });
 'Word.Field#code:member':
@@ -18240,11 +18907,7 @@
       if (field.isNullObject) {
         console.log("This document has no fields.");
       } else {
-        console.log("Code of first field: " + field.code);
-        console.log("Result of first field: " + JSON.stringify(field.result));
-        console.log("Type of first field: " + field.type);
-        console.log("Is the first field locked? " + field.locked);
-        console.log("Kind of the first field: " + field.kind);
+        console.log("Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result), "Type of first field: " + field.type, "Is the first field locked? " + field.locked, "Kind of the first field: " + field.kind);
       }
     });
 'Word.Field#kind:member':
@@ -18264,11 +18927,7 @@
       if (field.isNullObject) {
         console.log("This document has no fields.");
       } else {
-        console.log("Code of first field: " + field.code);
-        console.log("Result of first field: " + JSON.stringify(field.result));
-        console.log("Type of first field: " + field.type);
-        console.log("Is the first field locked? " + field.locked);
-        console.log("Kind of the first field: " + field.kind);
+        console.log("Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result), "Type of first field: " + field.type, "Is the first field locked? " + field.locked, "Kind of the first field: " + field.kind);
       }
     });
 'Word.Field#locked:member':
@@ -18333,11 +18992,7 @@
       if (field.isNullObject) {
         console.log("This document has no fields.");
       } else {
-        console.log("Code of first field: " + field.code);
-        console.log("Result of first field: " + JSON.stringify(field.result));
-        console.log("Type of first field: " + field.type);
-        console.log("Is the first field locked? " + field.locked);
-        console.log("Kind of the first field: " + field.kind);
+        console.log("Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result), "Type of first field: " + field.type, "Is the first field locked? " + field.locked, "Kind of the first field: " + field.kind);
       }
     });
 'Word.Field#type:member':
@@ -18357,11 +19012,7 @@
       if (field.isNullObject) {
         console.log("This document has no fields.");
       } else {
-        console.log("Code of first field: " + field.code);
-        console.log("Result of first field: " + JSON.stringify(field.result));
-        console.log("Type of first field: " + field.type);
-        console.log("Is the first field locked? " + field.locked);
-        console.log("Kind of the first field: " + field.kind);
+        console.log("Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result), "Type of first field: " + field.type, "Is the first field locked? " + field.locked, "Kind of the first field: " + field.kind);
       }
     });
 'Word.FieldCollection#getFirstOrNullObject:member(1)':
@@ -18381,11 +19032,7 @@
       if (field.isNullObject) {
         console.log("This document has no fields.");
       } else {
-        console.log("Code of first field: " + field.code);
-        console.log("Result of first field: " + JSON.stringify(field.result));
-        console.log("Type of first field: " + field.type);
-        console.log("Is the first field locked? " + field.locked);
-        console.log("Kind of the first field: " + field.kind);
+        console.log("Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result), "Type of first field: " + field.type, "Is the first field locked? " + field.locked, "Kind of the first field: " + field.kind);
       }
     });
 'Word.FieldCollection#items:member':
@@ -18408,9 +19055,28 @@
         await context.sync();
 
         for (let i = 0; i < fields.items.length; i++) {
-          console.log(`Field ${i + 1}'s code: ${fields.items[i].code}`);
-          console.log(`Field ${i + 1}'s result: ${JSON.stringify(fields.items[i].result)}`);
+          console.log(`Field ${i + 1}'s code: ${fields.items[i].code}`, `Field ${i + 1}'s result: ${JSON.stringify(fields.items[i].result)}`);
         }
+      }
+    });
+'Word.FieldKind:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-fields.yaml
+
+
+    // Gets the first field in the document.
+
+    await Word.run(async (context) => {
+      const field = context.document.body.fields.getFirstOrNullObject();
+      field.load(["code", "result", "locked", "type", "data", "kind"]);
+
+      await context.sync();
+
+      if (field.isNullObject) {
+        console.log("This document has no fields.");
+      } else {
+        console.log("Code of first field: " + field.code, "Result of first field: " + JSON.stringify(field.result), "Type of first field: " + field.type, "Is the first field locked? " + field.locked, "Kind of the first field: " + field.kind);
       }
     });
 'Word.FieldType:enum':
@@ -18432,9 +19098,25 @@
       if (field.isNullObject) {
         console.log("There are no fields in this document.");
       } else {
-        console.log("Code of the field: " + field.code);
-        console.log("Result of the field: " + JSON.stringify(field.result));
+        console.log("Code of the field: " + field.code, "Result of the field: " + JSON.stringify(field.result));
       }
+    });
+'Word.GetTextOptions:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-text.yaml
+
+
+    await Word.run(async (context) => {
+      const paragraph = context.document.getSelection().paragraphs.getFirst();
+
+      const text = paragraph.getText();
+      const textIncludingHidden = paragraph.getText({ IncludeHiddenText: true });
+      const textIncludingDeleted = paragraph.getText({ IncludeTextMarkedAsDeleted: true });
+
+      await context.sync();
+
+      console.log("Text:- " + text.value, "Including hidden text:- " + textIncludingHidden.value, "Including text marked as deleted:- " + textIncludingDeleted.value);
     });
 'Word.HeaderFooterType:enum':
   - >-
@@ -18463,8 +19145,7 @@
       firstPicture.load("width, height, imageFormat");
 
       await context.sync();
-      console.log(`Image dimensions: ${firstPicture.width} x ${firstPicture.height}`);
-      console.log(`Image format: ${firstPicture.imageFormat}`);
+      console.log(`Image dimensions: ${firstPicture.width} x ${firstPicture.height}`, `Image format: ${firstPicture.imageFormat}`);
       // Get the image encoded as Base64.
       const base64 = firstPicture.getBase64ImageSrc();
 
@@ -18520,8 +19201,7 @@
       firstPicture.load("width, height, imageFormat");
 
       await context.sync();
-      console.log(`Image dimensions: ${firstPicture.width} x ${firstPicture.height}`);
-      console.log(`Image format: ${firstPicture.imageFormat}`);
+      console.log(`Image dimensions: ${firstPicture.width} x ${firstPicture.height}`, `Image format: ${firstPicture.imageFormat}`);
       // Get the image encoded as Base64.
       const base64 = firstPicture.getBase64ImageSrc();
 
@@ -18585,7 +19265,7 @@
 
       await context.sync();
 
-      console.log("Inserted section without an associated page break");
+      console.log("Inserted section without an associated page break.");
     });
 'Word.List:class':
   - >-
@@ -18742,7 +19422,7 @@
       await context.sync();
 
       if (lists.items.length === 0) {
-        console.warn("There are no lists in this document");
+        console.warn("There are no lists in this document.");
         return;
       }
       
@@ -18779,7 +19459,7 @@
       await context.sync();
 
       if (lists.items.length === 0) {
-        console.warn("There are no lists in this document");
+        console.warn("There are no lists in this document.");
         return;
       }
       
@@ -18839,6 +19519,43 @@
 
       await context.sync();
     });
+'Word.ListCollection:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/organize-list.yaml
+
+
+    // Gets information about the first list in the document.
+
+    await Word.run(async (context) => {
+      const lists = context.document.body.lists;
+      lists.load("items");
+
+      await context.sync();
+
+      if (lists.items.length === 0) {
+        console.warn("There are no lists in this document.");
+        return;
+      }
+      
+      // Get the first list.
+      const list = lists.getFirst();
+      list.load("levelTypes,levelExistences");
+
+      await context.sync();
+
+      const levelTypes = list.levelTypes;
+      console.log("Level types of the first list:");
+      for (let i = 0; i < levelTypes.length; i++) {
+        console.log(`- Level ${i + 1} (index ${i}): ${levelTypes[i]}`);
+      }
+
+      const levelExistences = list.levelExistences;
+      console.log("Level existences of the first list:");
+      for (let i = 0; i < levelExistences.length; i++) {
+        console.log(`- Level ${i + 1} (index ${i}): ${levelExistences[i]}`);
+      }
+    });
 'Word.ListItem#level:member':
   - >-
     // Link to full sample:
@@ -18886,7 +19603,7 @@
       await context.sync();
 
       if (lists.items.length === 0) {
-        console.warn("There are no lists in this document");
+        console.warn("There are no lists in this document.");
         return;
       }
       
@@ -19112,6 +19829,21 @@
       await context.sync();
 
       console.log(`Body type of note: ${item.body.type}`);
+    });
+'Word.OutlineLevel:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-custom-style.yaml
+
+
+    // Imports styles from JSON.
+
+    await Word.run(async (context) => {
+      const str =
+        '{"styles":[{"baseStyle":"Default Paragraph Font","builtIn":false,"inUse":true,"linked":false,"nameLocal":"NewCharStyle","priority":2,"quickStyle":true,"type":"Character","unhideWhenUsed":false,"visibility":false,"paragraphFormat":null,"font":{"name":"DengXian Light","size":16.0,"bold":true,"italic":false,"color":"#F1A983","underline":"None","subscript":false,"superscript":true,"strikeThrough":true,"doubleStrikeThrough":false,"highlightColor":null,"hidden":false},"shading":{"backgroundPatternColor":"#FF0000"}},{"baseStyle":"Normal","builtIn":false,"inUse":true,"linked":false,"nextParagraphStyle":"NewParaStyle","nameLocal":"NewParaStyle","priority":1,"quickStyle":true,"type":"Paragraph","unhideWhenUsed":false,"visibility":false,"paragraphFormat":{"alignment":"Centered","firstLineIndent":0.0,"keepTogether":false,"keepWithNext":false,"leftIndent":72.0,"lineSpacing":18.0,"lineUnitAfter":0.0,"lineUnitBefore":0.0,"mirrorIndents":false,"outlineLevel":"OutlineLevelBodyText","rightIndent":72.0,"spaceAfter":30.0,"spaceBefore":30.0,"widowControl":true},"font":{"name":"DengXian","size":14.0,"bold":true,"italic":true,"color":"#8DD873","underline":"Single","subscript":false,"superscript":false,"strikeThrough":false,"doubleStrikeThrough":true,"highlightColor":null,"hidden":false},"shading":{"backgroundPatternColor":"#00FF00"}},{"baseStyle":"Table Normal","builtIn":false,"inUse":true,"linked":false,"nextParagraphStyle":"NewTableStyle","nameLocal":"NewTableStyle","priority":100,"type":"Table","unhideWhenUsed":false,"visibility":false,"paragraphFormat":{"alignment":"Left","firstLineIndent":0.0,"keepTogether":false,"keepWithNext":false,"leftIndent":0.0,"lineSpacing":12.0,"lineUnitAfter":0.0,"lineUnitBefore":0.0,"mirrorIndents":false,"outlineLevel":"OutlineLevelBodyText","rightIndent":0.0,"spaceAfter":0.0,"spaceBefore":0.0,"widowControl":true},"font":{"name":"DengXian","size":20.0,"bold":false,"italic":true,"color":"#D86DCB","underline":"None","subscript":false,"superscript":false,"strikeThrough":false,"doubleStrikeThrough":false,"highlightColor":null,"hidden":false},"tableStyle":{"allowBreakAcrossPage":true,"alignment":"Left","bottomCellMargin":0.0,"leftCellMargin":0.08,"rightCellMargin":0.08,"topCellMargin":0.0,"cellSpacing":0.0},"shading":{"backgroundPatternColor":"#60CAF3"}}]}';
+      const styles = context.document.importStylesFromJson(str);
+      await context.sync();
+      console.log("Styles imported from JSON:", styles);
     });
 'Word.Paragraph#getRange:member(1)':
   - >-
@@ -19575,8 +20307,7 @@
 
     async function paragraphAdded(event: Word.ParagraphAddedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.type} event detected. IDs of paragraphs that were added:`);
-        console.log(event.uniqueLocalIds);
+        console.log(`${event.type} event detected. IDs of paragraphs that were added:`, event.uniqueLocalIds);
       });
     }
 'Word.ParagraphChangedEventArgs:interface':
@@ -19600,8 +20331,7 @@
 
     async function paragraphChanged(event: Word.ParagraphChangedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.type} event detected. IDs of paragraphs where content was changed:`);
-        console.log(event.uniqueLocalIds);
+        console.log(`${event.type} event detected. IDs of paragraphs where content was changed:`, event.uniqueLocalIds);
       });
     }
 'Word.ParagraphCollection#getFirst:member(1)':
@@ -19696,8 +20426,7 @@
 
     async function paragraphDeleted(event: Word.ParagraphDeletedEventArgs) {
       await Word.run(async (context) => {
-        console.log(`${event.type} event detected. IDs of paragraphs that were deleted:`);
-        console.log(event.uniqueLocalIds);
+        console.log(`${event.type} event detected. IDs of paragraphs that were deleted:`, event.uniqueLocalIds);
       });
     }
 'Word.ParagraphFormat:class':
@@ -19807,21 +20536,6 @@
 
       console.log(`Location of the first paragraph in relation to the second paragraph: ${comparedLocation.value}`);
     });
-'Word.Range#footnotes:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-footnotes.yaml
-
-
-    // Gets the footnotes in the selected document range.
-
-    await Word.run(async (context) => {
-      const footnotes = context.document.getSelection().footnotes;
-      footnotes.load("length");
-      await context.sync();
-
-      console.log("Number of footnotes in the selected range: " + footnotes.items.length);
-    });
 'Word.Range#getComments:member(1)':
   - >-
     // Link to full sample:
@@ -19837,8 +20551,45 @@
       comments.load();
       await context.sync();
 
-      console.log("Comments:");
-      console.log(comments);
+      console.log("Comments:", comments);
+    });
+'Word.Range#getContentControls:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-checkbox-content-control.yaml
+
+
+    // Deletes the first checkbox content control found in the selection.
+
+    await Word.run(async (context) => {
+      const selectedRange = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.checkBox]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id");
+
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.checkBox) {
+          console.warn("No checkbox content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      console.log(`About to delete checkbox content control with id: ${selectedContentControl.id}`);
+      selectedContentControl.delete(false);
+      await context.sync();
+
+      console.log("Deleted checkbox content control.");
     });
 'Word.Range#getReviewedText:member(1)':
   - >-
@@ -19855,8 +20606,7 @@
 
       await context.sync();
 
-      console.log(`Reviewed text (before):\n${before.value}`);
-      console.log(`Reviewed text (after):\n${after.value}`);
+      console.log("Reviewed text (before):", before.value, "Reviewed text (after):", after.value);
     });
 'Word.Range#getTextRanges:member(1)':
   - >-
@@ -19907,8 +20657,7 @@
       comment.load();
       await context.sync();
 
-      console.log("Comment inserted:");
-      console.log(comment);
+      console.log("Comment inserted:", comment);
     });
 'Word.Range#insertContentControl:member(1)':
   - >-
@@ -19963,8 +20712,7 @@
       if (field.isNullObject) {
         console.log("There are no fields in this document.");
       } else {
-        console.log("Code of the field: " + field.code);
-        console.log("Result of the field: " + JSON.stringify(field.result));
+        console.log("Code of the field: " + field.code, "Result of the field: " + JSON.stringify(field.result));
       }
     });
 'Word.Range#insertFootnote:member(1)':
@@ -19983,6 +20731,65 @@
       await context.sync();
 
       console.log("Inserted footnote.");
+    });
+'Word.Range#footnotes:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-footnotes.yaml
+
+
+    // Gets the footnotes in the selected document range.
+
+    await Word.run(async (context) => {
+      const footnotes = context.document.getSelection().footnotes;
+      footnotes.load("length");
+      await context.sync();
+
+      console.log("Number of footnotes in the selected range: " + footnotes.items.length);
+    });
+'Word.Range#parentContentControl:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-checkbox-content-control.yaml
+
+
+    // Toggles the isChecked property of the first checkbox content control
+    found in the selection.
+
+    await Word.run(async (context) => {
+      const selectedRange = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.checkBox]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,checkboxContentControl/isChecked");
+
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,checkboxContentControl/isChecked");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.checkBox) {
+          console.warn("No checkbox content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      const isCheckedBefore = selectedContentControl.checkboxContentControl.isChecked;
+      console.log("isChecked state before:", `id: ${selectedContentControl.id} ... isChecked: ${isCheckedBefore}`);
+      selectedContentControl.checkboxContentControl.isChecked = !isCheckedBefore;
+      selectedContentControl.load("id,checkboxContentControl/isChecked");
+      await context.sync();
+
+      console.log(
+        "isChecked state after:",
+        `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
+      );
     });
 'Word.Range#styleBuiltIn:member':
   - >-
@@ -20028,6 +20835,20 @@
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
     });
+'Word.SaveBehavior:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/save-close.yaml
+
+
+    // If the document hasn't been saved before, prompts
+
+    // user with options for if or how they want to save.
+
+    await Word.run(async (context) => {
+      context.document.save(Word.SaveBehavior.prompt);
+      await context.sync();
+    });
 'Word.Section#getFooter:member(2)':
   - >-
     // Link to full sample:
@@ -20070,7 +20891,7 @@
 
       await context.sync();
 
-      console.log("Inserted section break on next page");
+      console.log("Inserted section break on next page.");
     });
 'Word.SectionCollection:class':
   - >-
@@ -20086,7 +20907,7 @@
 
       await context.sync();
 
-      console.log("Inserted section break on next even page");
+      console.log("Inserted section break on next even page.");
     });
 'Word.SelectionMode:enum':
   - >-
@@ -20116,7 +20937,7 @@
         .toString();
 
       if (key == "") {
-        console.error("Key shouldn't be empty");
+        console.error("Key shouldn't be empty.");
         return;
       }
 
@@ -20129,8 +20950,7 @@
       setting.load();
       await context.sync();
 
-      console.log("Setting added or edited:");
-      console.log(setting);
+      console.log("Setting added or edited:", setting);
     });
 'Word.Setting#value:member':
   - >-
@@ -20148,7 +20968,7 @@
         .toString();
 
       if (key == "") {
-        console.error("Key shouldn't be empty");
+        console.error("Key shouldn't be empty.");
         return;
       }
 
@@ -20161,8 +20981,7 @@
       setting.load();
       await context.sync();
 
-      console.log("Setting added or edited:");
-      console.log(setting);
+      console.log("Setting added or edited:", setting);
     });
 'Word.SettingCollection:class':
   - >-
@@ -20176,7 +20995,7 @@
       const settings = context.document.settings;
       settings.deleteAll();
       await context.sync();
-      console.log("All settings deleted");
+      console.log("All settings deleted.");
     });
 'Word.SettingCollection#add:member(1)':
   - >-
@@ -20194,7 +21013,7 @@
         .toString();
 
       if (key == "") {
-        console.error("Key shouldn't be empty");
+        console.error("Key shouldn't be empty.");
         return;
       }
 
@@ -20207,8 +21026,7 @@
       setting.load();
       await context.sync();
 
-      console.log("Setting added or edited:");
-      console.log(setting);
+      console.log("Setting added or edited:", setting);
     });
 'Word.SettingCollection#items:member':
   - >-
@@ -20224,7 +21042,7 @@
       await context.sync();
 
       if (settings.items.length == 0) {
-        console.log("There are no settings");
+        console.log("There are no settings.");
       } else {
         console.log("All settings:");
         for (let i = 0; i < settings.items.length; i++) {
@@ -20446,10 +21264,7 @@
       border.load(["type", "color", "width"]);
       await context.sync();
 
-      console.log(`Details about the ${borderLocation} border of the first table:`);
-      console.log(`- Color: ${border.color}`);
-      console.log(`- Type: ${border.type}`);
-      console.log(`- Width: ${border.width} points`);
+      console.log(`Details about the ${borderLocation} border of the first table:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
     });
 'Word.Table#getCell:member(1)':
   - >-
@@ -20497,10 +21312,7 @@
       firstTable.load(["alignment", "horizontalAlignment", "verticalAlignment"]);
       await context.sync();
 
-      console.log(`Details about the alignment of the first table:`);
-      console.log(`- Alignment of the table within the containing page column: ${firstTable.alignment}`);
-      console.log(`- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`);
-      console.log(`- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`);
+      console.log(`Details about the alignment of the first table:`, `- Alignment of the table within the containing page column: ${firstTable.alignment}`, `- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`, `- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`);
     });
 'Word.Table#horizontalAlignment:member':
   - >-
@@ -20515,10 +21327,7 @@
       firstTable.load(["alignment", "horizontalAlignment", "verticalAlignment"]);
       await context.sync();
 
-      console.log(`Details about the alignment of the first table:`);
-      console.log(`- Alignment of the table within the containing page column: ${firstTable.alignment}`);
-      console.log(`- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`);
-      console.log(`- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`);
+      console.log(`Details about the alignment of the first table:`, `- Alignment of the table within the containing page column: ${firstTable.alignment}`, `- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`, `- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`);
     });
 'Word.Table#rows:member':
   - >-
@@ -20535,9 +21344,7 @@
       firstTableRow.load(["horizontalAlignment", "verticalAlignment"]);
       await context.sync();
 
-      console.log(`Details about the alignment of the first table's first row:`);
-      console.log(`- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`);
-      console.log(`- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`);
+      console.log(`Details about the alignment of the first table's first row:`, `- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`, `- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`);
     });
 'Word.Table#verticalAlignment:member':
   - >-
@@ -20552,10 +21359,7 @@
       firstTable.load(["alignment", "horizontalAlignment", "verticalAlignment"]);
       await context.sync();
 
-      console.log(`Details about the alignment of the first table:`);
-      console.log(`- Alignment of the table within the containing page column: ${firstTable.alignment}`);
-      console.log(`- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`);
-      console.log(`- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`);
+      console.log(`Details about the alignment of the first table:`, `- Alignment of the table within the containing page column: ${firstTable.alignment}`, `- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`, `- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`);
     });
 'Word.Table:class':
   - >-
@@ -20590,10 +21394,7 @@
       border.load(["type", "color", "width"]);
       await context.sync();
 
-      console.log(`Details about the ${borderLocation} border of the first table:`);
-      console.log(`- Color: ${border.color}`);
-      console.log(`- Type: ${border.type}`);
-      console.log(`- Width: ${border.width} points`);
+      console.log(`Details about the ${borderLocation} border of the first table:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
     });
 'Word.TableBorder#type:member':
   - >-
@@ -20610,10 +21411,7 @@
       border.load(["type", "color", "width"]);
       await context.sync();
 
-      console.log(`Details about the ${borderLocation} border of the first table:`);
-      console.log(`- Color: ${border.color}`);
-      console.log(`- Type: ${border.type}`);
-      console.log(`- Width: ${border.width} points`);
+      console.log(`Details about the ${borderLocation} border of the first table:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
     });
 'Word.TableBorder#width:member':
   - >-
@@ -20630,10 +21428,7 @@
       border.load(["type", "color", "width"]);
       await context.sync();
 
-      console.log(`Details about the ${borderLocation} border of the first table:`);
-      console.log(`- Color: ${border.color}`);
-      console.log(`- Type: ${border.type}`);
-      console.log(`- Width: ${border.width} points`);
+      console.log(`Details about the ${borderLocation} border of the first table:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
     });
 'Word.TableCell:class':
   - >-
@@ -20666,10 +21461,7 @@
       border.load(["type", "color", "width"]);
       await context.sync();
 
-      console.log(`Details about the ${borderLocation} border of the first table's first cell:`);
-      console.log(`- Color: ${border.color}`);
-      console.log(`- Type: ${border.type}`);
-      console.log(`- Width: ${border.width} points`);
+      console.log(`Details about the ${borderLocation} border of the first table's first cell:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
     });
 'Word.TableCell#getCellPadding:member(2)':
   - >-
@@ -20706,9 +21498,7 @@
       firstCell.load(["horizontalAlignment", "verticalAlignment"]);
       await context.sync();
 
-      console.log(`Details about the alignment of the first table's first cell:`);
-      console.log(`- Horizontal alignment of the cell's content: ${firstCell.horizontalAlignment}`);
-      console.log(`- Vertical alignment of the cell's content: ${firstCell.verticalAlignment}`);
+      console.log(`Details about the alignment of the first table's first cell:`, `- Horizontal alignment of the cell's content: ${firstCell.horizontalAlignment}`, `- Vertical alignment of the cell's content: ${firstCell.verticalAlignment}`);
     });
 'Word.TableCell#verticalAlignment:member':
   - >-
@@ -20725,9 +21515,7 @@
       firstCell.load(["horizontalAlignment", "verticalAlignment"]);
       await context.sync();
 
-      console.log(`Details about the alignment of the first table's first cell:`);
-      console.log(`- Horizontal alignment of the cell's content: ${firstCell.horizontalAlignment}`);
-      console.log(`- Vertical alignment of the cell's content: ${firstCell.verticalAlignment}`);
+      console.log(`Details about the alignment of the first table's first cell:`, `- Horizontal alignment of the cell's content: ${firstCell.horizontalAlignment}`, `- Vertical alignment of the cell's content: ${firstCell.verticalAlignment}`);
     });
 'Word.TableCollection:class':
   - >-
@@ -20742,10 +21530,7 @@
       firstTable.load(["alignment", "horizontalAlignment", "verticalAlignment"]);
       await context.sync();
 
-      console.log(`Details about the alignment of the first table:`);
-      console.log(`- Alignment of the table within the containing page column: ${firstTable.alignment}`);
-      console.log(`- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`);
-      console.log(`- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`);
+      console.log(`Details about the alignment of the first table:`, `- Alignment of the table within the containing page column: ${firstTable.alignment}`, `- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`, `- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`);
     });
 'Word.TableCollection#getFirst:member(1)':
   - >-
@@ -20779,10 +21564,7 @@
       border.load(["type", "color", "width"]);
       await context.sync();
 
-      console.log(`Details about the ${borderLocation} border of the first table's first row:`);
-      console.log(`- Color: ${border.color}`);
-      console.log(`- Type: ${border.type}`);
-      console.log(`- Width: ${border.width} points`);
+      console.log(`Details about the ${borderLocation} border of the first table's first row:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
     });
 'Word.TableRow#getCellPadding:member(1)':
   - >-
@@ -20819,9 +21601,7 @@
       firstTableRow.load(["horizontalAlignment", "verticalAlignment"]);
       await context.sync();
 
-      console.log(`Details about the alignment of the first table's first row:`);
-      console.log(`- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`);
-      console.log(`- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`);
+      console.log(`Details about the alignment of the first table's first row:`, `- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`, `- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`);
     });
 'Word.TableRowCollection#getFirst:member(1)':
   - >-
@@ -20840,10 +21620,7 @@
       border.load(["type", "color", "width"]);
       await context.sync();
 
-      console.log(`Details about the ${borderLocation} border of the first table's first row:`);
-      console.log(`- Color: ${border.color}`);
-      console.log(`- Type: ${border.type}`);
-      console.log(`- Width: ${border.width} points`);
+      console.log(`Details about the ${borderLocation} border of the first table's first row:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
     });
 'Word.TableStyle:class':
   - >-
@@ -20896,10 +21673,9 @@
       trackedChange.load();
       await context.sync();
 
-      console.log("First tracked change:");
-      console.log(trackedChange);
+      console.log("First tracked change:", trackedChange);
       trackedChange.accept();
-      console.log("Accepted the first tracked change");
+      console.log("Accepted the first tracked change.");
     });
 'Word.TrackedChange#getNext:member(1)':
   - >-
@@ -20960,10 +21736,9 @@
       trackedChange.load();
       await context.sync();
 
-      console.log("First tracked change:");
-      console.log(trackedChange);
+      console.log("First tracked change:, trackedChange);
       trackedChange.reject();
-      console.log("Rejected the first tracked change");
+      console.log("Rejected the first tracked change.");
     });
 'Word.TrackedChangeCollection#acceptAll:member(1)':
   - >-
@@ -20977,7 +21752,7 @@
       const body = context.document.body;
       const trackedChanges = body.getTrackedChanges();
       trackedChanges.acceptAll();
-      console.log("Accepted all tracked changes");
+      console.log("Accepted all tracked changes.");
     });
 'Word.TrackedChangeCollection#getFirst:member(1)':
   - >-
@@ -21011,7 +21786,7 @@
       const body = context.document.body;
       const trackedChanges = body.getTrackedChanges();
       trackedChanges.rejectAll();
-      console.log("Rejected all tracked changes");
+      console.log("Rejected all tracked changes.");
     });
 'Word.VerticalAlignment:enum':
   - >-
@@ -21028,7 +21803,5 @@
       firstTableRow.load(["horizontalAlignment", "verticalAlignment"]);
       await context.sync();
 
-      console.log(`Details about the alignment of the first table's first row:`);
-      console.log(`- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`);
-      console.log(`- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`);
+      console.log(`Details about the alignment of the first table's first row:`, `- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`, `- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`);
     });

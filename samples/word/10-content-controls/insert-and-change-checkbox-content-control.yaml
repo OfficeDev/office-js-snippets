@@ -1,0 +1,248 @@
+order: 8
+id: word-content-controls-insert-and-change-checkbox-content-control
+name: Manage checkbox content controls
+description: 'Inserts, updates, retrieves, and deletes checkbox content controls.'
+host: WORD
+api_set:
+    WordApi: '1.7'
+script:
+    content: |
+        $("#insert-controls").on("click", () => tryCatch(insertCheckboxContentControls));
+        $("#toggle-control").on("click", () => tryCatch(toggleCheckboxContentControl));
+        $("#change-controls").on("click", () => tryCatch(toggleCheckboxContentControls));
+        $("#delete-control").on("click", () => tryCatch(deleteCheckboxContentControl));
+        $("#setup").on("click", () => tryCatch(setup));
+
+        async function insertCheckboxContentControls() {
+          // Traverses each paragraph of the document and places a checkbox content control at the beginning of each.
+          await Word.run(async (context) => {
+            let paragraphs = context.document.body.paragraphs;
+            paragraphs.load("$none"); // Don't need any properties; just start each paragraph with a content control.
+
+            await context.sync();
+
+            for (let i = 0; i < paragraphs.items.length; i++) {
+              let contentControl = paragraphs.items[i]
+                .getRange(Word.RangeLocation.start)
+                .insertContentControl(Word.ContentControlType.checkBox);
+            }
+            console.log("Checkbox content controls inserted: " + paragraphs.items.length);
+
+            await context.sync();
+          });
+        }
+
+        async function toggleCheckboxContentControl() {
+          // Toggles the isChecked property of the first checkbox content control found in the selection.
+          await Word.run(async (context) => {
+            const selectedRange = context.document.getSelection();
+            let selectedContentControl = selectedRange
+              .getContentControls({
+                types: [Word.ContentControlType.checkBox]
+              })
+              .getFirstOrNullObject();
+            selectedContentControl.load("id,checkboxContentControl/isChecked");
+
+            await context.sync();
+
+            if (selectedContentControl.isNullObject) {
+              const parentContentControl = selectedRange.parentContentControl;
+              parentContentControl.load("id,type,checkboxContentControl/isChecked");
+              await context.sync();
+
+              if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.checkBox) {
+                console.warn("No checkbox content control is currently selected.");
+                return;
+              } else {
+                selectedContentControl = parentContentControl;
+              }
+            }
+
+            const isCheckedBefore = selectedContentControl.checkboxContentControl.isChecked;
+            console.log("isChecked state before:", `id: ${selectedContentControl.id} ... isChecked: ${isCheckedBefore}`);
+            selectedContentControl.checkboxContentControl.isChecked = !isCheckedBefore;
+            selectedContentControl.load("id,checkboxContentControl/isChecked");
+            await context.sync();
+
+            console.log(
+              "isChecked state after:",
+              `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
+            );
+          });
+        }
+
+        async function toggleCheckboxContentControls() {
+          // Toggles the isChecked property on all checkbox content controls.
+          await Word.run(async (context) => {
+            let contentControls = context.document.getContentControls({
+              types: [Word.ContentControlType.checkBox]
+            });
+            contentControls.load("items");
+
+            await context.sync();
+
+            const length = contentControls.items.length;
+            console.log(`Number of checkbox content controls: ${length}`);
+
+            if (length <= 0) {
+              return;
+            }
+
+            const checkboxContentControls = [];
+            for (let i = 0; i < length; i++) {
+              let contentControl = contentControls.items[i];
+              contentControl.load("id,checkboxContentControl/isChecked");
+              checkboxContentControls.push(contentControl);
+            }
+
+            await context.sync();
+
+            console.log("isChecked state before:");
+            const updatedCheckboxContentControls = [];
+            for (let i = 0; i < checkboxContentControls.length; i++) {
+              const currentCheckboxContentControl = checkboxContentControls[i];
+              const isCheckedBefore = currentCheckboxContentControl.checkboxContentControl.isChecked;
+              console.log(`id: ${currentCheckboxContentControl.id} ... isChecked: ${isCheckedBefore}`);
+
+              currentCheckboxContentControl.checkboxContentControl.isChecked = !isCheckedBefore;
+              currentCheckboxContentControl.load("id,checkboxContentControl/isChecked");
+              updatedCheckboxContentControls.push(currentCheckboxContentControl);
+            }
+
+            await context.sync();
+
+            console.log("isChecked state after:");
+            for (let i = 0; i < updatedCheckboxContentControls.length; i++) {
+              const currentCheckboxContentControl = updatedCheckboxContentControls[i];
+              console.log(
+                `id: ${currentCheckboxContentControl.id} ... isChecked: ${currentCheckboxContentControl.checkboxContentControl.isChecked}`
+              );
+            }
+          });
+        }
+
+        async function deleteCheckboxContentControl() {
+          // Deletes the first checkbox content control found in the selection.
+          await Word.run(async (context) => {
+            const selectedRange = context.document.getSelection();
+            let selectedContentControl = selectedRange
+              .getContentControls({
+                types: [Word.ContentControlType.checkBox]
+              })
+              .getFirstOrNullObject();
+            selectedContentControl.load("id");
+
+            await context.sync();
+
+            if (selectedContentControl.isNullObject) {
+              const parentContentControl = selectedRange.parentContentControl;
+              parentContentControl.load("id,type");
+              await context.sync();
+
+              if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.checkBox) {
+                console.warn("No checkbox content control is currently selected.");
+                return;
+              } else {
+                selectedContentControl = parentContentControl;
+              }
+            }
+
+            console.log(`About to delete checkbox content control with id: ${selectedContentControl.id}`);
+            selectedContentControl.delete(false);
+            await context.sync();
+
+            console.log("Deleted checkbox content control.");
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            body.clear();
+            body.insertParagraph("Task 3", "Start");
+            body.insertParagraph("Task 2", "Start");
+            body.insertParagraph("Task 1", "Start");
+            body.paragraphs.getLast().insertText("Task 4", "Replace");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            if (error.code === Word.ErrorCodes.itemNotFound) {
+              console.warn("No checkbox content control is currently selected.");
+            } else {
+              console.error(error);
+            }
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to insert, change, and delete checkbox content controls.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>
+                <span class="ms-font-m">Insert checkbox content controls on each paragraph.</span>
+                <button id="insert-controls" class="ms-Button">
+            <span class="ms-Button-label">Insert</span>
+          </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Modify <code>isChecked</code> property of the first checkbox content control found in your selected content.</span>
+                <button id="toggle-control" class="ms-Button">
+                        <span class=ms-Button-label>Toggle selected checkbox</span>
+                    </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Modify <code>isChecked</code> property of all checkbox content controls.</span>
+                <button id="change-controls" class="ms-Button">
+              <span class="ms-Button-label">Toggle all</span>
+            </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Delete the first checkbox content control found in your selected content.</span>
+                <button id="delete-control" class="ms-Button">
+                            <span class=ms-Button-label>Delete selected checkbox</span>
+                        </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

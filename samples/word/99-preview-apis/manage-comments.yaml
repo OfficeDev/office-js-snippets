@@ -1,12 +1,12 @@
-order: 6
-id: word-document-manage-comments
+id: word-manage-comments
 name: Manage comments
-description: 'This sample shows how to perform basic comments operations, including insert, reply, get, edit, resolve, and delete.'
+description: 'This sample shows how to perform operations on comments (including insert, reply, get, edit, resolve, and delete) and use comment events.'
 host: WORD
 api_set:
-    WordApi: '1.4'
+    WordApi: '1.8'
 script:
     content: |
+        $("#register-event-handlers").on("click", () => tryCatch(registerEventHandlers));
         $("#insert").on("click", () => tryCatch(insertComment));
         $("#edit").on("click", () => tryCatch(editFirstCommentInSelection));
         $("#reply").on("click", () => tryCatch(replyToFirstActiveCommentInSelection));
@@ -15,7 +15,28 @@ script:
         $("#get-comments-in-selection").on("click", () => tryCatch(getCommentsInSelection));
         $("#delete").on("click", () => tryCatch(deleteFirstCommentInSelection));
         $("#get-comments").on("click", () => tryCatch(getComments));
+        $("#deregister-event-handlers").on("click", () => tryCatch(deregisterEventHandlers));
         $("#setup").on("click", () => tryCatch(setup));
+
+        let eventContexts = [];
+
+        async function registerEventHandlers() {
+          // Registers event handlers.
+          await Word.run(async (context) => {
+            const body = context.document.body;
+            body.track();
+            await context.sync();
+
+            eventContexts[0] = body.onCommentAdded.add(onEventHandler);
+            eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
+            eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
+            eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
+            eventContexts[4] = body.onCommentSelected.add(onEventHandler);
+            await context.sync();
+
+            console.log("Event handlers registered.");
+          });
+        }
 
         async function insertComment() {
           // Sets a comment on the selected content.
@@ -66,9 +87,9 @@ script:
             const firstActiveComment = comments.items.find((item) => item.resolved !== true);
             if (firstActiveComment) {
               const reply = firstActiveComment.reply(text);
-              console.log("Reply added");
+              console.log("Reply added.");
             } else {
-              console.log("No active comment was found in the selection so couldn't reply.");
+              console.log("No active comment was found in the selection, so couldn't reply.");
             }
           });
         }
@@ -86,8 +107,7 @@ script:
             // Toggle resolved status.
             // If the comment is active, set as resolved.
             // If it's resolved, set resolved to false.
-            const resolvedBefore = comment.resolved;
-            comment.resolved = !resolvedBefore;
+            comment.resolved = !comment.resolved;
             comment.load();
             await context.sync();
 
@@ -133,7 +153,7 @@ script:
               .delete();
             await context.sync();
 
-            console.log("Comment deleted");
+            console.log("Comment deleted.");
           });
         }
 
@@ -147,6 +167,37 @@ script:
             await context.sync();
 
             console.log("All comments:", comments);
+          });
+        }
+
+        async function deregisterEventHandlers() {
+          // Deregisters event handlers.
+          await Word.run(async (context) => {
+            for (let i = 0; i < eventContexts.length; i++) {
+              await Word.run(eventContexts[i].context, async (context) => {
+                eventContexts[i].remove();
+              });
+            }
+
+            await context.sync();
+
+            eventContexts = [];
+            console.log("Removed event handlers.");
+          });
+        }
+
+        async function onEventHandler(event: Word.CommentEventArgs) {
+          // Handler for all events except onCommentChanged.
+          await Word.run(async (context) => {
+            console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
+          });
+        }
+
+        async function onChangedHandler(event: Word.CommentEventArgs) {
+          await Word.run(async (context) => {
+            console.log(
+              `${event.type} event detected. ${event.changeType} change made. Event source: ${event.source}. Comment info:`, event.commentDetails
+            );
           });
         }
 
@@ -179,7 +230,10 @@ script:
 template:
     content: |-
         <section class="ms-font-m">
-            <p>This sample shows basic operations using comments.</p>
+            <p>This sample shows operations on comments and how to use comment events.</p>
+            <p><b>Important</b>: Comment events APIs are currently in preview. If this snippet doesn't work, try using
+                Word
+                on a different platform.</p>
         </section>
 
         <section class="setup ms-font-m">
@@ -191,7 +245,13 @@ template:
 
         <section class="samples ms-font-m">
             <h3>Try it out</h3>
-            <p>First, select content in document body.</p>
+            <p>
+                <button id="register-event-handlers" class="ms-Button">
+              <span class="ms-Button-label">Register event handlers</span>
+            </button>
+            </p>
+            <h4>Manage comments in selection</h4>
+            <p>Select content in document body before proceeding.</p>
             <p>
                 <label>Comment text:</label>
                 <input id = "comment-text">
@@ -203,44 +263,45 @@ template:
                 <label>Replacement text:</label>
                 <input id = "edit-comment-text">
                 <button id="edit" class="ms-Button">
-                    <span class="ms-Button-label">Edit first comment in selection</span>
+                    <span class="ms-Button-label">Edit first comment</span>
                 </button>
             </p>
             <p>
                 <label>Reply text:</label>
                 <input id = "reply-text">
                 <button id="reply" class="ms-Button">
-                    <span class="ms-Button-label">Reply to first active comment in selection</span>
+                    <span class="ms-Button-label">Reply to first active comment</span>
               </button>
             </p>
             <p>
-                <label>Change Resolved state of first comment in selection.</label>
                 <button id="resolve" class="ms-Button">
-                        <span class="ms-Button-label">Toggle Resolved state</span>
+                        <span class="ms-Button-label">Toggle Resolved state of first comment</span>
                   </button>
             </p>
             <p>
-                <label>Get range of first comment in selection.</label>
                 <button id="range" class="ms-Button">
-                        <span class="ms-Button-label">Get range</span>
+                        <span class="ms-Button-label">Get range of first comment</span>
                   </button>
             </p>
             <p>
-                <label>Get comments in selection.</label>
                 <button id="get-comments-in-selection" class="ms-Button">
                             <span class="ms-Button-label">Get comments</span>
                       </button>
             </p>
             <p>
-                <label>Delete first comment in selection.</label>
                 <button id="delete" class="ms-Button">
-                        <span class="ms-Button-label">Delete comment</span>
+                        <span class="ms-Button-label">Delete first comment</span>
                   </button>
             </p>
+            <h4>Manage comments in document body</h4>
             <p>
-                <label>Get all comments in document body.</label>
                 <button id="get-comments" class="ms-Button">
                     <span class="ms-Button-label">Get all comments</span>
+              </button>
+            </p>
+            <p>
+                <button id="deregister-event-handlers" class="ms-Button">
+                <span class="ms-Button-label">Deregister event handlers</span>
               </button>
             </p>
         </section>
@@ -259,8 +320,8 @@ style:
         }
     language: css
 libraries: |
-    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
-    @types/office-js
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
 
     office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
     office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css

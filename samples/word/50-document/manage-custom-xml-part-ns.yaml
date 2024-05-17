@@ -10,6 +10,7 @@ script:
         $("#add-custom-xml-part").on("click", () => tryCatch(addCustomXmlPart));
         $("#query").on("click", () => tryCatch(query));
         $("#get-namespace").on("click", () => tryCatch(getNamespace));
+        $("#get-by-namespace").on("click", () => tryCatch(getByNamespaceUri));
         $("#replace-custom-xml-part").on("click", () => tryCatch(replace));
         $("#insert-attribute").on("click", () => tryCatch(insertAttribute));
         $("#insert-element").on("click", () => tryCatch(insertElement));
@@ -40,7 +41,7 @@ script:
 
         async function query() {
           // Original XML: <Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>
-          
+
           // Queries a custom XML part for elements matching the search terms.
           await Word.run(async (context) => {
             const settings = context.document.settings;
@@ -69,7 +70,7 @@ script:
 
         async function getNamespace() {
           // Original XML: <Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>
-          
+
           // Gets the namespace URI from a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
@@ -90,9 +91,24 @@ script:
           });
         }
 
+        async function getByNamespaceUri() {
+          // Original XML: <Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>
+
+          // Gets the custom XML parts with the specified namespace URI.
+          await Word.run(async (context) => {
+            const namespaceUri = "http://schemas.contoso.com/review/1.0";
+            console.log(`Specified namespace URI: ${namespaceUri}`);
+            const scopedCustomXmlParts = context.document.customXmlParts.getByNamespace(namespaceUri);
+            scopedCustomXmlParts.load("items");
+            await context.sync();
+
+            console.log(`Number of custom XML parts found with this namespace: ${scopedCustomXmlParts.items.length}`);
+          });
+        }
+
         async function replace() {
           // Original XML: <Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>
-          
+
           // Replaces a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
@@ -124,7 +140,7 @@ script:
 
         async function insertAttribute() {
           // Original XML: <Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>
-          
+
           // Inserts an attribute into a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
@@ -154,7 +170,7 @@ script:
 
         async function insertElement() {
           // Original XML: <Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>
-          
+
           // Inserts an element into a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
@@ -184,7 +200,7 @@ script:
 
         async function deleteCustomXmlPart() {
           // Original XML: <Reviewers xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>
-          
+
           // Deletes a custom XML part.
           await Word.run(async (context) => {
             const settings = context.document.settings;
@@ -208,7 +224,10 @@ script:
                 await context.sync();
               } else {
                 const readableXml = addLineBreaksToXML(xmlBlob.value);
-                console.error(`This is strange. The XML part with the id ${xmlPartIDSetting.value} wasn't deleted:`, readableXml);
+                console.error(
+                  `This is strange. The XML part with the id ${xmlPartIDSetting.value} wasn't deleted:`,
+                  readableXml
+                );
               }
             } else {
               console.warn("Didn't find custom XML part to delete.");
@@ -242,19 +261,22 @@ template:
             <h3>Try it out</h3>
             <button id="add-custom-xml-part" class="ms-Button">
             <span class="ms-Button-label">Add XML part</span>
-           </button>
+          </button>
             <button id="query" class="ms-Button">
             <span class="ms-Button-label">Query</span>
-           </button>
+          </button>
             <button id="get-namespace" class="ms-Button">
             <span class="ms-Button-label">Get namespace URI</span>
           </button>
+            <button id="get-by-namespace" class="ms-Button">
+              <span class="ms-Button-label">Get by namespace URI</span>
+            </button>
             <button id="replace-custom-xml-part" class="ms-Button">
             <span class="ms-Button-label">Replace XML part</span>
           </button>
             <button id="insert-attribute" class="ms-Button">
-              <span class="ms-Button-label">Insert attribute</span>
-            </button>
+            <span class="ms-Button-label">Insert attribute</span>
+          </button>
             <button id="insert-element" class="ms-Button">
             <span class="ms-Button-label">Insert element</span>
           </button>

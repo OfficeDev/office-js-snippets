@@ -16214,6 +16214,39 @@
 
       console.log(`Body type of note: ${item.body.type}`);
     });
+'Word.Border:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-styles.yaml
+
+
+    // Updates border properties (e.g., type, width, color) of the specified
+    style.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update border properties.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        const borders = style.borders;
+        borders.load("items");
+        await context.sync();
+
+        borders.outsideBorderType = Word.BorderType.dashed;
+        borders.outsideBorderWidth = Word.BorderWidth.pt025;
+        borders.outsideBorderColor = "green";
+        console.log("Updated outside borders.");
+      }
+    });
 'Word.BorderCollection:class':
   - >-
     // Link to full sample:
@@ -18777,6 +18810,19 @@
       currentDocBody.insertText(externalDocBodyText, Word.InsertLocation.start);
       await context.sync();
     });
+'Word.DocumentProperties:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/30-properties/get-built-in-properties.yaml
+
+
+    await Word.run(async (context) => {
+        const builtInProperties = context.document.properties;
+        builtInProperties.load("*"); // Let's get all!
+
+        await context.sync();
+        console.log(JSON.stringify(builtInProperties, null, 4));
+    });
 'Word.DocumentPropertyType:enum':
   - >-
     // Link to full sample:
@@ -20848,6 +20894,27 @@
         header.styleBuiltIn = Word.BuiltInStyleName.heading1;
 
         await context.sync();
+    });
+'Word.RangeCollection:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/search.yaml
+
+
+    // Does a basic text search and highlights matches in the document.
+
+    await Word.run(async (context) => {
+      const results = context.document.body.search("Online");
+      results.load("length");
+
+      await context.sync();
+
+      // Let's traverse the search results and highlight matches.
+      for (let i = 0; i < results.items.length; i++) {
+        results.items[i].font.highlightColor = "yellow";
+      }
+
+      await context.sync();
     });
 'Word.RangeLocation:enum':
   - >-

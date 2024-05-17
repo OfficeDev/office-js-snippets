@@ -15725,7 +15725,7 @@
     // Does a basic text search and highlights matches in the document.
 
     await Word.run(async (context) => {
-      const results = context.document.body.search("Online");
+      const results : Word.RangeCollection = context.document.body.search("Online");
       results.load("length");
 
       await context.sync();
@@ -15746,7 +15746,7 @@
 
     await Word.run(async (context) => {
       // Construct a wildcard expression and set matchWildcards to true in order to use wildcards.
-      const results = context.document.body.search("$*.[0-9][0-9]", { matchWildcards: true });
+      const results : Word.RangeCollection = context.document.body.search("$*.[0-9][0-9]", { matchWildcards: true });
       results.load("length");
 
       await context.sync();
@@ -16213,6 +16213,39 @@
       await context.sync();
 
       console.log(`Body type of note: ${item.body.type}`);
+    });
+'Word.Border:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-styles.yaml
+
+
+    // Updates border properties (e.g., type, width, color) of the specified
+    style.
+
+    await Word.run(async (context) => {
+      const styleName = $("#style-name").val() as string;
+      if (styleName == "") {
+        console.warn("Enter a style name to update border properties.");
+        return;
+      }
+
+      const style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else {
+        const borders = style.borders;
+        borders.load("items");
+        await context.sync();
+
+        borders.outsideBorderType = Word.BorderType.dashed;
+        borders.outsideBorderWidth = Word.BorderWidth.pt025;
+        borders.outsideBorderColor = "green";
+        console.log("Updated outside borders.");
+      }
     });
 'Word.BorderCollection:class':
   - >-
@@ -17843,7 +17876,10 @@
           await context.sync();
         } else {
           const readableXml = addLineBreaksToXML(xmlBlob.value);
-          console.error(`This is strange. The XML part with the id ${xmlPartIDSetting.value} wasn't deleted:`, readableXml);
+          console.error(
+            `This is strange. The XML part with the id ${xmlPartIDSetting.value} wasn't deleted:`,
+            readableXml
+          );
         }
       } else {
         console.warn("Didn't find custom XML part to delete.");
@@ -18256,6 +18292,28 @@
 
       await context.sync();
     });
+'Word.CustomXmlPartCollection#getByNamespace:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-custom-xml-part-ns.yaml
+
+
+    // Original XML: <Reviewers
+    xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>
+
+
+    // Gets the custom XML parts with the specified namespace URI.
+
+    await Word.run(async (context) => {
+      const namespaceUri = "http://schemas.contoso.com/review/1.0";
+      console.log(`Specified namespace URI: ${namespaceUri}`);
+      const scopedCustomXmlParts : Word.CustomXmlPartScopedCollection =
+        context.document.customXmlParts.getByNamespace(namespaceUri);
+      scopedCustomXmlParts.load("items");
+      await context.sync();
+
+      console.log(`Number of custom XML parts found with this namespace: ${!scopedCustomXmlParts.items ? 0 : scopedCustomXmlParts.items.length}`);
+    });
 'Word.CustomXmlPartCollection#getItem:member(1)':
   - >-
     // Link to full sample:
@@ -18324,6 +18382,28 @@
       } else {
         console.warn("Didn't find custom XML part to query.");
       }
+    });
+'Word.CustomXmlPartScopedCollection:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-custom-xml-part-ns.yaml
+
+
+    // Original XML: <Reviewers
+    xmlns='http://schemas.contoso.com/review/1.0'><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>
+
+
+    // Gets the custom XML parts with the specified namespace URI.
+
+    await Word.run(async (context) => {
+      const namespaceUri = "http://schemas.contoso.com/review/1.0";
+      console.log(`Specified namespace URI: ${namespaceUri}`);
+      const scopedCustomXmlParts : Word.CustomXmlPartScopedCollection =
+        context.document.customXmlParts.getByNamespace(namespaceUri);
+      scopedCustomXmlParts.load("items");
+      await context.sync();
+
+      console.log(`Number of custom XML parts found with this namespace: ${!scopedCustomXmlParts.items ? 0 : scopedCustomXmlParts.items.length}`);
     });
 'Word.Document#addStyle:member(1)':
   - >-
@@ -18655,7 +18735,7 @@
 
 
     await Word.run(async (context) => {
-        const builtInProperties = context.document.properties;
+        const builtInProperties : Word.DocumentProperties = context.document.properties;
         builtInProperties.load("*"); // Let's get all!
 
         await context.sync();
@@ -18731,6 +18811,19 @@
       const currentDocBody = context.document.body;
       currentDocBody.insertText(externalDocBodyText, Word.InsertLocation.start);
       await context.sync();
+    });
+'Word.DocumentProperties:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/30-properties/get-built-in-properties.yaml
+
+
+    await Word.run(async (context) => {
+        const builtInProperties : Word.DocumentProperties = context.document.properties;
+        builtInProperties.load("*"); // Let's get all!
+
+        await context.sync();
+        console.log(JSON.stringify(builtInProperties, null, 4));
     });
 'Word.DocumentPropertyType:enum':
   - >-
@@ -20803,6 +20896,27 @@
         header.styleBuiltIn = Word.BuiltInStyleName.heading1;
 
         await context.sync();
+    });
+'Word.RangeCollection:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/search.yaml
+
+
+    // Does a basic text search and highlights matches in the document.
+
+    await Word.run(async (context) => {
+      const results : Word.RangeCollection = context.document.body.search("Online");
+      results.load("length");
+
+      await context.sync();
+
+      // Let's traverse the search results and highlight matches.
+      for (let i = 0; i < results.items.length; i++) {
+        results.items[i].font.highlightColor = "yellow";
+      }
+
+      await context.sync();
     });
 'Word.RangeLocation:enum':
   - >-

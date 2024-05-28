@@ -10,88 +10,106 @@ script:
 
         $("#load").on("click", load);
         $("#get").on("click", get);
+        $("#get-all").on("click", getAll);
         $("#set").on("click", set);
         $("#remove").on("click", remove);
         $("#save").on("click", save);
-          
+
         function load() {
-          Office.context.mailbox.item.loadCustomPropertiesAsync(function (result) {
-            if (result.status === Office.AsyncResultStatus.Succeeded) {
-              console.log("Loaded following custom properties:");
-              customProps = result.value;
-              const dataKey = Object.keys(customProps)[0];
-              const data = customProps[dataKey];
-              for (let propertyName in data)
-              {
-                let propertyValue = data[propertyName];
-                console.log(`${propertyName}: ${propertyValue}`);
-              }              
-            }
-            else {
+          Office.context.mailbox.item.loadCustomPropertiesAsync((result) => {
+            if (result.status === Office.AsyncResultStatus.Failed) {
               console.error(`loadCustomPropertiesAsync failed with message ${result.error.message}`);
+              return;
             }
+
+            customProps = result.value;
+            console.log("Loaded the CustomProperties object.");
           });
         }
 
         function get() {
-          const propertyName = $("#propertyName").val();
+          const propertyName = $("#get-property-name").val();
           const propertyValue = customProps.get(propertyName);
-          $("#propertyValue").val(propertyValue);
           console.log(`The value of custom property "${propertyName}" is "${propertyValue}".`);
         }
 
+        function getAll() {
+          let allCustomProps;
+          if (Office.context.requirements.isSetSupported("Mailbox", "1.9")) {
+            allCustomProps = customProps.getAll();
+          } else {
+            allCustomProps = customProps["rawData"];
+          }
+
+          console.log(allCustomProps);
+        }
+
         function set() {
-          const propertyName = $("#propertyName").val();
-          const propertyValue = $("#propertyValue").val();
+          const propertyName = $("#set-property-name").val();
+          const propertyValue = $("#property-value").val();
           customProps.set(propertyName, propertyValue);
           console.log(`Custom property "${propertyName}" set to value "${propertyValue}".`);
         }
 
         function remove() {
-          const propertyName = $("#propertyName").val();
+          const propertyName = $("#remove-property-name").val();
           customProps.remove(propertyName);
           console.log(`Custom property "${propertyName}" removed.`);
         }
 
         function save() {
-          customProps.saveAsync(function(result) {
-            if (result.status !== Office.AsyncResultStatus.Succeeded) {
+          customProps.saveAsync((result) => {
+            if (result.status === Office.AsyncResultStatus.Failed) {
               console.error(`saveAsync failed with message ${result.error.message}`);
-            } else {
-              console.log(`Custom properties saved with status: ${result.status}`);
+              return;
             }
+
+            console.log(`Custom properties saved with status: ${result.status}`);
           });
         }
     language: typescript
 template:
-    content: |
+    content: |-
         <section class="ms-font-m">
-          <p>This sample shows how to set, save, and get add-in's per-item properties that can be accessed the next time the add-in is opened for the same item.</p>
+            <p>This sample shows how to set, save, and get the custom per-item properties of an add-in.</p>
         </section>
 
         <section class="samples ms-font-m">
-          <h3>Try it out</h3>
-          <div class="ms-TextField">
-            <label class="ms-Label">Property name:</label>
-            <input id="propertyName" class="ms-TextField-field" type="text" value="hello" placeholder="">
-          </div>
-          <div class="ms-TextField">
-            <label class="ms-Label">Property value:</label>
-            <input id="propertyValue" class="ms-TextField-field" type="text" value="world" placeholder="">
-          </div>
-          <button id="load" class="ms-Button">
-            <div class="ms-Button-label">Load all</div>
+            <h3>Try it out</h3>
+            <p>First load the <a href="https://learn.microsoft.com/javascript/api/outlook/office.customproperties"
+                    target="_blank">CustomProperties</a> object of the mail item.</p>
+            <button id="load" class="ms-Button">
+            <div class="ms-Button-label">Load custom properties</div>
           </button>
-          <button id="set" class="ms-Button">
+            <div class="ms-TextField">
+                <label class="ms-Label">Property name:</label>
+                <input id="set-property-name" class="ms-TextField-field" type="text" value="hello" placeholder="">
+          </div>
+                <div class="ms-TextField">
+                    <label class="ms-Label">Property value:</label>
+                    <input id="property-value" class="ms-TextField-field" type="text" value="world" placeholder="">
+          </div>
+                    <button id="set" class="ms-Button">
             <div class="ms-Button-label">Set</div>
           </button>
-          <button id="get" class="ms-Button">
+                    <div class="ms-TextField">
+                        <label class="ms-Label">Property name:</label>
+                        <input id="get-property-name" class="ms-TextField-field" type="text" value="hello" placeholder="">
+            </div>
+                        <button id="get" class="ms-Button">
             <div class="ms-Button-label">Get</div>
           </button>
-          <button id="remove" class="ms-Button">
+                        <button id="get-all" class="ms-Button">
+            <div class="ms-Button-label">Get all</div>
+          </button>
+                        <div class="ms-TextField">
+                            <label class="ms-Label">Property name:</label>
+                            <input id="remove-property-name" class="ms-TextField-field" type="text" value="hello" placeholder="">
+            </div>
+                            <button id="remove" class="ms-Button">
             <div class="ms-Button-label">Remove</div>
           </button>
-          <button id="save" class="ms-Button">
+                            <button id="save" class="ms-Button">
             <div class="ms-Button-label">Save all</div>
           </button>
         </section>

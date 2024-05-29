@@ -7,18 +7,50 @@ api_set:
   ExcelAPI: '1.2'
 script:
   content: |
-    $("#create-table").on("click", () => tryCatch(createTable));
+    $("#setup").on("click", () => tryCatch(setup));
     $("#call-vlookup").on("click", () => tryCatch(callVlookup));
     $("#nest-functions").on("click", () => tryCatch(nestFunctions));
 
-    async function createTable() {
+    async function callVlookup() {
+      await Excel.run(async (context) => {
+        // This function uses VLOOKUP to find data in the "Wrench" row on the worksheet. 
+        let range = context.workbook.worksheets.getItem("Sample").getRange("A1:D4");
+
+        // Get the value in the second column in the "Wrench" row.
+        let unitSoldInNov = context.workbook.functions.vlookup("Wrench", range, 2, false);
+        unitSoldInNov.load("value");
+
+        await context.sync();
+        console.log(" Number of wrenches sold in November = " + unitSoldInNov.value);
+      });
+    }
+
+    async function nestFunctions() {
+      await Excel.run(async (context) => {
+        // This function uses VLOOKUP to find data in the "Wrench" row 
+        // on the worksheet, and then it uses SUM to combine the values.
+        let range = context.workbook.worksheets.getItem("Sample").getRange("A1:D4");
+
+        // Get the value in the second, third, and fourth columns in the "Wrench row",
+        // and combine those values with SUM. 
+        let sumOfTwoLookups = context.workbook.functions.sum(
+          context.workbook.functions.vlookup("Wrench", range, 2, false),
+          context.workbook.functions.vlookup("Wrench", range, 3, false),
+          context.workbook.functions.vlookup("Wrench", range, 4, false)
+        );
+        sumOfTwoLookups.load("value");
+
+        await context.sync();
+        console.log(" Number of wrenches sold in November, December, and January = " + sumOfTwoLookups.value);
+      });
+    }
+
+    async function setup() {
       await Excel.run(async (context) => {
         context.workbook.worksheets.getItemOrNullObject("Sample").delete();
         const sheet = context.workbook.worksheets.add("Sample");
 
         const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
-        expensesTable.name = "ExpensesTable";
-
         expensesTable.getHeaderRowRange().values = [["Product", "November", "December", "January"]];
 
         expensesTable.rows.add(null /*add at the end*/, [
@@ -29,37 +61,10 @@ script:
 
         sheet.getUsedRange().format.autofitColumns();
         sheet.getUsedRange().format.autofitRows();
-
+        sheet.getRange("A1").select();
         sheet.activate();
 
         await context.sync();
-      });
-    }
-
-    async function callVlookup() {
-      await Excel.run(async (context) => {
-        let range = context.workbook.worksheets.getItem("Sample").getRange("A1:D4");
-        let unitSoldInNov = context.workbook.functions.vlookup("Wrench", range, 2, false);
-        unitSoldInNov.load("value");
-
-        await context.sync();
-        console.log(" Number of wrenches sold in November = " + unitSoldInNov.value);
-
-        await context.sync();
-      });
-    }
-
-    async function nestFunctions() {
-      await Excel.run(async (context) => {
-        let range = context.workbook.worksheets.getItem("Sample").getRange("A1:D4");
-        let sumOfTwoLookups = context.workbook.functions.sum(
-          context.workbook.functions.vlookup("Wrench", range, 2, false),
-          context.workbook.functions.vlookup("Wrench", range, 3, false)
-        );
-        sumOfTwoLookups.load("value");
-
-        await context.sync();
-        console.log(" Number of wrenches sold in November and December = " + sumOfTwoLookups.value);
       });
     }
 
@@ -76,22 +81,22 @@ script:
 template:
   content: |-
     <section class="ms-font-m">
-      <p>This sample shows how to use the built-in Excel functions <code>VLOOKUP</code> and <code>SUM</code>.</p>
-      <p>First, this sample uses <code>VLOOKUP</code> to return the number of wrenches
-        sold in November. Next, it uses <code>VLOOKUP</code> to find the number of wrenches sold in November,
-        December, and January and uses <code>SUM</code> to combine the three values.</p>
+      <p>This sample shows how to use and nest the built-in Excel functions <code>VLOOKUP</code> and <code>SUM</code>. The sample uses <code>VLOOKUP</code> to return data, and then it uses <code>SUM</code> to combine data returned by <code>VLOOKUP</code>.</p>
     </section>
 
     <section class="samples ms-font-m">
-      <h3>Try it out</h3>
-      <button id="create-table" class="ms-Button">
+      <h3>Setup</h3>
+      <button id="setup" class="ms-Button">
         <span class="ms-Button-label">Create table</span>
-        </button>
-      <button id="call-vlookup" class="ms-Button">
-        <span class="ms-Button-label">Use <code>VLOOKUP</code> to return Wrench data</span>
       </button>
+      <h3>Try it out</h3>
+      <p>Use <code>VLOOKUP</code> to return the number of wrenches sold in November.</p>
+      <button id="call-vlookup" class="ms-Button">
+        <span class="ms-Button-label">Run <code>VLOOKUP</code></span>
+      </button>
+      <p>Use <code>VLOOKUP</code> to find the number of wrenches sold in November, December, and January, and then use <code>SUM</code> to combine the three values.</p>
       <button id="nest-functions" class="ms-Button">
-        <span class="ms-Button-label">Use <code>SUM</code> on <code>VLOOKUP</code> results</span>
+        <span class="ms-Button-label">Run <code>SUM</code> on <code>VLOOKUP</code> results</span>
       </button>
     </section>
   language: html

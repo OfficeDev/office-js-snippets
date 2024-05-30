@@ -1,0 +1,127 @@
+order: 10
+id: excel-workbook-built-in-function
+name: Use built-in Excel functions
+description: Use the VLOOKUP and SUM built-in Excel functions.
+host: EXCEL
+api_set:
+    ExcelAPI: '1.2'
+script:
+    content: |
+        $("#setup").on("click", () => tryCatch(setup));
+        $("#call-vlookup").on("click", () => tryCatch(callVlookup));
+        $("#nest-functions").on("click", () => tryCatch(nestFunctions));
+
+        async function callVlookup() {
+          await Excel.run(async (context) => {
+            // This function uses VLOOKUP to find data in the "Wrench" row on the worksheet. 
+            let range = context.workbook.worksheets.getItem("Sample").getRange("A1:D4");
+
+            // Get the value in the second column in the "Wrench" row.
+            let unitSoldInNov = context.workbook.functions.vlookup("Wrench", range, 2, false);
+            unitSoldInNov.load("value");
+
+            await context.sync();
+            console.log(" Number of wrenches sold in November = " + unitSoldInNov.value);
+          });
+        }
+
+        async function nestFunctions() {
+          await Excel.run(async (context) => {
+            // This function uses VLOOKUP to find data in the "Wrench" row 
+            // on the worksheet, and then it uses SUM to combine the values.
+            let range = context.workbook.worksheets.getItem("Sample").getRange("A1:D4");
+
+            // Get the values in the second, third, and fourth columns in the "Wrench" row,
+            // and combine those values with SUM. 
+            let sumOfTwoLookups = context.workbook.functions.sum(
+              context.workbook.functions.vlookup("Wrench", range, 2, false),
+              context.workbook.functions.vlookup("Wrench", range, 3, false),
+              context.workbook.functions.vlookup("Wrench", range, 4, false)
+            );
+            sumOfTwoLookups.load("value");
+
+            await context.sync();
+            console.log(" Number of wrenches sold in November, December, and January = " + sumOfTwoLookups.value);
+          });
+        }
+
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+
+            const expensesTable = sheet.tables.add("A1:D1", true /*hasHeaders*/);
+            expensesTable.getHeaderRowRange().values = [["Product", "November", "December", "January"]];
+
+            expensesTable.rows.add(null /*add at the end*/, [
+              ["Hammer", "23", "18", "17"],
+              ["Wrench", "12", "11", "14"],
+              ["Saw", "5", "15", "19"]
+            ]);
+
+            sheet.getUsedRange().format.autofitColumns();
+            sheet.getUsedRange().format.autofitRows();
+            sheet.getRange("A1").select();
+            sheet.activate();
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how to use and nest the built-in Excel functions <code>VLOOKUP</code> and <code>SUM</code>. The sample uses <code>VLOOKUP</code> to return data, and then it uses <code>SUM</code> to combine data returned by <code>VLOOKUP</code>.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Create table</span>
+          </button>
+          <h3>Try it out</h3>
+          <p>Use <code>VLOOKUP</code> to return the number of wrenches sold in November.</p>
+          <button id="call-vlookup" class="ms-Button">
+            <span class="ms-Button-label">Run <code>VLOOKUP</code></span>
+          </button>
+          <p>Use <code>VLOOKUP</code> to find the number of wrenches sold in November, December, and January, and then use <code>SUM</code> to combine the three values.</p>
+          <button id="nest-functions" class="ms-Button">
+            <span class="ms-Button-label">Run <code>SUM</code> on <code>VLOOKUP</code> results</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

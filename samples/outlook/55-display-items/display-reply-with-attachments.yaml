@@ -1,6 +1,6 @@
 order: 6
 id: outlook-display-items-display-reply-with-attachments
-name: 'Create a reply, with attachments'
+name: Create a reply with attachments
 description: Opens a reply message forms and adds sample attachments.
 host: OUTLOOK
 api_set:
@@ -12,32 +12,34 @@ script:
 
         function run() {
           Office.context.mailbox.item.displayReplyForm({
-            htmlBody: "This is a reply with a couple of attachments - an inline image and an item<br><img src='cid:dog.jpg'>",
+            htmlBody: "This is a reply with an inline image and an item attachment.<br><img src='cid:dog.jpg'>",
             attachments: [
-              { type: "file", url: "http://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", isInline: true },
+              { type: "file", url: "https://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", inLine: true },
               { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
             ],
-            options: { asyncContext: null },
-            callback: function(result) {
-              if (result.status !== Office.AsyncResultStatus.Succeeded) {
+            callback: (result) => {
+              if (result.status === Office.AsyncResultStatus.Failed) {
                 console.error(`Action failed with message ${result.error.message}`);
+                return;
               }
+
+              console.log("Created reply with attachments.");
             }
           });
         }
 
         function runAsync() {
-          // The async version is only available starting with requirement set 1.9,
-          // and provides a callback when the new appointment form has been created.
+          // The async version is only available starting with requirement set 1.9.
+          // It provides a callback when the new appointment form has been created.
           Office.context.mailbox.item.displayReplyFormAsync(
             {
-              htmlBody: "This is a reply with a couple of attachments - an inline image and an item<br><img src='cid:dog.jpg'>",
+              htmlBody: "This is a reply with an inline image and an item attachment.<br><img src='cid:dog.jpg'>",
               attachments: [
-                { type: "file", url: "http://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", isInline: true },
+                { type: "file", url: "http://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", inLine: true },
                 { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
               ]
             },
-            function(asyncResult) {
+            (asyncResult) => {
               console.log(JSON.stringify(asyncResult));
             }
           );

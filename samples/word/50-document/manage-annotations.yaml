@@ -5,7 +5,7 @@ description: Shows how to leverage the Writing Assistance API to manage annotati
 author: cbouzmsft
 host: WORD
 api_set:
-    WordApi: '1.7'
+    WordApi: '1.8'
 script:
     content: |
         $("#register-event-handlers").on("click", () => tryCatch(registerEventHandlers));
@@ -29,6 +29,7 @@ script:
             eventContexts[3] = context.document.onAnnotationHovered.add(onHoveredHandler);
             eventContexts[4] = context.document.onAnnotationInserted.add(onInsertedHandler);
             eventContexts[5] = context.document.onAnnotationRemoved.add(onRemovedHandler);
+            eventContexts[6] = context.document.onAnnotationPopupAction.add(onPopupActionHandler);
 
             await context.sync();
 
@@ -58,30 +59,41 @@ script:
           // Adds annotations to the selected paragraph.
           await Word.run(async (context) => {
             const paragraph = context.document.getSelection().paragraphs.getFirst();
+            const options: Word.CritiquePopupOptions = {
+              brandingTextResourceId: "PG.TabLabel",
+              subtitleResourceId: "PG.HelpCommand.TipTitle",
+              titleResourceId: "PG.HelpCommand.Label",
+              suggestions: ["suggestion 1", "suggestion 2", "suggestion 3"]
+            };
             const critique1 = {
               colorScheme: Word.CritiqueColorScheme.red,
               start: 1,
-              length: 3
+              length: 3,
+              popupOptions: options
             };
             const critique2 = {
               colorScheme: Word.CritiqueColorScheme.green,
               start: 6,
-              length: 1
+              length: 1,
+              popupOptions: options
             };
             const critique3 = {
               colorScheme: Word.CritiqueColorScheme.blue,
               start: 10,
-              length: 3
+              length: 3,
+              popupOptions: options
             };
             const critique4 = {
               colorScheme: Word.CritiqueColorScheme.lavender,
               start: 14,
-              length: 3
+              length: 3,
+              popupOptions: options
             };
             const critique5 = {
               colorScheme: Word.CritiqueColorScheme.berry,
               start: 18,
-              length: 10
+              length: 10,
+              popupOptions: options
             };
             const annotationSet: Word.AnnotationSet = {
               critiques: [critique1, critique2, critique3, critique4, critique5]
@@ -228,6 +240,19 @@ script:
             for (let id of args.ids) {
               console.log(`AnnotationRemoved: ID ${id}`);
             }
+          });
+        }
+
+        async function onPopupActionHandler(args: Word.AnnotationPopupActionEventArgs) {
+          await Word.run(async (context) => {
+            let message = `AnnotationPopupAction: ID ${args.id} = `;
+            if (args.action === "Accept") {
+              message += `Accepted: ${args.critiqueSuggestion}`;
+            } else {
+              message += "Rejected";
+            }
+
+            console.log(message);
           });
         }
 

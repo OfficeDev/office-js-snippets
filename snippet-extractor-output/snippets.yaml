@@ -15626,7 +15626,7 @@
     // Gets the comments in the document body.
 
     await Word.run(async (context) => {
-      const comments = context.document.body.getComments();
+      const comments: Word.CommentCollection = context.document.body.getComments();
 
       // Load objects to log in the console.
       comments.load();
@@ -16111,7 +16111,7 @@
     // Registers event handlers.
 
     await Word.run(async (context) => {
-      const body = context.document.body;
+      const body: Word.Body = context.document.body;
       body.track();
       await context.sync();
 
@@ -16144,7 +16144,7 @@
     // Registers event handlers.
 
     await Word.run(async (context) => {
-      const body = context.document.body;
+      const body: Word.Body = context.document.body;
       body.track();
       await context.sync();
 
@@ -16178,7 +16178,7 @@
     // Registers event handlers.
 
     await Word.run(async (context) => {
-      const body = context.document.body;
+      const body: Word.Body = context.document.body;
       body.track();
       await context.sync();
 
@@ -16211,7 +16211,7 @@
     // Registers event handlers.
 
     await Word.run(async (context) => {
-      const body = context.document.body;
+      const body: Word.Body = context.document.body;
       body.track();
       await context.sync();
 
@@ -16244,7 +16244,7 @@
     // Registers event handlers.
 
     await Word.run(async (context) => {
-      const body = context.document.body;
+      const body: Word.Body = context.document.body;
       body.track();
       await context.sync();
 
@@ -16790,6 +16790,26 @@
     await Word.run(async (context) => {
       context.document.close(Word.CloseBehavior.save);
     });
+'Word.Comment:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
+
+
+    // Sets a comment on the selected content.
+
+    await Word.run(async (context) => {
+      const text = $("#comment-text")
+        .val()
+        .toString();
+      const comment: Word.Comment = context.document.getSelection().insertComment(text);
+
+      // Load object to log in the console.
+      comment.load();
+      await context.sync();
+
+      console.log("Comment inserted:", comment);
+    });
 'Word.Comment#delete:member(1)':
   - >-
     // Link to full sample:
@@ -16806,7 +16826,7 @@
         .delete();
       await context.sync();
 
-      console.log("Comment deleted");
+      console.log("Comment deleted.");
     });
 'Word.Comment#getRange:member(1)':
   - >-
@@ -16817,15 +16837,17 @@
     // Gets the range of the first comment in the selected content.
 
     await Word.run(async (context) => {
-      const range = context.document
+      const comment: Word.Comment = context.document
         .getSelection()
         .getComments()
-        .getFirst()
-        .getRange();
+        .getFirst();
+      const range: Word.Range = comment.getRange();
+      comment.load("contentRange");
       range.load("text");
       await context.sync();
 
       console.log(`Comment location: ${range.text}`);
+      console.log("Comment content range:", comment.contentRange);
     });
 'Word.Comment#reply:member(1)':
   - >-
@@ -16839,16 +16861,16 @@
       const text = $("#reply-text")
         .val()
         .toString();
-      const comments = context.document.getSelection().getComments();
+      const comments: Word.CommentCollection = context.document.getSelection().getComments();
       comments.load("items");
       await context.sync();
 
       const firstActiveComment = comments.items.find((item) => item.resolved !== true);
       if (firstActiveComment) {
         const reply = firstActiveComment.reply(text);
-        console.log("Reply added");
+        console.log("Reply added.");
       } else {
-        console.log("No active comment was found in the selection so couldn't reply.");
+        console.log("No active comment was found in the selection, so couldn't reply.");
       }
     });
 'Word.Comment#content:member':
@@ -16863,7 +16885,7 @@
       const text = $("#edit-comment-text")
         .val()
         .toString();
-      const comment = context.document
+      const comment: Word.Comment = context.document
         .getSelection()
         .getComments()
         .getFirst();
@@ -16875,6 +16897,27 @@
 
       console.log("Comment content changed:", comment);
     });
+'Word.Comment#contentRange:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
+
+
+    // Gets the range of the first comment in the selected content.
+
+    await Word.run(async (context) => {
+      const comment: Word.Comment = context.document
+        .getSelection()
+        .getComments()
+        .getFirst();
+      const range: Word.Range = comment.getRange();
+      comment.load("contentRange");
+      range.load("text");
+      await context.sync();
+
+      console.log(`Comment location: ${range.text}`);
+      console.log("Comment content range:", comment.contentRange);
+    });
 'Word.Comment#resolved:member':
   - >-
     // Link to full sample:
@@ -16884,7 +16927,7 @@
     // Toggles Resolved status of the first comment in the selected content.
 
     await Word.run(async (context) => {
-      const comment = context.document
+      const comment: Word.Comment = context.document
         .getSelection()
         .getComments()
         .getFirst();
@@ -16895,11 +16938,12 @@
       // If the comment is active, set as resolved.
       // If it's resolved, set resolved to false.
       const resolvedBefore = comment.resolved;
+      console.log(`Comment Resolved status (before): ${resolvedBefore}`);
       comment.resolved = !resolvedBefore;
-      comment.load();
+      comment.load("resolved");
       await context.sync();
 
-      console.log(`Comment Resolved status: ${comment.resolved}`, comment);
+      console.log(`Comment Resolved status (after): ${comment.resolved}`);
     });
 'Word.CommentChangeType:enum':
   - >-
@@ -16910,7 +16954,7 @@
     // Registers event handlers.
 
     await Word.run(async (context) => {
-      const body = context.document.body;
+      const body: Word.Body = context.document.body;
       body.track();
       await context.sync();
 
@@ -16944,15 +16988,17 @@
     // Gets the range of the first comment in the selected content.
 
     await Word.run(async (context) => {
-      const range = context.document
+      const comment: Word.Comment = context.document
         .getSelection()
         .getComments()
-        .getFirst()
-        .getRange();
+        .getFirst();
+      const range: Word.Range = comment.getRange();
+      comment.load("contentRange");
       range.load("text");
       await context.sync();
 
       console.log(`Comment location: ${range.text}`);
+      console.log("Comment content range:", comment.contentRange);
     });
 'Word.CommentCollection#items:member':
   - >-
@@ -16966,17 +17012,38 @@
       const text = $("#reply-text")
         .val()
         .toString();
-      const comments = context.document.getSelection().getComments();
+      const comments: Word.CommentCollection = context.document.getSelection().getComments();
       comments.load("items");
       await context.sync();
 
       const firstActiveComment = comments.items.find((item) => item.resolved !== true);
       if (firstActiveComment) {
         const reply = firstActiveComment.reply(text);
-        console.log("Reply added");
+        console.log("Reply added.");
       } else {
-        console.log("No active comment was found in the selection so couldn't reply.");
+        console.log("No active comment was found in the selection, so couldn't reply.");
       }
+    });
+'Word.CommentContentRange:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
+
+
+    // Gets the range of the first comment in the selected content.
+
+    await Word.run(async (context) => {
+      const comment: Word.Comment = context.document
+        .getSelection()
+        .getComments()
+        .getFirst();
+      const range: Word.Range = comment.getRange();
+      comment.load("contentRange");
+      range.load("text");
+      await context.sync();
+
+      console.log(`Comment location: ${range.text}`);
+      console.log("Comment content range:", comment.contentRange);
     });
 'Word.CommentDetail:interface':
   - >-
@@ -16987,7 +17054,7 @@
     // Registers event handlers.
 
     await Word.run(async (context) => {
-      const body = context.document.body;
+      const body: Word.Body = context.document.body;
       body.track();
       await context.sync();
 
@@ -17020,7 +17087,7 @@
     // Registers event handlers.
 
     await Word.run(async (context) => {
-      const body = context.document.body;
+      const body: Word.Body = context.document.body;
       body.track();
       await context.sync();
 
@@ -17057,16 +17124,16 @@
       const text = $("#reply-text")
         .val()
         .toString();
-      const comments = context.document.getSelection().getComments();
+      const comments: Word.CommentCollection = context.document.getSelection().getComments();
       comments.load("items");
       await context.sync();
 
       const firstActiveComment = comments.items.find((item) => item.resolved !== true);
       if (firstActiveComment) {
         const reply = firstActiveComment.reply(text);
-        console.log("Reply added");
+        console.log("Reply added.");
       } else {
-        console.log("No active comment was found in the selection so couldn't reply.");
+        console.log("No active comment was found in the selection, so couldn't reply.");
       }
     });
 'Word.CompareTarget:enum':
@@ -19177,7 +19244,7 @@
     // Registers event handlers.
 
     await Word.run(async (context) => {
-      const body = context.document.body;
+      const body: Word.Body = context.document.body;
       body.track();
       await context.sync();
 
@@ -20961,7 +21028,7 @@
     // Gets the comments in the selected content.
 
     await Word.run(async (context) => {
-      const comments = context.document.getSelection().getComments();
+      const comments: Word.CommentCollection = context.document.getSelection().getComments();
 
       // Load objects to log in the console.
       comments.load();
@@ -21067,7 +21134,7 @@
       const text = $("#comment-text")
         .val()
         .toString();
-      const comment = context.document.getSelection().insertComment(text);
+      const comment: Word.Comment = context.document.getSelection().insertComment(text);
 
       // Load object to log in the console.
       comment.load();

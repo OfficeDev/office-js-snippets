@@ -16819,12 +16819,14 @@
     // Deletes the first comment in the selected content.
 
     await Word.run(async (context) => {
-      context.document
-        .getSelection()
-        .getComments()
-        .getFirst()
-        .delete();
+      const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
+      comment.delete();
       await context.sync();
+
+      if (comment.isNullObject) {
+        console.warn("No comments in the selection, so nothing to delete.");
+        return;
+      }
 
       console.log("Comment deleted.");
     });
@@ -16837,17 +16839,20 @@
     // Gets the range of the first comment in the selected content.
 
     await Word.run(async (context) => {
-      const comment: Word.Comment = context.document
-        .getSelection()
-        .getComments()
-        .getFirst();
-      const range: Word.Range = comment.getRange();
+      const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
       comment.load("contentRange");
+      const range: Word.Range = comment.getRange();
       range.load("text");
       await context.sync();
 
+      if (comment.isNullObject) {
+        console.warn("No comments in the selection, so no range to get.");
+        return;
+      }
+
       console.log(`Comment location: ${range.text}`);
-      console.log("Comment content range:", comment.contentRange);
+      const contentRange: Word.CommentContentRange = comment.contentRange;
+      console.log("Comment content range:", contentRange);
     });
 'Word.Comment#reply:member(1)':
   - >-
@@ -16865,12 +16870,12 @@
       comments.load("items");
       await context.sync();
 
-      const firstActiveComment = comments.items.find((item) => item.resolved !== true);
+      const firstActiveComment: Word.Comment = comments.items.find((item) => item.resolved !== true);
       if (firstActiveComment) {
-        const reply = firstActiveComment.reply(text);
+        const reply: Word.CommentReply = firstActiveComment.reply(text);
         console.log("Reply added.");
       } else {
-        console.log("No active comment was found in the selection, so couldn't reply.");
+        console.warn("No active comment was found in the selection, so couldn't reply.");
       }
     });
 'Word.Comment#content:member':
@@ -16879,23 +16884,29 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
 
 
-    // Edits the first comment in the selected content.
+    // Edits the first active comment in the selected content.
 
     await Word.run(async (context) => {
       const text = $("#edit-comment-text")
         .val()
         .toString();
-      const comment: Word.Comment = context.document
-        .getSelection()
-        .getComments()
-        .getFirst();
-      comment.content = text;
-
-      // Load object to log in the console.
-      comment.load();
+      const comments: Word.CommentCollection = context.document.getSelection().getComments();
+      comments.load("items");
       await context.sync();
 
-      console.log("Comment content changed:", comment);
+      const firstActiveComment: Word.Comment = comments.items.find((item) => item.resolved !== true);
+      if (!firstActiveComment) {
+        console.warn("No active comment was found in the selection, so couldn't edit.");
+        return;
+      }
+
+      firstActiveComment.content = text;
+
+      // Load object to log in the console.
+      firstActiveComment.load();
+      await context.sync();
+
+      console.log("Comment content changed:", firstActiveComment);
     });
 'Word.Comment#contentRange:member':
   - >-
@@ -16906,17 +16917,41 @@
     // Gets the range of the first comment in the selected content.
 
     await Word.run(async (context) => {
-      const comment: Word.Comment = context.document
-        .getSelection()
-        .getComments()
-        .getFirst();
-      const range: Word.Range = comment.getRange();
+      const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
       comment.load("contentRange");
+      const range: Word.Range = comment.getRange();
       range.load("text");
       await context.sync();
 
+      if (comment.isNullObject) {
+        console.warn("No comments in the selection, so no range to get.");
+        return;
+      }
+
       console.log(`Comment location: ${range.text}`);
-      console.log("Comment content range:", comment.contentRange);
+      const contentRange: Word.CommentContentRange = comment.contentRange;
+      console.log("Comment content range:", contentRange);
+    });
+'Word.Comment#replies:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
+
+
+    // Gets the replies to the first comment in the selected content.
+
+    await Word.run(async (context) => {
+      const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
+      comment.load("replies");
+      await context.sync();
+
+      if (comment.isNullObject) {
+        console.warn("No comments in the selection, so no replies to get.");
+        return;
+      }
+
+      const replies: Word.CommentReplyCollection = comment.replies;
+      console.log("Replies to the first comment:", replies);
     });
 'Word.Comment#resolved:member':
   - >-
@@ -16930,9 +16965,14 @@
       const comment: Word.Comment = context.document
         .getSelection()
         .getComments()
-        .getFirst();
+        .getFirstOrNullObject();
       comment.load("resolved");
       await context.sync();
+
+      if (comment.isNullObject) {
+        console.warn("No comments in the selection, so nothing to toggle.");
+        return;
+      }
 
       // Toggle resolved status.
       // If the comment is active, set as resolved.
@@ -16979,7 +17019,7 @@
         );
       });
     }
-'Word.CommentCollection#getFirst:member(1)':
+'Word.CommentCollection#getFirstOrNullObject:member(1)':
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
@@ -16988,17 +17028,20 @@
     // Gets the range of the first comment in the selected content.
 
     await Word.run(async (context) => {
-      const comment: Word.Comment = context.document
-        .getSelection()
-        .getComments()
-        .getFirst();
-      const range: Word.Range = comment.getRange();
+      const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
       comment.load("contentRange");
+      const range: Word.Range = comment.getRange();
       range.load("text");
       await context.sync();
 
+      if (comment.isNullObject) {
+        console.warn("No comments in the selection, so no range to get.");
+        return;
+      }
+
       console.log(`Comment location: ${range.text}`);
-      console.log("Comment content range:", comment.contentRange);
+      const contentRange: Word.CommentContentRange = comment.contentRange;
+      console.log("Comment content range:", contentRange);
     });
 'Word.CommentCollection#items:member':
   - >-
@@ -17016,12 +17059,12 @@
       comments.load("items");
       await context.sync();
 
-      const firstActiveComment = comments.items.find((item) => item.resolved !== true);
+      const firstActiveComment: Word.Comment = comments.items.find((item) => item.resolved !== true);
       if (firstActiveComment) {
-        const reply = firstActiveComment.reply(text);
+        const reply: Word.CommentReply = firstActiveComment.reply(text);
         console.log("Reply added.");
       } else {
-        console.log("No active comment was found in the selection, so couldn't reply.");
+        console.warn("No active comment was found in the selection, so couldn't reply.");
       }
     });
 'Word.CommentContentRange:class':
@@ -17033,17 +17076,20 @@
     // Gets the range of the first comment in the selected content.
 
     await Word.run(async (context) => {
-      const comment: Word.Comment = context.document
-        .getSelection()
-        .getComments()
-        .getFirst();
-      const range: Word.Range = comment.getRange();
+      const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
       comment.load("contentRange");
+      const range: Word.Range = comment.getRange();
       range.load("text");
       await context.sync();
 
+      if (comment.isNullObject) {
+        console.warn("No comments in the selection, so no range to get.");
+        return;
+      }
+
       console.log(`Comment location: ${range.text}`);
-      console.log("Comment content range:", comment.contentRange);
+      const contentRange: Word.CommentContentRange = comment.contentRange;
+      console.log("Comment content range:", contentRange);
     });
 'Word.CommentDetail:interface':
   - >-
@@ -17128,13 +17174,34 @@
       comments.load("items");
       await context.sync();
 
-      const firstActiveComment = comments.items.find((item) => item.resolved !== true);
+      const firstActiveComment: Word.Comment = comments.items.find((item) => item.resolved !== true);
       if (firstActiveComment) {
-        const reply = firstActiveComment.reply(text);
+        const reply: Word.CommentReply = firstActiveComment.reply(text);
         console.log("Reply added.");
       } else {
-        console.log("No active comment was found in the selection, so couldn't reply.");
+        console.warn("No active comment was found in the selection, so couldn't reply.");
       }
+    });
+'Word.CommentReplyCollection:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
+
+
+    // Gets the replies to the first comment in the selected content.
+
+    await Word.run(async (context) => {
+      const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
+      comment.load("replies");
+      await context.sync();
+
+      if (comment.isNullObject) {
+        console.warn("No comments in the selection, so no replies to get.");
+        return;
+      }
+
+      const replies: Word.CommentReplyCollection = comment.replies;
+      console.log("Replies to the first comment:", replies);
     });
 'Word.CompareTarget:enum':
   - >-

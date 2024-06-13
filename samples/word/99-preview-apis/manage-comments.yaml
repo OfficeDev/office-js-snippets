@@ -11,8 +11,9 @@ script:
         $("#edit").on("click", () => tryCatch(editFirstCommentInSelection));
         $("#reply").on("click", () => tryCatch(replyToFirstActiveCommentInSelection));
         $("#resolve").on("click", () => tryCatch(toggleResolvedStatusOfFirstCommentInSelection));
-        $("#range").on("click", () => tryCatch(getFirstCommentRange));
+        $("#range").on("click", () => tryCatch(getFirstCommentRangeInSelection));
         $("#get-comments-in-selection").on("click", () => tryCatch(getCommentsInSelection));
+        $("#get-replies-to-first-comment-in-selection").on("click", () => tryCatch(getRepliesToFirstCommentInSelection));
         $("#delete").on("click", () => tryCatch(deleteFirstCommentInSelection));
         $("#get-comments").on("click", () => tryCatch(getComments));
         $("#deregister-event-handlers").on("click", () => tryCatch(deregisterEventHandlers));
@@ -55,22 +56,28 @@ script:
         }
 
         async function editFirstCommentInSelection() {
-          // Edits the first comment in the selected content.
+          // Edits the first active comment in the selected content.
           await Word.run(async (context) => {
             const text = $("#edit-comment-text")
               .val()
               .toString();
-            const comment: Word.Comment = context.document
-              .getSelection()
-              .getComments()
-              .getFirst();
-            comment.content = text;
-
-            // Load object to log in the console.
-            comment.load();
+            const comments: Word.CommentCollection = context.document.getSelection().getComments();
+            comments.load("items");
             await context.sync();
 
-            console.log("Comment content changed:", comment);
+            const firstActiveComment: Word.Comment = comments.items.find((item) => item.resolved !== true);
+            if (!firstActiveComment) {
+              console.warn("No active comment was found in the selection, so couldn't edit.");
+              return;
+            }
+
+            firstActiveComment.content = text;
+
+            // Load object to log in the console.
+            firstActiveComment.load();
+            await context.sync();
+
+            console.log("Comment content changed:", firstActiveComment);
           });
         }
 
@@ -84,12 +91,12 @@ script:
             comments.load("items");
             await context.sync();
 
-            const firstActiveComment = comments.items.find((item) => item.resolved !== true);
+            const firstActiveComment: Word.Comment = comments.items.find((item) => item.resolved !== true);
             if (firstActiveComment) {
-              const reply = firstActiveComment.reply(text);
+              const reply: Word.CommentReply = firstActiveComment.reply(text);
               console.log("Reply added.");
             } else {
-              console.log("No active comment was found in the selection, so couldn't reply.");
+              console.warn("No active comment was found in the selection, so couldn't reply.");
             }
           });
         }
@@ -100,9 +107,14 @@ script:
             const comment: Word.Comment = context.document
               .getSelection()
               .getComments()
-              .getFirst();
+              .getFirstOrNullObject();
             comment.load("resolved");
             await context.sync();
+
+            if (comment.isNullObject) {
+              console.warn("No comments in the selection, so nothing to toggle.");
+              return;
+            }
 
             // Toggle resolved status.
             // If the comment is active, set as resolved.
@@ -117,20 +129,23 @@ script:
           });
         }
 
-        async function getFirstCommentRange() {
+        async function getFirstCommentRangeInSelection() {
           // Gets the range of the first comment in the selected content.
           await Word.run(async (context) => {
-            const comment: Word.Comment = context.document
-              .getSelection()
-              .getComments()
-              .getFirst();
-            const range: Word.Range = comment.getRange();
+            const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
             comment.load("contentRange");
+            const range: Word.Range = comment.getRange();
             range.load("text");
             await context.sync();
 
+            if (comment.isNullObject) {
+              console.warn("No comments in the selection, so no range to get.");
+              return;
+            }
+
             console.log(`Comment location: ${range.text}`);
-            console.log("Comment content range:", comment.contentRange);
+            const contentRange: Word.CommentContentRange = comment.contentRange;
+            console.log("Comment content range:", contentRange);
           });
         }
 
@@ -147,15 +162,34 @@ script:
           });
         }
 
+        async function getRepliesToFirstCommentInSelection() {
+          // Gets the replies to the first comment in the selected content.
+          await Word.run(async (context) => {
+            const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
+            comment.load("replies");
+            await context.sync();
+
+            if (comment.isNullObject) {
+              console.warn("No comments in the selection, so no replies to get.");
+              return;
+            }
+
+            const replies: Word.CommentReplyCollection = comment.replies;
+            console.log("Replies to the first comment:", replies);
+          });
+        }
+
         async function deleteFirstCommentInSelection() {
           // Deletes the first comment in the selected content.
           await Word.run(async (context) => {
-            context.document
-              .getSelection()
-              .getComments()
-              .getFirst()
-              .delete();
+            const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
+            comment.delete();
             await context.sync();
+
+            if (comment.isNullObject) {
+              console.warn("No comments in the selection, so nothing to delete.");
+              return;
+            }
 
             console.log("Comment deleted.");
           });
@@ -292,6 +326,11 @@ template:
                             <span class="ms-Button-label">Get comments</span>
                       </button>
             </p>
+          <p>
+            <button id="get-replies-to-first-comment-in-selection" class="ms-Button">
+              <span class="ms-Button-label">Get replies to first comment</span>
+            </button>
+          </p>
             <p>
                 <button id="delete" class="ms-Button">
                         <span class="ms-Button-label">Delete first comment</span>

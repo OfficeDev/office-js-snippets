@@ -39,34 +39,19 @@ script:
 
         async function insertAfterSelectedSlide() {
             await PowerPoint.run(async function(context) {
-                const selectedSlideID = await getSelectedSlideID();
-
-                context.presentation.insertSlidesFromBase64(chosenFileBase64, {
-                    formatting: PowerPoint.InsertSlideFormatting.useDestinationTheme,
-                    targetSlideId: selectedSlideID + "#"
-                });
+                // Get the ID of the first selected slide.
+                const presentation = context.presentation;
+                const selected = presentation.getSelectedSlides().getItemAt(0);
+                selected.load("id");
                 await context.sync();
-            });
-        }
 
-        function getSelectedSlideID() {
-            // Wrap a call of one of the Common APIs in a Promise-returning
-            // function, so that it can be easily called within a run() function
-            // of an application-specific API.
-            return new OfficeExtension.Promise<string>(function(resolve, reject) {
-                Office.context.document.getSelectedDataAsync(Office.CoercionType.SlideRange, function(asyncResult) {
-                    try {
-                        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
-                            reject(console.error(asyncResult.error.message));
-                        } else {
-                            const result = asyncResult.value as any;
-                            resolve(result.slides[0].id);
-                        }
-                    } 
-                    catch (error) {
-                        reject(console.log(error));
-                    }
-                });
+                // Insert the other presentation after the selected slide.
+                const insertOptions: PowerPoint.InsertSlideOptions = {
+                    formatting: PowerPoint.InsertSlideFormatting.useDestinationTheme,
+                    targetSlideId: selected.id
+                };
+                presentation.insertSlidesFromBase64(chosenFileBase64, insertOptions);
+                await context.sync();
             });
         }
 

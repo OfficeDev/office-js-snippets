@@ -15,23 +15,28 @@ script:
           const chosenLayout = $("#layout-id").val() as string;
 
           await PowerPoint.run(async function(context) {
-            context.presentation.slides.add({
-              slideMasterId: chosenMaster,
-              layoutId: chosenLayout
-            });
+            // Create a new slide using an existing master slide and layout.
+            const newSlideOptions: PowerPoint.AddSlideOptions = {
+              slideMasterId: chosenMaster, /* An ID from `Presentation.slideMasters`. */
+              layoutId: chosenLayout /* An ID from `SlideMaster.layouts`. */
+            };
+            context.presentation.slides.add(newSlideOptions);
             await context.sync();
           });
         }
 
         async function logSlideMasters() {
           await PowerPoint.run(async function(context) {
+            // Load information about all the slide masters and associated layouts.
             const slideMasters = context.presentation.slideMasters.load("id, name, layouts/items/name, layouts/items/id");
-
             await context.sync();
 
+            // Log the name and ID of each slide master.
             for (let i = 0; i < slideMasters.items.length; i++) {
               console.log("Master name: " + slideMasters.items[i].name);
               console.log("Master ID: " + slideMasters.items[i].id);
+
+              // Log the name and ID of each slide layout in the slide master.
               const layoutsInMaster = slideMasters.items[i].layouts;
               for (let j = 0; j < layoutsInMaster.items.length; j++) {
                 console.log("    Layout name: " + layoutsInMaster.items[j].name + " Layout ID: " + layoutsInMaster.items[j].id);

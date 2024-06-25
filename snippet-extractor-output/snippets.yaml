@@ -14341,6 +14341,26 @@
         console.log(`Successfully set end date and time to ${end}`);
       });
     });
+'PowerPoint.AddSlideOptions:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/add-slides.yaml
+
+
+    const chosenMaster = $("#master-id").val() as string;
+
+    const chosenLayout = $("#layout-id").val() as string;
+
+
+    await PowerPoint.run(async function(context) {
+      // Create a new slide using an existing master slide and layout.
+      const newSlideOptions: PowerPoint.AddSlideOptions = {
+        slideMasterId: chosenMaster, /* An ID from `Presentation.slideMasters`. */
+        layoutId: chosenLayout /* An ID from `SlideMaster.layouts`. */
+      };
+      context.presentation.slides.add(newSlideOptions);
+      await context.sync();
+    });
 'PowerPoint.ConnectorType:enum':
   - >-
     // Link to full sample:
@@ -14393,6 +14413,48 @@
       hexagon.name = "Hexagon";
 
       await context.sync();
+    });
+'PowerPoint.InsertSlideFormatting:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/insert-slides.yaml
+
+
+    await PowerPoint.run(async function(context) {
+        // Get the ID of the first selected slide.
+        const presentation = context.presentation;
+        const selected = presentation.getSelectedSlides().getItemAt(0);
+        selected.load("id");
+        await context.sync();
+
+        // Insert the other presentation after the selected slide.
+        const insertOptions: PowerPoint.InsertSlideOptions = {
+            formatting: PowerPoint.InsertSlideFormatting.useDestinationTheme,
+            targetSlideId: selected.id
+        };
+        presentation.insertSlidesFromBase64(chosenFileBase64, insertOptions);
+        await context.sync();
+    });
+'PowerPoint.InsertSlideOptions:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/insert-slides.yaml
+
+
+    await PowerPoint.run(async function(context) {
+        // Get the ID of the first selected slide.
+        const presentation = context.presentation;
+        const selected = presentation.getSelectedSlides().getItemAt(0);
+        selected.load("id");
+        await context.sync();
+
+        // Insert the other presentation after the selected slide.
+        const insertOptions: PowerPoint.InsertSlideOptions = {
+            formatting: PowerPoint.InsertSlideFormatting.useDestinationTheme,
+            targetSlideId: selected.id
+        };
+        presentation.insertSlidesFromBase64(chosenFileBase64, insertOptions);
+        await context.sync();
     });
 'PowerPoint.Presentation#getSelectedShapes:member(1)':
   - >-
@@ -14602,12 +14664,18 @@
 
 
     await PowerPoint.run(async function(context) {
-        const selectedSlideID = await getSelectedSlideID();
+        // Get the ID of the first selected slide.
+        const presentation = context.presentation;
+        const selected = presentation.getSelectedSlides().getItemAt(0);
+        selected.load("id");
+        await context.sync();
 
-        context.presentation.insertSlidesFromBase64(chosenFileBase64, {
+        // Insert the other presentation after the selected slide.
+        const insertOptions: PowerPoint.InsertSlideOptions = {
             formatting: PowerPoint.InsertSlideFormatting.useDestinationTheme,
-            targetSlideId: selectedSlideID + "#"
-        });
+            targetSlideId: selected.id
+        };
+        presentation.insertSlidesFromBase64(chosenFileBase64, insertOptions);
         await context.sync();
     });
 'PowerPoint.Presentation#setSelectedSlides:member(1)':
@@ -14974,10 +15042,12 @@
 
 
     await PowerPoint.run(async function(context) {
-      context.presentation.slides.add({
-        slideMasterId: chosenMaster,
-        layoutId: chosenLayout
-      });
+      // Create a new slide using an existing master slide and layout.
+      const newSlideOptions: PowerPoint.AddSlideOptions = {
+        slideMasterId: chosenMaster, /* An ID from `Presentation.slideMasters`. */
+        layoutId: chosenLayout /* An ID from `SlideMaster.layouts`. */
+      };
+      context.presentation.slides.add(newSlideOptions);
       await context.sync();
     });
 'PowerPoint.SlideCollection#getItemAt:member(1)':
@@ -15006,6 +15076,98 @@
       await context.sync();
       context.presentation.setSelectedSlides([slide2.id, slide4.id, slide5.id]);
       await context.sync();
+    });
+'PowerPoint.SlideLayout#id:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/add-slides.yaml
+
+
+    await PowerPoint.run(async function(context) {
+      // Load information about all the slide masters and associated layouts.
+      const slideMasters = context.presentation.slideMasters.load("id, name, layouts/items/name, layouts/items/id");
+      await context.sync();
+
+      // Log the name and ID of each slide master.
+      for (let i = 0; i < slideMasters.items.length; i++) {
+        console.log("Master name: " + slideMasters.items[i].name);
+        console.log("Master ID: " + slideMasters.items[i].id);
+
+        // Log the name and ID of each slide layout in the slide master.
+        const layoutsInMaster = slideMasters.items[i].layouts;
+        for (let j = 0; j < layoutsInMaster.items.length; j++) {
+          console.log("    Layout name: " + layoutsInMaster.items[j].name + " Layout ID: " + layoutsInMaster.items[j].id);
+        }
+      }
+    });
+'PowerPoint.SlideLayoutCollection#load:member(2)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/add-slides.yaml
+
+
+    await PowerPoint.run(async function(context) {
+      // Load information about all the slide masters and associated layouts.
+      const slideMasters = context.presentation.slideMasters.load("id, name, layouts/items/name, layouts/items/id");
+      await context.sync();
+
+      // Log the name and ID of each slide master.
+      for (let i = 0; i < slideMasters.items.length; i++) {
+        console.log("Master name: " + slideMasters.items[i].name);
+        console.log("Master ID: " + slideMasters.items[i].id);
+
+        // Log the name and ID of each slide layout in the slide master.
+        const layoutsInMaster = slideMasters.items[i].layouts;
+        for (let j = 0; j < layoutsInMaster.items.length; j++) {
+          console.log("    Layout name: " + layoutsInMaster.items[j].name + " Layout ID: " + layoutsInMaster.items[j].id);
+        }
+      }
+    });
+'PowerPoint.SlideMaster#id:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/add-slides.yaml
+
+
+    await PowerPoint.run(async function(context) {
+      // Load information about all the slide masters and associated layouts.
+      const slideMasters = context.presentation.slideMasters.load("id, name, layouts/items/name, layouts/items/id");
+      await context.sync();
+
+      // Log the name and ID of each slide master.
+      for (let i = 0; i < slideMasters.items.length; i++) {
+        console.log("Master name: " + slideMasters.items[i].name);
+        console.log("Master ID: " + slideMasters.items[i].id);
+
+        // Log the name and ID of each slide layout in the slide master.
+        const layoutsInMaster = slideMasters.items[i].layouts;
+        for (let j = 0; j < layoutsInMaster.items.length; j++) {
+          console.log("    Layout name: " + layoutsInMaster.items[j].name + " Layout ID: " + layoutsInMaster.items[j].id);
+        }
+      }
+    });
+'PowerPoint.SlideMasterCollection#load:member(2)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/add-slides.yaml
+
+
+    await PowerPoint.run(async function(context) {
+      // Load information about all the slide masters and associated layouts.
+      const slideMasters = context.presentation.slideMasters.load("id, name, layouts/items/name, layouts/items/id");
+      await context.sync();
+
+      // Log the name and ID of each slide master.
+      for (let i = 0; i < slideMasters.items.length; i++) {
+        console.log("Master name: " + slideMasters.items[i].name);
+        console.log("Master ID: " + slideMasters.items[i].id);
+
+        // Log the name and ID of each slide layout in the slide master.
+        const layoutsInMaster = slideMasters.items[i].layouts;
+        for (let j = 0; j < layoutsInMaster.items.length; j++) {
+          console.log("    Layout name: " + layoutsInMaster.items[j].name + " Layout ID: " + layoutsInMaster.items[j].id);
+        }
+      }
     });
 'PowerPoint.TagCollection#add:member(1)':
   - >-

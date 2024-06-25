@@ -1,0 +1,148 @@
+order: 3
+id: powerpoint-shapes-get-shapes-by-type
+name: Select shapes by type
+description: 'Get shapes in a slide based on their type, such as GeometricShape or Line.'
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.4'
+script:
+    content: |
+        $("#setup").on("click", () => tryCatch(setup));
+        $("#change-lines").on("click", () => tryCatch(changeLines)); 
+        $("#change-geometric-shapes").on("click", () => tryCatch(changeGeometricShapes));
+
+        async function changeLines() {
+          // Change the dash style of every line in the slide.
+          await PowerPoint.run(async (context) => {
+            // Get the type of shape for every shape in the collection.
+            const shapes = context.presentation.slides.getItemAt(0).shapes;
+            shapes.load("type");
+            await context.sync();
+
+            // Change the dash style for shapes of the type `line`.
+            shapes.items.forEach((shape) => {
+              if (shape.type === PowerPoint.ShapeType.line) {
+                shape.lineFormat.dashStyle = PowerPoint.ShapeLineDashStyle.dashDot;
+              }
+            });
+            await context.sync();
+          });
+        }
+
+        async function changeGeometricShapes() {
+          // Change the transparency of every geometric shape in the slide.
+          await PowerPoint.run(async (context) => {
+            // Get the type of shape for every shape in the collection.
+            const shapes = context.presentation.slides.getItemAt(0).shapes;
+            shapes.load("type");
+            await context.sync();
+
+            // Change the shape transparency to be halfway transparent.
+            shapes.items.forEach((shape) => {
+              if (shape.type === PowerPoint.ShapeType.geometricShape) {
+                shape.fill.transparency = 0.5;
+              }
+            });
+            await context.sync();
+          });
+        }
+
+        async function setup() {
+          await PowerPoint.run(async (context) => {
+            // Create shapes of different types.
+            const shapes = context.presentation.slides.getItemAt(0).shapes;
+
+            // Create geometric shapes.
+            shapes.addGeometricShape(PowerPoint.GeometricShapeType.diamond, {
+              left: 100,
+              top: 100,
+              height: 150,
+              width: 150
+            });
+            shapes.addGeometricShape(PowerPoint.GeometricShapeType.octagon, {
+              left: 400,
+              top: 300,
+              height: 150,
+              width: 150
+            });
+
+            // Create lines.
+            shapes.addLine(PowerPoint.ConnectorType.elbow, {
+              left: 400,
+              top: 150,
+              height: 20,
+              width: 150
+            });
+            shapes.addLine(PowerPoint.ConnectorType.curve, {
+              left: 100,
+              top: 300,
+              height: 150,
+              width: 20
+            });
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+          <p>This sample shows how select and change shapes based on their types.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+          <h3>Setup</h3>
+          <p>Create some shapes in a new, blank presentation.</p>
+          <p />
+
+          <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Setup</span>
+            </button>
+          <p />
+          <h3>Try it out</h3>
+          <p />
+          <button id="change-lines" class="ms-Button">
+              <span class="ms-Button-label">Change lines</span>
+          </button>
+          <p />
+          <button id="change-geometric-shapes" class="ms-Button">
+              <span class="ms-Button-label">Change geometric shapes</span>
+          </button>
+          <p />
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

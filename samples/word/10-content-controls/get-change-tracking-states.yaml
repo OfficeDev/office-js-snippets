@@ -1,0 +1,175 @@
+order: 9
+id: word-content-controls-get-change-tracking-states
+name: Get change tracking states of content controls
+description: Gets change tracking states of content controls.
+author: xiruatms
+host: WORD
+api_set:
+    WordApi: '1.5'
+script:
+    content: |
+        $("#turn-on-change-tracking").on("click", () => tryCatch(turnOnChangeTracking));
+        $("#insert-content-control").on("click", () => tryCatch(insertContentControlOnLastParagraph));
+        $("#delete-content-control").on("click", () => tryCatch(deleteFirstContentControl));
+        $("#turn-off-change-tracking").on("click", () => tryCatch(turnOffChangeTracking));
+        $("#log-change-tracking-states").on("click", () => tryCatch(logChangeTrackingStates));
+        $("#setup").on("click", () => tryCatch(setup));
+
+        async function turnOnChangeTracking() {
+          // Turns on change tracking.
+          await Word.run(async (context) => {
+            context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+            await context.sync();
+            console.log("Turned on change tracking.");
+          });
+        }
+
+        async function insertContentControlOnLastParagraph() {
+          // Inserts a content control on the last paragraph.
+          await Word.run(async (context) => {
+            let paragraphs = context.document.body.paragraphs;
+            paragraphs.load();
+            paragraphs.getLast().insertContentControl("RichText");
+            await context.sync();
+            console.log("Inserted content control on last paragraph.");
+          });
+        }
+
+        async function deleteFirstContentControl() {
+          // Deletes the first content control found in the document body.
+          await Word.run(async (context) => {
+            context.document.body
+              .getContentControls()
+              .getFirst()
+              .delete(false);
+            await context.sync();
+            console.log("Deleted the first content control.");
+          });
+        }
+
+        async function turnOffChangeTracking() {
+          // Turns off change tracking.
+          await Word.run(async (context) => {
+            context.document.changeTrackingMode = Word.ChangeTrackingMode.off;
+            await context.sync();
+            console.log("Turned off change tracking.");
+          });
+        }
+
+        async function logChangeTrackingStates() {
+          // Logs the current change tracking states of the content controls.
+          await Word.run(async (context) => {
+            let trackAddedArray: Word.ChangeTrackingState[] = [Word.ChangeTrackingState.added];
+            let trackDeletedArray: Word.ChangeTrackingState[] = [Word.ChangeTrackingState.deleted];
+            let trackNormalArray: Word.ChangeTrackingState[] = [Word.ChangeTrackingState.normal];
+
+            let addedContentControls = context.document.body.getContentControls().getByChangeTrackingStates(trackAddedArray);
+            let deletedContentControls = context.document.body
+              .getContentControls()
+              .getByChangeTrackingStates(trackDeletedArray);
+            let normalContentControls = context.document.body.getContentControls().getByChangeTrackingStates(trackNormalArray);
+
+            addedContentControls.load();
+            deletedContentControls.load();
+            normalContentControls.load();
+            await context.sync();
+
+            console.log(`Number of content controls in Added state: ${addedContentControls.items.length}`);
+            console.log(`Number of content controls in Deleted state: ${deletedContentControls.items.length}`);
+            console.log(`Number of content controls in Normal state: ${normalContentControls.items.length}`);
+          });
+        }
+
+        async function setup() {
+          // Adds 4 paragraphs then inserts content controls on the first three paragraphs.
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+            body.insertParagraph("One more paragraph.", "Start");
+            body.insertParagraph("Inserting another paragraph.", "Start");
+            body.insertParagraph(
+              "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
+              "Start"
+            );
+            body.paragraphs
+              .getLast()
+              .insertText(
+                "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
+                "Replace"
+              );
+            body.paragraphs.load();
+            await context.sync();
+            body.paragraphs.items[0].insertContentControl("PlainText");
+            body.paragraphs.items[1].insertContentControl("PlainText");
+            body.paragraphs.items[2].insertContentControl("RichText");
+            console.log("Inserted content controls on the first three paragraphs.");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to insert and delete control controls then get their change tracking state.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="turn-on-change-tracking" class="ms-Button">
+            <span class="ms-Button-label">Turn on change tracking</span>
+          </button>
+            <button id="insert-content-control" class="ms-Button">
+                <span class="ms-Button-label">Insert content control on last paragraph</span>
+              </button>
+            <button id="delete-content-control" class="ms-Button">
+                <span class="ms-Button-label">Delete first content control</span>
+              </button>
+            <button id="turn-off-change-tracking" class="ms-Button">
+                <span class="ms-Button-label">Turn off change tracking</span>
+              </button>
+            <button id="log-change-tracking-states" class="ms-Button">
+                <span class="ms-Button-label">Log change tracking states</span>
+              </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

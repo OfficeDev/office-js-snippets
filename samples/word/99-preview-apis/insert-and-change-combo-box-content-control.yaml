@@ -1,0 +1,231 @@
+id: word-insert-and-change-combo-box-content-control
+name: Manage combo box content controls
+description: 'Inserts, updates, and deletes combo box content controls.'
+host: WORD
+api_set:
+    WordApi: '1.9'
+script:
+    content: |
+        $("#insert-control").on("click", () => tryCatch(insertComboBoxContentControl));
+        $("#add-item").on("click", () => tryCatch(addItemToComboBoxContentControl));
+        $("#delete-list").on("click", () => tryCatch(deleteListFromComboBoxContentControl));
+        $("#delete-control").on("click", () => tryCatch(deleteComboBoxContentControl));
+        $("#setup").on("click", () => tryCatch(setup));
+
+        async function insertComboBoxContentControl() {
+          // Places a combo box content control at the end of the selection.
+          await Word.run(async (context) => {
+            let selection = context.document.getSelection();
+            selection.getRange(Word.RangeLocation.end).insertContentControl(Word.ContentControlType.comboBox);
+            await context.sync();
+
+            console.log("Combo box content control inserted at the end of the selection.");
+          });
+        }
+
+        async function addItemToComboBoxContentControl() {
+          // Adds the provided list item to the first combo box content control in the selection.
+          await Word.run(async (context) => {
+            const listItem = $("#item-to-add")
+              .val()
+              .toString()
+              .trim();
+            const selectedRange: Word.Range = context.document.getSelection();
+            let selectedContentControl = selectedRange
+              .getContentControls({
+                types: [Word.ContentControlType.comboBox]
+              })
+              .getFirstOrNullObject();
+            selectedContentControl.load("id,comboBoxContentControl");
+
+            await context.sync();
+
+            if (selectedContentControl.isNullObject) {
+              const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+              parentContentControl.load("id,type,comboBoxContentControl");
+              await context.sync();
+
+              if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.comboBox) {
+                console.warn("No combo box content control is currently selected.");
+                return;
+              } else {
+                selectedContentControl = parentContentControl;
+              }
+            }
+
+            selectedContentControl.comboBoxContentControl.addListItem(listItem);
+            await context.sync();
+
+            console.log(`List item ${listItem} added to control with ID: ${selectedContentControl.id}`);
+          });
+        }
+
+        async function deleteListFromComboBoxContentControl() {
+          // Deletes the list items from first combo box content control found in the selection.
+          await Word.run(async (context) => {
+            const selectedRange: Word.Range = context.document.getSelection();
+            let selectedContentControl = selectedRange
+              .getContentControls({
+                types: [Word.ContentControlType.comboBox]
+              })
+              .getFirstOrNullObject();
+            selectedContentControl.load("id,comboBoxContentControl");
+            await context.sync();
+
+            if (selectedContentControl.isNullObject) {
+              const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+              parentContentControl.load("id,type,comboBoxContentControl");
+              await context.sync();
+
+              if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.comboBox) {
+                console.warn("No combo box content control is currently selected.");
+                return;
+              } else {
+                selectedContentControl = parentContentControl;
+              }
+            }
+
+            console.log(`About to delete the list from the combo box content control with ID: ${selectedContentControl.id}`);
+            selectedContentControl.comboBoxContentControl.deleteAllListItems();
+            await context.sync();
+
+            console.log("Deleted the list from the combo box content control.");
+          });
+        }
+
+        async function deleteComboBoxContentControl() {
+          // Deletes the first combo box content control found in the selection.
+          await Word.run(async (context) => {
+            const selectedRange: Word.Range = context.document.getSelection();
+            let selectedContentControl = selectedRange
+              .getContentControls({
+                types: [Word.ContentControlType.comboBox]
+              })
+              .getFirstOrNullObject();
+            selectedContentControl.load("id");
+            await context.sync();
+
+            if (selectedContentControl.isNullObject) {
+              const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+              parentContentControl.load("id,type");
+              await context.sync();
+
+              if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.comboBox) {
+                console.warn("No combo box content control is currently selected.");
+                return;
+              } else {
+                selectedContentControl = parentContentControl;
+              }
+            }
+
+            console.log(`About to delete combo box content control with id: ${selectedContentControl.id}`);
+            selectedContentControl.delete(false);
+            await context.sync();
+
+            console.log("Deleted combo box content control.");
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+            body.insertParagraph("One more paragraph.", "Start");
+            body.insertParagraph("Inserting another paragraph.", "Start");
+            body.insertParagraph(
+              "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
+              "Start"
+            );
+            body.paragraphs
+              .getLast()
+              .insertText(
+                "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
+                "Replace"
+              );
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            if (error.code === Word.ErrorCodes.itemNotFound) {
+              console.warn("No combo box content control is currently selected.");
+            } else {
+              console.error(error);
+            }
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to insert, change, and delete combo box content controls.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>
+                <span class="ms-font-m">Insert a combo box content control after selected text.</span>
+                <button id="insert-control" class="ms-Button">
+            <span class="ms-Button-label">Insert</span>
+          </button>
+            </p>
+            <p>
+                <div class="ms-font-m">Add a unique list item to the first combo box content control found in your selected
+                    content.
+                </div>
+                <label><b>Item to add</b>:</label>
+                <input id="item-to-add">
+                <button id="add-item" class="ms-Button">
+                  <span class=ms-Button-label>Add item</span>
+                </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Delete all list items from the first combo box content control found in your selected content.</span>
+                <button id="delete-list" class="ms-Button">
+                    <span class=ms-Button-label>Delete list</span>
+                        </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Delete the first combo box content control found in your selected content.</span>
+                <button id="delete-control" class="ms-Button">
+                    <span class=ms-Button-label>Delete selected combo box</span>
+                        </button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

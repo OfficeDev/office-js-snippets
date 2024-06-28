@@ -1,0 +1,208 @@
+id: word-insert-and-change-content-controls
+name: Content control basics
+description: 'Inserts, updates, and retrieves content controls.'
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.9'
+script:
+    content: |
+        $("#insert-controls").on("click", () => tryCatch(insertContentControls));
+        $("#change-controls").on("click", () => tryCatch(modifyContentControls));
+        $("#set-state").on("click", () => tryCatch(setState));
+        $("#reset-state").on("click", () => tryCatch(resetState));
+        $("#setup").on("click", () => tryCatch(setup));
+
+        async function insertContentControls() {
+          // Traverses each paragraph of the document and wraps a content control on each with either a even or odd tags.
+          await Word.run(async (context) => {
+            let paragraphs = context.document.body.paragraphs;
+            paragraphs.load("$none"); // Don't need any properties; just wrap each paragraph with a content control.
+
+            await context.sync();
+
+            for (let i = 0; i < paragraphs.items.length; i++) {
+              let contentControl = paragraphs.items[i].insertContentControl();
+              // For even, tag "even".
+              if (i % 2 === 0) {
+                contentControl.tag = "even";
+              } else {
+                contentControl.tag = "odd";
+              }
+            }
+            console.log("Content controls inserted: " + paragraphs.items.length);
+
+            await context.sync();
+          });
+        }
+
+        async function modifyContentControls() {
+          // Adds title and colors to odd and even content controls and changes their appearance.
+          await Word.run(async (context) => {
+            // Get the complete sentence (as range) associated with the insertion point.
+            let evenContentControls = context.document.contentControls.getByTag("even");
+            let oddContentControls = context.document.contentControls.getByTag("odd");
+            evenContentControls.load("length");
+            oddContentControls.load("length");
+
+            await context.sync();
+
+            for (let i = 0; i < evenContentControls.items.length; i++) {
+              // Change a few properties and append a paragraph.
+              evenContentControls.items[i].set({
+                color: "red",
+                title: "Odd ContentControl #" + (i + 1),
+                appearance: Word.ContentControlAppearance.tags
+              });
+              evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
+            }
+
+            for (let j = 0; j < oddContentControls.items.length; j++) {
+              // Change a few properties and append a paragraph.
+              oddContentControls.items[j].set({
+                color: "green",
+                title: "Even ContentControl #" + (j + 1),
+                appearance: "Tags"
+              });
+              oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
+            }
+
+            await context.sync();
+          });
+        }
+
+        async function setState() {
+          // Sets the state of the first content control.
+          await Word.run(async (context) => {
+            const state = ($("#state-to-set").val() as unknown) as Word.ContentControlState;
+            let firstContentControl = context.document.contentControls.getFirstOrNullObject();
+            await context.sync();
+
+            if (firstContentControl.isNullObject) {
+              console.warn("There are no content controls in this document.");
+              return;
+            }
+
+            firstContentControl.setState(state);
+            firstContentControl.load("id");
+            await context.sync();
+
+            console.log(`Set state of first content control with ID ${firstContentControl.id} to ${state}.`);
+          });
+        }
+
+        async function resetState() {
+          // Resets the state of the first content control.
+          await Word.run(async (context) => {
+            let firstContentControl = context.document.contentControls.getFirstOrNullObject();
+            await context.sync();
+
+            if (firstContentControl.isNullObject) {
+              console.warn("There are no content controls in this document.");
+              return;
+            }
+            
+            firstContentControl.resetState();
+            firstContentControl.load("id");
+            await context.sync();
+
+            console.log(`Reset state of first content control with ID: ${firstContentControl.id}`);
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+            body.insertParagraph("One more paragraph.", "Start");
+            body.insertParagraph("Inserting another paragraph.", "Start");
+            body.insertParagraph(
+              "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
+              "Start"
+            );
+            body.paragraphs
+              .getLast()
+              .insertText(
+                "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
+                "Replace"
+              );
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample demonstrates how to insert content controls and change their properties.
+        </section>
+
+        <section class="setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Setup</span>
+          </button>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <span class="ms-font-m">Insert content controls on each paragraph.</span>
+            <button id="insert-controls" class="ms-Button">
+            <span class="ms-Button-label">Insert</span>
+          </button>
+            <p />
+            <span class="ms-font-m">Modify content control appearance and content.</span>
+            <button id="change-controls" class="ms-Button">
+            <span class="ms-Button-label">Modify content controls</span>
+          </button>
+            <p />
+            <span class="ms-font-m">Set state of first content control.</span>
+            <br/>
+            <label style="margin-left: 20px">State:</label>
+            <select id="state-to-set">
+                <option>Warning</option>
+                <option>Error</option>
+            </select>
+            <button id="set-state" class="ms-Button">
+            <span class="ms-Button-label">Set state</span>
+          </button>
+            <p />
+            <span class="ms-font-m">Reset state of first content control.</span>
+            <button id="reset-state" class="ms-Button">
+            <span class="ms-Button-label">Reset state</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

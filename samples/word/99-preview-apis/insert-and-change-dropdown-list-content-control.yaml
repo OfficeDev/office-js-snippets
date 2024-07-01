@@ -8,6 +8,8 @@ script:
     content: |
         $("#insert-control").on("click", () => tryCatch(insertDropdownListContentControl));
         $("#add-item").on("click", () => tryCatch(addItemToDropdownListContentControl));
+        $("#get-items").on("click", () => tryCatch(getListFromDropdownListContentControl));
+        $("#delete-item").on("click", () => tryCatch(deleteItemFromDropdownListContentControl));
         $("#delete-list").on("click", () => tryCatch(deleteListFromDropdownListContentControl));
         $("#delete-control").on("click", () => tryCatch(deleteDropdownListContentControl));
         $("#setup").on("click", () => tryCatch(setup));
@@ -26,7 +28,7 @@ script:
         async function addItemToDropdownListContentControl() {
           // Adds the provided list item to the first dropdown list content control in the selection.
           await Word.run(async (context) => {
-            const listItem = $("#item-to-add")
+            const listItemText = $("#item-to-add")
               .val()
               .toString()
               .trim();
@@ -37,7 +39,6 @@ script:
               })
               .getFirstOrNullObject();
             selectedContentControl.load("id,dropDownListContentControl");
-
             await context.sync();
 
             if (selectedContentControl.isNullObject) {
@@ -53,10 +54,91 @@ script:
               }
             }
 
-            selectedContentControl.dropDownListContentControl.addListItem(listItem);
+            selectedContentControl.dropDownListContentControl.addListItem(listItemText);
             await context.sync();
 
-            console.log(`List item ${listItem} added to control with ID: ${selectedContentControl.id}`);
+            console.log(`List item added to control with ID ${selectedContentControl.id}: ${listItemText}`);
+          });
+        }
+
+        async function getListFromDropdownListContentControl() {
+          // Gets the list items from the first dropdown list content control found in the selection.
+          await Word.run(async (context) => {
+            const selectedRange: Word.Range = context.document.getSelection();
+            let selectedContentControl = selectedRange
+              .getContentControls({
+                types: [Word.ContentControlType.dropDownList]
+              })
+              .getFirstOrNullObject();
+            selectedContentControl.load("id,dropDownListContentControl");
+            await context.sync();
+
+            if (selectedContentControl.isNullObject) {
+              const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+              parentContentControl.load("id,type,dropDownListContentControl");
+              await context.sync();
+
+              if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.dropDownList) {
+                console.warn("No dropdown list content control is currently selected.");
+                return;
+              } else {
+                selectedContentControl = parentContentControl;
+              }
+            }
+
+            let selectedDropdownList: Word.DropDownListContentControl = selectedContentControl.dropDownListContentControl;
+            selectedDropdownList.listItems.load("items");
+            await context.sync();
+
+            const currentItems: Word.ContentControlListItemCollection = selectedDropdownList.listItems;
+            console.log(`The list from the dropdown list content control with ID ${selectedContentControl.id}:`, currentItems);
+          });
+        }
+
+        async function deleteItemFromDropdownListContentControl() {
+          // Deletes the provided list item from the first dropdown list content control in the selection.
+          await Word.run(async (context) => {
+            const listItemText = $("#item-to-delete")
+              .val()
+              .toString()
+              .trim();
+            const selectedRange: Word.Range = context.document.getSelection();
+            let selectedContentControl = selectedRange
+              .getContentControls({
+                types: [Word.ContentControlType.dropDownList]
+              })
+              .getFirstOrNullObject();
+            selectedContentControl.load("id,dropDownListContentControl");
+            await context.sync();
+
+            if (selectedContentControl.isNullObject) {
+              const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+              parentContentControl.load("id,type,dropDownListContentControl");
+              await context.sync();
+
+              if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.dropDownList) {
+                console.warn("No dropdown list content control is currently selected.");
+                return;
+              } else {
+                selectedContentControl = parentContentControl;
+              }
+            }
+
+            let selectedDropdownList: Word.DropDownListContentControl = selectedContentControl.dropDownListContentControl;
+            selectedDropdownList.listItems.load("items/*");
+            await context.sync();
+
+            let listItems: Word.ContentControlListItemCollection = selectedContentControl.dropDownListContentControl.listItems;
+            let itemToDelete: Word.ContentControlListItem = listItems.items.find((item) => item.displayText === listItemText);
+            if (!itemToDelete) {
+              console.warn(`List item doesn't exist in control with ID ${selectedContentControl.id}: ${listItemText}`)
+              return;
+            }
+            
+            itemToDelete.delete();
+            await context.sync();
+
+            console.log(`List item deleted from control with ID ${selectedContentControl.id}: ${listItemText}`);
           });
         }
 
@@ -86,7 +168,7 @@ script:
             }
 
             console.log(
-              `About to delete the list from the dropdown list content control with ID: ${selectedContentControl.id}`
+              `About to delete the list from the dropdown list content control with ID ${selectedContentControl.id}`
             );
             selectedContentControl.dropDownListContentControl.deleteAllListItems();
             await context.sync();
@@ -120,7 +202,7 @@ script:
               }
             }
 
-            console.log(`About to delete dropdown list content control with id: ${selectedContentControl.id}`);
+            console.log(`About to delete dropdown list content control with ID ${selectedContentControl.id}`);
             selectedContentControl.delete(false);
             await context.sync();
 
@@ -191,6 +273,22 @@ template:
                 <button id="add-item" class="ms-Button">
               <span class=ms-Button-label>Add item</span>
             </button>
+            </p>
+            <p>
+                <span class="ms-font-m">Get all list items from the first dropdown list content control found in your selected content.</span>
+                <button id="get-items" class="ms-Button">
+                        <span class=ms-Button-label>Get list</span>
+                            </button>
+            </p>
+            <p>
+                <div class="ms-font-m">Delete a list item from the first dropdown list content control found in your selected
+                    content.
+                </div>
+                <label><b>Item to delete</b>:</label>
+                <input id="item-to-delete">
+                <button id="delete-item" class="ms-Button">
+                  <span class=ms-Button-label>Delete item</span>
+                </button>
             </p>
             <p>
                 <span class="ms-font-m">Delete all list items from the first dropdown list content control found in your selected content.</span>

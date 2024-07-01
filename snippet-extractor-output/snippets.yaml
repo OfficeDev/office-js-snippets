@@ -17005,7 +17005,7 @@
     selection.
 
     await Word.run(async (context) => {
-      const listItem = $("#item-to-add")
+      const listItemText = $("#item-to-add")
         .val()
         .toString()
         .trim();
@@ -17016,7 +17016,6 @@
         })
         .getFirstOrNullObject();
       selectedContentControl.load("id,comboBoxContentControl");
-
       await context.sync();
 
       if (selectedContentControl.isNullObject) {
@@ -17032,10 +17031,10 @@
         }
       }
 
-      selectedContentControl.comboBoxContentControl.addListItem(listItem);
+      selectedContentControl.comboBoxContentControl.addListItem(listItemText);
       await context.sync();
 
-      console.log(`List item ${listItem} added to control with ID: ${selectedContentControl.id}`);
+      console.log(`List item added to control with ID ${selectedContentControl.id}: ${listItemText}`);
     });
 'Word.ComboBoxContentControl#deleteAllListItems:member(1)':
   - >-
@@ -17069,11 +17068,63 @@
         }
       }
 
-      console.log(`About to delete the list from the combo box content control with ID: ${selectedContentControl.id}`);
+      console.log(`About to delete the list from the combo box content control with ID ${selectedContentControl.id}`);
       selectedContentControl.comboBoxContentControl.deleteAllListItems();
       await context.sync();
 
       console.log("Deleted the list from the combo box content control.");
+    });
+'Word.ComboBoxContentControl#listItems:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-combo-box-content-control.yaml
+
+
+    // Deletes the provided list item from the first combo box content control
+    in the selection.
+
+    await Word.run(async (context) => {
+      const listItemText = $("#item-to-delete")
+        .val()
+        .toString()
+        .trim();
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.comboBox]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,comboBoxContentControl");
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,comboBoxContentControl");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.comboBox) {
+          console.warn("No combo box content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      let selectedComboBox: Word.ComboBoxContentControl = selectedContentControl.comboBoxContentControl;
+      selectedComboBox.listItems.load("items/*");
+      await context.sync();
+
+      let listItems: Word.ContentControlListItemCollection = selectedContentControl.comboBoxContentControl.listItems;
+      let itemToDelete: Word.ContentControlListItem = listItems.items.find((item) => item.displayText === listItemText);
+      if (!itemToDelete) {
+        console.warn(`List item doesn't exist in control with ID ${selectedContentControl.id}: ${listItemText}`);
+        return;
+      }
+
+      itemToDelete.delete();
+      await context.sync();
+
+      console.log(`List item deleted from control with ID ${selectedContentControl.id}: ${listItemText}`);
     });
 'Word.Comment:class':
   - >-
@@ -17673,7 +17724,7 @@
     selection.
 
     await Word.run(async (context) => {
-      const listItem = $("#item-to-add")
+      const listItemText = $("#item-to-add")
         .val()
         .toString()
         .trim();
@@ -17684,7 +17735,6 @@
         })
         .getFirstOrNullObject();
       selectedContentControl.load("id,comboBoxContentControl");
-
       await context.sync();
 
       if (selectedContentControl.isNullObject) {
@@ -17700,10 +17750,10 @@
         }
       }
 
-      selectedContentControl.comboBoxContentControl.addListItem(listItem);
+      selectedContentControl.comboBoxContentControl.addListItem(listItemText);
       await context.sync();
 
-      console.log(`List item ${listItem} added to control with ID: ${selectedContentControl.id}`);
+      console.log(`List item added to control with ID ${selectedContentControl.id}: ${listItemText}`);
     });
 'Word.ContentControl#dropDownListContentControl:member':
   - >-
@@ -17715,7 +17765,7 @@
     the selection.
 
     await Word.run(async (context) => {
-      const listItem = $("#item-to-add")
+      const listItemText = $("#item-to-add")
         .val()
         .toString()
         .trim();
@@ -17726,7 +17776,6 @@
         })
         .getFirstOrNullObject();
       selectedContentControl.load("id,dropDownListContentControl");
-
       await context.sync();
 
       if (selectedContentControl.isNullObject) {
@@ -17742,10 +17791,10 @@
         }
       }
 
-      selectedContentControl.dropDownListContentControl.addListItem(listItem);
+      selectedContentControl.dropDownListContentControl.addListItem(listItemText);
       await context.sync();
 
-      console.log(`List item ${listItem} added to control with ID: ${selectedContentControl.id}`);
+      console.log(`List item added to control with ID ${selectedContentControl.id}: ${listItemText}`);
     });
 'Word.ContentControl#onDataChanged:member':
   - >-
@@ -18225,6 +18274,201 @@
         console.log(`${event.eventType} event detected. ID of content control that was exited: ${event.ids[0]}`);
       });
     }
+'Word.ContentControlListItem:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-dropdown-list-content-control.yaml
+
+
+    // Deletes the provided list item from the first dropdown list content
+    control in the selection.
+
+    await Word.run(async (context) => {
+      const listItemText = $("#item-to-delete")
+        .val()
+        .toString()
+        .trim();
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.dropDownList]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,dropDownListContentControl");
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,dropDownListContentControl");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.dropDownList) {
+          console.warn("No dropdown list content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      let selectedDropdownList: Word.DropDownListContentControl = selectedContentControl.dropDownListContentControl;
+      selectedDropdownList.listItems.load("items/*");
+      await context.sync();
+
+      let listItems: Word.ContentControlListItemCollection = selectedContentControl.dropDownListContentControl.listItems;
+      let itemToDelete: Word.ContentControlListItem = listItems.items.find((item) => item.displayText === listItemText);
+      if (!itemToDelete) {
+        console.warn(`List item doesn't exist in control with ID ${selectedContentControl.id}: ${listItemText}`)
+        return;
+      }
+      
+      itemToDelete.delete();
+      await context.sync();
+
+      console.log(`List item deleted from control with ID ${selectedContentControl.id}: ${listItemText}`);
+    });
+'Word.ContentControlListItem#delete:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-combo-box-content-control.yaml
+
+
+    // Deletes the provided list item from the first combo box content control
+    in the selection.
+
+    await Word.run(async (context) => {
+      const listItemText = $("#item-to-delete")
+        .val()
+        .toString()
+        .trim();
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.comboBox]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,comboBoxContentControl");
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,comboBoxContentControl");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.comboBox) {
+          console.warn("No combo box content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      let selectedComboBox: Word.ComboBoxContentControl = selectedContentControl.comboBoxContentControl;
+      selectedComboBox.listItems.load("items/*");
+      await context.sync();
+
+      let listItems: Word.ContentControlListItemCollection = selectedContentControl.comboBoxContentControl.listItems;
+      let itemToDelete: Word.ContentControlListItem = listItems.items.find((item) => item.displayText === listItemText);
+      if (!itemToDelete) {
+        console.warn(`List item doesn't exist in control with ID ${selectedContentControl.id}: ${listItemText}`);
+        return;
+      }
+
+      itemToDelete.delete();
+      await context.sync();
+
+      console.log(`List item deleted from control with ID ${selectedContentControl.id}: ${listItemText}`);
+    });
+'Word.ContentControlListItem#displayText:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-dropdown-list-content-control.yaml
+
+
+    // Deletes the provided list item from the first dropdown list content
+    control in the selection.
+
+    await Word.run(async (context) => {
+      const listItemText = $("#item-to-delete")
+        .val()
+        .toString()
+        .trim();
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.dropDownList]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,dropDownListContentControl");
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,dropDownListContentControl");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.dropDownList) {
+          console.warn("No dropdown list content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      let selectedDropdownList: Word.DropDownListContentControl = selectedContentControl.dropDownListContentControl;
+      selectedDropdownList.listItems.load("items/*");
+      await context.sync();
+
+      let listItems: Word.ContentControlListItemCollection = selectedContentControl.dropDownListContentControl.listItems;
+      let itemToDelete: Word.ContentControlListItem = listItems.items.find((item) => item.displayText === listItemText);
+      if (!itemToDelete) {
+        console.warn(`List item doesn't exist in control with ID ${selectedContentControl.id}: ${listItemText}`)
+        return;
+      }
+      
+      itemToDelete.delete();
+      await context.sync();
+
+      console.log(`List item deleted from control with ID ${selectedContentControl.id}: ${listItemText}`);
+    });
+'Word.ContentControlListItemCollection:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-combo-box-content-control.yaml
+
+
+    // Gets the list items from the first combo box content control found in the
+    selection.
+
+    await Word.run(async (context) => {
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.comboBox]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,comboBoxContentControl");
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,comboBoxContentControl");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.comboBox) {
+          console.warn("No combo box content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      let selectedComboBox: Word.ComboBoxContentControl = selectedContentControl.comboBoxContentControl;
+      selectedComboBox.listItems.load("items");
+      await context.sync();
+
+      const currentItems: Word.ContentControlListItemCollection = selectedComboBox.listItems;
+      console.log(`The list from the combo box content control with ID ${selectedContentControl.id}:`, currentItems);
+    });
 'Word.ContentControlOptions:interface':
   - >-
     // Link to full sample:
@@ -19770,7 +20014,7 @@
     the selection.
 
     await Word.run(async (context) => {
-      const listItem = $("#item-to-add")
+      const listItemText = $("#item-to-add")
         .val()
         .toString()
         .trim();
@@ -19781,7 +20025,6 @@
         })
         .getFirstOrNullObject();
       selectedContentControl.load("id,dropDownListContentControl");
-
       await context.sync();
 
       if (selectedContentControl.isNullObject) {
@@ -19797,10 +20040,10 @@
         }
       }
 
-      selectedContentControl.dropDownListContentControl.addListItem(listItem);
+      selectedContentControl.dropDownListContentControl.addListItem(listItemText);
       await context.sync();
 
-      console.log(`List item ${listItem} added to control with ID: ${selectedContentControl.id}`);
+      console.log(`List item added to control with ID ${selectedContentControl.id}: ${listItemText}`);
     });
 'Word.DropDownListContentControl#deleteAllListItems:member(1)':
   - >-
@@ -19835,12 +20078,64 @@
       }
 
       console.log(
-        `About to delete the list from the dropdown list content control with ID: ${selectedContentControl.id}`
+        `About to delete the list from the dropdown list content control with ID ${selectedContentControl.id}`
       );
       selectedContentControl.dropDownListContentControl.deleteAllListItems();
       await context.sync();
 
       console.log("Deleted the list from the dropdown list content control.");
+    });
+'Word.DropDownListContentControl#listItems:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-dropdown-list-content-control.yaml
+
+
+    // Deletes the provided list item from the first dropdown list content
+    control in the selection.
+
+    await Word.run(async (context) => {
+      const listItemText = $("#item-to-delete")
+        .val()
+        .toString()
+        .trim();
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.dropDownList]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,dropDownListContentControl");
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,dropDownListContentControl");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.dropDownList) {
+          console.warn("No dropdown list content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      let selectedDropdownList: Word.DropDownListContentControl = selectedContentControl.dropDownListContentControl;
+      selectedDropdownList.listItems.load("items/*");
+      await context.sync();
+
+      let listItems: Word.ContentControlListItemCollection = selectedContentControl.dropDownListContentControl.listItems;
+      let itemToDelete: Word.ContentControlListItem = listItems.items.find((item) => item.displayText === listItemText);
+      if (!itemToDelete) {
+        console.warn(`List item doesn't exist in control with ID ${selectedContentControl.id}: ${listItemText}`)
+        return;
+      }
+      
+      itemToDelete.delete();
+      await context.sync();
+
+      console.log(`List item deleted from control with ID ${selectedContentControl.id}: ${listItemText}`);
     });
 'Word.ErrorCodes:enum':
   - >-

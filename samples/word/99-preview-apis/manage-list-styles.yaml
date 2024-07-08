@@ -1,0 +1,112 @@
+id: word-lists-manage-styles
+name: Manage list styles
+description: This sample shows how to get the list styles in the current document.
+author: xiruatms
+host: WORD
+api_set:
+    WordApi: '1.9'
+script:
+    content: |
+        $("#count").on("click", () => tryCatch(getCount));
+        $("#properties").on("click", () => tryCatch(getProperties));
+
+        async function getCount() {
+          // Gets the available list styles stored with the document.
+          await Word.run(async (context) => {
+            const styles: Word.StyleCollection = context.document.getStyles();
+            const count = styles.getCount();
+            styles.load();
+            await context.sync();
+
+            for (let i = 0; i <= count.value; i++) {
+              if (styles.items[i] && styles.items[i].type == "List") {
+                console.log(`List style name: ${styles.items[i].nameLocal}`, styles.items[i]);
+              }
+            }
+          });
+        }
+
+        async function getProperties() {
+          // Gets the properties of the specified style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name-to-use").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to get properties.");
+              return;
+            }
+
+            const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject || style.type != Word.StyleType.list) {
+              console.warn(`There's no existing style with the name '${styleName}'. Or this isn't a list style.`);
+            } else {
+              style.load();
+              style.listTemplate.load();
+              await context.sync();
+
+              console.log(`Properties of the '${styleName}' style:`, style);
+
+              const listLevels = style.listTemplate.listLevels;
+              listLevels.load("items");
+              await context.sync();
+
+              console.log(`List levels of the '${styleName}' style:`, listLevels);
+            }
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            This sample shows how to get the list styles in the current document.
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>
+                <button id="count" class="ms-Button">
+                    <span class="ms-Button-label">Get list styles</span>
+                </button>
+            </p>
+            <label style="margin-left: 20px">Style name:</label>
+            <input id="style-name-to-use"/>
+            <button id="properties" class="ms-Button">
+                <span class="ms-Button-label">Get properties</span>
+            </button>
+
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+    jquery@3.1.1
+    @types/jquery@3.3.1

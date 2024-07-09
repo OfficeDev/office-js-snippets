@@ -3,7 +3,7 @@ name: Manage styles
 description: This sample shows how to perform operations on the styles in the current document and how to add and delete custom styles.
 host: WORD
 api_set:
-    WordApi: '1.8'
+    WordApi: '1.9'
 script:
     content: |
         $("#count").on("click", () => tryCatch(getCount));
@@ -13,6 +13,7 @@ script:
         $("#font-properties").on("click", () => tryCatch(setFontProperties));
         $("#paragraph-format").on("click", () => tryCatch(setParagraphFormat));
         $("#border-properties").on("click", () => tryCatch(setBorderProperties));
+        $("#shading-properties").on("click", () => tryCatch(setShadingProperties));
         $("#delete-style").on("click", () => tryCatch(deleteStyle));
 
         async function getCount() {
@@ -185,6 +186,35 @@ script:
           });
         }
 
+        async function setShadingProperties() {
+          // Updates shading properties (e.g., texture, pattern colors) of the specified style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to update shading properties.");
+              return;
+            }
+
+            const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else {
+              const shading: Word.Shading = style.shading;
+              shading.load();
+              await context.sync();
+
+              shading.backgroundPatternColor = "blue";
+              shading.foregroundPatternColor = "yellow";
+              shading.texture = Word.ShadingTextureType.darkTrellis;
+
+              console.log("Updated shading.");
+            }
+          });
+        }
+
         async function deleteStyle() {
           // Deletes the custom style.
           await Word.run(async (context) => {
@@ -228,8 +258,8 @@ template:
             <p>
                 <h4>Get current number of styles</h4>
                 <button id="count" class="ms-Button">
-                        <span class="ms-Button-label">Get count</span>
-                </button>
+              <span class="ms-Button-label">Get count</span>
+            </button>
             </p>
 
             <h4>Add a custom style</h4>
@@ -280,7 +310,12 @@ template:
                 <div>Set outside border type to dashed, width to pt. 0.25, and color to green.</div>
                 <button id="border-properties" class="ms-Button">
                     <span class="ms-Button-label">Set border properties</span>
-                  </button>
+                </button>
+                <p />
+                <div>Set texture to DarkTrellis, foreground pattern color to yellow, and background pattern color to blue.</div>
+                <button id="shading-properties" class="ms-Button">
+              <span class="ms-Button-label">Set shading properties</span>
+            </button>
 
                 <h4>Delete custom style</h4>
                 <p>

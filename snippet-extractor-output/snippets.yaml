@@ -22393,6 +22393,37 @@
       const locationValue: Word.LocationRelation = comparedLocation.value;
       console.log(`Location of the first paragraph in relation to the second paragraph: ${locationValue}`);
     });
+'Word.Range#expandTo:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the complete sentence (as range) associated with the insertion point.
+      const sentences: Word.RangeCollection = context.document
+        .getSelection()
+        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+      sentences.load("$none");
+      await context.sync();
+
+      // Expand the range to the end of the paragraph to get all the complete sentences.
+      const sentencesToTheEndOfParagraph: Word.RangeCollection = sentences.items[0]
+        .getRange()
+        .expandTo(
+          context.document
+            .getSelection()
+            .paragraphs.getFirst()
+            .getRange(Word.RangeLocation.end)
+        )
+        .getTextRanges(["."], false /* Don't trim spaces*/);
+      sentencesToTheEndOfParagraph.load("text");
+      await context.sync();
+
+      for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
+        console.log(sentencesToTheEndOfParagraph.items[i].text);
+      }
+    });
 'Word.Range#getComments:member(1)':
   - >-
     // Link to full sample:
@@ -22447,6 +22478,21 @@
       await context.sync();
 
       console.log("Deleted checkbox content control.");
+    });
+'Word.Range#getRange:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-dropdown-list-content-control.yaml
+
+
+    // Places a dropdown list content control at the end of the selection.
+
+    await Word.run(async (context) => {
+      let selection = context.document.getSelection();
+      selection.getRange(Word.RangeLocation.end).insertContentControl(Word.ContentControlType.dropDownList);
+      await context.sync();
+
+      console.log("Dropdown list content control inserted at the end of the selection.");
     });
 'Word.Range#getReviewedText:member(1)':
   - >-

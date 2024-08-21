@@ -4,7 +4,7 @@ name: Manage styles
 description: This sample shows how to perform operations on the styles in the current document and how to add and delete custom styles.
 host: WORD
 api_set:
-    WordApi: '1.5'
+    WordApiDesktop: '1.1'
 script:
     content: |
         $("#count").on("click", () => tryCatch(getCount));
@@ -13,10 +13,12 @@ script:
         $("#apply-style").on("click", () => tryCatch(applyStyle));
         $("#font-properties").on("click", () => tryCatch(setFontProperties));
         $("#paragraph-format").on("click", () => tryCatch(setParagraphFormat));
+        $("#border-properties").on("click", () => tryCatch(setBorderProperties));
+        $("#shading-properties").on("click", () => tryCatch(setShadingProperties));
         $("#delete-style").on("click", () => tryCatch(deleteStyle));
 
         async function getCount() {
-          // Gets the number of styles.
+          // Gets the number of available styles stored with the document.
           await Word.run(async (context) => {
             const styles: Word.StyleCollection = context.document.getStyles();
             const count = styles.getCount();
@@ -49,7 +51,7 @@ script:
             const newStyleType = ($("#new-style-type").val() as unknown) as Word.StyleType;
             context.document.addStyle(newStyleName, newStyleType);
             await context.sync();
-            
+
             console.log(newStyleName + " has been added to the style list.");
           });
         }
@@ -157,6 +159,63 @@ script:
           });
         }
 
+        async function setBorderProperties() {
+          // Updates border properties (e.g., type, width, color) of the specified style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to update border properties.");
+              return;
+            }
+
+            const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else {
+              const borders: Word.BorderCollection = style.borders;
+              borders.load("items");
+              await context.sync();
+
+              borders.outsideBorderType = Word.BorderType.dashed;
+              borders.outsideBorderWidth = Word.BorderWidth.pt025;
+              borders.outsideBorderColor = "green";
+              console.log("Updated outside borders.");
+            }
+          });
+        }
+
+        async function setShadingProperties() {
+          // Updates shading properties (e.g., texture, pattern colors) of the specified style.
+          await Word.run(async (context) => {
+            const styleName = $("#style-name").val() as string;
+            if (styleName == "") {
+              console.warn("Enter a style name to update shading properties.");
+              return;
+            }
+
+            const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
+            style.load();
+            await context.sync();
+
+            if (style.isNullObject) {
+              console.warn(`There's no existing style with the name '${styleName}'.`);
+            } else {
+              const shading: Word.Shading = style.shading;
+              shading.load();
+              await context.sync();
+
+              shading.backgroundPatternColor = "blue";
+              shading.foregroundPatternColor = "yellow";
+              shading.texture = Word.ShadingTextureType.darkTrellis;
+
+              console.log("Updated shading.");
+            }
+          });
+        }
+
         async function deleteStyle() {
           // Deletes the custom style.
           await Word.run(async (context) => {
@@ -200,12 +259,12 @@ template:
             <p>
                 <h4>Get current number of styles</h4>
                 <button id="count" class="ms-Button">
-                        <span class="ms-Button-label">Get count</span>
-                </button>
+              <span class="ms-Button-label">Get count</span>
+            </button>
             </p>
 
-            <h4>Add a new style</h4>
-            <div>Name the style using letters. Can include digits. Examples: NewName, newname1</div>
+            <h4>Add a custom style</h4>
+            <div>Give the style an alphanumeric name. Must start with a letter. Examples: NewName, newname1</div>
             <p>
                 <label style="margin-left: 20px">Name:</label>
                 <input id="new-style-name"/>
@@ -248,14 +307,24 @@ template:
                 <button id="paragraph-format" class="ms-Button">
             <span class="ms-Button-label">Set paragraph format</span>
           </button>
+                <p />
+                <div>Set outside border type to dashed, width to pt. 0.25, and color to green.</div>
+                <button id="border-properties" class="ms-Button">
+                    <span class="ms-Button-label">Set border properties</span>
+                </button>
+                <p />
+                <div>Set texture to DarkTrellis, foreground pattern color to yellow, and background pattern color to blue.</div>
+                <button id="shading-properties" class="ms-Button">
+              <span class="ms-Button-label">Set shading properties</span>
+            </button>
 
-              <h4>Delete custom style</h4>
-              <p>
-                  <label style="margin-left: 20px">Style name:</label>
-                  <input id="style-name-to-delete"/>
-                  <button id="delete-style" class="ms-Button">
-            <span class="ms-Button-label">Delete style</span>
-          </button>
+                <h4>Delete custom style</h4>
+                <p>
+                    <label style="margin-left: 20px">Style name:</label>
+                    <input id="style-name-to-delete"/>
+                    <button id="delete-style" class="ms-Button">
+              <span class="ms-Button-label">Delete style</span>
+              </button>
         </section>
     language: html
 style:

@@ -16,7 +16,7 @@ script:
         async function getSelectedTextRange() {
           // Gets the selected text range and prints data about the range on the task pane.
           await PowerPoint.run(async (context) => {
-            const textRange = context.presentation.getSelectedTextRange();
+            const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
             try {
               await context.sync();
             } catch (error) {
@@ -48,24 +48,25 @@ script:
             $("#outputSpan").append(finalTable);
           });
         }
+
         async function setSelectedTextRange() {
           // Selects the first 10 characters of the selected shape.
           await PowerPoint.run(async (context) => {
-            const shapes = context.presentation.getSelectedShapes();
+            const shapes: PowerPoint.ShapeScopedCollection = context.presentation.getSelectedShapes();
             const shapeCount = shapes.getCount();
             await context.sync();
             if (shapeCount.value !== 1) {
               console.warn("You must select only one shape with text in it.");
               return;
             }
-            const shape = shapes.getItemAt(0);
-            const textFrame = shape.textFrame.load("textRange,hasText");
+            const shape: PowerPoint.Shape = shapes.getItemAt(0);
+            const textFrame: PowerPoint.TextFrame = shape.textFrame.load("textRange,hasText");
             await context.sync();
             if (textFrame.hasText != true) {
               console.warn("You must select only one shape with text in it.");
               return;
             }
-            const textRange = textFrame.textRange;
+            const textRange: PowerPoint.TextRange = textFrame.textRange;
             textRange.load("text");
             await context.sync();
             if (textRange.text.length < 10) {
@@ -81,7 +82,7 @@ script:
         async function changeColor() {
           // Sets the color of the selected text range to green.
           await PowerPoint.run(async (context) => {
-            const textRange = context.presentation.getSelectedTextRange();
+            const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
             textRange.font.color = "green";
             await context.sync();
           });
@@ -97,7 +98,7 @@ script:
             let finalTable = "";
             context.presentation.load("slides");
             await context.sync();
-            const slides = context.presentation.getSelectedSlides();
+            const slides: PowerPoint.SlideScopedCollection = context.presentation.getSelectedSlides();
             const slideCount = slides.getCount();
             slides.load("items");
             await context.sync();
@@ -106,14 +107,14 @@ script:
               savedTextSlideSelection.push(slide.id);
             });
 
-            const shapes = context.presentation.getSelectedShapes();
+            const shapes: PowerPoint.ShapeScopedCollection = context.presentation.getSelectedShapes();
             shapes.load("items");
             await context.sync();
             savedTextShapeSelection = [];
             shapes.items.map((shape) => {
               savedTextShapeSelection.push(shape.id);
             });
-            const savedTextRange = context.presentation.getSelectedTextRangeOrNullObject();
+            const savedTextRange: PowerPoint.TextRange = context.presentation.getSelectedTextRangeOrNullObject();
             savedTextRange.load("start,length");
             await context.sync();
             if (savedTextRange.isNullObject) {
@@ -128,9 +129,9 @@ script:
         async function loadTextSelection() {
           // Sets the range selection to the range that was saved previously.
           await PowerPoint.run(async (context) => {
-            const slide1 = context.presentation.slides.getItem(savedTextSlideSelection[0]);
-            const shape1 = slide1.shapes.getItem(savedTextShapeSelection[0]);
-            const textRange = shape1.textFrame.textRange.getSubstring(savedTextTextRangeStart, savedTextTextRangeLength);
+            const slide1: PowerPoint.Slide = context.presentation.slides.getItem(savedTextSlideSelection[0]);
+            const shape1: PowerPoint.Shape = slide1.shapes.getItem(savedTextShapeSelection[0]);
+            const textRange: PowerPoint.TextRange = shape1.textFrame.textRange.getSubstring(savedTextTextRangeStart, savedTextTextRangeLength);
             textRange.setSelected();
             await context.sync();
           });

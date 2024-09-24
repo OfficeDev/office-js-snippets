@@ -1,0 +1,74 @@
+id: powerpoint-manage-hyperlinks
+name: Get hyperlinks
+description: Gets the hyperlinks found in a slide.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.6'
+script:
+    content: |
+        $("#get-hyperlinks").on("click", () => tryCatch(getHyperlinks));
+
+        async function getHyperlinks() {
+          // Gets the hyperlinks found in the first selected slide.
+          await PowerPoint.run(async (context) => {
+            const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+            const hyperlinks: PowerPoint.HyperlinkCollection = slide.hyperlinks.load("address,screenTip");
+            const hyperlinksCount = hyperlinks.getCount();
+            await context.sync();
+
+            console.log(`${hyperlinksCount.value} hyperlinks found in first selected slide:`);
+            for (let link of hyperlinks.items) {
+              console.log(`Address: "${link.address}" (Screen tip: "${link.screenTip}")`);
+            }
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-font-m">
+            <p class="ms-font-m">Demonstrates how to get the hyperlinks located in a slide.</p>
+        </section>
+
+        <section class="samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>First, add at least one hyperlink to a slide then select at least one slide.</p>
+            <button id="get-hyperlinks" class="ms-Button">
+              <span class="ms-Button-label">Get hyperlinks</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }  
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    @types/office-js-preview
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js
+
+    jquery@3.1.1
+    @types/jquery@3.3.1

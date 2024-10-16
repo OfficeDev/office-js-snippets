@@ -1,34 +1,40 @@
 order: 4
 id: outlook-tokens-and-service-calls-user-callback-token
 name: Get a callback token
-description: Gets a callback token to use for calling outlook services from add-in's backend service.
+description: Gets a callback token to call Outlook services from an add-in's backend service.
 host: OUTLOOK
 api_set:
     Mailbox: '1.1'
 script:
     content: |
         $("#run").on("click", run);
-          
+
         function run() {
-            Office.context.mailbox.getCallbackTokenAsync(function (result) {
-                if (result.status !== Office.AsyncResultStatus.Succeeded) {
+            Office.context.mailbox.getCallbackTokenAsync((result) => {
+                if (result.status === Office.AsyncResultStatus.Failed) {
                     console.error(`Token retrieval failed with message: ${result.error.message}`);
-                } else {
-                    console.log(result.value);
+                    return;
                 }
+
+                console.log(result.value);
             });
         }
     language: typescript
 template:
     content: |
         <section class="ms-font-m">
-          <p>This sample shows how to get a callback token to use for calling outlook services from add-in's backend service.</p>
+          <p>This sample shows how to get a callback token to call Outlook services from an add-in's backend service.</p>
+          <p><b>Important</b>: Exchange user identity and callback tokens are only supported in Exchange on-premises environments.
+            Additionally, the Outlook REST v2.0 endpoint has been deprecated. Use
+            <a href="https://learn.microsoft.com/office/dev/add-ins/develop/enable-nested-app-authentication-in-your-add-in" target="_blank">nested app authentication (NAA)</a>
+            to get an access token instead.
+          </p>
         </section>
 
         <section class="samples ms-font-m">
           <h3>Try it out</h3>
           <button id="run" class="ms-Button">
-            <div class="ms-Button-label">Get it</div>
+            <div class="ms-Button-label">Get token</div>
           </button>
         </section>
     language: html

@@ -220,7 +220,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
 
     function validateOfficialOfficeJs(snippet: ISnippet, host: string, group: string, messages: any[]): void {
         const isOfficeSnippet = officeHosts.indexOf(host.toUpperCase()) >= 0;
-        const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js';
+        const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1/hosted/office.js';
         const betaOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/beta/hosted/office.js';
         const officeDTS = '@types/office-js';
         const betaOfficeDTS = '@types/office-js-preview';

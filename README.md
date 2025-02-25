@@ -14,7 +14,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 1. Clone your fork to your development computer.
 1. Ensure that you have Node, version 6.10+, installed. (To check the version run the command `node -v`.)
 1. Install `yarn` as a global package `npm install yarn --global`.
-1. Be sure your CLI is in the root of the office-js-snippets repo and run `yarn install`. (It is similar to `npm install`.)
+1. Be sure your CLI is in the root of the office-js-snippets repo and run `yarn install`. (It's similar to `npm install`.)
 1. Set up the original \OfficeDev\office-js-snippets as the upstream repo for your local repo by following the steps in [Configuring a remote for a fork](https://help.github.com/articles/configuring-a-remote-for-a-fork/).
 1. If you'll be using Visual Studio Code as your editor, install the [TSLint](https://marketplace.visualstudio.com/items?itemName=eg2.tslint) extension for Visual Studio Code.
 
@@ -22,7 +22,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 
 > For the git tasks in this procedure, the instructions assume that you're using a CLI. You are welcome to use a GUI git client. Consult the client's help to learn how to carry out the same tasks.
 
-1. Create a snippet using [Script Lab](https://github.com/OfficeDev/script-lab/blob/master/README.md#what-is).  Ensure that the name and description are what you want to be shown publicly. Use standard TypeScript indentation. Improper indentation can cause a failure of the build that you run in a later step. See also the [**Style guidelines**](#style-guidelines) section below.
+1. Create a snippet using [Script Lab](https://github.com/OfficeDev/script-lab/blob/master/README.md#what-is). Ensure that the name and description are what you want to be shown publicly. Make sure to keep your snippet small. Use standard TypeScript indentation. Improper indentation can cause a failure of the build that you run in a later step. See also the [**Style guidelines**](#style-guidelines) and [**Size restrictions**](#size-restrictions) sections below.
 1. Choose the Share icon, and then choose **Copy to Clipboard**.
 1. Paste the contents into a text editor.
 1. Near the top of the file, you will see the line `api_set: {}`. This needs to be changed to specify the host API version of the most recently added API that is used in your snippet. For example, if the snippet is for Excel and it uses some APIs that were introduced in Excel API 1.3, some in 1.4, and some in 1.5, then you need to specify `ExcelApi 1.5` as the value of the `api_set` property. Put a line break and four spaces before the value and no {} characters. To continue the example, when you're done the property would look like this:
@@ -129,6 +129,14 @@ A few style rules to observe:
 - Strings should be in double-quotes.
 - Don't forget the semicolons.
 - `Libraries` in snippets must have a specific version. Eg. `jquery@3.1.1`.
+
+## Size restrictions
+
+Script Lab is designed for you to play with small code samples. Generally, a snippet should be at most a few hundred lines and a few thousand characters.
+
+Your snippet can use hard-coded data. A small amount of data (say, a few hundred characters) is OK to hard code in Script Lab. However, for larger pieces of data, we recommend that you store those externally then load them at runtime with a command like `fetch`.
+
+Keep your snippets and hard-coded data small since storing several large snippets could exceed Script Lab's storage and cause issues when loading Script Lab.
 
 ## Debugging the build script
 

@@ -8908,6 +8908,20 @@
         console.error(`saveAsync failed with message ${result.error.message}`);
       }
     });
+'Office.AppointmentCompose#sendAsync:member(2)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/90-other-item-apis/send-async.yaml
+
+
+    // This snippet sends the current message or appointment being composed.
+
+    Office.context.mailbox.item.sendAsync((asyncResult) => {
+      if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+        console.log("Action failed with error: " + asyncResult.error.message);
+        return;
+      }
+    });
 'Office.AppointmentCompose#sensitivity:member':
   - >-
     // Link to full sample:
@@ -9062,9 +9076,21 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/40-attachments/get-attachments-read.yaml
 
 
-    const attachments = Office.context.mailbox.item.attachments;
+    const item = Office.context.mailbox.item;
 
-    console.log(attachments);
+
+    if (item.attachments.length > 0) {
+        for (let i = 0; i < item.attachments.length; i++) {
+            const attachment = item.attachments[i];
+            console.log(`${i+1}. Name: ${attachment.name}`);
+            console.log(`ID: ${attachment.id}`);
+            console.log(`Type: ${attachment.attachmentType}`);
+            console.log(`Inline content: ${attachment.isInline}`);
+            console.log(`Size: ${attachment.size}`);
+        }
+    } else {
+        console.log("This mail item doesn't contain any attachments.");
+    }
 'Office.AppointmentRead#categories:member':
   - >-
     // Link to full sample:
@@ -9163,6 +9189,50 @@
 
     Office.context.mailbox.item.displayReplyAllForm("This is a reply ALL with
     <b>some bold text</b>.");
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
+
+
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "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",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // Create the reply with attachments.
+
+    Office.context.mailbox.item.displayReplyAllForm({
+      htmlBody:
+        "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+      attachments: [base64Attachment, fileAttachment, itemAttachment],
+      callback: (result) => {
+        if (result.status === Office.AsyncResultStatus.Failed) {
+          console.error(`Action failed with message ${result.error.message}`);
+          return;
+        }
+
+        console.log("Created a reply-all form with attachments.");
+      }
+    });
 'Office.AppointmentRead#displayReplyAllFormAsync:member(1)':
   - >-
     // Link to full sample:
@@ -9175,6 +9245,54 @@
     ) {
       console.log(JSON.stringify(asyncResult));
     });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
+
+
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "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",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // The async version was introduced in requirement set 1.9.
+
+    // It provides a callback when the new appointment form has been created.
+
+    Office.context.mailbox.item.displayReplyAllFormAsync(
+      {
+        htmlBody:
+          "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+        attachments: [base64Attachment, fileAttachment, itemAttachment]
+      },
+      (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.error(`Action failed with message ${asyncResult.error.message}`);
+          return;
+        }
+
+        console.log("Created a reply-all form with attachments.");
+      }
+    );
 'Office.AppointmentRead#displayReplyForm:member(1)':
   - >-
     // Link to full sample:
@@ -9188,19 +9306,43 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
 
 
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "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",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // Create the reply with attachments.
+
     Office.context.mailbox.item.displayReplyForm({
-      htmlBody: "This is a reply with an inline image and an item attachment.<br><img src='cid:dog.jpg'>",
-      attachments: [
-        { type: "file", url: "https://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", inLine: true },
-        { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
-      ],
+      htmlBody:
+        "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+      attachments: [base64Attachment, fileAttachment, itemAttachment],
       callback: (result) => {
         if (result.status === Office.AsyncResultStatus.Failed) {
           console.error(`Action failed with message ${result.error.message}`);
           return;
         }
 
-        console.log("Created reply with attachments.");
+        console.log("Created a reply with attachments.");
       }
     });
 'Office.AppointmentRead#displayReplyFormAsync:member(1)':
@@ -9220,20 +9362,47 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
 
 
-    // The async version is only available starting with requirement set 1.9.
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "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",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // The async version was introduced in requirement set 1.9.
 
     // It provides a callback when the new appointment form has been created.
 
     Office.context.mailbox.item.displayReplyFormAsync(
       {
-        htmlBody: "This is a reply with an inline image and an item attachment.<br><img src='cid:dog.jpg'>",
-        attachments: [
-          { type: "file", url: "http://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", inLine: true },
-          { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
-        ]
+        htmlBody:
+          "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+        attachments: [base64Attachment, fileAttachment, itemAttachment]
       },
       (asyncResult) => {
-        console.log(JSON.stringify(asyncResult));
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.error(`Action failed with message ${asyncResult.error.message}`);
+          return;
+        }
+
+        console.log("Created reply with attachments.");
       }
     );
 'Office.AppointmentRead#end:member':
@@ -9582,6 +9751,27 @@
 
 
     console.log(`Subject: ${Office.context.mailbox.item.subject}`);
+'Office.AttachmentDetails:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/40-attachments/get-attachments-read.yaml
+
+
+    const item = Office.context.mailbox.item;
+
+
+    if (item.attachments.length > 0) {
+        for (let i = 0; i < item.attachments.length; i++) {
+            const attachment = item.attachments[i];
+            console.log(`${i+1}. Name: ${attachment.name}`);
+            console.log(`ID: ${attachment.id}`);
+            console.log(`Type: ${attachment.attachmentType}`);
+            console.log(`Inline content: ${attachment.isInline}`);
+            console.log(`Size: ${attachment.size}`);
+        }
+    } else {
+        console.log("This mail item doesn't contain any attachments.");
+    }
 'Office.Body:interface':
   - >-
     // Link to full sample:
@@ -12287,6 +12477,20 @@
         console.log(`Attachment removed successfully.`);
       }
     );
+'Office.MessageCompose#sendAsync:member(2)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/90-other-item-apis/send-async.yaml
+
+
+    // This snippet sends the current message or appointment being composed.
+
+    Office.context.mailbox.item.sendAsync((asyncResult) => {
+      if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+        console.log("Action failed with error: " + asyncResult.error.message);
+        return;
+      }
+    });
 'Office.MessageCompose#sensitivityLabel:member':
   - >-
     // Link to full sample:
@@ -12412,15 +12616,48 @@
         console.error(asyncResult.error);
       }
     });
+'Office.MessageRead:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/40-attachments/get-attachments-read.yaml
+
+
+    const item = Office.context.mailbox.item;
+
+
+    if (item.attachments.length > 0) {
+        for (let i = 0; i < item.attachments.length; i++) {
+            const attachment = item.attachments[i];
+            console.log(`${i+1}. Name: ${attachment.name}`);
+            console.log(`ID: ${attachment.id}`);
+            console.log(`Type: ${attachment.attachmentType}`);
+            console.log(`Inline content: ${attachment.isInline}`);
+            console.log(`Size: ${attachment.size}`);
+        }
+    } else {
+        console.log("This mail item doesn't contain any attachments.");
+    }
 'Office.MessageRead#attachments:member':
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/40-attachments/get-attachments-read.yaml
 
 
-    const attachments = Office.context.mailbox.item.attachments;
+    const item = Office.context.mailbox.item;
 
-    console.log(attachments);
+
+    if (item.attachments.length > 0) {
+        for (let i = 0; i < item.attachments.length; i++) {
+            const attachment = item.attachments[i];
+            console.log(`${i+1}. Name: ${attachment.name}`);
+            console.log(`ID: ${attachment.id}`);
+            console.log(`Type: ${attachment.attachmentType}`);
+            console.log(`Inline content: ${attachment.isInline}`);
+            console.log(`Size: ${attachment.size}`);
+        }
+    } else {
+        console.log("This mail item doesn't contain any attachments.");
+    }
 'Office.MessageRead#categories:member':
   - >-
     // Link to full sample:
@@ -12565,6 +12802,50 @@
 
     Office.context.mailbox.item.displayReplyAllForm("This is a reply ALL with
     <b>some bold text</b>.");
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
+
+
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "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",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // Create the reply with attachments.
+
+    Office.context.mailbox.item.displayReplyAllForm({
+      htmlBody:
+        "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+      attachments: [base64Attachment, fileAttachment, itemAttachment],
+      callback: (result) => {
+        if (result.status === Office.AsyncResultStatus.Failed) {
+          console.error(`Action failed with message ${result.error.message}`);
+          return;
+        }
+
+        console.log("Created a reply-all form with attachments.");
+      }
+    });
 'Office.MessageRead#displayReplyAllFormAsync:member(1)':
   - >-
     // Link to full sample:
@@ -12577,6 +12858,54 @@
     ) {
       console.log(JSON.stringify(asyncResult));
     });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
+
+
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "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",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // The async version was introduced in requirement set 1.9.
+
+    // It provides a callback when the new appointment form has been created.
+
+    Office.context.mailbox.item.displayReplyAllFormAsync(
+      {
+        htmlBody:
+          "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+        attachments: [base64Attachment, fileAttachment, itemAttachment]
+      },
+      (asyncResult) => {
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.error(`Action failed with message ${asyncResult.error.message}`);
+          return;
+        }
+
+        console.log("Created a reply-all form with attachments.");
+      }
+    );
 'Office.MessageRead#displayReplyForm:member(1)':
   - >-
     // Link to full sample:
@@ -12590,19 +12919,43 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
 
 
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "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",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // Create the reply with attachments.
+
     Office.context.mailbox.item.displayReplyForm({
-      htmlBody: "This is a reply with an inline image and an item attachment.<br><img src='cid:dog.jpg'>",
-      attachments: [
-        { type: "file", url: "https://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", inLine: true },
-        { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
-      ],
+      htmlBody:
+        "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+      attachments: [base64Attachment, fileAttachment, itemAttachment],
       callback: (result) => {
         if (result.status === Office.AsyncResultStatus.Failed) {
           console.error(`Action failed with message ${result.error.message}`);
           return;
         }
 
-        console.log("Created reply with attachments.");
+        console.log("Created a reply with attachments.");
       }
     });
 'Office.MessageRead#displayReplyFormAsync:member(1)':
@@ -12622,20 +12975,47 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
 
 
-    // The async version is only available starting with requirement set 1.9.
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "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",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // The async version was introduced in requirement set 1.9.
 
     // It provides a callback when the new appointment form has been created.
 
     Office.context.mailbox.item.displayReplyFormAsync(
       {
-        htmlBody: "This is a reply with an inline image and an item attachment.<br><img src='cid:dog.jpg'>",
-        attachments: [
-          { type: "file", url: "http://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", inLine: true },
-          { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
-        ]
+        htmlBody:
+          "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+        attachments: [base64Attachment, fileAttachment, itemAttachment]
       },
       (asyncResult) => {
-        console.log(JSON.stringify(asyncResult));
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.error(`Action failed with message ${asyncResult.error.message}`);
+          return;
+        }
+
+        console.log("Created reply with attachments.");
       }
     );
 'Office.MessageRead#end:member':
@@ -13476,20 +13856,47 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
 
 
-    // The async version is only available starting with requirement set 1.9.
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAACxEAAAsRAX9kX5EAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuMTM0A1t6AAAF3klEQVR4Xt2aMcolRRSFdQUuwSW4AAMzU8ENzAIMDA1NzHUBgqmZkbG4ADGVQRgGZBBElAERRPg9eC+PQ73qc6u66lZ3v48bzH+7uqr6VN/T1f3mjafT8Pr7b37+8G3En99+5akTcAqB/n7+48uP3vvp3TdvgT//+uE7P3woBwv07+s/Xn32jKXhwKF/Xr3wpgdxpEC/ffnp8/ffKkQpAg3QDDr6Ocs5RiCzm0ILEQca02qB7u2mPQ4xpnUCabtBWDWFdbfYmBYJ1HLZN6PBP3794uOiAcdKY0oXKLQbFE71jkBS33FrjClRoNBuXjx7J/QUNNCdZBtTikAtdtO1+JBA34Z5xjRfIG03I/YBTYVMScY0U6DQbsbXGdevF2C6Mc0RKLQbHEUbbz0MZNKPuYnGNCpQaDdY0iQTDR9zU4xpSCB9t+PQ719/7k3T0P49bkw7BQrtZnBajTS+uIwYU7dA4ZzynrhMWF/3sc+YOgQK7WaiNQpCh9bRu36tAmm7wT2MovOmaUAaPY3G6DKmWCBtNzaYN80EJjIuDUejMSmBUC/abnCrL3Di8IEwErhAvUGrCxRa4C+ffLDAicMVmhW42K2VLgUK67zlFXwcqL9GmltseUXlDirOvMXIbqKdHc/vieGTIJoE6rL93djNWwy9OHwqRCyQqM+J6LpeFj4bIhZoTWVdWCCLBbvkY93HwqdCdJg0AheQ/XRf9mivhk+C6BMIscawUdR5m0MRPjzRLZAFZMo2pnBHlhE+NhELJGa5YNO42Jh8VCIWCBnMEu8WRf4WC147sAxYjGLcjPDxiCaBDMxS+MKCF1cUdXbF+UhEh0CGqDjksz9CZ++2fRiiWyCgKw532QJjEhMYCR+A2COQoStuwcYyw5i8a2K/QIZ+Ei/YWM41Ju+UGBUI6Bses4eIqf6Nzkc+43N4j8QEgQxdcZApe2OJdRp/R/G+iGkCGbriFmws9TqF4b0QkwUC4SNmwcYSu419xuTnE/MFMrCSRT9FZG8s9xmTn0xkCQSKfu4Di5y9sew1Jj+NOFIgC1hG9q+y7b+s+QnE8QJZYJ0n/g+rKvoBYuFNibMIZJG9sYQx6Y8n3o44l0AILDKWOtW/xf/g8RbE6QSygGVkbyyrxuTHiJMKZLHgjbcY0bPEqQWySN1YFmN5lriAQBZJxlSM4lniMgIhMjaWxRCeJa4kkAWcdaIxFZ17lrieQBazNpZFt54lriqQBXZ9g8ZUdOhZ4toCIWxj6UP2U/TmWSJRoDU/9V1YIIDdcONr9L64dond2P19T8QjmDSDdUYhTJHpcR7z90Am/bVBx6NtFLcIv+pXAzfgo71qaFAmWx9linjYl9UWIJN4zD3454527ncD+DP7g5nBgyI8S5xCIIMHzbCbKjwowrPESQXyVD48aHXcWCDc7dm/Wxk8qKcymfZN2gJ+mfqDDODhPJUDLmTrAeotiFaBLJI2IwYP5KnZ2IaeByrC2xEVgdCFeCfIqzgexVNT0T9Ab30VqAgEwneCjIrj/j01CVFTFuKrQF0gQ/wCaQHJJ1Yc9+ypYcKawgXqrwJKIEPfmRMrjrv11BhTZh4LZGAdhDFNqTju0FN70TW1ZTdVWgUCoTFh1JGK46481U9YU70fITsEMrQxjVQc9+OpTnRNhXZTpVsgI5zKjorjHjzVjK6pkWXbKZCBm1kYU2/F8bmeakDXVJfdVBkSCGB+wpi6lo5P9FSEvpF77abKqECGNqbGiuNTPLWNrikc2mE3VeYIZOj1DCuOG3uqhq6pEbupMlMgA7PfMiY9e27pqTvEGozbTZX5AgFtTFsVx208ReiammI3VVIEMrQxYbWLS+KjnvofXVMT7aZKokCGKIqi4viQp3pOTyJdIAO3wJYx3SqOk/hT1FSS3VRZJBDQxlQUkaipPLupsk4gQxuTjmy7qbJaIEM4SzXW2E2VYwQyhDHdYqXdVDlSIKCNabHdVDlYIOPemA6xmyqnEMgwYzrQbio8Pf0HxndUxitiwgUAAAAASUVORK5CYII=",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // The async version was introduced in requirement set 1.9.
 
     // It provides a callback when the new appointment form has been created.
 
     Office.context.mailbox.item.displayReplyFormAsync(
       {
-        htmlBody: "This is a reply with an inline image and an item attachment.<br><img src='cid:dog.jpg'>",
-        attachments: [
-          { type: "file", url: "http://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", inLine: true },
-          { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
-        ]
+        htmlBody:
+          "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+        attachments: [base64Attachment, fileAttachment, itemAttachment]
       },
       (asyncResult) => {
-        console.log(JSON.stringify(asyncResult));
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.error(`Action failed with message ${asyncResult.error.message}`);
+          return;
+        }
+
+        console.log("Created reply with attachments.");
       }
     );
 'Office.ReplyFormData:interface':
@@ -13498,20 +13905,47 @@
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/55-display-items/display-reply-with-attachments.yaml
 
 
-    // The async version is only available starting with requirement set 1.9.
+    // Define attachments.
+
+    const base64Attachment = {
+      base64file:
+        "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAACxEAAAsRAX9kX5EAAAAZdEVYdFNvZnR3YXJlAHBhaW50Lm5ldCA0LjAuMTM0A1t6AAAF3klEQVR4Xt2aMcolRRSFdQUuwSW4AAMzU8ENzAIMDA1NzHUBgqmZkbG4ADGVQRgGZBBElAERRPg9eC+PQ73qc6u66lZ3v48bzH+7uqr6VN/T1f3mjafT8Pr7b37+8G3En99+5akTcAqB/n7+48uP3vvp3TdvgT//+uE7P3woBwv07+s/Xn32jKXhwKF/Xr3wpgdxpEC/ffnp8/ffKkQpAg3QDDr6Ocs5RiCzm0ILEQca02qB7u2mPQ4xpnUCabtBWDWFdbfYmBYJ1HLZN6PBP3794uOiAcdKY0oXKLQbFE71jkBS33FrjClRoNBuXjx7J/QUNNCdZBtTikAtdtO1+JBA34Z5xjRfIG03I/YBTYVMScY0U6DQbsbXGdevF2C6Mc0RKLQbHEUbbz0MZNKPuYnGNCpQaDdY0iQTDR9zU4xpSCB9t+PQ719/7k3T0P49bkw7BQrtZnBajTS+uIwYU7dA4ZzynrhMWF/3sc+YOgQK7WaiNQpCh9bRu36tAmm7wT2MovOmaUAaPY3G6DKmWCBtNzaYN80EJjIuDUejMSmBUC/abnCrL3Di8IEwErhAvUGrCxRa4C+ffLDAicMVmhW42K2VLgUK67zlFXwcqL9GmltseUXlDirOvMXIbqKdHc/vieGTIJoE6rL93djNWwy9OHwqRCyQqM+J6LpeFj4bIhZoTWVdWCCLBbvkY93HwqdCdJg0AheQ/XRf9mivhk+C6BMIscawUdR5m0MRPjzRLZAFZMo2pnBHlhE+NhELJGa5YNO42Jh8VCIWCBnMEu8WRf4WC147sAxYjGLcjPDxiCaBDMxS+MKCF1cUdXbF+UhEh0CGqDjksz9CZ++2fRiiWyCgKw532QJjEhMYCR+A2COQoStuwcYyw5i8a2K/QIZ+Ei/YWM41Ju+UGBUI6Bses4eIqf6Nzkc+43N4j8QEgQxdcZApe2OJdRp/R/G+iGkCGbriFmws9TqF4b0QkwUC4SNmwcYSu419xuTnE/MFMrCSRT9FZG8s9xmTn0xkCQSKfu4Di5y9sew1Jj+NOFIgC1hG9q+y7b+s+QnE8QJZYJ0n/g+rKvoBYuFNibMIZJG9sYQx6Y8n3o44l0AILDKWOtW/xf/g8RbE6QSygGVkbyyrxuTHiJMKZLHgjbcY0bPEqQWySN1YFmN5lriAQBZJxlSM4lniMgIhMjaWxRCeJa4kkAWcdaIxFZ17lrieQBazNpZFt54lriqQBXZ9g8ZUdOhZ4toCIWxj6UP2U/TmWSJRoDU/9V1YIIDdcONr9L64dond2P19T8QjmDSDdUYhTJHpcR7z90Am/bVBx6NtFLcIv+pXAzfgo71qaFAmWx9linjYl9UWIJN4zD3454527ncD+DP7g5nBgyI8S5xCIIMHzbCbKjwowrPESQXyVD48aHXcWCDc7dm/Wxk8qKcymfZN2gJ+mfqDDODhPJUDLmTrAeotiFaBLJI2IwYP5KnZ2IaeByrC2xEVgdCFeCfIqzgexVNT0T9Ab30VqAgEwneCjIrj/j01CVFTFuKrQF0gQ/wCaQHJJ1Yc9+ypYcKawgXqrwJKIEPfmRMrjrv11BhTZh4LZGAdhDFNqTju0FN70TW1ZTdVWgUCoTFh1JGK46481U9YU70fITsEMrQxjVQc9+OpTnRNhXZTpVsgI5zKjorjHjzVjK6pkWXbKZCBm1kYU2/F8bmeakDXVJfdVBkSCGB+wpi6lo5P9FSEvpF77abKqECGNqbGiuNTPLWNrikc2mE3VeYIZOj1DCuOG3uqhq6pEbupMlMgA7PfMiY9e27pqTvEGozbTZX5AgFtTFsVx208ReiammI3VVIEMrQxYbWLS+KjnvofXVMT7aZKokCGKIqi4viQp3pOTyJdIAO3wJYx3SqOk/hT1FSS3VRZJBDQxlQUkaipPLupsk4gQxuTjmy7qbJaIEM4SzXW2E2VYwQyhDHdYqXdVDlSIKCNabHdVDlYIOPemA6xmyqnEMgwYzrQbio8Pf0HxndUxitiwgUAAAAASUVORK5CYII=",
+      inLine: true,
+      name: "script_lab.png",
+      type: Office.MailboxEnums.AttachmentType.Base64
+    };
+
+    const fileAttachment = {
+      inLine: true,
+      name: "dog.jpg",
+      type: Office.MailboxEnums.AttachmentType.File,
+      url: "https://i.imgur.com/9S36xvA.jpg"
+    };
+
+    const itemAttachment = {
+      itemId: Office.context.mailbox.item.itemId,
+      name: "test_email.msg",
+      type: Office.MailboxEnums.AttachmentType.Item
+    };
+
+
+    // The async version was introduced in requirement set 1.9.
 
     // It provides a callback when the new appointment form has been created.
 
     Office.context.mailbox.item.displayReplyFormAsync(
       {
-        htmlBody: "This is a reply with an inline image and an item attachment.<br><img src='cid:dog.jpg'>",
-        attachments: [
-          { type: "file", url: "http://i.imgur.com/9S36xvA.jpg", name: "dog.jpg", inLine: true },
-          { type: "item", itemId: Office.context.mailbox.item.itemId, name: "test_email.msg" }
-        ]
+        htmlBody:
+          "This is a reply with an inline Base64-encoded attachment, an inline image, and an item attachment.<br><img src='cid:script_lab.png'><br><img src='cid:dog.jpg'>",
+        attachments: [base64Attachment, fileAttachment, itemAttachment]
       },
       (asyncResult) => {
-        console.log(JSON.stringify(asyncResult));
+        if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+          console.error(`Action failed with message ${asyncResult.error.message}`);
+          return;
+        }
+
+        console.log("Created reply with attachments.");
       }
     );
 'Office.RoamingSettings#get:member(1)':

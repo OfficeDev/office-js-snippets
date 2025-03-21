@@ -58,6 +58,6 @@ export function transformLibraries(data: string): string {
         })
         .filter((line) => line !== undefined) as string[];
 
-    const cleanData = cleanLibraries.join("\n");
+    const cleanData = cleanLibraries.join("\n").replace(/\n\n\n/, "\n\n");
     return cleanData;
 }

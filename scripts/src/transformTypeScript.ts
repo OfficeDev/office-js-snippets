@@ -44,12 +44,7 @@ export function transformTypeScript(data: string): string {
         })
         .join("\n");
 
-    const ready = `Office.onReady(() => {
-    console.log("Office is ready");
-});`;
-    const code = `${ready}
+    const code = cleanData;
 
-${cleanData}
- `;
     return code;
 }

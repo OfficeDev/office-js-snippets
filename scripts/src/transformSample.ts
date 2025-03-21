@@ -1,5 +1,6 @@
 import { RawSample } from "./RawSample";
 import { transformCss } from "./transformCss";
+import { transformHtml } from "./transformHtml";
 import { transformLibraries } from "./transformLibraries";
 import { transformTypeScript } from "./transformTypeScript";
 
@@ -15,10 +16,10 @@ export function transformRawSample(id: string, rawSample: RawSample): RawSample 
         return rawSample;
     }
 
-    const typescriptContent = transformTypeScript(typescriptRaw);
-    const htmlContent = htmlRaw;
-    const cssContent = transformCss(cssRaw);
-    const librariesContent = transformLibraries(librariesRaw);
+    const typescriptContent = transformTypeScript(typescriptRaw).trim();
+    const htmlContent = transformHtml(htmlRaw).trim();
+    const cssContent = transformCss(cssRaw).trim();
+    const librariesContent = transformLibraries(librariesRaw).trim();
 
     // Update the raw sample with the transformed content
     rawSample.script.content = typescriptContent;

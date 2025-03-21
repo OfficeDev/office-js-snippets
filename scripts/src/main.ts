@@ -92,7 +92,7 @@ const transformSampleSuccess = samplePaths.map((path) => {
         const sample = parseRawSample(fileText);
         const transformedSample = transformRawSample(path, sample);
         
-        const transformedSampleYaml = yaml.stringify(transformedSample);
+        const transformedSampleYaml = yaml.stringify(transformedSample, {indent: 4});
         fs.writeFileSync(path, transformedSampleYaml);
         console.log(`success`);
     } catch (error) {

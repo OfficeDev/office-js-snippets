@@ -7,6 +7,7 @@ import { readFileText } from "./utils/readFileText";
 import { parseRawPlaylist } from "./parseRawPlaylist";
 import { parseRawSample } from "./parseRawSample";
 import { transformRawSample } from "./transformSample";
+import yaml from "yaml"
 
 console.log("Start edit sample yaml");
 
@@ -89,7 +90,11 @@ const transformSampleSuccess = samplePaths.map((path) => {
     try {
         const fileText = readFileText(path);
         const sample = parseRawSample(fileText);
-        transformRawSample(path, sample);
+        const transformedSample = transformRawSample(path, sample);
+        
+        const transformedSampleYaml = yaml.stringify(transformedSample);
+        fs.writeFileSync(path, transformedSampleYaml);
+        console.log(`success`);
     } catch (error) {
         console.error(`ERROR\n${error}`);
         success = false;

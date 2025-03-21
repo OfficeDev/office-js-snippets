@@ -1,4 +1,3 @@
-
 /**
  * Transform library references.
  * - Remove jquery & core-js
@@ -46,7 +45,9 @@ export function transformLibraries(data: string): string {
 
             // Remove packages
             const packageNamesIgnore = ["jquery", "@types/jquery", "core-js", "@types/core-js"];
-            const isExcluded = packageNamesIgnore.some((packageName) => line.startsWith(packageName));
+            const isExcluded = packageNamesIgnore.some((packageName) =>
+                line.startsWith(packageName),
+            );
             if (isExcluded) {
                 return undefined;
             }

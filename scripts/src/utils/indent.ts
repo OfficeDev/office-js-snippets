@@ -36,15 +36,10 @@ const defaultIndent: IndentOptions = {
  * @param indent - indent options
  * @returns a version of the string indented according to the indent options
  */
-export function indent(
-    string: string,
-    indent: Partial<IndentOptions> = defaultIndent
-): string {
+export function indent(string: string, indent: Partial<IndentOptions> = defaultIndent): string {
     const settings: IndentOptions = mergeWithDefaults(indent, defaultIndent);
 
-    const indentString = settings.value
-        .repeat(settings.count)
-        .repeat(settings.level);
+    const indentString = settings.value.repeat(settings.count).repeat(settings.level);
 
     // this also indents any empty lines
     return indentString + lineSplit(string).join(`\n${indentString}`);

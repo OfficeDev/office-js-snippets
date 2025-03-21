@@ -6,7 +6,6 @@
 export function listWithoutDuplicateElements<T>(original: readonly T[]): T[] {
     // only take the first item
     return original.filter(
-        (value: T, index: number, array: readonly T[]) =>
-            array.indexOf(value) === index
+        (value: T, index: number, array: readonly T[]) => array.indexOf(value) === index,
     );
 }

@@ -28,33 +28,33 @@ console.log(`Playlist files:
   ${playlistFiles.join("\n  ")}`);
 
 const playlists = playlistFiles.map((file) => {
-  const filePath = `${playlistDirectory}/${file}`;
-  const fileText = readFileText(filePath);
-  const playlist = parseRawPlaylist(fileText);
-  return playlist;
+    const filePath = `${playlistDirectory}/${file}`;
+    const fileText = readFileText(filePath);
+    const playlist = parseRawPlaylist(fileText);
+    return playlist;
 });
 
 const playlistSamplePaths = playlists
-  .map((playlist) => {
-    const sampleFilePaths = playlist.map((item) => {
-      const { rawUrl } = item;
+    .map((playlist) => {
+        const sampleFilePaths = playlist.map((item) => {
+            const { rawUrl } = item;
 
-      // flip raw url to the file path
-      //  https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/project/basics/basic-common-api-call.yaml
-      const filePath = rawUrl.replace(
-        "https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/",
-        "../"
-      );
-      return filePath;
-    });
+            // flip raw url to the file path
+            //  https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/project/basics/basic-common-api-call.yaml
+            const filePath = rawUrl.replace(
+                "https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/",
+                "../",
+            );
+            return filePath;
+        });
 
-    return sampleFilePaths;
-  })
-  .flat();
+        return sampleFilePaths;
+    })
+    .flat();
 
 const defaultSamplePaths = fs.readdirSync(sampleDirectory).map((file) => {
-  const filePath = `${sampleDirectory}/${file}/default.yaml`;
-  return filePath;
+    const filePath = `${sampleDirectory}/${file}/default.yaml`;
+    return filePath;
 });
 
 const samplePaths = [...defaultSamplePaths, ...playlistSamplePaths];
@@ -64,17 +64,17 @@ console.log(`Sample files:
 
 // Check that all of the sample files exist
 const checkSampleFiles = samplePaths.map((path) => {
-  const present = fs.existsSync(path);
-  return { present, path };
+    const present = fs.existsSync(path);
+    return { present, path };
 });
 
 const missingSampleFiles = checkSampleFiles
-  .filter(({ present }) => !present)
-  .map(({ path }) => path);
+    .filter(({ present }) => !present)
+    .map(({ path }) => path);
 
 if (missingSampleFiles.length > 0) {
-  console.log("=".repeat(80));
-  console.error(`Missing sample files:
+    console.log("=".repeat(80));
+    console.error(`Missing sample files:
       ${missingSampleFiles.join("\n")}`);
 }
 
@@ -84,29 +84,26 @@ if (missingSampleFiles.length > 0) {
 console.log("=".repeat(80));
 console.log("Transforming sample files...");
 const transformSampleSuccess = samplePaths.map((path) => {
-  console.log(`${path}`);
-  let success = true;
-  try {
-    const fileText = readFileText(path);
-    const sample = parseRawSample(fileText);
-    transformRawSample(path, sample);
-  } catch (error) {
-    console.error(`ERROR\n${error}`);
-    success = false;
-  }
+    console.log(`${path}`);
+    let success = true;
+    try {
+        const fileText = readFileText(path);
+        const sample = parseRawSample(fileText);
+        transformRawSample(path, sample);
+    } catch (error) {
+        console.error(`ERROR\n${error}`);
+        success = false;
+    }
 
-  return {
-    path,
-    success,
-  };
+    return {
+        path,
+        success,
+    };
 });
 
-
-const transformSampleErrors = transformSampleSuccess.filter(
-  ({ success }) => !success
-);
+const transformSampleErrors = transformSampleSuccess.filter(({ success }) => !success);
 if (transformSampleErrors.length > 0) {
-  console.log("=".repeat(80));
-  console.log(`Error: Transforming sample files:
+    console.log("=".repeat(80));
+    console.log(`Error: Transforming sample files:
   ${transformSampleErrors.map((x) => x.path).join("\n  ")}`);
 }

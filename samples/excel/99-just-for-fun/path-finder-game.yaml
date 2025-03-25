@@ -10,9 +10,8 @@ script:
     content: |-
         document.getElementById("setup").addEventListener("click", setup);
         document.getElementById("repeat").addEventListener("click", repeat);
-
-        const $pruneTheGrid = $("#step-by-step").on("click", pruneTheGrid);
-        const $allAtOnce = $("#all-at-once").on("click", allAtOnce);
+        document.getElementById("step-by-step").addEventListener("click", pruneTheGrid);
+        document.getElementById("all-at-once").addEventListener("click", allAtOnce);
 
         const GRID_ROW_COUNT = 25;
         const GRID_COLUMN_COUNT = 30;
@@ -20,7 +19,7 @@ script:
         let matrixPrevious: string[][]
 
         function setup() {
-            const density = parseInt($("#density").val() as string) / 100;
+            const density = parseInt((document.getElementById("density") as HTMLInputElement).value) / 100;
             const symbol = "\u25cf";
 
             const matrix = new Array(GRID_ROW_COUNT);
@@ -32,7 +31,7 @@ script:
             }
 
             matrixPrevious = matrix;
-            $("#repeat").show();
+            document.getElementById("repeat").style.display = "block";
 
             setupHelper(matrix);
         }
@@ -71,7 +70,8 @@ script:
         }
 
         async function pruneTheGrid() {
-            $pruneTheGrid.attr("disabled", "true");
+            const pruneTheGrid = document.getElementById("step-by-step") as HTMLButtonElement;
+            pruneTheGrid.disabled = true;
 
             await tryCatch(() => Excel.run(async (context) => {
                 const grid = context.workbook.worksheets
@@ -84,11 +84,12 @@ script:
                 await context.sync();
             }));
 
-            $pruneTheGrid.removeAttr("disabled");
+            pruneTheGrid.disabled = false;
         }
 
         async function allAtOnce() {
-            $allAtOnce.attr("disabled", "true");
+            const allAtOnce = document.getElementById("all-at-once") as HTMLButtonElement;
+            allAtOnce.disabled = true;
             let counter = 0;
 
             await tryCatch(() => Excel.run(async (context) => {
@@ -111,7 +112,7 @@ script:
             }));
 
             console.log("Count of iterations: " + counter);
-            $allAtOnce.removeAttr("disabled");
+            allAtOnce.disabled = false;
         }
 
 

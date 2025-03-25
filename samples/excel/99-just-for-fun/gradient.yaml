@@ -8,15 +8,14 @@ api_set:
     ExcelApi: '1.4'
 script:
     content: |-
-        initializeColorPickers();
-
-        // Set up the click handler:
-        const $drawButton = $("#draw-gradient").on("click", drawGradient);
+        // Set up the click handler.
+        document.getElementById("draw-gradient").addEventListener("click", drawGradient);
         document.getElementById("random").addEventListener("click", randomizeColors);
 
-        /** Click-handler for drawing the gradient */
+        /** Click-handler for drawing the gradient. */
         async function drawGradient() {
-            $drawButton.prop("disabled", true);
+            const drawButton = document.getElementById("draw-gradient") as HTMLButtonElement;
+            drawButton.disabled = true;
 
             try {
                 await Excel.run(drawGradientHelper);
@@ -24,10 +23,10 @@ script:
                 console.log(error);
             }
 
-            $drawButton.prop("disabled", false);
+            drawButton.disabled = false;
         }
 
-        /** Helper function to do the actual gradient-drawing */
+        /** Helper function to do the actual gradient-drawing. */
         async function drawGradientHelper(context: Excel.RequestContext) {
             context.workbook.worksheets.getItemOrNullObject("Gradient").delete();
             const sheet = context.workbook.worksheets.add("Gradient");
@@ -40,8 +39,20 @@ script:
                 }
             });
 
-            let originalSize = parseInt($("#size").val() as string);
+            let originalSize = parseInt((document.getElementById("size") as HTMLInputElement).value);
             const colors2D = createColorArray(originalSize);
+
+            // Retrieve color values from <input type="color"> elements.
+            const topLeftColor = (document.getElementById("top-left") as HTMLInputElement).value;
+            const topRightColor = (document.getElementById("top-right") as HTMLInputElement).value;
+            const bottomLeftColor = (document.getElementById("bottom-left") as HTMLInputElement).value;
+            const bottomRightColor = (document.getElementById("bottom-right") as HTMLInputElement).value;
+
+            // Convert HEX colors to RGB using TinyColor.
+            const topLeftRgb = tinycolor(topLeftColor).toRgb();
+            const topRightRgb = tinycolor(topRightColor).toRgb();
+            const bottomLeftRgb = tinycolor(bottomLeftColor).toRgb();
+            const bottomRightRgb = tinycolor(bottomRightColor).toRgb();
 
             if (Office.context.requirements.isSetSupported("ExcelApi", "1.9")) {
                 // ExcelApi 1.9 introduced the setCellProperties APIs to efficiently set different properties
@@ -73,21 +84,33 @@ script:
         }
 
         function createColorArray(size: number): string[][] {
-            // Create a 2D in-memory array to hold the colors
+            // Create a 2D in-memory array to hold the colors.
             let colors2D = Array(size);
             for (let row = 0; row < size; row++) {
                 colors2D[row] = Array(size);
             }
 
+            // Get the color values from the color pickers.
+            const topLeftColor = (document.getElementById("top-left") as HTMLInputElement).value;
+            const topRightColor = (document.getElementById("top-right") as HTMLInputElement).value;
+            const bottomLeftColor = (document.getElementById("bottom-left") as HTMLInputElement).value;
+            const bottomRightColor = (document.getElementById("bottom-right") as HTMLInputElement).value;
+
+            // Convert HEX to RGB using TinyColor.
+            const topLeftRgb = tinycolor(topLeftColor).toRgb();
+            const topRightRgb = tinycolor(topRightColor).toRgb();
+            const bottomLeftRgb = tinycolor(bottomLeftColor).toRgb();
+            const bottomRightRgb = tinycolor(bottomRightColor).toRgb();
+
             const topColors = getColorsArray(
-                $("#top-left").spectrum("get").toRgb(),
-                $("#top-right").spectrum("get").toRgb(),
+                topLeftRgb,
+                topRightRgb,
                 size
             );
 
             const bottomColors = getColorsArray(
-                $("#bottom-left").spectrum("get").toRgb(),
-                $("#bottom-right").spectrum("get").toRgb(),
+                bottomLeftRgb,
+                bottomRightRgb,
                 size
             );
 
@@ -101,9 +124,9 @@ script:
             return colors2D;
         }
 
-        /** Helper function to get an array of colors */
-        function getColorsArray(color1: ColorFormats.RGB, color2: ColorFormats.RGB, count: number) {
-            const result = new Array<ColorFormats.RGB>(count);
+        /** Helper function to get an array of colors. */
+        function getColorsArray(color1, color2, count: number) {
+            const result = new Array(count);
             for (let i = 0; i < count; i++) {
                 const fraction = i / (count - 1);
                 result[i] = {
@@ -115,16 +138,14 @@ script:
             return result;
         }
 
-        function initializeColorPickers() {
-            $("#color-table input[type='text']").spectrum({
-                preferredFormat: "rgb",
-                showInput: true
-            });
-        }
-
         function randomizeColors() {
-            $("#color-table input[type='text']").each((index, element) => {
-                $(element).spectrum("set", tinycolor.random().toHexString());
+            // Select all color input elements.
+            const colorInputs = document.querySelectorAll("#color-table input[type='color']");
+            
+            // Iterate through each color input and set a random color.
+            colorInputs.forEach((input) => {
+                const randomColor = tinycolor.random().toHexString();
+                (input as HTMLInputElement).value = randomColor;
             });
         }
     language: typescript
@@ -138,12 +159,12 @@ template:
                 <div>Top left</div>
                 <table class="ms-font-m">
                     <tr>
-                        <td><input id="top-left" type="text" value="red" /></td>
-                        <td><input id="top-right" type="text" value="lime" /></td>
+                        <td><input id="top-left" type="color" value="#ff0000" /></td>
+                        <td><input id="top-right" type="color" value="#00ff00" /></td>
                     </tr>
                     <tr>
-                        <td><input id="bottom-left" type="text" value="blue" /></td>
-                        <td><input id="bottom-right" type="text" value="yellow" /></td>
+                        <td><input id="bottom-left" type="color" value="#0000ff" /></td>
+                        <td><input id="bottom-right" type="color" value="#ffff00" /></td>
                     </tr>
                 </table>
                 <div>
@@ -162,7 +183,7 @@ template:
             </button>
             <div id="credits">
                 <div class="ms-font-s">
-                    Uses the <a href="https://github.com/bgrins/spectrum" target="_blank">Spectrum color picker</a>, and the <a href="https://github.com/bgrins/TinyColor" target="_blank">TinyColor</a> libraries.
+                    Uses the <a href="https://github.com/bgrins/TinyColor" target="_blank">TinyColor</a> library.
                 </div>
             </div>
         </section>
@@ -212,9 +233,5 @@ libraries: |-
     https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
     https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css
 
-
     https://unpkg.com/tinycolor2@1.4.1/tinycolor.js
     @types/tinycolor2
-    https://unpkg.com/spectrum-colorpicker@1.8.0/spectrum.js
-    https://unpkg.com/spectrum-colorpicker@1.8.0/spectrum.css
-    @types/spectrum

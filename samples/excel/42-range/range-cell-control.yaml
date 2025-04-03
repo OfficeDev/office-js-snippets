@@ -1,0 +1,164 @@
+order: 23
+id: excel-cell-controls
+name: Checkboxes
+description: This sample shows how to add and remove checkboxes from a table.
+host: EXCEL
+api_set:
+    ExcelApi: '1.18'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("add-checkboxes").addEventListener("click", () => tryCatch(addCheckboxes));
+        document.getElementById("change-checkbox").addEventListener("click", () => tryCatch(changeCheckbox));
+        document.getElementById("remove-checkboxes").addEventListener("click", () => tryCatch(removeCheckboxes));
+        document.getElementById("remove-content").addEventListener("click", () => tryCatch(removeContent));
+
+        async function addCheckboxes() {
+          // Add checkboxes to the table.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            // Get the second column in the table, without the header.
+            const range = sheet.tables.getItem("FruitTable").columns.getItem("Analysis").getDataBodyRange();
+
+            // Change the boolean values to checkboxes.
+            range.control = {
+              type: Excel.CellControlType.checkbox
+            };
+            await context.sync();
+          });
+        }
+
+        async function changeCheckbox() {
+          // Change the value of the checkbox in B3.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            const range = sheet.getRange("B3");
+
+            range.values = [["TRUE"]];
+            await context.sync();
+          });
+        }
+
+        async function removeCheckboxes() {
+          // Remove checkboxes from the table.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            // Get the second column in the table, without the header.
+            const range = sheet.tables.getItem("FruitTable").columns.getItem("Analysis").getDataBodyRange();
+
+            // Change the checkboxes back to boolean values.
+            range.control = {
+              type: Excel.CellControlType.empty
+            };
+            await context.sync();
+          });
+        }
+
+        async function removeContent() {
+          // Remove all content from the Analysis column.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            // Get the second column in the table, without the header.
+            const range = sheet.tables.getItem("FruitTable").columns.getItem("Analysis").getDataBodyRange();
+
+            // Clear all the data from the second column.
+            range.clearOrResetContents();
+            await context.sync();
+          });
+        }
+
+        // Set up the sample content.
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+            const sheet = context.workbook.worksheets.add("Sample");
+
+            const fruitTable = sheet.tables.add("A1:B1", true /*hasHeaders*/);
+            fruitTable.name = "FruitTable";
+
+            fruitTable.getHeaderRowRange().values = [["Fruit", "Analysis"]];
+
+            fruitTable.rows.add(null /*add at the end*/, [
+              ["Apple", "TRUE"],
+              ["Kale", "FALSE"],
+              ["Orange", "TRUE"],
+              ["Pear", "TRUE"],
+              ["Mango", "TRUE"],
+              ["Dog", "FALSE"],
+              ["Strawberry", "TRUE"],
+              ["Chair", "FALSE"],
+              ["Tomato", "UNKNOWN"] /* Only boolean values will render as checkboxes. */
+            ]);
+
+            sheet.getUsedRange().format.autofitColumns();
+            sheet.getUsedRange().format.autofitRows();
+
+            sheet.activate();
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+          <p>This sample creates and table and then shows how to add, remove, and change checkboxes in the table.
+          </p>
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+          <h3>Set up</h3>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Add sample data</span> 
+          </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="add-checkboxes" class="ms-Button">
+              <span class="ms-Button-label">Add checkboxes</span>
+          </button>
+          <br>
+          <button id="change-checkbox" class="ms-Button">
+              <span class="ms-Button-label">Set B3 as TRUE</span>
+          </button>
+          <br>
+          <button id="remove-checkboxes" class="ms-Button">
+              <span class="ms-Button-label">Remove checkboxes</span>
+          </button>
+          <br>
+          <button id="remove-content" class="ms-Button">
+              <span class="ms-Button-label">Remove Analysis values</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

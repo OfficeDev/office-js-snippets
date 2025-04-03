@@ -1,0 +1,162 @@
+order: 5
+id: excel-note-basics
+name: Notes
+description: 'Adds, edits, and removes notes.'
+host: EXCEL
+api_set:
+    ExcelApi: '1.18'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("add-note-to-selected-cell").addEventListener("click", () => tryCatch(addNoteToSelectedCell));
+        document.getElementById("add-note-to-cell").addEventListener("click", () => tryCatch(addNoteToCell));
+        document.getElementById("change-note-visibility").addEventListener("click", () => tryCatch(changeNoteVisibility));
+        document.getElementById("edit-note-content").addEventListener("click", () => tryCatch(editNoteContent));
+        document.getElementById("edit-note-size").addEventListener("click", () => tryCatch(editNoteSize));
+        document.getElementById("delete-note").addEventListener("click", () => tryCatch(deleteNote));
+
+        async function addNoteToSelectedCell() {
+          // This function adds a note to the selected cell.
+          await Excel.run(async (context) => {
+            const selectedRange = context.workbook.getSelectedRange();
+
+            // Note that an InvalidArgument error is thrown if multiple cells are selected.
+            context.workbook.notes.add(selectedRange, "The first note.");
+            await context.sync();
+          });
+        }
+
+        async function addNoteToCell() {
+          // This function adds a note to cell A2. 
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Notes");
+
+            // Note that an InvalidArgument error is thrown if multiple cells are passed to `notes.add`.
+            sheet.notes.add("A2", "The second note.");
+            await context.sync();
+          });
+        }
+
+        async function changeNoteVisibility() {
+          // This function sets the note on cell A1 to visible.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Notes");
+            const firstNote = sheet.notes.getItem("A1");
+
+            firstNote.load();
+            await context.sync();
+
+            firstNote.visible = true;
+          });
+        }
+
+        async function editNoteContent() {
+          // This function changes the content in the first note.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Notes");
+            const note = sheet.notes.getItemAt(0);
+            note.content = "Changing the content of the first note.";
+            await context.sync();
+          });
+        }
+
+        async function editNoteSize() {
+          // This function changes the height and width of the first note.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Notes");
+            const note = sheet.notes.getItemAt(0);
+            note.height = 200;
+            note.width = 400;
+            await context.sync();
+          });
+        }
+
+        async function deleteNote() {
+          // This function deletes the note from cell A2.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Notes");
+            const note = sheet.notes.getItem("A2");
+            note.delete();
+
+            await context.sync();
+          });
+        }
+
+        /** Set up Sample worksheet. */
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Notes").delete();
+            const sheet = context.workbook.worksheets.add("Notes");
+
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+          <p>This sample shows how to work with notes: Add notes, edit content, size, and visibility, and remove notes.</p>
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+          <h3>Setup</h3>
+          <button id="setup" class="ms-Button">
+            <span class="ms-Button-label">Create a worksheet</span>
+          </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+          <h3>Try it out</h3>
+          <button id="add-note-to-selected-cell" class="ms-Button">
+            <span class="ms-Button-label">Add a note to selected cell</span>
+          </button>
+          <p />
+          <button id="add-note-to-cell" class="ms-Button">
+              <span class="ms-Button-label">Add a note to cell A2</span>
+          </button>
+          <p />
+          <button id="change-note-visibility" class="ms-Button">
+              <span class="ms-Button-label">Make first note visible</span>
+          </button>
+          <p />
+          <button id="edit-note-content" class="ms-Button">
+              <span class="ms-Button-label">Edit content of first note</span>
+          </button>
+          <p />
+          <button id="edit-note-size" class="ms-Button">
+              <span class="ms-Button-label">Edit size of first note</span>
+          </button>
+          <p />
+          <button id="delete-note" class="ms-Button">
+            <span class="ms-Button-label">Remove note at A2</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

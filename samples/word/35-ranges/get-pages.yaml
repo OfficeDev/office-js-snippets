@@ -1,0 +1,249 @@
+order: 4
+id: word-ranges-get-pages
+name: 'Work with pages, panes, and windows'
+description: 'Shows how to work with pages, panes, and windows.'
+author: yilin4
+host: WORD
+api_set:
+    WordApiDesktop: '1.2'
+script:
+    content: |
+        document.getElementById("get-pages-selected-range").addEventListener("click", () => tryCatch(getPagesOfSelectedRange));
+        document.getElementById("get-pages-third-paragraph").addEventListener("click", () => tryCatch(getPagesOfThirdParagraph));
+        document.getElementById("get-pages-enclosing-viewport").addEventListener("click", () => tryCatch(getPagesEnclosingViewport));
+        document.getElementById("get-all-pages").addEventListener("click", () => tryCatch(getAllPages));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function getPagesOfSelectedRange() {
+          await Word.run(async (context) => {
+            // Gets pages of the selection.
+            const pages: Word.PageCollection = context.document.getSelection().pages;
+            pages.load();
+            await context.sync();
+
+            // Log info for pages included in selection.
+            console.log(pages);
+            const pagesIndexes = [];
+            const pagesText = [];
+            for (let i = 0; i < pages.items.length; i++) {
+              const page = pages.items[i];
+              page.load('index');
+              pagesIndexes.push(page);
+
+              const range = page.getRange();
+              range.load('text');
+              pagesText.push(range);
+            }
+
+            await context.sync();
+
+            for (let i = 0; i < pagesIndexes.length; i++) {
+              console.log(`Index info for page ${i + 1} in the selection: ${pagesIndexes[i].index}`);
+              console.log("Text of that page in the selection:", pagesText[i].text);
+            }
+          });
+        }
+
+        async function getPagesOfThirdParagraph() {
+          await Word.run(async (context) => {
+            // Gets the pages that contain the third paragraph.
+            const paragraphs: Word.ParagraphCollection = context.document.body.paragraphs;
+            paragraphs.load();
+            await context.sync();
+
+            const paraThree = paragraphs.items[2];
+            const rangeOfParagraph = paraThree.getRange();
+            const pages: Word.PageCollection = rangeOfParagraph.pages;
+            pages.load();
+            await context.sync();
+
+            // Log info for pages in range.
+            console.log(pages);
+            const pagesIndexes = [];
+            const pagesText = [];
+            for (let i = 0; i < pages.items.length; i++) {
+              const page = pages.items[i];
+              page.load('index');
+              pagesIndexes.push(page);
+
+              const range = page.getRange();
+              range.load('text');
+              pagesText.push(range);
+            }
+
+            await context.sync();
+
+            for (let i = 0; i < pagesIndexes.length; i++) {
+              console.log(`Index of page ${i + 1} that contains the third paragraph: ${pagesIndexes[i].index}`);
+              console.log("Text of that page:", pagesText[i].text);
+            }
+          });
+        }
+
+        async function getPagesEnclosingViewport() {
+          await Word.run(async (context) => {
+            // Gets the pages enclosing the viewport.
+
+            // Get the active window.
+            const activeWindow: Word.Window = context.document.activeWindow;
+            activeWindow.load();
+
+            // Get the active pane.
+            const activePane: Word.Pane = activeWindow.activePane;
+            activePane.load();
+
+            // Get pages enclosing the viewport.
+            const pages: Word.PageCollection = activePane.pagesEnclosingViewport;
+            pages.load();
+
+            await context.sync();
+
+            // Log the number of pages.
+            const pageCount = pages.items.length;
+            console.log(`Number of pages enclosing the viewport: ${pageCount}`);
+
+            // Log index info of these pages.
+            const pagesIndexes = [];
+            for (let i = 0; i < pageCount; i++) {
+              const page = pages.items[i];
+              page.load('index');
+              pagesIndexes.push(page);
+            }
+
+            await context.sync();
+
+            for (let i = 0; i < pagesIndexes.length; i++) {
+              console.log(`Page index: ${pagesIndexes[i].index}`);
+            }
+          });
+        }
+
+        async function getAllPages() {
+          await Word.run(async (context) => {
+            // Gets the first paragraph of each page.
+            console.log("Getting first paragraph of each page...");
+
+            // Get the active window.
+            const activeWindow: Word.Window = context.document.activeWindow;
+            activeWindow.load();
+
+            // Get the active pane.
+            const activePane: Word.Pane = activeWindow.activePane;
+            activePane.load();
+
+            // Get all pages.
+            const pages: Word.PageCollection = activePane.pages;
+            pages.load();
+
+            await context.sync();
+
+            // Get page index and paragraphs of each page.
+            const pagesIndexes = [];
+            const pagesNumberOfParagraphs = [];
+            const pagesFirstParagraphText = [];
+            for (let i = 0; i < pages.items.length; i++) {
+              const page = pages.items[i];
+              page.load('index');
+              pagesIndexes.push(page);
+
+              const paragraphs = page.getRange().paragraphs;
+              paragraphs.load('items/length');
+              pagesNumberOfParagraphs.push(paragraphs);
+
+              const firstParagraph = paragraphs.getFirst();
+              firstParagraph.load('text');
+              pagesFirstParagraphText.push(firstParagraph);
+            }
+
+            await context.sync();
+
+            for (let i = 0; i < pagesIndexes.length; i++) {
+              console.log(`Page index: ${pagesIndexes[i].index}`);
+              console.log(`Number of paragraphs: ${pagesNumberOfParagraphs[i].items.length}`);
+              console.log("First paragraph's text:", pagesFirstParagraphText[i].text);
+            }
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+            body.insertBreak(Word.BreakType.page, Word.InsertLocation.end);
+            body.insertParagraph(
+              "Themes and styles also help keep your document coordinated. When you click design and choose a new Theme, the pictures, charts, and SmartArt graphics change to match your new theme. When you apply styles, your headings change to match the new theme.",
+              "End"
+            );
+            body.insertText(
+              "Save time in Word with new buttons that show up where you need them. To change the way a picture fits in your document, click it and a button for layout options appears next to it. When you work on a table, click where you want to add a row or a column, and then click the plus sign.",
+              "Start"
+            );
+            body.insertParagraph(
+              "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
+              "Start"
+            );
+            body.paragraphs
+              .getLast()
+              .insertText(
+                "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
+                "Replace"
+              );
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            This sample demonstrates how to work with pages, panes, and windows.
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add text</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-pages-selected-range" class="ms-Button">
+            <span class="ms-Button-label">Get page info for selection</span>
+          </button>
+            <button id="get-pages-third-paragraph" class="ms-Button">
+            <span class="ms-Button-label">Get the third paragraph's page info</span>
+          </button>
+            <button id="get-pages-enclosing-viewport" class="ms-Button">
+            <span class="ms-Button-label">Get pages enclosing viewport</span>
+          </button>
+            <button id="get-all-pages" class="ms-Button">
+            <span class="ms-Button-label">Get all pages</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

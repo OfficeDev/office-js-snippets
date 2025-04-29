@@ -17621,6 +17621,28 @@
         console.log("Search term: " + result.searchTerm + " => Count: " + length);
       });
     });
+'Word.Body#shapes:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Gets text boxes in main document.
+      const shapes: Word.ShapeCollection = context.document.body.shapes;
+      shapes.load();
+      await context.sync();
+
+      if (shapes.items.length > 0) {
+        shapes.items.forEach(function(shape, index) {
+          if (shape.type === Word.ShapeType.textBox) {
+            console.log(`Shape ${index} in the main document has a text box. Properties:`, shape);
+          }
+        });
+      } else {
+        console.log("No shapes found in main document.");
+      }
+    });
 'Word.Body#tables:member':
   - >-
     // Link to full sample:
@@ -18740,7 +18762,7 @@
         console.warn("There are no content controls in this document.");
         return;
       }
-      
+
       firstContentControl.resetState();
       firstContentControl.load("id");
       await context.sync();
@@ -18796,7 +18818,8 @@
     // Sets the state of the first content control.
 
     await Word.run(async (context) => {
-      const state = ((document.getElementById("state-to-set") as HTMLSelectElement).value as unknown) as Word.ContentControlState;
+      const state = ((document.getElementById("state-to-set") as HTMLSelectElement)
+        .value as unknown) as Word.ContentControlState;
       let firstContentControl = context.document.contentControls.getFirstOrNullObject();
       await context.sync();
 
@@ -19701,7 +19724,8 @@
     // Sets the state of the first content control.
 
     await Word.run(async (context) => {
-      const state = ((document.getElementById("state-to-set") as HTMLSelectElement).value as unknown) as Word.ContentControlState;
+      const state = ((document.getElementById("state-to-set") as HTMLSelectElement)
+        .value as unknown) as Word.ContentControlState;
       let firstContentControl = context.document.contentControls.getFirstOrNullObject();
       await context.sync();
 
@@ -22106,6 +22130,27 @@
 
       console.log("Inserted section without an associated page break.");
     });
+'Word.InsertShapeOptions:interface':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Inserts a text box at the beginning of the selection.
+      const range: Word.Range = context.document.getSelection();
+      const insertShapeOptions: Word.InsertShapeOptions = {
+        top: 0,
+        left: 0,
+        height: 100,
+        width: 100
+      };
+
+      const newTextBox: Word.Shape = range.insertTextBox("placeholder text", insertShapeOptions);
+      await context.sync();
+
+      console.log("Inserted a text box at the beginning of the current selection.");
+    });
 'Word.List:class':
   - >-
     // Link to full sample:
@@ -23330,6 +23375,29 @@
 
       await context.sync();
     });
+'Word.Paragraph#insertTextBox:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Inserts a text box at the beginning of the first paragraph in header.
+      const headerFooterBody: Word.Body = context.document.sections.getFirst().getHeader(Word.HeaderFooterType.primary);
+      headerFooterBody.load("paragraphs");
+      const firstParagraph: Word.Paragraph = headerFooterBody.paragraphs.getFirst();
+      const insertShapeOptions: Word.InsertShapeOptions = {
+        top: 0,
+        left: 0,
+        height: 100,
+        width: 100
+      };
+      const newTextBox: Word.Shape = firstParagraph.insertTextBox("placeholder text", insertShapeOptions);
+      newTextBox.select();
+      await context.sync();
+
+      console.log("Inserted a text box at the beginning of the first paragraph in the header.");
+    });
 'Word.Paragraph#select:member(1)':
   - >-
     // Link to full sample:
@@ -24171,6 +24239,63 @@
 
       console.log("Inserted footnote.");
     });
+'Word.Range#insertInlinePictureFromBase64:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Inserts a picture at the start of the first text box.
+      const firstShapeWithTextBox: Word.Shape = context.document.body.shapes
+        .getByTypes([Word.ShapeType.textBox])
+        .getFirst();
+      firstShapeWithTextBox.load("type/body");
+      await context.sync();
+
+      const startRange: Word.Range = firstShapeWithTextBox.body.getRange(Word.RangeLocation.start);
+      const newPic: Word.InlinePicture = startRange.insertInlinePictureFromBase64(
+        getPictureBase64(),
+        Word.InsertLocation.start
+      );
+      newPic.load();
+      await context.sync();
+
+      console.log("New inline picture properties:", newPic);
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    // Returns Base64-encoded image data for a sample picture.
+
+    const pictureBase64 =
+
+    "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";
+
+    return pictureBase64;
+'Word.Range#insertTextBox:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Inserts a text box at the beginning of the selection.
+      const range: Word.Range = context.document.getSelection();
+      const insertShapeOptions: Word.InsertShapeOptions = {
+        top: 0,
+        left: 0,
+        height: 100,
+        width: 100
+      };
+
+      const newTextBox: Word.Shape = range.insertTextBox("placeholder text", insertShapeOptions);
+      await context.sync();
+
+      console.log("Inserted a text box at the beginning of the current selection.");
+    });
 'Word.Range#footnotes:member':
   - >-
     // Link to full sample:
@@ -24583,6 +24708,147 @@
         shading.texture = Word.ShadingTextureType.darkTrellis;
 
         console.log("Updated shading.");
+      }
+    });
+'Word.Shape:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Sets the properties of the first text box.
+      const firstShapeWithTextBox: Word.Shape = context.document.body.shapes
+        .getByTypes([Word.ShapeType.textBox])
+        .getFirst();
+      firstShapeWithTextBox.top = 115;
+      firstShapeWithTextBox.left = 0;
+      firstShapeWithTextBox.width = 50;
+      firstShapeWithTextBox.height = 50;
+      await context.sync();
+
+      console.log("The first text box's properties were updated:", firstShapeWithTextBox);
+    });
+'Word.Shape#delete:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Deletes the first text box.
+      context.document.body.shapes
+        .getByTypes([Word.ShapeType.textBox])
+        .getFirst()
+        .delete();
+      await context.sync();
+
+      console.log("The first text box in document was deleted.");
+    });
+'Word.Shape#type:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Gets text boxes in main document.
+      const shapes: Word.ShapeCollection = context.document.body.shapes;
+      shapes.load();
+      await context.sync();
+
+      if (shapes.items.length > 0) {
+        shapes.items.forEach(function(shape, index) {
+          if (shape.type === Word.ShapeType.textBox) {
+            console.log(`Shape ${index} in the main document has a text box. Properties:`, shape);
+          }
+        });
+      } else {
+        console.log("No shapes found in main document.");
+      }
+    });
+'Word.ShapeCollection:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Gets text boxes in main document.
+      const shapes: Word.ShapeCollection = context.document.body.shapes;
+      shapes.load();
+      await context.sync();
+
+      if (shapes.items.length > 0) {
+        shapes.items.forEach(function(shape, index) {
+          if (shape.type === Word.ShapeType.textBox) {
+            console.log(`Shape ${index} in the main document has a text box. Properties:`, shape);
+          }
+        });
+      } else {
+        console.log("No shapes found in main document.");
+      }
+    });
+'Word.ShapeCollection#getByTypes:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Sets the properties of the first text box.
+      const firstShapeWithTextBox: Word.Shape = context.document.body.shapes
+        .getByTypes([Word.ShapeType.textBox])
+        .getFirst();
+      firstShapeWithTextBox.top = 115;
+      firstShapeWithTextBox.left = 0;
+      firstShapeWithTextBox.width = 50;
+      firstShapeWithTextBox.height = 50;
+      await context.sync();
+
+      console.log("The first text box's properties were updated:", firstShapeWithTextBox);
+    });
+'Word.ShapeCollection#getFirst:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Inserts a content control into the first paragraph in the first text box.
+      const firstShapeWithTextBox: Word.Shape = context.document.body.shapes
+        .getByTypes([Word.ShapeType.textBox])
+        .getFirst();
+      firstShapeWithTextBox.load("type/body");
+      await context.sync();
+
+      const firstParagraphInTextBox: Word.Paragraph = firstShapeWithTextBox.body.paragraphs.getFirst();
+      const newControl: Word.ContentControl = firstParagraphInTextBox.insertContentControl();
+      newControl.load();
+      await context.sync();
+
+      console.log("New content control properties:", newControl);
+    });
+'Word.ShapeType:enum':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-shapes-text-boxes.yaml
+
+
+    await Word.run(async (context) => {
+      // Gets text boxes in main document.
+      const shapes: Word.ShapeCollection = context.document.body.shapes;
+      shapes.load();
+      await context.sync();
+
+      if (shapes.items.length > 0) {
+        shapes.items.forEach(function(shape, index) {
+          if (shape.type === Word.ShapeType.textBox) {
+            console.log(`Shape ${index} in the main document has a text box. Properties:`, shape);
+          }
+        });
+      } else {
+        console.log("No shapes found in main document.");
       }
     });
 'Word.Style:class':

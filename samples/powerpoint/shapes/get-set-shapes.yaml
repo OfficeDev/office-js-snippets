@@ -6,7 +6,7 @@ host: POWERPOINT
 api_set:
     PowerPointApi: '1.5'
 script:
-    content: |-
+    content: |
         document.getElementById("getSelectedShapes").addEventListener("click", () => tryCatch(getSelectedShapes));
         document.getElementById("setSelectedShapes").addEventListener("click", () => tryCatch(setSelectedShapes));
         document.getElementById("changeFill").addEventListener("click", () => tryCatch(changeFill));
@@ -43,14 +43,17 @@ script:
             context.presentation.load("slides");
             await context.sync();
             const slide1 = context.presentation.slides.getItemAt(0);
-            slide1.load("shapes");
+            slide1.load("shapes/items/type");
             await context.sync();
-            const shapes: PowerPoint.ShapeCollection = slide1.shapes;
-            const shape1: PowerPoint.Shape = shapes.getItemAt(0);
-            const shape2: PowerPoint.Shape = shapes.getItemAt(1);
+
+            const shapes = slide1.shapes.items.filter((item) => item.type === PowerPoint.ShapeType.geometricShape);
+            const shape1: PowerPoint.Shape = shapes[0];
+            const shape2: PowerPoint.Shape = shapes[1];
             shape1.load("id");
             shape2.load("id");
             await context.sync();
+
+            console.log(`IDs: ${shape1.id}, ${shape2.id}`)
             slide1.setSelectedShapes([shape1.id, shape2.id]);
             await context.sync();
           });
@@ -127,7 +130,9 @@ script:
             const minNewShapeWidth = 50;
             const minNewShapeHeight = 50;
             for (let i = 0; i < 20; i++) {
-              const rectangle: PowerPoint.Shape = currentSlide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+              const rectangle: PowerPoint.Shape = currentSlide.shapes.addGeometricShape(
+                PowerPoint.GeometricShapeType.rectangle
+              );
               rectangle.height = getRandomBetween(minNewShapeWidth, maxNewShapeWidth);
               rectangle.width = getRandomBetween(minNewShapeHeight, maxNewShapeHeight);
               rectangle.left = getRandomBetween(0, slideWidth - rectangle.width);
@@ -135,13 +140,9 @@ script:
               rectangle.fill.foregroundColor = generateRandomHexColor();
             }
             finalTable += "Done<br>";
-            const slideTags = document.getElementById("slide-tags");
-            if (slideTags) {
-              slideTags.innerHTML = "";
-              slideTags.innerHTML += finalTable;
-            } else {
-              console.warn('Element with ID "slide-tags" not found.');
-            }
+            const outputSpan = document.getElementById("outputSpan");
+            outputSpan.innerHTML = "";
+            outputSpan.innerHTML += finalTable;
           });
         }
 

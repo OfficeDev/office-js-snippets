@@ -1,0 +1,193 @@
+order: 6
+id: powerpoint-shapes-group-ungroup-shapes
+name: Group and ungroup shapes
+description: Shows how to create two shapes then group and ungroup them.
+author: aafvstam
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.8'
+script:
+    content: |
+        document.getElementById("group-shapes").addEventListener("click", () => tryCatch(groupShapes));
+        document.getElementById("move-group").addEventListener("click", () => tryCatch(moveGroup));
+        document.getElementById("ungroup-shapes").addEventListener("click", () => tryCatch(ungroupShapes));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function groupShapes() {
+          await PowerPoint.run(async (context) => {
+            // Groups the geometric shapes on the current slide.
+
+            // Get the shapes on the current slide.
+            context.presentation.load("slides");
+            const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+            slide.load("shapes/items/type,shapes/items/id");
+            await context.sync();
+
+            const shapes: PowerPoint.ShapeCollection = slide.shapes;
+            const shapesToGroup = shapes.items.filter((item) => item.type === PowerPoint.ShapeType.geometricShape);
+            if (shapesToGroup.length === 0) {
+              console.warn("No shapes on the current slide, so nothing to group.");
+              return;
+            }
+
+            // Group the geometric shapes.
+            console.log(`Number of shapes to group: ${shapesToGroup.length}`);
+            const group = shapes.addGroup(shapesToGroup);
+            group.load("id");
+            await context.sync();
+
+            console.log(`Grouped shapes. Group ID: ${group.id}`);
+          });
+        }
+
+        async function moveGroup() {
+          await PowerPoint.run(async (context) => {
+            // Move the first shape group to the top-left of the current slide.
+
+            // Get the shapes on the current slide.
+            context.presentation.load("slides");
+            const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+            slide.load("shapes/items/type,shapes/items/id");
+            await context.sync();
+
+            const shapes: PowerPoint.ShapeCollection = slide.shapes;
+            const shapeGroups = shapes.items.filter((item) => item.type === PowerPoint.ShapeType.group);
+            if (shapeGroups.length === 0) {
+              console.warn("No shape groups on the current slide, so nothing to move.");
+              return;
+            }
+
+            // Move the first grouped shapes.
+            const firstGroupId = shapeGroups[0].id;
+            const shapeGroupToMove = shapes.getItem(firstGroupId);
+            shapeGroupToMove.top = 0;
+            shapeGroupToMove.left = 0;
+            await context.sync();
+
+            console.log(`Moved shape group with group ID: ${firstGroupId}`);
+          });
+        }
+
+        async function ungroupShapes() {
+          await PowerPoint.run(async (context) => {
+            // Ungroups the first shape group on the current slide.
+
+            // Get the shapes on the current slide.
+            context.presentation.load("slides");
+            const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+            slide.load("shapes/items/type,shapes/items/id");
+            await context.sync();
+
+            const shapes: PowerPoint.ShapeCollection = slide.shapes;
+            const shapeGroups = shapes.items.filter((item) => item.type === PowerPoint.ShapeType.group);
+            if (shapeGroups.length === 0) {
+              console.warn("No shape groups on the current slide, so nothing to ungroup.");
+              return;
+            }
+
+            // Ungroup the first grouped shapes.
+            const firstGroupId = shapeGroups[0].id;
+            const shapeGroupToUngroup = shapes.getItem(firstGroupId);
+            shapeGroupToUngroup.group.ungroup();
+            await context.sync();
+
+            console.log(`Ungrouped shapes with group ID: ${firstGroupId}`);
+          });
+        }
+
+        async function setup() {
+          await PowerPoint.run(async (context) => {
+            // Adds a new slide with two shapes.
+            const slideCountResult = context.presentation.slides.getCount();
+            context.presentation.slides.add();
+            await context.sync();
+
+            const newSlide = context.presentation.slides.getItemAt(slideCountResult.value);
+            newSlide.load("id");
+
+            // Create two shapes.
+            const shape1 = newSlide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+            shape1.left = 100;
+            shape1.top = 100;
+            shape1.width = 150;
+            shape1.height = 100;
+            shape1.fill.foregroundColor = "darkred";
+
+            const shape2 = newSlide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.ellipse);
+            shape2.left = 300;
+            shape2.top = 100;
+            shape2.width = 150;
+            shape2.height = 100;
+            shape2.fill.foregroundColor = "darkblue";
+
+            await context.sync();
+
+            console.log(`Added slide - ID: ${newSlide.id}`);
+
+            // Switch to the new slide.
+            context.presentation.setSelectedSlides([newSlide.id]);
+            await context.sync();
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            <p>Shows how to group then ungroup shapes.</p>
+            <p><i>Code sample based on community contribution from <a href="https://github.com/aafvstam" target="_blank">Maarten van Stam</a>.</i></p>
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Set up</span>
+          </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="group-shapes" class="ms-Button">
+                <span class="ms-Button-label">Group shapes</span>
+            </button>
+            <button id="move-group" class="ms-Button">
+                <span class="ms-Button-label">Move group</span>
+                </button>
+            <button id="ungroup-shapes" class="ms-Button">
+                <span class="ms-Button-label">Ungroup shapes</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |
+        section.samples {
+            margin-top: 20px;
+        }
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+        .content {
+          padding: 0 18px;
+          /* display: none; */
+          overflow: hidden;
+          background-color: #f1f1f1;
+          max-height: 0;
+          transition: max-height 0.2s ease-out;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

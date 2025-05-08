@@ -1,0 +1,366 @@
+order: 4
+id: powerpoint-shapes-add-modify-tables
+name: Add and modify tables
+description: Shows how to add and modify tables in a presentation.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.8'
+script:
+    content: |
+        document.getElementById("add-basic-table").addEventListener("click", () => tryCatch(addBasicTable));
+        document.getElementById("table-width-height").addEventListener("click", () => tryCatch(tableWidthHeight));
+        document
+          .getElementById("table-column-widths-row-heights")
+          .addEventListener("click", () => tryCatch(tableColumnWidthsRowHeights));
+        document.getElementById("table-values").addEventListener("click", () => tryCatch(tableValues));
+        document.getElementById("table-merge-areas").addEventListener("click", () => tryCatch(tableMergeAreas));
+        document.getElementById("table-cell-fill-font").addEventListener("click", () => tryCatch(tableCellFillFont));
+        document.getElementById("table-borders").addEventListener("click", () => tryCatch(tableBorders));
+        document.getElementById("table-indent-margin").addEventListener("click", () => tryCatch(tableIndentMargin));
+        document.getElementById("table-cell-alignment").addEventListener("click", () => tryCatch(tableCellAlignment));
+        document.getElementById("table-from-shape").addEventListener("click", () => tryCatch(getTableFromShape));
+        document.getElementById("update-table-values").addEventListener("click", () => tryCatch(updateTableValues));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function addBasicTable() {
+          // Adds a basic table.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a simple table, specifying the row and column count.
+            shapes.addTable(3, 4);
+            await context.sync();
+          });
+        }
+
+        async function tableWidthHeight() {
+          // Specifies the width and height of a table.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table, specifying the width and height.
+            shapes.addTable(3, 4, {
+              width: 600,
+              height: 400
+            });
+            await context.sync();
+          });
+        }
+
+        async function tableColumnWidthsRowHeights() {
+          // Specifies the column widths and row heights of a table.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table, specifying column widths and row heights
+            shapes.addTable(3, 4, {
+              columns: [{ columnWidth: 100 }, { columnWidth: 200 }, { columnWidth: 100 }, { columnWidth: 200 }],
+              rows: [{ rowHeight: 60 }, { rowHeight: 120 }, { rowHeight: 180 }]
+            });
+            await context.sync();
+          });
+        }
+
+        async function tableValues() {
+          // Specifies a table's values.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table, specifying cell values.
+            const shape = shapes.addTable(3, 4, {
+              values: [
+                ["A", "BB", "CCC", "DDDD"],
+                ["E", "FF", "GGG", "HHHH"],
+                ["1", "12", "123", "1234"]
+              ]
+            });
+            await context.sync();
+          });
+        }
+
+        async function tableMergeAreas() {
+          // Specifies the merge areas of a table.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table, specifying one 2x2 merged area.
+            shapes.addTable(3, 4, {
+              values: [
+                ["A", "BB", "CCC", "DDDD"],
+                ["E", "FF", "", "HHHH"],
+                ["1", "", "", "1234"]
+              ],
+              mergedAreas: [{ rowIndex: 1, columnIndex: 1, rowCount: 2, columnCount: 2 }]
+            });
+            await context.sync();
+          });
+        }
+
+        async function tableCellFillFont() {
+          // Specifies the font formatting and fill colors of the cells in a table.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table, specifying font formatting and fill colors
+            shapes.addTable(3, 4, {
+              values: [
+                ["A", "BB", "CCC", "DDDD"],
+                ["E", "FF", "GGG", "HHHH"],
+                ["1", "12", "123", "1234"]
+              ],
+              specificCellProperties: [
+                [
+                  { fill: { color: "red" }, font: { color: "yellow", name: "Calibri" } },
+                  { fill: { color: "#0048ba" }, font: { color: "yellow", name: "Coolvetica" } },
+                  { fill: { color: "red" }, font: { color: "yellow", italic: true } },
+                  { fill: { color: "red" }, font: { color: "#9966cc", strikethrough: true } }
+                ],
+                [
+                  { fill: { color: "#fbceb1" }, font: { color: "yellow", doubleStrikethrough: true } },
+                  { fill: { color: "red" }, font: { color: "yellow", subscript: true } },
+                  { fill: { color: "#0048ba" }, font: { color: "yellow", superscript: true } },
+                  { fill: { color: "red" }, font: { color: "yellow" } }
+                ],
+                [
+                  { fill: { color: "red" }, font: { color: "#b0bf1a" } },
+                  { fill: { color: "#9966cc" }, font: { color: "yellow" } },
+                  { fill: { color: "#b0bf1a" }, font: { color: "yellow" } },
+                  { fill: { color: "red" }, font: { color: "#fbceb1" } }
+                ]
+              ]
+            });
+            await context.sync();
+          });
+        }
+
+        async function tableBorders() {
+          // Specifies a table's borders.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table, specifying border styles
+            shapes.addTable(3, 4, {
+              values: [
+                ["A", "BB", "CCC", "DDDD"],
+                ["E", "FF", "GGG", "HHHH"],
+                ["1", "12", "123", "1234"]
+              ],
+              uniformCellProperties: {
+                borders: {
+                  left: { color: "blue", dashStyle: PowerPoint.ShapeLineDashStyle.solid, weight: 4 },
+                  right: { color: "blue", dashStyle: PowerPoint.ShapeLineDashStyle.solid, weight: 4 },
+                  top: { color: "red", dashStyle: PowerPoint.ShapeLineDashStyle.longDashDotDot, weight: 2 },
+                  bottom: { color: "red", dashStyle: PowerPoint.ShapeLineDashStyle.longDashDotDot, weight: 2 }
+                }
+              }
+            });
+            await context.sync();
+          });
+        }
+
+        async function tableIndentMargin() {
+          // Specifying the indents for a table.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table, specifying the indent level for cells.
+            shapes.addTable(3, 4, {
+              values: [
+                ["A", "BB", "CCC", "DDDD"],
+                ["E", "FF", "GGG", "HHHH"],
+                ["1", "12", "123", "1234"]
+              ],
+              specificCellProperties: [
+                [{ indentLevel: 0 }, { indentLevel: 1 }, { indentLevel: 2 }, { indentLevel: 3 }],
+                [{ indentLevel: 0 }, { indentLevel: 1 }, { indentLevel: 2 }, { indentLevel: 3 }],
+                [{ indentLevel: 0 }, { indentLevel: 1 }, { indentLevel: 2 }, { indentLevel: 3 }]
+              ]
+            });
+            await context.sync();
+          });
+        }
+
+        async function tableCellAlignment() {
+          // Specifies the horizontal and vertical alignments of the cells in a table.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table, specifying horizontal and vertical alignment.
+            shapes.addTable(3, 4, {
+              values: [
+                ["A", "BB", "CCC", "DDDD"],
+                ["E", "FF", "GGG", "HHHH"],
+                ["1", "12", "123", "1234"]
+              ],
+              uniformCellProperties: {
+                horizontalAlignment: PowerPoint.ParagraphHorizontalAlignment.justify,
+                verticalAlignment: PowerPoint.TextVerticalAlignment.middle
+              }
+            });
+            await context.sync();
+          });
+        }
+
+        async function getTableFromShape() {
+          // Gets the table from a shape.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedShapes();
+            const shapeCount = shapes.getCount();
+            shapes.load("items");
+            await context.sync();
+
+            if (shapeCount.value > 0) {
+              const shape = shapes.getItemAt(0);
+              shape.load("type");
+              await context.sync();
+
+              // The shape type can indicate whether the shape is a table.
+              const isTable = shape.type === PowerPoint.ShapeType.table;
+
+              if (isTable) {
+                // Get the Table object for the Shape which is a table.
+                const table = shape.getTable();
+                table.load();
+                await context.sync();
+
+                // Get the Table row and column count.
+                console.log("Table RowCount:" + table.rowCount + " and columnCount: " + table.columnCount);
+              } else console.log("Selected shape isn't table.");
+            } else console.log("No shape selected.");
+          });
+        }
+
+        async function updateTableValues() {
+          // Updates a table's values.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table (which is a type of Shape).
+            const shape = shapes.addTable(4, 3);
+            let table = shape.getTable();
+            table.load();
+            await context.sync();
+
+            // Update values in the table.
+            for (let rowIndex = 0; rowIndex < table.rowCount; rowIndex++) {
+              for (let columnIndex = 0; columnIndex < table.columnCount; columnIndex++) {
+                const cell = table.getCellOrNullObject(rowIndex, columnIndex);
+                cell.text = generateRandomString();
+              }
+            }
+          });
+        }
+
+        function generateRandomString(length: number = 5): string {
+          // Generates a random string.
+          const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+          let result = "";
+
+          while (result.length < length) {
+            const randomIndex = Math.floor(Math.random() * characters.length);
+            result += characters.charAt(randomIndex);
+          }
+
+          return result;
+        }
+
+        async function setup() {
+          await PowerPoint.run(async (context) => {
+            // Adds a new slide with some content.
+            const slideCountResult = context.presentation.slides.getCount();
+            context.presentation.slides.add();
+            await context.sync();
+
+            const newSlide = context.presentation.slides.getItemAt(slideCountResult.value);
+            newSlide.load("id");
+            newSlide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.hexagon);
+            await context.sync();
+
+            console.log(`Added slide - ID: ${newSlide.id}`);
+
+            // Switch to the new slide.
+            context.presentation.setSelectedSlides([newSlide.id]);
+            await context.sync();
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            <p>This sample shows how to add and modify tables.</p>
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Set up</span>
+          </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="add-basic-table" class="ms-Button">
+                <span class="ms-Button-label">Add basic table</span>
+          </button>
+            <button id="table-width-height" class="ms-Button">
+                <span class="ms-Button-label">Set width and height</span>
+            </button>
+            <button id="table-column-widths-row-heights" class="ms-Button">
+                <span class="ms-Button-label">Set column widths and row heights</span>
+            </button>
+            <button id="table-values" class="ms-Button">
+                <span class="ms-Button-label">Set table values</span>
+            </button>
+            <button id="table-merge-areas" class="ms-Button">
+                <span class="ms-Button-label">Add table with merge areas</span>
+            </button>
+            <button id="table-cell-fill-font" class="ms-Button">
+                <span class="ms-Button-label">Set cell fill and font</span>
+            </button>
+            <button id="table-borders" class="ms-Button">
+                <span class="ms-Button-label">Set table borders</span>
+            </button>
+            <button id="table-indent-margin" class="ms-Button">
+                <span class="ms-Button-label">Set table indents and margins</span>
+            </button>
+            <button id="table-cell-alignment" class="ms-Button">
+                <span class="ms-Button-label">Set horizontal and vertical alignments</span>
+            </button>
+            <button id="table-from-shape" class="ms-Button">
+                <span class="ms-Button-label">Get selected table and log to console</span>
+            </button>
+            <button id="update-table-values" class="ms-Button">
+                <span class="ms-Button-label">Update values in table</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js

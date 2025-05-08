@@ -1,0 +1,306 @@
+order: 5
+id: powerpoint-slide-management-export-import-slide
+name: Export and import slide
+description: Shows how to export and import a slide.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.8'
+script:
+    content: |
+        document.getElementById("export-slide-button").addEventListener("click", () => tryCatch(exportSlide));
+        document.getElementById("clear-exported-slide-button").addEventListener("click", () => tryCatch(clearExportedSlide));
+        document.getElementById("import-slide-button").addEventListener("click", () => tryCatch(importSlide));
+        document.getElementById("slide-image-button").addEventListener("click", () => tryCatch(addSlideImageToNewSlide));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function exportSlide() {
+          // Exports current slide.
+          await PowerPoint.run(async (context) => {
+            const slide = context.presentation.getSelectedSlides().getItemAt(0);
+            const slideBase64DataResult = slide.exportAsBase64();
+            const imageBase64DataResult = slide.getImageAsBase64({ height: 300 });
+            await context.sync();
+
+            localStorage.setItem("exportedSlide", slideBase64DataResult.value);
+            localStorage.setItem("exportedSlideImage", imageBase64DataResult.value);
+
+            updateSlideImage(imageBase64DataResult.value);
+
+            console.log("Slide was exported.");
+          });
+        }
+
+        function clearExportedSlide() {
+          // Clears exported slide.
+          localStorage.removeItem("exportedSlide");
+          localStorage.removeItem("exportedSlideImage");
+          updateSlideImage("");
+          console.log("Exported slide was cleared.");
+        }
+
+        async function importSlide() {
+          // Imports the slide that was most recently exported.
+          const slideBase64Data = localStorage.getItem("exportedSlide");
+          if (slideBase64Data === null) {
+            console.warn("Unable to import. You must first export a slide.");
+            return;
+          }
+
+          await PowerPoint.run(async (context) => {
+            const currentSlide = context.presentation.getSelectedSlides().getItemAt(0);
+            currentSlide.load("id");
+            await context.sync();
+
+            context.presentation.insertSlidesFromBase64(slideBase64Data, { targetSlideId: currentSlide.id });
+          });
+        }
+
+        async function getSlideImage(options?: PowerPoint.SlideGetImageOptions): Promise<string> {
+          // Gets slide image.
+          return PowerPoint.run(async (context) => {
+            const slide = context.presentation.getSelectedSlides().getItemAt(0);
+            const imageBase64Result = slide.getImageAsBase64(options);
+            await context.sync();
+
+            return imageBase64Result.value;
+          });
+        }
+
+        async function getImageDimensions(base64Data: string): Promise<{ width: number; height: number }> {
+          // Gets image dimensions.
+          return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onerror = () => {
+              reject();
+            };
+            image.onload = () => {
+              resolve({ width: image.width, height: image.height });
+            };
+            image.src = `data:image/png;base64,${base64Data}`;
+          });
+        }
+
+        async function addSlideWithImage(imageBase64): Promise<void> {
+          // Adds a new slide including an image.
+          return PowerPoint.run(async (context) => {
+            const presentation = context.presentation;
+            const currentSlide = presentation.getSelectedSlides().getItemAt(0);
+            const slideCountResult = context.presentation.slides.getCount();
+
+            currentSlide.layout.load();
+            await context.sync();
+
+            const slideCount = slideCountResult.value;
+
+            console.log(`Adding slide using layout ${currentSlide.layout.id}`);
+
+            // Add a new slide at the end of the presentation.
+            context.presentation.slides.add({ layoutId: currentSlide.layout.id });
+            try {
+              await context.sync();
+            } catch (err) {
+              console.error(`Unable to add slide (with layout from current slide). ${err}`);
+
+              // Try adding without specifying the layout.
+              context.presentation.slides.add();
+
+              try {
+                await context.sync();
+              } catch (err) {
+                console.error(`Unable to add slide. ${err}`);
+                throw err;
+              }
+            }
+
+            console.log("Slide added");
+
+            // Get added slide.
+            const slide = context.presentation.slides.getItemAt(slideCount);
+
+            slide.load(["id"]);
+
+            await context.sync();
+
+            console.log(`Added slide id: ${slide.id}`);
+
+            // Switch to the new slide.
+            context.presentation.setSelectedSlides([slide.id]);
+            try {
+              await context.sync();
+            } catch (err) {
+              console.error(`Unable to switch to the new slide. ${err}`);
+              throw err;
+            }
+
+            console.log("Switched to the added slide.");
+
+            const activeSlide = context.presentation.getSelectedSlides().getItemAt(0);
+            activeSlide.load(["id"]);
+            await context.sync();
+
+            console.log(`Active slide id: ${activeSlide.id}`);
+
+            const imageDimensions = await getImageDimensions(imageBase64);
+            const shapeAddOptions = {
+              height: imageDimensions.height,
+              width: imageDimensions.width
+            };
+
+            let shape;
+
+            shape = await addImageToCurrentSlide(imageBase64);
+            shape.load(["id"]);
+            await context.sync();
+
+            // Select the added image.
+            activeSlide.setSelectedShapes([shape.id]);
+            await context.sync();
+          });
+        }
+
+        async function addImageToCurrentSlide(
+          imageBase64: string,
+          options?: PowerPoint.ShapeAddOptions
+        ): Promise<PowerPoint.Shape> {
+          // Adds an image to the current slide.
+          const setSelectedDataOptions: Office.SetSelectedDataOptions = {
+            coercionType: Office.CoercionType.Image
+          };
+          if (options) {
+            if (options.height) {
+              setSelectedDataOptions.imageHeight = options.height;
+            }
+            if (options.left) {
+              setSelectedDataOptions.imageLeft = options.left;
+            }
+            if (options.top) {
+              setSelectedDataOptions.imageTop = options.top;
+            }
+            if (options.width) {
+              setSelectedDataOptions.imageWidth = options.width;
+            }
+          }
+
+          return new Promise((resolve, reject) => {
+            Office.context.document.setSelectedDataAsync(
+              imageBase64,
+              setSelectedDataOptions,
+              async (result: Office.AsyncResult<void>) => {
+                if (result.error) {
+                  console.error(`ERROR in setSelectedDataAsync(): ${result.error}`);
+                  reject(result.error);
+                } else {
+                  const shape = await PowerPoint.run(async (context) => {
+                    const slide = context.presentation.getSelectedSlides().getItemAt(0);
+                    slide.shapes.load();
+                    await context.sync();
+
+                    return slide.shapes.items[slide.shapes.items.length - 1];
+                  });
+                  resolve(shape);
+                }
+              }
+            );
+          });
+        }
+
+        async function addSlideImageToNewSlide() {
+          // Adds an image of current slide to the new slide.
+          const imageBase64 = await getSlideImage({ height: 500 });
+
+          await addSlideWithImage(imageBase64);
+        }
+
+        function updateSlideImage(imageBase64: string) {
+          const slideImageElement = document.getElementById("slide-image") as HTMLImageElement;
+          slideImageElement.src = imageBase64 ? `data:image/png;base64,${imageBase64}` : "";
+        }
+
+        async function setup() {
+          await PowerPoint.run(async (context) => {
+            // Adds a new slide with some content.
+            const slideCountResult = context.presentation.slides.getCount();
+            context.presentation.slides.add();
+            await context.sync();
+
+            const newSlide = context.presentation.slides.getItemAt(slideCountResult.value);
+            newSlide.load("id");
+            newSlide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.hexagon);
+            await context.sync();
+
+            console.log(`Added slide - ID: ${newSlide.id}`);
+
+            // Switch to the new slide.
+            context.presentation.setSelectedSlides([newSlide.id]);
+            await context.sync();
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            This sample demonstrates how to export and import a slide.
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Set up</span>
+          </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="export-slide-button" class="ms-Button">
+            <span class="ms-Button-label">Export current slide</span>
+        </button>
+            <button id="clear-exported-slide-button" class="ms-Button">
+            <span class="ms-Button-label">Clear exported slide</span>
+        </button>
+            <img id="slide-image" src=""/>
+            <p>Once a slide has been exported, click the <b>Import slide</b> button to insert into the presentation.</p>
+            <p>To add it to a different presentation, open that presentation and select a slide. It will be inserted after the
+                selected slide.</p>
+            <button id="import-slide-button" class="ms-Button">
+            <span class="ms-Button-label">Import slide</span>
+        </button><br>
+            <p>Click the following button to capture an image of the current slide and add it to a new slide at the end of the presentation.</p>
+            <button id="slide-image-button" class="ms-Button">
+            <span class="ms-Button-label">Put slide image on another slide</span>
+        </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+
+        img {
+          border: 5px solid #555;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    @types/office-js
+
+    office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+    office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+    core-js@2.4.1/client/core.min.js
+    @types/core-js

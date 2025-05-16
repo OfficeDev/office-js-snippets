@@ -9,15 +9,9 @@ script:
         document.getElementById("attachment-content-compose").addEventListener("click", getAttachmentContentCompose);
         document.getElementById("attachment-content-read").addEventListener("click", getAttachmentContentRead);
 
-        const item = Office.context.mailbox.item;
-
         function getAttachmentContentCompose() {
-          // Gets the attachments of the current message or appointment in compose mode.
-          const options = { asyncContext: { currentItem: item } };
-          // The getAttachmentsAsync call can only be used in compose mode.
-          item.getAttachmentsAsync(options, callback);
-
-          function callback(result) {
+          // Gets the attachments of the current message or appointment in compose mode. The getAttachmentsAsync call can only be used in compose mode.
+          Office.context.mailbox.item.getAttachmentsAsync((result) => {
             if (result.status === Office.AsyncResultStatus.Failed) {
               console.log(result.error.message);
               return;
@@ -30,14 +24,14 @@ script:
 
             for (let i = 0; i < result.value.length; i++) {
               // Log the attachment type and its contents to the console.
-              result.asyncContext.currentItem.getAttachmentContentAsync(result.value[i].id, handleAttachmentsCallback);
+              Office.context.mailbox.item.getAttachmentContentAsync(result.value[i].id, handleAttachmentsCallback);
             }
-          }
+          });
         }
 
         function getAttachmentContentRead() {
-          // Gets the attachments of the current message or appointment in read mode.
-          // The item.attachments call can only be used in read mode.
+          // Gets the attachments of the current message or appointment in read mode. The item.attachments call can only be used in read mode.
+          const item = Office.context.mailbox.item;
           const attachments = item.attachments;
           if (attachments.length <= 0) {
             console.log("Mail item has no attachments.");

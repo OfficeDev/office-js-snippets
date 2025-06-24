@@ -18,6 +18,7 @@ script:
         document.getElementById("table-borders").addEventListener("click", () => tryCatch(tableBorders));
         document.getElementById("table-indent-margin").addEventListener("click", () => tryCatch(tableIndentMargin));
         document.getElementById("table-cell-alignment").addEventListener("click", () => tryCatch(tableCellAlignment));
+        document.getElementById("table-text-runs").addEventListener("click", () => tryCatch(tableTextRuns));
         document.getElementById("table-from-shape").addEventListener("click", () => tryCatch(getTableFromShape));
         document.getElementById("update-table-values").addEventListener("click", () => tryCatch(updateTableValues));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
@@ -52,7 +53,7 @@ script:
           await PowerPoint.run(async (context) => {
             const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
 
-            // Add a table, specifying column widths and row heights
+            // Add a table, specifying column widths and row heights.
             shapes.addTable(3, 4, {
               columns: [{ columnWidth: 100 }, { columnWidth: 200 }, { columnWidth: 100 }, { columnWidth: 200 }],
               rows: [{ rowHeight: 60 }, { rowHeight: 120 }, { rowHeight: 180 }]
@@ -101,7 +102,7 @@ script:
           await PowerPoint.run(async (context) => {
             const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
 
-            // Add a table, specifying font formatting and fill colors
+            // Add a table, specifying font formatting and fill colors.
             shapes.addTable(3, 4, {
               values: [
                 ["A", "BB", "CCC", "DDDD"],
@@ -138,7 +139,7 @@ script:
           await PowerPoint.run(async (context) => {
             const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
 
-            // Add a table, specifying border styles
+            // Add a table, specifying border styles.
             shapes.addTable(3, 4, {
               values: [
                 ["A", "BB", "CCC", "DDDD"],
@@ -196,6 +197,51 @@ script:
                 horizontalAlignment: PowerPoint.ParagraphHorizontalAlignment.justify,
                 verticalAlignment: PowerPoint.TextVerticalAlignment.middle
               }
+            });
+            await context.sync();
+          });
+        }
+
+        async function tableTextRuns() {
+          // Specifies the text runs of the cells in a table.
+          await PowerPoint.run(async (context) => {
+            const shapes = context.presentation.getSelectedSlides().getItemAt(0).shapes;
+
+            // Add a table, specifying text runs.
+            shapes.addTable(3, 4, {
+              specificCellProperties: [
+                [
+                  { text: "Title text", font: { bold: true } },
+                  { text: "Title text", font: { bold: true } },
+                  { text: "Title text", font: { bold: true } },
+                  { text: "Title text", font: { bold: true } }
+                ],
+                [
+                  { text: "Bold text", font: { bold: true } },
+                  {
+                    textRuns: [
+                      { text: "Text runs with " },
+                      { text: "Underlined text", font: { underline: PowerPoint.ShapeFontUnderlineStyle.double } },
+                      { text: " and plain text" }
+                    ]
+                  },
+                  { text: "Italicized text", font: { italic: true } },
+                  { text: "Plain text" }
+                ],
+                [
+                  { text: "Bold text", font: { bold: true } },
+                  { text: "Underlined text", font: { underline: PowerPoint.ShapeFontUnderlineStyle.dotted } },
+                  {
+                    font: { bold: true },
+                    textRuns: [
+                      { text: "Text runs with " },
+                      { text: "italicized text", font: { italic: true } },
+                      { text: " and (inherited) bold text" }
+                    ]
+                  },
+                  { text: "Italicized text", font: { italic: true } }
+                ]
+              ]
             });
             await context.sync();
           });
@@ -335,6 +381,9 @@ template:
             </button>
             <button id="table-cell-alignment" class="ms-Button">
                 <span class="ms-Button-label">Set horizontal and vertical alignments</span>
+            </button>
+            <button id="table-text-runs" class="ms-Button">
+                <span class="ms-Button-label">Set text runs</span>
             </button>
             <button id="table-from-shape" class="ms-Button">
                 <span class="ms-Button-label">Get selected table and log to console</span>

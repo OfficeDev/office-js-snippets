@@ -1,0 +1,139 @@
+order: 17
+id: chart-leaderlines
+name: Leaderlines
+description: Enable and disable leaderlines for chart labels.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+script:
+  content: |
+    $("#setup").click(() => tryCatch(setup));
+    $("#addlabels").click(() => tryCatch(addLabels));
+    $("#turnonldl").click(() => tryCatch(turnOnLeaderlines));
+    $("#turnoffldl").click(() => tryCatch(turnOffLeaderlines));
+    $("#changeFormat").click(() => tryCatch(changeFormat));
+
+    async function setup() {
+      await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        const count = sheet.charts.getCount();
+        await context.sync();
+
+        if (count.value > 0) {
+          const chart = sheet.charts.getItemAt(0);
+          chart.delete();
+        }
+
+        let range = sheet.getRange("A1:C4");
+        range.values = [
+          ["Type", "Product A", "Product B"],
+          ["Q1", 15, 20],
+          ["Q2", 22, 15],
+          ["Q3", 33, 47]
+        ];
+        let chart = sheet.charts.add(Excel.ChartType.line, range);
+        chart.title.text = "Sales Quantity";
+        await context.sync();
+      });
+    }
+
+    async function changeFormat() {
+      await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        let chart = sheet.charts.getItemAt(0);
+        let series = chart.series.getItemAt(0);
+        let seriesDataLabels = series.dataLabels;
+        let lineformat = seriesDataLabels.leaderLines.format;
+
+        lineformat.line.color = "blue";
+        lineformat.line.weight = 2;
+        lineformat.line.lineStyle = Excel.ChartLineStyle.dot;
+
+        console.log("changes leaderlines format");
+      });
+    }
+
+    async function addLabels() {
+      await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        let chart = sheet.charts.getItemAt(0);
+        let series = chart.series.getItemAt(0);
+        series.hasDataLabels = true;
+        series.points.load("items");
+        await context.sync();
+        series.points.items.forEach((point) => point.dataLabel.load("top"));
+        await context.sync();
+
+        series.points.items[1].dataLabel.top = series.points.items[1].dataLabel.top - 50;
+        series.points.items[2].dataLabel.top = series.points.items[2].dataLabel.top + 50;
+        series.dataLabels.geometricShapeType = Excel.GeometricShapeType.rectangle;
+        series.dataLabels.showCategoryName = true;
+        series.dataLabels.format.border.weight = 1;
+        await context.sync();
+      });
+    }
+
+    async function turnOnLeaderlines() {
+      await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        let chart = sheet.charts.getItemAt(0);
+        let series = chart.series.getItemAt(0);
+        let seriesDataLabels = series.dataLabels;
+
+        seriesDataLabels.load("showLeaderLines");
+        await context.sync();
+        seriesDataLabels.showLeaderLines = true;
+        console.log("turned on leaderlines");
+      });
+    }
+
+    async function turnOffLeaderlines() {
+      await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        let chart = sheet.charts.getItemAt(0);
+        let series = chart.series.getItemAt(0);
+        let seriesDataLabels = series.dataLabels;
+        seriesDataLabels.showLeaderLines = false;
+        console.log("turned off leaderlines");
+      });
+    }
+
+    /** Default helper for invoking an action and handling errors. */
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+  language: typescript
+template:
+  content: "<section class=\"ms-font-m\">\n\t<p>This sample shows how to use the data label leader lines API.</p>\n</section>\n<section class=\"setup ms-font-m\">\n\t<h3>Setup</h3>\n\t<button id=\"setup\" class=\"ms-Button\">\n        <span class=\"ms-Button-label\">Create a chart</span>\n    </button>\n</section>\n<section class=\"samples ms-font-m\">\n\t<h3>Try it out</h3>\n\t<button id=\"addlabels\" class=\"ms-Button\">\n\t\t\t\t\t\t\t<span class=\"ms-Button-label\">Add datalabels</span>\n\t\t\t\t\t</button>\n\t<button id=\"turnonldl\" class=\"ms-Button\">\n\t\t\t\t\t\t\t<span class=\"ms-Button-label\">Switch on leaderlines</span>\n\t\t\t\t\t</button>\n\t<button id=\"turnoffldl\" class=\"ms-Button\">\n\t\t\t\t\t<span class=\"ms-Button-label\">Switch off leaderlines</span>\n\t\t\t</button>\n\t<button id=\"changeFormat\" class=\"ms-Button\">\n        <span class=\"ms-Button-label\">Change format of the leaderlines</span>\n    </button>\n</section>"
+  language: html
+style:
+  content: |-
+    section.samples {
+        margin-top: 20px;
+    }
+
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+libraries: |
+  https://appsforoffice.microsoft.com/lib/beta/hosted/office.js 
+  https://appsforoffice.microsoft.com/lib/beta/hosted/office-experiment52.d.ts
+
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
+
+  jquery@3.1.1
+  @types/jquery@3.3.1

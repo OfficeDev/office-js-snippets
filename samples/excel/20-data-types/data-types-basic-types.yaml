@@ -1,0 +1,311 @@
+order: 8
+id: chart-data-labels
+name: Basic types with metadata
+description:  This sample shows how to set and get data types using primitives.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+script:
+  content: >
+    $("#setup").on("click", () => tryCatch(setup));
+    $("#set-values-with-metadata").on("click", () => tryCatch(setValuesWithMetadata));
+    $("#set-vwm-referenced-values").on("click", () => tryCatch(setReferencedValuesVwM));
+    $("#set-vwm-circular-ref-values").on("click", () => tryCatch(setCircularReferencesPwM));
+    $("#get-formatted-number").on("click", () => tryCatch(getFormattedNumber));
+
+    let primitiveStringValue: Excel.StringCellValue = {
+      type: Excel.CellValueType.string,
+      basicType: Excel.CellValueType.string,
+      basicValue: "This is a primitive string value"
+    };
+
+    let primitiveDoubleValue: Excel.DoubleCellValue = {
+      type: Excel.CellValueType.double,
+      basicType: Excel.CellValueType.double,
+      basicValue: 10
+    };
+
+    let primitiveBooleanValue: Excel.BooleanCellValue = {
+      type: Excel.CellValueType.boolean,
+      basicType: Excel.CellValueType.boolean,
+      basicValue: true
+    };
+
+    let imageCellValue: Excel.WebImageCellValue = {
+      type: "WebImage",
+      basicType: "Error",
+      basicValue: "#VALUE!",
+      address: "https://1000logos.net/wp-content/uploads/2021/11/Bing-logo-500x281.png"
+    };
+
+    let basicViewLayoutWithIcon: Excel.BasicViewLayouts = {
+      card: {
+        title: "This is the title",
+        sections: [
+          {
+            layout: "List",
+            properties: ["stringProperty", "booleanProperty", "doubleProperty"],
+            collapsed: false,
+            collapsible: true
+          }
+        ],
+        subTitle: {
+          property: "stringProperty"
+        },
+        mainImage: {
+          property: "imageProperty"
+        }
+      },
+      compact: {
+        icon: Excel.EntityCompactLayoutIcons.animalDog
+      }
+    };
+
+    let basicViewLayoutSimpleWithoutIcon: Excel.BasicViewLayouts = {
+      card: {
+        title: "This is the title",
+        subTitle: {
+          property: "stringProperty"
+        }
+      }
+    };
+
+    let cellValueProvider: Excel.CellValueProviderAttributes = {
+      description: "Microsoft Bing",
+      logoSourceAddress: "https://logos-world.net/wp-content/uploads/2021/02/Bing-Logo.png",
+      logoTargetAddress: "https://www.bing.com"
+    };
+
+    let doubleWithFormatAndMetadata: Excel.DoubleCellValue = {
+      type: Excel.CellValueType.double,
+      basicType: Excel.CellValueType.double,
+      basicValue: 300,
+      numberFormat: "$0.00",
+      properties: {
+        stringProperty: primitiveStringValue,
+        booleanProperty: primitiveBooleanValue,
+        doubleProperty: primitiveDoubleValue,
+        imageProperty: imageCellValue
+      },
+      layouts: basicViewLayoutWithIcon,
+      provider: cellValueProvider
+    };
+
+    let doubleWithMetadata: Excel.DoubleCellValue = {
+      type: Excel.CellValueType.double,
+      basicType: Excel.CellValueType.double,
+      basicValue: 123.45,
+      properties: {
+        stringProperty: primitiveStringValue,
+        booleanProperty: primitiveBooleanValue,
+        doubleProperty: primitiveDoubleValue,
+        imageProperty: imageCellValue
+      },
+      layouts: basicViewLayoutSimpleWithoutIcon,
+      provider: cellValueProvider
+    };
+
+    let stringWithMetadata: Excel.StringCellValue = {
+      type: Excel.CellValueType.string,
+      basicType: Excel.CellValueType.string,
+      basicValue: "SwM",
+      properties: {
+        stringProperty: primitiveStringValue,
+        booleanProperty: primitiveBooleanValue,
+        doubleProperty: primitiveDoubleValue,
+        imageProperty: imageCellValue
+      },
+      layouts: basicViewLayoutWithIcon,
+      provider: cellValueProvider
+    };
+
+    let booleanWithMetadata: Excel.BooleanCellValue = {
+      type: Excel.CellValueType.boolean,
+      basicType: Excel.CellValueType.boolean,
+      basicValue: true,
+      properties: {
+        stringProperty: primitiveStringValue,
+        booleanProperty: primitiveBooleanValue,
+        doubleProperty: primitiveDoubleValue,
+        imageProperty: imageCellValue
+      },
+      layouts: basicViewLayoutSimpleWithoutIcon,
+      provider: cellValueProvider
+    };
+
+    async function setValuesWithMetadata() {
+      await Excel.run(async (context) => {
+        // Get the Sample worksheet and a range on that sheet.
+        const sheet = context.workbook.worksheets.getItemOrNullObject("PwMSample");
+        const dateRange = sheet.getRange("A1:A4");
+
+        // Write all different primitive with metadata to range A1:A4.
+        dateRange.valuesAsJson = [
+          [doubleWithFormatAndMetadata],
+          [doubleWithMetadata],
+          [stringWithMetadata],
+          [booleanWithMetadata]
+        ];
+        await context.sync();
+      });
+    }
+
+    async function setReferencedValuesVwM() {
+      await Excel.run(async (context) => {
+        // Get the Sample worksheet and a range on that sheet.
+        const sheet = context.workbook.worksheets.getItemOrNullObject("PwMSample");
+        const currencyRange = sheet.getRange("A5");
+
+        // Write a string with metadata with referenced values.
+        currencyRange.valuesAsJson = [
+          [
+            {
+              type: Excel.CellValueType.string,
+              basicType: Excel.CellValueType.string,
+              basicValue: "SwM Referenced Values",
+              properties: {
+                stringProperty: {
+                  type: Excel.CellValueType.reference,
+                  reference: 0
+                },
+                booleanProperty: {
+                  type: Excel.CellValueType.reference,
+                  reference: 1
+                },
+                doubleWithFormatProperty: {
+                  type: Excel.CellValueType.reference,
+                  reference: 2
+                },
+                doubleProperty: {
+                  type: Excel.CellValueType.reference,
+                  reference: 3
+                }
+              },
+              referencedValues: [stringWithMetadata, booleanWithMetadata, doubleWithFormatAndMetadata, doubleWithMetadata],
+              layouts: {
+                compact: {
+                  icon: Excel.EntityCompactLayoutIcons.apple
+                }
+              }
+            }
+          ]
+        ];
+
+        await context.sync();
+      });
+    }
+
+    async function setCircularReferencesPwM() {
+      await Excel.run(async (context) => {
+        // Get the Sample worksheet and a range on that sheet.
+        const sheet = context.workbook.worksheets.getItemOrNullObject("PwMSample");
+        const currencyRange = sheet.getRange("A6");
+
+        // Write a string with metadata with a circular reference.
+        currencyRange.valuesAsJson = [
+          [
+            {
+              type: Excel.CellValueType.string,
+              basicType: Excel.CellValueType.string,
+              basicValue: "SwM Circular References",
+              properties: {
+                doubleProperty: {
+                  type: Excel.CellValueType.double,
+                  basicType: Excel.CellValueType.double,
+                  basicValue: 10,
+                  properties: {
+                    stringProperty: primitiveStringValue,
+                    doubleProperty: primitiveDoubleValue,
+                    booleanProperty: primitiveBooleanValue,
+                    rootProperty: {
+                      type: Excel.CellValueType.reference,
+                      reference: 0
+                    }
+                  },
+                  referencedValues: [
+                    {
+                      type: Excel.ReferenceValueType.root
+                    }
+                  ]
+                }
+              },
+              layouts: {
+                compact: {
+                  icon: Excel.EntityCompactLayoutIcons.animalTurtle
+                }
+              }
+            }
+          ]
+        ];
+
+        await context.sync();
+      });
+    }
+
+    async function getFormattedNumber() {
+      // This function prints information about data types
+      // in cells A1 and A6 to the console.
+      await Excel.run(async (context) => {
+        // Get the Sample worksheet and two ranges on that sheet.
+        const sheet = context.workbook.worksheets.getItemOrNullObject("PwMSample");
+        const VwMrange = sheet.getRange("A1:A6");
+
+        // Load the data type property of the ranges.
+        VwMrange.load("valuesAsJson");
+        await context.sync();
+
+        const VwMValues = VwMrange.valuesAsJson;
+
+        // Print information about the data types to the console.
+        console.log(VwMValues);
+      });
+    }
+
+    async function setup() {
+      await Excel.run(async (context) => {
+        // Create a new worksheet called "Sample" and activate it.
+        context.workbook.worksheets.getItemOrNullObject("PwMSample").delete();
+        const sheet = context.workbook.worksheets.add("PwMSample");
+        sheet.activate();
+        await context.sync();
+      });
+    }
+
+    /** Default helper for invoking an action and handling errors. */ async
+    function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+  language: typescript
+template:
+  content: "<section class=\"ms-font-m\">\n\t<p>This sample shows how to work with the primitive with metadata data type.</p>\n</section>\n<section class=\"setup ms-font-m\">\n\t<h3>Set up</h3>\n\t<button id=\"setup\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Add worksheet</span>\n  </button>\n\t<h3>Try it out</h3>\n\t<button id=\"set-values-with-metadata\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Set values with metadata</span>\n  </button>\n\t<button id=\"set-vwm-referenced-values\" class=\"ms-Button\">\n\t  <span class=\"ms-Button-label\">Set VwM with Referenced Values</span>\n\t</button>\n\t<button id=\"set-vwm-circular-ref-values\" class=\"ms-Button\">\n\t\t<span class=\"ms-Button-label\">Set VwM with Circular References</span>\n\t</button>\n\t<button id=\"get-formatted-number\" class=\"ms-Button\">\n    <span class=\"ms-Button-label\">Log data types</span>\n  </button>\n</section>"
+  language: html
+style:
+  content: |-
+    section.samples {
+        margin-top: 20px;
+    }
+
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+libraries: |
+  https://appsforoffice.microsoft.com/lib/beta/hosted/office.js 
+  https://appsforoffice.microsoft.com/lib/beta/hosted/office-experiment52.d.ts
+
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
+
+  jquery@3.1.1
+  @types/jquery@3.3.1

@@ -1,0 +1,241 @@
+order: 16
+id: chart-data-labels
+name: Data labels
+description: Add and style data labels for your charts.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+script:
+  content: >
+    $("#setup").click(() => tryCatch(setup));
+    $("#show-data-callout").click(() => tryCatch(addDatalabelToDataPoints));
+    $("#style-the-datalabel").click(() => tryCatch(changeTheStyleOfSubstrings));
+    $("#change-label-to-roundRect").click(() => tryCatch(changeLabelShapesToRoundRect));
+    $("#change-label-to-any").click(() => tryCatch(changeLabelShapesToAny));
+
+    const sheetName = "Data Label APIs Sample";
+
+    const labels = [
+      {
+        index: 11,
+        date: "7/12/2023",
+        news: "The city hold a Sport event."
+      },
+      {
+        index: 20,
+        date: "7/21/2023",
+        news: "The movie 'Titanic' come back to the cinema."
+      }
+    ];
+
+    async function changeLabelShapesToAny() {
+      await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem(sheetName);
+        let chart = sheet.charts.getItemAt(0);
+
+        await context.sync();
+
+        let series = chart.series.getItemAt(0);
+        let label = series.points.getItemAt(labels[0].index).dataLabel;
+        label.geometricShapeType = Excel.GeometricShapeType.snip1Rectangle;
+
+        label = series.points.getItemAt(labels[1].index).dataLabel;
+        label.geometricShapeType = Excel.GeometricShapeType.snip2DiagonalRectangle;
+        label.format.fill.setSolidColor("90EE90");
+
+        await context.sync();
+      });
+    }
+
+    async function changeLabelShapesToRoundRect() {
+      await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem(sheetName);
+        let chart = sheet.charts.getItemAt(0);
+
+        await context.sync();
+
+        let series = chart.series.getItemAt(0);
+        series.load("*");
+        await context.sync();
+
+        series.points.load("*");
+        await context.sync();
+
+        let label = series.points.getItemAt(labels[0].index).dataLabel;
+        label.geometricShapeType = Excel.GeometricShapeType.roundRectangle;
+
+        label = series.points.getItemAt(labels[1].index).dataLabel;
+        label.geometricShapeType = Excel.GeometricShapeType.roundRectangle;
+
+        await context.sync();
+      });
+    }
+
+    async function addDatalabelToDataPoints() {
+      await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem(sheetName);
+        let chart = sheet.charts.getItemAt(0);
+
+        await context.sync();
+
+        let series = chart.series.getItemAt(0);
+        series.points.load("*");
+        await context.sync();
+        let propSet = [
+          {
+            top: 70,
+            geometricShapeType: Excel.GeometricShapeType.rectangle
+          },
+          {
+            top: 200,
+            geometricShapeType: Excel.GeometricShapeType.rectangle
+          }
+        ];
+
+        for (let i = 0; i < labels.length; i++) {
+          series.points.getItemAt(labels[i].index).hasDataLabel = true;
+          await context.sync();
+          let label = series.points.getItemAt(labels[i].index).dataLabel;
+          label.text = labels[i].news;
+          label.set(propSet[i]);
+          await context.sync();
+        }
+
+        await context.sync();
+      });
+    }
+
+    async function changeTheStyleOfSubstrings() {
+      await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem(sheetName);
+        let chart = sheet.charts.getItemAt(0);
+
+        await context.sync();
+
+        let series = chart.series.getItemAt(0);
+        series.load("points");
+        await context.sync();
+
+        series.points.load("items");
+        await context.sync();
+
+        // Label 1
+        let searchStr = "Sport";
+        let label = series.points.getItemAt(labels[0].index).dataLabel.load("text");
+        await context.sync();
+        let substrStart = label.text.indexOf(searchStr);
+        let subLabel = label.getSubstring(substrStart, searchStr.length);
+        subLabel.font.size = 13;
+        subLabel.font.bold = true;
+
+        // Label 2
+        searchStr = "'Titanic'";
+        label = series.points.getItemAt(labels[1].index).dataLabel.load("text");
+        await context.sync();
+        substrStart = label.text.indexOf(searchStr);
+        subLabel = label.getSubstring(substrStart, searchStr.length);
+        subLabel.font.name = "Calibri";
+        subLabel.font.size = 13;
+        subLabel.font.italic = true;
+        subLabel.font.color = "blue";
+        await context.sync();
+      });
+    }
+
+    async function setup() {
+      await Excel.run(async (context) => {
+        context.workbook.worksheets.getItemOrNullObject(sheetName).delete();
+        const sheet = context.workbook.worksheets.add(sheetName);
+
+        let dataRange = sheet.getRange("A1:B32");
+        dataRange.values = SampleData;
+
+        sheet.activate();
+        await context.sync();
+
+        let chart = sheet.charts.add(Excel.ChartType.lineMarkers, dataRange);
+
+        chart.setPosition("C4", "P25");
+        chart.legend.visible = false;
+        chart.title.text = "Price Tag";
+        chart.title.format.font.size = 20;
+        chart.axes.valueAxis.minimum = 80;
+
+        await context.sync();
+      });
+    }
+
+    /** Default helper for invoking an action and handling errors. */
+    async function tryCatch(callback) {
+      try {
+        await callback();
+      } catch (error) {
+        // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+        console.error(error);
+      }
+    }
+
+    let SampleData = [
+      ["Date", "Price"],
+      ["7/1/2023", 100],
+      ["7/2/2023", 96.71],
+      ["7/3/2023", 103.24],
+      ["7/4/2023", 109.09],
+      ["7/5/2023", 113.68],
+      ["7/6/2023", 118.68],
+      ["7/7/2023", 123.2],
+      ["7/8/2023", 135.05],
+      ["7/9/2023", 138.68],
+      ["7/10/2023", 129.63],
+      ["7/11/2023", 130.85],
+      ["7/12/2023", 135.71],
+      ["7/13/2023", 124.83],
+      ["7/14/2023", 118.94],
+      ["7/15/2023", 119.63],
+      ["7/16/2023", 127.2],
+      ["7/17/2023", 113.98],
+      ["7/18/2023", 110.32],
+      ["7/19/2023", 119.3],
+      ["7/20/2023", 120.36],
+      ["7/21/2023", 111.88],
+      ["7/22/2023", 118.88],
+      ["7/23/2023", 124.37],
+      ["7/24/2023", 119.53],
+      ["7/25/2023", 133.42],
+      ["7/26/2023", 125.67],
+      ["7/27/2023", 135.82],
+      ["7/28/2023", 137.87],
+      ["7/29/2023", 138.9],
+      ["7/30/2023", 139.36],
+      ["7/31/2023", 138.75]
+    ];
+  language: typescript
+template:
+  content: "<section class=\"ms-font-m\">\n\t<p>This sample shows how to create callout for chart, and make it beautify by using styling API.</p>\n</section>\n\n<section class=\"setup ms-font-m\">\n\t<h3>Set up</h3>\n\t<button id=\"setup\" class=\"ms-Button\">\n      <span class=\"ms-Button-label\">Fetch data and visualize into Chart</span>\n    </button>\n\t<p />\n\t<h3>Add Data Labels</h3>\n\t<button id=\"show-data-callout\" class=\"ms-Button\">\n\t\t\t\t<span class=\"ms-Button-label\">Add Datalabels</span>\n\t\t</button>\n\t<p />\n\t<h3>Styling</h3>\n\t<button id=\"style-the-datalabel\" class=\"ms-Button\">\n\t\t\t\t\t<span class=\"ms-Button-label\">Style datalabels</span>\n\t\t\t</button>\n\t<p />\n\t<button id=\"change-label-to-roundRect\" class=\"ms-Button\">\n\t\t\t\t\t\t<span class=\"ms-Button-label\">change datalabels to RoundRect</span>\n\t\t\t\t</button>\n\t<p />\n\n\t<button id=\"change-label-to-any\" class=\"ms-Button\">\n\t\t\t\t\t\t\t\t\t<span class=\"ms-Button-label\">change datalabels to any</span>\n\t\t\t\t\t\t\t</button>\n\t<p />\n</section>"
+  language: html
+style:
+  content: |-
+    section.samples {
+        margin-top: 20px;
+    }
+
+    section.samples .ms-Button, section.setup .ms-Button {
+        display: block;
+        margin-bottom: 5px;
+        margin-left: 20px;
+        min-width: 80px;
+    }
+  language: css
+libraries: |
+  https://unpkg.com/@microsoft/office-js@1.1.88-custom.18/dist/office.debug.js
+  https://unpkg.com/@microsoft/office-js@1.1.88-custom.18/dist/office.d.ts
+  //@types/office-js
+
+  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
+  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
+
+  core-js@2.4.1/client/core.min.js
+  @types/core-js
+
+  jquery@3.1.1
+  @types/jquery@3.3.1

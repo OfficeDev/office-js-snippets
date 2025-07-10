@@ -1,6 +1,6 @@
 id: outlook-roaming-settings-roaming-settings
 name: Use add-in settings
-description: 'Gets, sets, and saves add-in roaming settings'
+description: 'Gets, sets, saves, and removes add-in roaming settings.'
 host: OUTLOOK
 api_set:
     Mailbox: '1.1'
@@ -9,6 +9,7 @@ script:
         document.getElementById("get").addEventListener("click", get);
         document.getElementById("set").addEventListener("click", set);
         document.getElementById("save").addEventListener("click", save);
+        document.getElementById("remove").addEventListener("click", remove);
 
         function get() {
           const settingName = (document.getElementById("settingName") as HTMLInputElement).value;
@@ -16,14 +17,14 @@ script:
           (document.getElementById("settingValue") as HTMLInputElement).value = settingValue;
           console.log(`The value of setting "${settingName}" is "${settingValue}".`);
         }
-          
+
         function set() {
           const settingName = (document.getElementById("settingName") as HTMLInputElement).value;
           const settingValue = (document.getElementById("settingValue") as HTMLInputElement).value;
           Office.context.roamingSettings.set(settingName, settingValue);
           console.log(`Setting "${settingName}" set to value "${settingValue}".`);
         }
-          
+
         function save() {
           // Save settings in the mailbox to make it available in future sessions.
           Office.context.roamingSettings.saveAsync(function(result) {
@@ -33,6 +34,13 @@ script:
               console.log(`Settings saved with status: ${result.status}`);
             }
           });
+        }
+
+        function remove() {
+          // Remove the specified setting from the mailbox.
+          const settingName = (document.getElementById("settingName") as HTMLInputElement).value;
+          Office.context.roamingSettings.remove(settingName);
+          console.log(`The "${settingName}" setting has been removed.`);
         }
     language: typescript
 template:
@@ -58,6 +66,9 @@ template:
           </button>
           <button id="save" class="ms-Button">
             <div class="ms-Button-label">Save all</div>
+          </button>
+          <button id="remove" class="ms-Button">
+            <div class="ms-Button-label">Remove</div>
           </button>
         </section>
     language: html

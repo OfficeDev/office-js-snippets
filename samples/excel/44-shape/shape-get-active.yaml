@@ -7,33 +7,10 @@ api_set:
     ExcelApi: '1.19'
 script:
   content: |
-    $("#setup").on("click", () => tryCatch(setup));
-    $("#addShapeAsTitle").on("click", () => tryCatch(addShapeAsTitle));
-    $("#group").on("click", () => tryCatch(groupChartShape));
-    $("#getActiveShape").on("click", () => tryCatch(getActiveShape));
-
-    async function setup() {
-      await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        const count = sheet.shapes.getCount();
-        await context.sync();
-        if (count.value > 0) {
-          const shape = sheet.shapes.getItemAt(0);
-          shape.delete();
-        }
-        let range = sheet.getRange("A1:C4");
-        range.values = [
-          ["Type", "Product A", "Product B"],
-          ["Q1", 15, 20],
-          ["Q2", 22, 15],
-          ["Q3", 33, 47]
-        ];
-        let chart = sheet.charts.add(Excel.ChartType.lineMarkers, range);
-        chart.name = "SalesChart";
-        // chart.title.text = "Sales Quantity";
-        await context.sync();
-      });
-    }
+    document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+    document.getElementById("add-shape-as-title").addEventListener("click", () => tryCatch(addShapeAsTitle));
+    document.getElementById("group").addEventListener("click", () => tryCatch(groupChartShape));
+    document.getElementById("get-active-shape").addEventListener("click", () => tryCatch(getActiveShape));
 
     async function addShapeAsTitle() {
       await Excel.run(async (context) => {
@@ -84,6 +61,31 @@ script:
       });
     }
 
+    /** Set up Sample worksheet. */    
+    async function setup() {
+      await Excel.run(async (context) => {
+        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+        const sheet = context.workbook.worksheets.add("Sample");
+        let range = sheet.getRange("A1:C4");
+
+        range.values = [
+          ["Type", "Product A", "Product B"],
+          ["Q1", 15, 20],
+          ["Q2", 22, 15],
+          ["Q3", 33, 47]
+        ];
+
+        let chart = sheet.charts.add(Excel.ChartType.lineMarkers, range);
+
+        chart.name = "SalesChart";
+        // chart.title.text = "Sales Quantity";
+
+        sheet.activate();
+
+        await context.sync();
+      });
+    }
+    
     /** Default helper for invoking an action and handling errors. */
     async function tryCatch(callback) {
       try {
@@ -95,7 +97,36 @@ script:
     }
   language: typescript
 template:
-  content: "<section class=\"ms-font-m\">\n\t<p>This sample shows how to use API to get active shape.</p>\n</section>\n<section class=\"setup ms-font-m\">\n\t<h3>Setup</h3>\n\t<button id=\"setup\" class=\"ms-Button\">\n        <span class=\"ms-Button-label\">Create a chart</span>\n\t</button>\n</section>\n<section class=\"samples ms-font-m\">\n\t<h3>Try it out</h3>\n\t<button id=\"addShapeAsTitle\" class=\"ms-Button\">\n\t\t\t\t<span class=\"ms-Button-label\">Add rectangle as chart title</span>\n\t\t</button>\n\t<button id=\"group\" class=\"ms-Button\">\n\t\t\t<span class=\"ms-Button-label\">Group the rectangle with chart</span>\n\t</button>\n\t<p class=\"tips\">Note: Make sure the group shape is selected.</p>\n\t<button id=\"getActiveShape\" class=\"ms-Button\">\n\t\t\t<span class=\"ms-Button-label\">Get active shape</span>\n\t</button>\n</section>\n<p class=\"tips ms-font-m\">Here shows the image from avtive shape:</p>\n<div id=\"image\"></div>"
+  content: |-
+    <section class="ms-font-m">
+      <p>This sample shows how to get the active shape in your workbook and return it to this task pane as an image.</p>
+    </section>
+    <section class="setup ms-font-m">
+      <h3>Setup</h3>
+      <button id="setup" class="ms-Button">
+        <span class="ms-Button-label">Create a chart</span>
+      </button>
+    </section>
+    <section class="samples ms-font-m">
+      <h3>Try it out</h3>
+      <p>Add a shape to the workbook. This button adds a shape that covers the existing chart title with a new shape that contains text.</p>
+      <button id="add-shape-as-title" class="ms-Button">
+        <span class="ms-Button-label">Add shape</span>
+      </button>
+      <br>
+      <p>Group the new chart title shape together with the chart shape.</p>
+      <button id="group" class="ms-Button">
+        <span class="ms-Button-label">Group shapes</span>
+      </button>
+      <br>
+      <p>Get the active shape and display its image in the task pane. Make sure the chart is selected.</p>
+      <button id="get-active-shape" class="ms-Button">
+        <span class="ms-Button-label">Get active shape</span>
+      </button>
+    </section>
+    <br>
+    <p class="ms-font-m">An image of the active shape:</p>
+    <div id="image"></div>
   language: html
 style:
   content: |-
@@ -109,21 +140,10 @@ style:
         margin-left: 20px;
         min-width: 80px;
     }
-
-    p.tips {
-        margin-left: 20px;
-        font-size: 13px;
-    }
   language: css
 libraries: |
-  https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
-  https://appsforoffice.microsoft.com/lib/beta/hosted/office-experiment52.d.ts
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
 
-  office-ui-fabric-js@1.4.0/dist/css/fabric.min.css
-  office-ui-fabric-js@1.4.0/dist/css/fabric.components.min.css
-
-  core-js@2.4.1/client/core.min.js
-  @types/core-js
-
-  jquery@3.1.1
-  @types/jquery@3.3.1
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

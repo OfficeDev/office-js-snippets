@@ -1,0 +1,278 @@
+order: 16
+id: excel-chart-data-labels
+name: Data labels
+description: Add and style data labels for your charts.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("add-data-labels").addEventListener("click", () => tryCatch(addDataLabels));
+        document.getElementById("style-data-label-substrings").addEventListener("click", () => tryCatch(styleDataLabelSubstrings));
+        document.getElementById("change-label-to-round-rectangle").addEventListener("click", () => tryCatch(changeLabelShapesToRoundRectangle));
+        document.getElementById("change-label-to-assorted").addEventListener("click", () => tryCatch(changeLabelShapesToAssorted));
+
+        // Define the worksheet name for the sample.
+        const sheetName = "Sample";
+
+        async function addDataLabels() {
+          // This function adds data labels to specific chart points 
+          // and sets their text and position.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const chart = sheet.charts.getItemAt(0);
+            await context.sync();
+
+            const series = chart.series.getItemAt(0);
+            series.points.load("dataLabel");
+            await context.sync();
+            
+            // Define properties for data label positioning and shape.
+            const labelProperties = [
+              {
+                top: 70,
+                geometricShapeType: Excel.GeometricShapeType.rectangle
+              },
+              {
+                top: 200,
+                geometricShapeType: Excel.GeometricShapeType.rectangle
+              }
+            ];
+
+            // Add data labels to specific chart points and set their text and properties.
+            for (let i = 0; i < dataLabelInfo.length; i++) {
+              const point = series.points.getItemAt(dataLabelInfo[i].index);
+              point.hasDataLabel = true;
+
+              const dataLabel = point.dataLabel;
+              dataLabel.text = dataLabelInfo[i].news;
+              dataLabel.set(labelProperties[i]);
+            }
+            await context.sync();
+          });
+        }
+
+        async function styleDataLabelSubstrings() {
+          // This function styles substrings within data label text using font formatting.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const chart = sheet.charts.getItemAt(0);
+            await context.sync();
+
+            const series = chart.series.getItemAt(0);
+            series.load("points");
+            await context.sync();
+
+            series.points.load("items");
+            await context.sync();
+
+            // Style a substring in the first data label.
+            let searchString = "sports";
+            let dataLabel = series.points.getItemAt(dataLabelInfo[0].index).dataLabel.load("text");
+            await context.sync();
+            let substringStart = dataLabel.text.indexOf(searchString);
+            let subLabel = dataLabel.getSubstring(substringStart, searchString.length);
+            subLabel.font.size = 13;
+            subLabel.font.bold = true;
+
+            // Style a substring in the second data label.
+            searchString = "'Titanic'";
+            dataLabel = series.points.getItemAt(dataLabelInfo[1].index).dataLabel.load("text");
+            await context.sync();
+
+            substringStart = dataLabel.text.indexOf(searchString);
+            subLabel = dataLabel.getSubstring(substringStart, searchString.length);
+            subLabel.font.name = "Calibri";
+            subLabel.font.size = 13;
+            subLabel.font.italic = true;
+            subLabel.font.color = "blue";
+            await context.sync();
+          });
+        }
+
+        async function changeLabelShapesToRoundRectangle() {
+          // This function changes the geometric shape of data labels to round rectangles.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const chart = sheet.charts.getItemAt(0);
+            await context.sync();
+
+            const series = chart.series.getItemAt(0);
+            series.load("*");
+            await context.sync();
+
+            series.points.load("*");
+            await context.sync();
+
+            // Set both data labels to round rectangle shape.
+            let dataLabel = series.points.getItemAt(dataLabelInfo[0].index).dataLabel;
+            dataLabel.geometricShapeType = Excel.GeometricShapeType.roundRectangle;
+
+            dataLabel = series.points.getItemAt(dataLabelInfo[1].index).dataLabel;
+            dataLabel.geometricShapeType = Excel.GeometricShapeType.roundRectangle;
+            await context.sync();
+          });
+        }
+
+        async function changeLabelShapesToAssorted() {
+          // This function changes data labels to different geometric shapes with custom formatting.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const chart = sheet.charts.getItemAt(0);
+            await context.sync();
+
+            const series = chart.series.getItemAt(0);
+            
+            // Set first data label to snip1Rectangle shape.
+            let dataLabel = series.points.getItemAt(dataLabelInfo[0].index).dataLabel;
+            dataLabel.geometricShapeType = Excel.GeometricShapeType.snip1Rectangle;
+
+            // Set second data label to snip2DiagonalRectangle shape with light green fill.
+            dataLabel = series.points.getItemAt(dataLabelInfo[1].index).dataLabel;
+            dataLabel.geometricShapeType = Excel.GeometricShapeType.snip2DiagonalRectangle;
+            dataLabel.format.fill.setSolidColor("90EE90");
+            await context.sync();
+          });
+        }
+
+        /** Create sample data and a line chart for the data labels demo. */
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject(sheetName).delete();
+            const sheet = context.workbook.worksheets.add(sheetName);
+
+            // Add sample data to the worksheet.
+            const dataRange = sheet.getRange("A1:B32");
+            dataRange.values = sampleData;
+
+            sheet.activate();
+            await context.sync();
+
+            // Create a line chart with markers.
+            const chart = sheet.charts.add(Excel.ChartType.lineMarkers, dataRange);
+
+            // Position and format the chart.
+            chart.setPosition("D4", "Q25");
+            chart.legend.visible = false;
+            chart.title.text = "Product price";
+            chart.title.format.font.size = 20;
+            chart.axes.valueAxis.minimum = 80;
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }   
+
+        // Save chart data labels as an object for use throughout the sample.
+        const dataLabelInfo = [
+          {
+            index: 11,
+            date: "7/12/2023",
+            news: "The city holds a sports event."
+          },
+          {
+            index: 20,
+            date: "7/21/2023",
+            news: "The movie 'Titanic' returns to the cinema."
+          }
+        ];
+
+        // Sample data for the chart.
+        const sampleData = [
+          ["Date", "Price"],
+          ["7/1/2023", 100],
+          ["7/2/2023", 96.71],
+          ["7/3/2023", 103.24],
+          ["7/4/2023", 109.09],
+          ["7/5/2023", 113.68],
+          ["7/6/2023", 118.68],
+          ["7/7/2023", 123.2],
+          ["7/8/2023", 135.05],
+          ["7/9/2023", 138.68],
+          ["7/10/2023", 129.63],
+          ["7/11/2023", 130.85],
+          ["7/12/2023", 135.71],
+          ["7/13/2023", 124.83],
+          ["7/14/2023", 118.94],
+          ["7/15/2023", 119.63],
+          ["7/16/2023", 127.2],
+          ["7/17/2023", 113.98],
+          ["7/18/2023", 110.32],
+          ["7/19/2023", 119.3],
+          ["7/20/2023", 120.36],
+          ["7/21/2023", 111.88],
+          ["7/22/2023", 118.88],
+          ["7/23/2023", 124.37],
+          ["7/24/2023", 119.53],
+          ["7/25/2023", 133.42],
+          ["7/26/2023", 125.67],
+          ["7/27/2023", 135.82],
+          ["7/28/2023", 137.87],
+          ["7/29/2023", 138.9],
+          ["7/30/2023", 139.36],
+          ["7/31/2023", 138.75]
+        ];
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            <p>This sample shows how to create data labels for charts and adjust the font and appearance of those labels.</p>
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add data and create a chart</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Add data labels to the chart</h3>
+            <button id="add-data-labels" class="ms-Button">
+                <span class="ms-Button-label">Add data labels</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Style data labels</h3>
+            <button id="style-data-label-substrings" class="ms-Button">
+                <span class="ms-Button-label">Style data label substrings</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <button id="change-label-to-round-rectangle" class="ms-Button">
+                <span class="ms-Button-label">Change data label shapes</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <button id="change-label-to-assorted" class="ms-Button">
+                <span class="ms-Button-label">Change data label shapes</span>
+            </button>
+        </section>  
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

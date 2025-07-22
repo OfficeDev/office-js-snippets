@@ -1,0 +1,175 @@
+order: 7
+id: excel-shape-get-active
+name: Get active shape image
+description: Get an image of the active shape in your workbook.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("add-shape-over-chart").addEventListener("click", () => tryCatch(addShapeOverChart));
+        document.getElementById("group-chart-shapes").addEventListener("click", () => tryCatch(groupChartShapes));
+        document.getElementById("get-active-shape").addEventListener("click", () => tryCatch(getActiveShape));
+
+        const sheetName = "Sample";
+
+        async function addShapeOverChart() {
+          // This method adds a shape to use as a chart title.
+          // It positions the shape over the chart on the worksheet.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            
+            // Create a rectangle shape for the chart title.
+            const shape = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.rectangle);
+            shape.name = "ChartTitle";
+            shape.height = 20;
+            shape.width = 90;
+            shape.textFrame.textRange.text = "Sales Quantity";
+            shape.textFrame.textRange.font.size = 13;
+
+            // Get chart positioning information to place the shape correctly.
+            const chart = sheet.charts.getItemAt(0);
+            chart.load("left, top");
+            chart.plotArea.load("width");
+            await context.sync();
+
+            // Position the shape above the chart.
+            shape.left = chart.left + chart.plotArea.width / 2.5;
+            shape.top = chart.top + 10;
+
+            await context.sync();
+          });
+        }
+
+        async function groupChartShapes() {
+          // This method groups the new chart title shape together with the existing chart.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            
+            // Get the shapes to group.
+            const titleShape = sheet.shapes.getItem("ChartTitle");
+            const chartShape = sheet.shapes.getItem("SalesChart");
+            
+            // Create a group from the two shapes.
+            const shapeGroup = sheet.shapes.addGroup([titleShape, chartShape]);
+            shapeGroup.name = "GroupChart";
+            
+            await context.sync();
+          });
+        }
+
+        async function getActiveShape() {
+          // This method gets the active shape and displays it as an image in the task pane.
+          await Excel.run(async (context) => {
+            // Get the currently active shape, if any.
+            const activeShape = context.workbook.getActiveShapeOrNullObject();
+            
+            if (activeShape) {
+              // Convert the active shape to an image.
+              const shapeImage = activeShape.getAsImage(Excel.PictureFormat.png);
+              await context.sync();
+              
+              // Display the image in the task pane.
+              const imageContainer = document.getElementById("image");
+              imageContainer.innerHTML = ''; // Clear the container before adding a new image.
+              const imageElement = document.createElement("img");
+              imageElement.src = "data:image/png;base64," + shapeImage.value;
+              imageContainer.appendChild(imageElement);              
+            } else {
+              console.log("No active shape");
+            }
+          });
+        }
+
+        /** Create sample data and a line chart. */
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject(sheetName).delete();
+            const sheet = context.workbook.worksheets.add(sheetName);
+            
+            // Add sample data to the worksheet.
+            const dataRange = sheet.getRange("A1:C4");
+            dataRange.values = sampleData;
+
+            // Create a line chart with markers.
+            const chart = sheet.charts.add(Excel.ChartType.lineMarkers, dataRange);
+            chart.name = "SalesChart";
+
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+
+        /** Sample data for the chart. */
+        const sampleData = [
+          ["Type", "Product A", "Product B"],
+          ["Q1", 15, 20],
+          ["Q2", 22, 15],
+          ["Q3", 33, 47]
+        ];
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            <p>This sample shows how to add a shape over a chart, group that new shape together with the existing chart, and then return an image of the chart (the active shape) to this task pane.</p>
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a chart</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Add a shape to the workbook. This button adds a shape that covers the existing chart title with a new shape that contains text.</p>
+            <button id="add-shape-over-chart" class="ms-Button">
+                <span class="ms-Button-label">Add shape</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <p>Group the new chart title together with the existing chart.</p>
+            <button id="group-chart-shapes" class="ms-Button">
+                <span class="ms-Button-label">Group shapes</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <p>Get the active shape and display it as an image in this task pane. Make sure the chart is selected.</p>
+            <button id="get-active-shape" class="ms-Button">
+                <span class="ms-Button-label">Get active shape image</span>
+            </button>
+        </section>
+        <section class="ms-Fabric ms-font-m">
+            <p>Image of the active shape:</p>
+            <div id="image"></div>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

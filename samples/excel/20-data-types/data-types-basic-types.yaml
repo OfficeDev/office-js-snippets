@@ -1,0 +1,362 @@
+order: 8
+id: excel-data-types-basic-types
+name: Basic types with metadata
+description: This sample shows how to work with metadata on basic types.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("set-basic-types-with-metadata").addEventListener("click", () => tryCatch(setBasicTypesWithMetadata));
+        document.getElementById("set-referenced-values").addEventListener("click", () => tryCatch(setReferencedValues));
+        document.getElementById("set-circular-reference-values").addEventListener("click", () => tryCatch(setCircularReferenceValues));
+        document.getElementById("print-to-console").addEventListener("click", () => tryCatch(printToConsole));
+
+        const sheetName = "Sample";
+
+        /** Add basic types with metadata to the worksheet. */
+        async function setBasicTypesWithMetadata() {
+          await Excel.run(async (context) => {
+            // Get the worksheet and target range.
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const dataRange = sheet.getRange("A1:A4");
+
+            // Write a variety of basic types with metadata to the range.
+            dataRange.valuesAsJson = [
+              [doubleWithFormatAndMetadata],
+              [doubleWithMetadata],
+              [stringWithMetadata],
+              [booleanWithMetadata]
+            ];
+
+            dataRange.format.autofitColumns();
+            await context.sync();
+          });
+        }
+
+        /** Set basic types with metadata that reference other basic types in the worksheet. */
+        async function setReferencedValues() {
+          await Excel.run(async (context) => {
+            // Get the worksheet and target range.
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const targetRange = sheet.getRange("A5");
+
+            // Write a string with metadata that references other values.
+            targetRange.valuesAsJson = [
+              [stringWithReferencedValues]
+            ];
+            targetRange.format.autofitColumns();
+
+            await context.sync();
+          });
+        }
+
+        /** Set basic types with metadata that contain circular references. */
+        async function setCircularReferenceValues() {
+          await Excel.run(async (context) => {
+            // Get the worksheet and target range.
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const targetRange = sheet.getRange("A6");
+
+            // Write a string with metadata that contains circular references.
+            targetRange.valuesAsJson = [
+              [stringWithCircularReferences]
+            ];
+            targetRange.format.autofitColumns();
+
+            await context.sync();
+          });
+        }
+
+        /** Get and log information about the basic types in the worksheet. */
+        async function printToConsole() {
+          await Excel.run(async (context) => {
+            // Get the worksheet and target range.
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const dataRange = sheet.getRange("A1:A6");
+
+            // Load the data type property of the range.
+            dataRange.load("valuesAsJson");
+            await context.sync();
+
+            const dataValues = dataRange.valuesAsJson;
+
+            // Print information about the data types to the console.
+            console.log("Basic types as an array:", dataValues);
+          });
+        }
+
+        /** Set up Sample worksheet. */ 
+        async function setup() {
+          await Excel.run(async (context) => {
+            // Create a new worksheet and activate it.
+            context.workbook.worksheets.getItemOrNullObject(sheetName).delete();
+            const sheet = context.workbook.worksheets.add(sheetName);
+            sheet.activate();
+            
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+
+        /** Basic string value with metadata. */
+        const basicStringValue: Excel.StringCellValue = {
+          type: Excel.CellValueType.string,
+          basicType: Excel.CellValueType.string,
+          basicValue: "This is a basic string value"
+        };
+
+        /** Basic double value with metadata. */
+        const basicDoubleValue: Excel.DoubleCellValue = {
+          type: Excel.CellValueType.double,
+          basicType: Excel.CellValueType.double,
+          basicValue: 10
+        };
+
+        /** Basic boolean value with metadata. */
+        const basicBooleanValue: Excel.BooleanCellValue = {
+          type: Excel.CellValueType.boolean,
+          basicType: Excel.CellValueType.boolean,
+          basicValue: true
+        };
+
+        /** Web image cell value. */
+        const imageCellValue: Excel.WebImageCellValue = {
+          type: "WebImage",
+          basicType: "Error",
+          basicValue: "#VALUE!",
+          address: "https://github.com/OfficeDev/office-js-snippets/blob/main/.github/images/microsoft-logo.png?raw=true",
+        };
+
+        /** Basic view layout with icon for card and compact views. */
+        const basicViewLayoutWithIcon: Excel.BasicViewLayouts = {
+          card: {
+            title: "This is the title",
+            sections: [
+              {
+                layout: "List",
+                properties: ["stringProperty", "booleanProperty", "doubleProperty"],
+                collapsed: false,
+                collapsible: true
+              }
+            ],
+            subTitle: {
+              property: "stringProperty"
+            },
+            mainImage: {
+              property: "imageProperty"
+            }
+          },
+          compact: {
+            icon: Excel.EntityCompactLayoutIcons.animalDog
+          }
+        };
+
+        /** Simple view layout without icon. */
+        const basicViewLayoutSimple: Excel.BasicViewLayouts = {
+          card: {
+            title: "This is the title",
+            subTitle: {
+              property: "stringProperty"
+            }
+          }
+        };
+
+        /** Cell value provider attributes for data source attribution. */
+        const cellValueProvider: Excel.CellValueProviderAttributes = {
+          description: "Microsoft Bing",
+          logoSourceAddress: "https://github.com/OfficeDev/office-js-snippets/blob/main/.github/images/microsoft-logo.png?raw=true",
+          logoTargetAddress: "http://microsoft.com"
+        };
+
+        /** Double value with formatting and metadata. */
+        const doubleWithFormatAndMetadata: Excel.DoubleCellValue = {
+          type: Excel.CellValueType.double,
+          basicType: Excel.CellValueType.double,
+          basicValue: 300,
+          numberFormat: "$0.00",
+          properties: {
+            stringProperty: basicStringValue,
+            booleanProperty: basicBooleanValue,
+            doubleProperty: basicDoubleValue,
+            imageProperty: imageCellValue
+          },
+          layouts: basicViewLayoutWithIcon,
+          provider: cellValueProvider
+        };
+
+        /** Double value with metadata but no special formatting. */
+        const doubleWithMetadata: Excel.DoubleCellValue = {
+          type: Excel.CellValueType.double,
+          basicType: Excel.CellValueType.double,
+          basicValue: 123.45,
+          properties: {
+            stringProperty: basicStringValue,
+            booleanProperty: basicBooleanValue,
+            doubleProperty: basicDoubleValue,
+            imageProperty: imageCellValue
+          },
+          layouts: basicViewLayoutSimple,
+          provider: cellValueProvider
+        };
+
+        /** String value with metadata. */
+        const stringWithMetadata: Excel.StringCellValue = {
+          type: Excel.CellValueType.string,
+          basicType: Excel.CellValueType.string,
+          basicValue: "String with metadata",
+          properties: {
+            stringProperty: basicStringValue,
+            booleanProperty: basicBooleanValue,
+            doubleProperty: basicDoubleValue,
+            imageProperty: imageCellValue
+          },
+          layouts: basicViewLayoutWithIcon,
+          provider: cellValueProvider
+        };
+
+        /** Boolean value with metadata. */
+        const booleanWithMetadata: Excel.BooleanCellValue = {
+          type: Excel.CellValueType.boolean,
+          basicType: Excel.CellValueType.boolean,
+          basicValue: true,
+          properties: {
+            stringProperty: basicStringValue,
+            booleanProperty: basicBooleanValue,
+            doubleProperty: basicDoubleValue,
+            imageProperty: imageCellValue
+          },
+          layouts: basicViewLayoutSimple,
+          provider: cellValueProvider
+        };
+
+        /** String with metadata that references other values. */
+        const stringWithReferencedValues = {
+          type: Excel.CellValueType.string,
+          basicType: Excel.CellValueType.string,
+          basicValue: "String with referenced values",
+          properties: {
+            stringProperty: {
+              type: Excel.CellValueType.reference,
+              reference: 0
+            },
+            booleanProperty: {
+              type: Excel.CellValueType.reference,
+              reference: 1
+            },
+            doubleWithFormatProperty: {
+              type: Excel.CellValueType.reference,
+              reference: 2
+            },
+            doubleProperty: {
+              type: Excel.CellValueType.reference,
+              reference: 3
+            }
+          },
+          referencedValues: [stringWithMetadata, booleanWithMetadata, doubleWithFormatAndMetadata, doubleWithMetadata],
+          layouts: {
+            compact: {
+              icon: Excel.EntityCompactLayoutIcons.apple
+            }
+          }
+        };
+
+        /** String with metadata that contains circular references. */
+        const stringWithCircularReferences = {
+          type: Excel.CellValueType.string,
+          basicType: Excel.CellValueType.string,
+          basicValue: "String with circular references",
+          properties: {
+            doubleProperty: {
+              type: Excel.CellValueType.double,
+              basicType: Excel.CellValueType.double,
+              basicValue: 10,
+              properties: {
+                stringProperty: basicStringValue,
+                doubleProperty: basicDoubleValue,
+                booleanProperty: basicBooleanValue,
+                rootProperty: {
+                  type: Excel.CellValueType.reference,
+                  reference: 0
+                }
+              },
+              referencedValues: [
+                {
+                  type: Excel.ReferenceValueType.root
+                }
+              ]
+            }
+          },
+          layouts: {
+            compact: {
+              icon: Excel.EntityCompactLayoutIcons.animalTurtle
+            }
+          }
+        };
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            <p>This sample shows how to create basic types with metadata and then work with those basic types.</p>
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Add worksheet</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <p>Add basic types to the worksheet. Select the icon in each cell to see a data type card with metadata.</p>
+            <button id="set-basic-types-with-metadata" class="ms-Button">
+                <span class="ms-Button-label">Create basic types with metadata</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <p>Add a basic type with referenced values. Open the data type card to see other values in the worksheet that this basic type references&mdash;it references cells <strong>A1</strong>, <strong>A2</strong>, <strong>A3</strong>, and <strong>A4</strong>.</p>
+            <button id="set-referenced-values" class="ms-Button">
+                <span class="ms-Button-label">Create basic type with referenced values</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <p>Add a basic type with circular references. Open the data type card and select the <strong>doubleProperty</strong> to see the circular references.</p>
+            <button id="set-circular-reference-values" class="ms-Button">
+                <span class="ms-Button-label">Create basic type with circular references</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <p>Print information about each of your basic types to the console.</p>
+            <button id="print-to-console" class="ms-Button">
+                <span class="ms-Button-label">Print basic types to console</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

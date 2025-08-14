@@ -16,15 +16,6 @@
             await context.sync();
         });
     }
-'Excel.Application#calculate:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/90-scenarios/performance-optimization.yaml
-
-
-    await Excel.run(async (context) => {
-      context.application.calculate(Excel.CalculationType.full);
-    });
 'Excel.Application#decimalSeparator:member':
   - >-
     // Link to full sample:
@@ -53,6 +44,15 @@
       console.log(`  `);
 
       await context.sync();
+    });
+'Excel.Application#calculate:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/90-scenarios/performance-optimization.yaml
+
+
+    await Excel.run(async (context) => {
+      context.application.calculate(Excel.CalculationType.full);
     });
 'Excel.Application#suspendScreenUpdatingUntilNextSync:member(1)':
   - >-
@@ -1258,6 +1258,52 @@
 
         await context.sync();        
     });
+'Excel.ChartLeaderLines:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code changes the format of leader lines. It adjusts color,
+    weight, and line style.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      const dataLabels = series.dataLabels;
+      const lineFormat = dataLabels.leaderLines.format;
+
+      // Set leader line formatting properties.
+      lineFormat.line.color = "blue";
+      lineFormat.line.weight = 2;
+      lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
+      await context.sync();
+    });
+'Excel.ChartLeaderLinesFormat:class':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code changes the format of leader lines. It adjusts color,
+    weight, and line style.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      const dataLabels = series.dataLabels;
+      const lineFormat = dataLabels.leaderLines.format;
+
+      // Set leader line formatting properties.
+      lineFormat.line.color = "blue";
+      lineFormat.line.weight = 2;
+      lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
+      await context.sync();
+    });
 'Excel.ChartLegendFormat#font:member':
   - >-
     // Link to full sample:
@@ -1365,23 +1411,78 @@
       }
       await context.sync();
     });
-'Excel.ChartSeries#delete:member(1)':
+'Excel.ChartSeries#getDimensionValues:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-series.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-bubble-chart.yaml
 
 
     await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getItem("Sample");
-      const seriesCollection = sheet.charts.getItemAt(0).series;
-      seriesCollection.load("count");
+
+      // The sample chart is of type `Excel.ChartType.bubble`.
+      const bubbleChart = sheet.charts.getItem("Product Chart");
+
+      // Get the first series in the chart.
+      const firstSeries = bubbleChart.series.getItemAt(0);
+
+      // Get the values for the dimensions we're interested in.
+      const bubbleSize = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.bubbleSizes);
+      const xValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.xvalues);
+      const yValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.yvalues);
+      const category = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.categories);
+
       await context.sync();
 
-      if (seriesCollection.count > 0) {
-        const series = seriesCollection.getItemAt(0);
+      // Log the information.
+      console.log(`Series ${category.value} - X:${xValues.value},Y:${yValues.value},Bubble:${bubbleSize.value}`);
+    });
+'Excel.ChartSeries#setBubbleSizes:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-bubble-chart.yaml
 
-        // Delete the first series.
-        series.delete();
+
+    await Excel.run(async (context) => {
+      /*
+        The table is expected to look like this:
+        Product, Inventory, Price, Current Market Share
+        Calamansi, 2000, $2.45, 10%
+        ...
+
+        We want each bubble to represent a single row.
+      */
+
+      // Get the worksheet and table data.
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const table = sheet.tables.getItem("Sales");
+      const dataRange = table.getDataBodyRange();
+
+      // Get the table data without the row names.
+      const valueRange = dataRange.getOffsetRange(0, 1).getResizedRange(0, -1);
+
+      // Create the chart.
+      const bubbleChart = sheet.charts.add(Excel.ChartType.bubble, valueRange);
+      bubbleChart.name = "Product Chart";
+
+      // Remove the default series, since we want a unique series for each row.
+      bubbleChart.series.getItemAt(0).delete();
+
+      // Load the data necessary to make a chart series.
+      dataRange.load(["rowCount", "values"]);
+      await context.sync();
+
+      // For each row, create a chart series (a bubble).
+      for (let i = 0; i < dataRange.rowCount; i++) {
+        const newSeries = bubbleChart.series.add(dataRange.values[i][0], i);
+        newSeries.setXAxisValues(dataRange.getCell(i, 1));
+        newSeries.setValues(dataRange.getCell(i, 2));
+        newSeries.setBubbleSizes(dataRange.getCell(i, 3));
+
+        // Show the product name and market share percentage.
+        newSeries.dataLabels.showSeriesName = true;
+        newSeries.dataLabels.showBubbleSize = true;
+        newSeries.dataLabels.showValue = false;
       }
 
       await context.sync();
@@ -1440,31 +1541,173 @@
       console.log(series.name + " data source string: " + dataSourceString.value);
       console.log(series.name + " data source type: " + dataSourceType.value);
     });
-'Excel.ChartSeries#getDimensionValues:member(1)':
+'Excel.ChartSeries:class':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-bubble-chart.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code adds data labels to the chart and positions them to
+    demonstrate leader lines.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      
+      // Enable data labels for the series. Leader lines are enabled by default.
+      series.hasDataLabels = true;
+      series.points.load("items");
+      await context.sync();
+      
+      // Load the top position for each data label.
+      series.points.items.forEach((point) => point.dataLabel.load("top"));
+      await context.sync();
+
+      // Move some data labels to create distance from their chart points.
+      const point1 = series.points.items[1]; 
+      const point2 = series.points.items[2]; 
+      point1.dataLabel.top -= 50; 
+      point2.dataLabel.top += 50;
+      
+      // Format the data labels.
+      series.dataLabels.geometricShapeType = Excel.GeometricShapeType.rectangle;
+      series.dataLabels.showCategoryName = true;
+      series.dataLabels.format.border.weight = 1;
+      
+      await context.sync();
+    });
+'Excel.ChartSeries#hasDataLabels:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code adds data labels to the chart and positions them to
+    demonstrate leader lines.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      
+      // Enable data labels for the series. Leader lines are enabled by default.
+      series.hasDataLabels = true;
+      series.points.load("items");
+      await context.sync();
+      
+      // Load the top position for each data label.
+      series.points.items.forEach((point) => point.dataLabel.load("top"));
+      await context.sync();
+
+      // Move some data labels to create distance from their chart points.
+      const point1 = series.points.items[1]; 
+      const point2 = series.points.items[2]; 
+      point1.dataLabel.top -= 50; 
+      point2.dataLabel.top += 50;
+      
+      // Format the data labels.
+      series.dataLabels.geometricShapeType = Excel.GeometricShapeType.rectangle;
+      series.dataLabels.showCategoryName = true;
+      series.dataLabels.format.border.weight = 1;
+      
+      await context.sync();
+    });
+'Excel.ChartSeries#points:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code adds data labels to the chart and positions them to
+    demonstrate leader lines.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      
+      // Enable data labels for the series. Leader lines are enabled by default.
+      series.hasDataLabels = true;
+      series.points.load("items");
+      await context.sync();
+      
+      // Load the top position for each data label.
+      series.points.items.forEach((point) => point.dataLabel.load("top"));
+      await context.sync();
+
+      // Move some data labels to create distance from their chart points.
+      const point1 = series.points.items[1]; 
+      const point2 = series.points.items[2]; 
+      point1.dataLabel.top -= 50; 
+      point2.dataLabel.top += 50;
+      
+      // Format the data labels.
+      series.dataLabels.geometricShapeType = Excel.GeometricShapeType.rectangle;
+      series.dataLabels.showCategoryName = true;
+      series.dataLabels.format.border.weight = 1;
+      
+      await context.sync();
+    });
+'Excel.ChartSeries#showLeaderLines:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code disables leader lines for chart data labels.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      const dataLabels = series.dataLabels;
+      
+      // Disable leader lines.
+      dataLabels.showLeaderLines = false;
+      
+      await context.sync();
+    });
+'Excel.ChartSeries#delete:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-series.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const seriesCollection = sheet.charts.getItemAt(0).series;
+      seriesCollection.load("count");
+      await context.sync();
+
+      if (seriesCollection.count > 0) {
+        const series = seriesCollection.getItemAt(0);
+
+        // Delete the first series.
+        series.delete();
+      }
+
+      await context.sync();
+    });
+'Excel.ChartSeries#setValues:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-series.yaml
 
 
     await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getItem("Sample");
 
-      // The sample chart is of type `Excel.ChartType.bubble`.
-      const bubbleChart = sheet.charts.getItem("Product Chart");
+      let seriesCollection = sheet.charts.getItemAt(0);
+      let rangeSelection = sheet.getRange("C2:C7");
+      let xRangeSelection = sheet.getRange("A1:A7");
 
-      // Get the first series in the chart.
-      const firstSeries = bubbleChart.series.getItemAt(0);
-
-      // Get the values for the dimensions we're interested in.
-      const bubbleSize = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.bubbleSizes);
-      const xValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.xvalues);
-      const yValues = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.yvalues);
-      const category = firstSeries.getDimensionValues(Excel.ChartSeriesDimension.categories);
+      // Add a series.
+      let newSeries = seriesCollection.series.add("Qtr2");
+      newSeries.setValues(rangeSelection);
+      newSeries.setXAxisValues(xRangeSelection);
 
       await context.sync();
-
-      // Log the information.
-      console.log(`Series ${category.value} - X:${xValues.value},Y:${yValues.value},Bubble:${bubbleSize.value}`);
     });
 'Excel.ChartSeries#markerBackgroundColor:member':
   - >-
@@ -1597,76 +1840,6 @@
         series3.markerBackgroundColor = "purple";
 
         await context.sync();
-    });
-'Excel.ChartSeries#setBubbleSizes:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-bubble-chart.yaml
-
-
-    await Excel.run(async (context) => {
-      /*
-        The table is expected to look like this:
-        Product, Inventory, Price, Current Market Share
-        Calamansi, 2000, $2.45, 10%
-        ...
-
-        We want each bubble to represent a single row.
-      */
-
-      // Get the worksheet and table data.
-      const sheet = context.workbook.worksheets.getItem("Sample");
-      const table = sheet.tables.getItem("Sales");
-      const dataRange = table.getDataBodyRange();
-
-      // Get the table data without the row names.
-      const valueRange = dataRange.getOffsetRange(0, 1).getResizedRange(0, -1);
-
-      // Create the chart.
-      const bubbleChart = sheet.charts.add(Excel.ChartType.bubble, valueRange);
-      bubbleChart.name = "Product Chart";
-
-      // Remove the default series, since we want a unique series for each row.
-      bubbleChart.series.getItemAt(0).delete();
-
-      // Load the data necessary to make a chart series.
-      dataRange.load(["rowCount", "values"]);
-      await context.sync();
-
-      // For each row, create a chart series (a bubble).
-      for (let i = 0; i < dataRange.rowCount; i++) {
-        const newSeries = bubbleChart.series.add(dataRange.values[i][0], i);
-        newSeries.setXAxisValues(dataRange.getCell(i, 1));
-        newSeries.setValues(dataRange.getCell(i, 2));
-        newSeries.setBubbleSizes(dataRange.getCell(i, 3));
-
-        // Show the product name and market share percentage.
-        newSeries.dataLabels.showSeriesName = true;
-        newSeries.dataLabels.showBubbleSize = true;
-        newSeries.dataLabels.showValue = false;
-      }
-
-      await context.sync();
-    });
-'Excel.ChartSeries#setValues:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-series.yaml
-
-
-    await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("Sample");
-
-      let seriesCollection = sheet.charts.getItemAt(0);
-      let rangeSelection = sheet.getRange("C2:C7");
-      let xRangeSelection = sheet.getRange("A1:A7");
-
-      // Add a series.
-      let newSeries = seriesCollection.series.add("Qtr2");
-      newSeries.setValues(rangeSelection);
-      newSeries.setXAxisValues(xRangeSelection);
-
-      await context.sync();
     });
 'Excel.ChartSeriesBy:enum':
   - >-
@@ -3105,39 +3278,6 @@
 
         await context.sync();
     });
-'Excel.CustomXmlPartCollection#getByNamespace:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/18-custom-xml-parts/test-xml-for-unique-namespace.yaml
-
-
-    await Excel.run(async (context) => {
-        document.getElementById("display-xml").textContent = "";
-        const contosoNamespace = "http://schemas.contoso.com/review/1.0";
-        const customXmlParts = context.workbook.customXmlParts;
-        const filteredXmlParts = customXmlParts.getByNamespace(contosoNamespace);
-        const numberOfPartsInNamespace = filteredXmlParts.getCount();
-
-        await context.sync();
-
-        if (numberOfPartsInNamespace.value == 1) {
-            const onlyXmlPartInNamespace = filteredXmlParts.getOnlyItem();
-            const xmlBlob = onlyXmlPartInNamespace.getXml();
-
-            await context.sync();
-
-            // Make it a bit more readable.
-            const readableXml = xmlBlob.value.replace(/></g, ">\n<");
-
-            document.getElementById("display-xml").textContent = `The only XML part in the namespace ${contosoNamespace} is:
-                ${readableXml}`;
-
-        } else {
-            console.log(`There are ${numberOfPartsInNamespace.value} XML parts with namespace ${contosoNamespace}. There should be exactly 1.`);
-        }        
-
-        await context.sync();
-    });
 'Excel.CustomXmlPartCollection#getItem:member(1)':
   - >-
     // Link to full sample:
@@ -3163,7 +3303,7 @@
             await context.sync();
         }
     });
-'Excel.CustomXmlPartScopedCollection#getCount:member(1)':
+'Excel.CustomXmlPartCollection#getByNamespace:member(1)':
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/18-custom-xml-parts/test-xml-for-unique-namespace.yaml
@@ -3229,6 +3369,39 @@
             await context.sync();
         }
     });
+'Excel.CustomXmlPartScopedCollection#getCount:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/18-custom-xml-parts/test-xml-for-unique-namespace.yaml
+
+
+    await Excel.run(async (context) => {
+        document.getElementById("display-xml").textContent = "";
+        const contosoNamespace = "http://schemas.contoso.com/review/1.0";
+        const customXmlParts = context.workbook.customXmlParts;
+        const filteredXmlParts = customXmlParts.getByNamespace(contosoNamespace);
+        const numberOfPartsInNamespace = filteredXmlParts.getCount();
+
+        await context.sync();
+
+        if (numberOfPartsInNamespace.value == 1) {
+            const onlyXmlPartInNamespace = filteredXmlParts.getOnlyItem();
+            const xmlBlob = onlyXmlPartInNamespace.getXml();
+
+            await context.sync();
+
+            // Make it a bit more readable.
+            const readableXml = xmlBlob.value.replace(/></g, ">\n<");
+
+            document.getElementById("display-xml").textContent = `The only XML part in the namespace ${contosoNamespace} is:
+                ${readableXml}`;
+
+        } else {
+            console.log(`There are ${numberOfPartsInNamespace.value} XML parts with namespace ${contosoNamespace}. There should be exactly 1.`);
+        }        
+
+        await context.sync();
+    });
 'Excel.CustomXmlPartScopedCollection#getOnlyItem:member(1)':
   - >-
     // Link to full sample:
@@ -3277,21 +3450,6 @@
 
         await context.sync();
     });
-'Excel.DataPivotHierarchy#name:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
-
-
-    await Excel.run(async (context) => {
-        const dataHierarchies = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales").dataHierarchies
-        dataHierarchies.load("no-properties-needed");
-        await context.sync();
-
-        dataHierarchies.items[0].name = "Farm Sales";
-        dataHierarchies.items[1].name = "Wholesale";
-        await context.sync();
-    });
 'Excel.DataPivotHierarchy#showAs:member':
   - >-
     // Link to full sample:
@@ -3317,6 +3475,21 @@
         wholesaleShowAs.calculation = Excel.ShowAsCalculation.percentOfColumnTotal;
         wholesaleShowAs.baseField = pivotTable.rowHierarchies.getItem("Type").fields.getItem("Type");
         wholesaleDataHierarchy.showAs = wholesaleShowAs;
+        await context.sync();
+    });
+'Excel.DataPivotHierarchy#name:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
+
+
+    await Excel.run(async (context) => {
+        const dataHierarchies = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales").dataHierarchies
+        dataHierarchies.load("no-properties-needed");
+        await context.sync();
+
+        dataHierarchies.items[0].name = "Farm Sales";
+        dataHierarchies.items[1].name = "Wholesale";
         await context.sync();
     });
 'Excel.DataValidation#errorAlert:member':
@@ -4819,6 +4992,28 @@
 
       await context.sync();
     });
+'Excel.PivotLayout#getDataBodyRange:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-filters-and-summaries.yaml
+
+
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+        // The layout controls the ranges used by the PivotTable.
+        const range = pivotTable.layout.getDataBodyRange();
+
+        // Get all the data hierarchy totals.
+        const grandTotalRange = range.getLastRow();
+        grandTotalRange.load("address");
+        await context.sync();
+        
+        // Use the wholesale and farm sale totals to make a final sum.
+        const masterTotalRange = context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27");
+        masterTotalRange.formulas = [["All Crates", "=SUM(" + grandTotalRange.address + ")"]];
+        await context.sync();
+    });
 'Excel.PivotLayout#altTextDescription:member':
   - >-
     // Link to full sample:
@@ -4888,28 +5083,6 @@
 
       pivotLayout.fillEmptyCells = fillToSet;
       await context.sync();
-    });
-'Excel.PivotLayout#getDataBodyRange:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-filters-and-summaries.yaml
-
-
-    await Excel.run(async (context) => {
-        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
-
-        // The layout controls the ranges used by the PivotTable.
-        const range = pivotTable.layout.getDataBodyRange();
-
-        // Get all the data hierarchy totals.
-        const grandTotalRange = range.getLastRow();
-        grandTotalRange.load("address");
-        await context.sync();
-        
-        // Use the wholesale and farm sale totals to make a final sum.
-        const masterTotalRange = context.workbook.worksheets.getActiveWorksheet().getRange("B27:C27");
-        masterTotalRange.formulas = [["All Crates", "=SUM(" + grandTotalRange.address + ")"]];
-        await context.sync();
     });
 'Excel.PivotLayout#layoutType:member':
   - >-
@@ -5084,27 +5257,28 @@
 
         await context.sync();
     });
-'Excel.PivotTable#filterHierarchies:member':
+'Excel.PivotTable#layout:member':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-filters-and-summaries.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
 
 
-    async function filter(functionType: Excel.AggregationFunction) {
-        await Excel.run(async (context) => {
-            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
-            const filters = pivotTable.filterHierarchies;
-            const filter = filters.getItemOrNullObject("Classification");
-            filter.load();
-            await context.sync();
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+        pivotTable.layout.load("layoutType");
+        await context.sync();
 
-            // Add the Classification hierarchy to the filter, if it's not already there.
-            if (filter.isNullObject) {
-                filters.add(pivotTable.hierarchies.getItem("Classification"));
-                await context.sync();
-            }
-        });
-    }
+        // Cycle between the three layout types.
+        if (pivotTable.layout.layoutType === "Compact") {
+            pivotTable.layout.layoutType = "Outline";
+        } else if (pivotTable.layout.layoutType === "Outline") {
+            pivotTable.layout.layoutType = "Tabular";
+        } else {
+            pivotTable.layout.layoutType = "Compact";
+        }
+        await context.sync();
+        console.log("Pivot layout is now " + pivotTable.layout.layoutType);
+    });
 'Excel.PivotTable#getDataSourceString:member(1)':
   - >-
     // Link to full sample:
@@ -5147,28 +5321,27 @@
       console.log("Data source: " + pivotTableDataSourceString.value);
       console.log("Source type: " + pivotTableDataSourceType.value);
     });
-'Excel.PivotTable#layout:member':
+'Excel.PivotTable#filterHierarchies:member':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-filters-and-summaries.yaml
 
 
-    await Excel.run(async (context) => {
-        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
-        pivotTable.layout.load("layoutType");
-        await context.sync();
+    async function filter(functionType: Excel.AggregationFunction) {
+        await Excel.run(async (context) => {
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+            const filters = pivotTable.filterHierarchies;
+            const filter = filters.getItemOrNullObject("Classification");
+            filter.load();
+            await context.sync();
 
-        // Cycle between the three layout types.
-        if (pivotTable.layout.layoutType === "Compact") {
-            pivotTable.layout.layoutType = "Outline";
-        } else if (pivotTable.layout.layoutType === "Outline") {
-            pivotTable.layout.layoutType = "Tabular";
-        } else {
-            pivotTable.layout.layoutType = "Compact";
-        }
-        await context.sync();
-        console.log("Pivot layout is now " + pivotTable.layout.layoutType);
-    });
+            // Add the Classification hierarchy to the filter, if it's not already there.
+            if (filter.isNullObject) {
+                filters.add(pivotTable.hierarchies.getItem("Classification"));
+                await context.sync();
+            }
+        });
+    }
 'Excel.PivotTable#refresh:member(1)':
   - >-
     // Link to full sample:
@@ -5228,21 +5401,6 @@
 
         await context.sync();
     });
-'Excel.Range#autoFill:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-auto-fill.yaml
-
-
-    await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getActiveWorksheet();
-      const sumCell = sheet.getRange("P4");
-      
-      // Copy everything. The formulas will be contextually updated based on their new locations.
-      sumCell.autoFill("P4:P7", Excel.AutoFillType.fillCopy);
-      sumCell.format.autofitColumns();
-      await context.sync();
-    });
 'Excel.Range#clearOrResetContents:member(1)':
   - >-
     // Link to full sample:
@@ -5260,22 +5418,6 @@
       // Clear all the data from the second column.
       range.clearOrResetContents();
       await context.sync();
-    });
-'Excel.Range#copyFrom:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-copyfrom.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        // Place a label in front of the copied data.
-        sheet.getRange("F2").values = [["Copied Formula"]];
-
-        // Copy a range preserving the formulas.
-        // Note: non-formula values are copied over as is.
-        sheet.getRange("G2").copyFrom("A1:E1", Excel.RangeCopyType.formulas);
-        await context.sync();
     });
 'Excel.Range#control:member':
   - >-
@@ -5297,113 +5439,46 @@
       };
       await context.sync();
     });
-'Excel.Range#find:member(1)':
+'Excel.Range#values:member':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-find.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-cell-control.yaml
 
 
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const table = sheet.tables.getItem("ExpensesTable");
-        const searchRange = table.getRange();
-
-        // NOTE: If no match is found, an ItemNotFound error
-        // is thrown when Range.find is evaluated.
-        const searchText = (document.getElementById("searchText") as HTMLTextAreaElement).value;
-        const foundRange = searchRange.find(searchText, {
-            completeMatch: isCompleteMatchToggle,
-            matchCase: isMatchCaseToggle,
-            searchDirection: searchDirectionToggle
-        });
-        
-        foundRange.load("address");
-        await context.sync();
-
-
-        console.log(foundRange.address);
-    });
-'Excel.Range#findOrNullObject:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-find.yaml
-
+    // Change the value of the checkbox in B3.
 
     await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const table = sheet.tables.getItem("ExpensesTable");
-        const searchRange = table.getRange();
-        const searchText = (document.getElementById("searchText") as HTMLTextAreaElement).value;
-        const foundRange = searchRange.findOrNullObject(searchText, {
-            completeMatch: isCompleteMatchToggle,
-            matchCase: isMatchCaseToggle,
-            searchDirection: searchDirectionToggle
-        });
-        
-        foundRange.load("address");
-        await context.sync();
+      const sheet = context.workbook.worksheets.getActiveWorksheet();
+      const range = sheet.getRange("B3");
 
-        if (foundRange.isNullObject) {
-            console.log("Text not found");
-        } else {
-            console.log(foundRange.address);
-        }
-    });
-'Excel.Range#getCellProperties:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/cell-properties.yaml
-
-
-    await Excel.run(async (context) => {
-        const cell = context.workbook.getActiveCell();
-
-        // Define the cell properties to get by setting the matching LoadOptions to true.
-        const propertiesToGet = cell.getCellProperties({
-            address: true,
-            format: {
-                fill: {
-                    color: true
-                },
-                font: {
-                    color: true
-                }
-            },
-            style: true
-        });
-
-        // Sync to get the data from the workbook.
-        await context.sync();
-        const cellProperties = propertiesToGet.value[0][0];
-        console.log(
-            `Address: ${cellProperties.address}\nStyle: ${cellProperties.style}\nFill Color: ${cellProperties.format.fill.color}\nFont Color: ${cellProperties.format.font.color}`);
-    });
-'Excel.Range#getDependents:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-dependents.yaml
-
-
-    // This function highlights all the dependent cells of the active cell.
-
-    // Dependent cells contain formulas that refer to other cells.
-
-    await Excel.run(async (context) => {
-      // Get addresses of the active cell's dependent cells.
-      const range = context.workbook.getActiveCell();
-      const dependents = range.getDependents();
-      range.load("address");
-      dependents.areas.load("address");
+      range.values = [["TRUE"]];
       await context.sync();
+    });
+'Excel.Range#valuesAsJson:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-formatted-number.yaml
 
-      console.log(`All dependent cells of ${range.address}:`);
 
-      // Use the dependents API to loop through dependents of the active cell.
-      for (let i = 0; i < dependents.areas.items.length; i++) {
-        // Highlight and print out the address of each dependent cell.
-        dependents.areas.items[i].format.fill.color = "Orange";
-        console.log(`  ${dependents.areas.items[i].address}`);
-      }
+    // This function creates a double data type,
+
+    // and sets the format of this data type as a date.
+
+    await Excel.run(async (context) => {
+      // Get the Sample worksheet and a range on that sheet.
+      const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
+      const dateRange = sheet.getRange("A1");
+
+      // Write a number formatted as a date to cell A1.
+      dateRange.valuesAsJson = [
+        [
+          {
+            type: Excel.CellValueType.double,
+            basicValue: 32889.0,
+            numberFormat: "m/d/yyyy"
+          }
+        ]
+      ];
       await context.sync();
     });
 'Excel.Range#getDirectDependents:member(1)':
@@ -5430,117 +5505,36 @@
       }
       await context.sync();
     });
-'Excel.Range#getDirectPrecedents:member(1)':
+'Excel.Range#sort:member':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/precedents.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/event-column-and-row-sort.yaml
 
 
-    await Excel.run(async (context) => {
-      // Precedents are cells referenced by the formula in a cell.
-      // A "direct precedent" is a cell directly referenced by the selected formula.
-      let range = context.workbook.getActiveCell();
-      let directPrecedents = range.getDirectPrecedents();
-      range.load("address");
-      directPrecedents.areas.load("address");
-      await context.sync();
+    async function sortTopToBottom(criteria: string) {
+        await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+            const range = sheet.getRange("A1:E5");
 
-      console.log(`Direct precedent cells of ${range.address}:`);
+            // Find the column header that provides the sort criteria.
+            const header = range.find(criteria, {});
+            header.load("columnIndex");
+            await context.sync();
 
-      // Use the direct precedents API to loop through precedents of the active cell.
-      for (let i = 0; i < directPrecedents.areas.items.length; i++) {
-        // Highlight and console the address of each precedent cell.
-        directPrecedents.areas.items[i].format.fill.color = "Yellow";
-        console.log(`  ${directPrecedents.areas.items[i].address}`);
-      }
-      await context.sync();
-    });
-'Excel.Range#getExtendedRange:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-get-range-edge.yaml
-
-
-    await Excel.run(async (context) => {
-      // Get the selected range.
-      const range = context.workbook.getSelectedRange();
-
-      // Specify the direction with the `KeyboardDirection` enum.
-      const direction = Excel.KeyboardDirection.down;
-
-      // Get the active cell in the workbook.
-      const activeCell = context.workbook.getActiveCell();
-
-      // Get all the cells from the currently selected range to the bottom-most edge of the used range.
-      // This method acts like the Ctrl+Shift+Arrow key keyboard shortcut while a range is selected.
-      const extendedRange = range.getExtendedRange(
-        direction,
-        activeCell // If the selected range contains more than one cell, the active cell must be defined.
-      );
-      extendedRange.select();
-
-      await context.sync();
-    });
-'Excel.Range#getIntersectionOrNullObject:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-relationships.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const salesTable = sheet.tables.getItem("SalesTable");
-        const dataRange = salesTable.getDataBodyRange();
-
-        // We want the most recent quarter that has data, so
-        // exclude quarters without data and get the last of
-        // the remaining columns.
-        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
-        const currentQuarterRange = usedDataRange.getLastColumn();
-
-        // Asian and European teams have separate contests.
-        const asianSalesRange = sheet.getRange("A2:E4");
-        const europeanSalesRange = sheet.getRange("A5:E7");
-
-        // The data for each chart is the intersection of the
-        // current quarter column and the rows for the continent.
-        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-
-        // Must sync before you can test the output of *OrNullObject
-        // method/property.
-        await context.sync();
-
-        if (asianContestRange.isNullObject) {
-            // See the declaration of this function for how to
-            // test this code path.
-            reportMissingData("Asian");
-        } else {
-            createContinentChart(
-                sheet,
-                "Asian",
-                asianContestRange,
-                "A9",
-                "F24"
+            range.sort.apply(
+                [
+                    {
+                        key: header.columnIndex,
+                        sortOn: Excel.SortOn.value
+                    }
+                ],
+                false /*matchCase*/,
+                true /*hasHeaders*/,
+                Excel.SortOrientation.rows
             );
-        }
-
-        if (europeanContestRange.isNullObject) {
-            // See the declaration of this function for how to
-            // test this code path.
-            reportMissingData("European");
-        } else {
-            createContinentChart(
-                sheet,
-                "European",
-                europeanContestRange,
-                "A25",
-                "F40"
-            );
-        }
-
-        await context.sync();
-    });
+            await context.sync();
+        });
+    }
 'Excel.Range#getMergedAreasOrNullObject:member(1)':
   - >-
     // Link to full sample:
@@ -5567,6 +5561,62 @@
       console.log(`Number of cells in the merged range: ${mergedAreas.cellCount}`);
 
       await context.sync();
+    });
+'Excel.Range#merge:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-merged-ranges.yaml
+
+
+    await Excel.run(async (context) => {
+      // Retrieve the worksheet and the table in that worksheet.
+      const sheet = context.workbook.worksheets.getActiveWorksheet();
+      const tableRange = sheet.getRange("B2:E6");
+
+      // Create a merged range in the first row of the table.
+      const chartTitle = tableRange.getRow(0);
+      chartTitle.merge(true);
+
+      // Format the merged range.
+      chartTitle.format.horizontalAlignment = "Center";
+
+      await context.sync();
+    });
+'Excel.Range#group:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/outline.yaml
+
+
+    Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        
+        // Group the larger, main level. Note that the outline controls
+        // will be on row 10, meaning 4-9 will collapse and expand.
+        sheet.getRange("4:9").group(Excel.GroupOption.byRows);
+
+        // Group the smaller, sublevels. Note that the outline controls
+        // will be on rows 6 and 9, meaning 4-5 and 7-8 will collapse and expand.
+        sheet.getRange("4:5").group(Excel.GroupOption.byRows);
+        sheet.getRange("7:8").group(Excel.GroupOption.byRows);
+        await context.sync();
+    });
+'Excel.Range#ungroup:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/outline.yaml
+
+
+    Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        
+        // This removes two levels of groups from the "A1-R10" range.
+        // Any groups at the same level on the same dimension will be removed by a single call.
+        sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byRows);
+        sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byRows);
+        sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byColumns);
+        sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byColumns);
+        await context.sync();
     });
 'Excel.Range#getPivotTables:member(1)':
   - >-
@@ -5596,6 +5646,31 @@
         console.log(`\t${pivotTable.name}`);
       });
     });
+'Excel.Range#getDirectPrecedents:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/precedents.yaml
+
+
+    await Excel.run(async (context) => {
+      // Precedents are cells referenced by the formula in a cell.
+      // A "direct precedent" is a cell directly referenced by the selected formula.
+      let range = context.workbook.getActiveCell();
+      let directPrecedents = range.getDirectPrecedents();
+      range.load("address");
+      directPrecedents.areas.load("address");
+      await context.sync();
+
+      console.log(`Direct precedent cells of ${range.address}:`);
+
+      // Use the direct precedents API to loop through precedents of the active cell.
+      for (let i = 0; i < directPrecedents.areas.items.length; i++) {
+        // Highlight and console the address of each precedent cell.
+        directPrecedents.areas.items[i].format.fill.color = "Yellow";
+        console.log(`  ${directPrecedents.areas.items[i].address}`);
+      }
+      await context.sync();
+    });
 'Excel.Range#getPrecedents:member(1)':
   - >-
     // Link to full sample:
@@ -5620,32 +5695,6 @@
       }
       await context.sync();
     });
-'Excel.Range#getRangeEdge:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-get-range-edge.yaml
-
-
-    await Excel.run(async (context) => {
-      // Get the selected range.
-      const range = context.workbook.getSelectedRange();
-
-      // Specify the direction with the `KeyboardDirection` enum.
-      const direction = Excel.KeyboardDirection.up;
-
-      // Get the active cell in the workbook.
-      const activeCell = context.workbook.getActiveCell();
-
-      // Get the top-most cell of the current used range.
-      // This method acts like the Ctrl+Arrow key keyboard shortcut while a range is selected.
-      const rangeEdge = range.getRangeEdge(
-        direction,
-        activeCell // If the selected range contains more than one cell, the active cell must be defined.
-      );
-      rangeEdge.select();
-
-      await context.sync();
-    });
 'Excel.Range#getSpecialCells:member(1)':
   - >-
     // Link to full sample:
@@ -5663,247 +5712,49 @@
 
         return context.sync();
     });
-'Excel.Range#getSpillingToRange:member(1)':
+'Excel.Range#autoFill:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/dynamic-arrays.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-auto-fill.yaml
 
 
     await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getItem("Sample");
-
-      // Set G4 to a formula that returns a dynamic array.
-      const targetCell = sheet.getRange("G4");
-      targetCell.formulas = [["=A4:D4"]];
-
-      // Get the address of the cells that the dynamic array spilled into.
-      const spillRange = targetCell.getSpillingToRange();
-      spillRange.load("address");
-
-      // Fit the columns for readability.
-      sheet.getUsedRange().format.autofitColumns();
-      await context.sync();
-
-      console.log(`Copying the table headers spilled into ${spillRange.address}.`);
-    });
-'Excel.Range#getUsedRange:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-relationships.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const salesTable = sheet.tables.getItem("SalesTable");
-        const dataRange = salesTable.getDataBodyRange();
-
-        // We want the most recent quarter that has data, so
-        // exclude quarters without data and get the last of
-        // the remaining columns.
-        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
-        const currentQuarterRange = usedDataRange.getLastColumn();
-
-        // Asian and European teams have separate contests.
-        const asianSalesRange = sheet.getRange("A2:E4");
-        const europeanSalesRange = sheet.getRange("A5:E7");
-
-        // The data for each chart is the intersection of the
-        // current quarter column and the rows for the continent.
-        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
-
-        // Must sync before you can test the output of *OrNullObject
-        // method/property.
-        await context.sync();
-
-        if (asianContestRange.isNullObject) {
-            // See the declaration of this function for how to
-            // test this code path.
-            reportMissingData("Asian");
-        } else {
-            createContinentChart(
-                sheet,
-                "Asian",
-                asianContestRange,
-                "A9",
-                "F24"
-            );
-        }
-
-        if (europeanContestRange.isNullObject) {
-            // See the declaration of this function for how to
-            // test this code path.
-            reportMissingData("European");
-        } else {
-            createContinentChart(
-                sheet,
-                "European",
-                europeanContestRange,
-                "A25",
-                "F40"
-            );
-        }
-
-        await context.sync();
-    });
-'Excel.Range#getUsedRangeOrNullObject:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/used-range.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const salesTable = sheet.tables.getItem("SalesTable");
-        const dataRange = salesTable.getDataBodyRange();
-
-        // Pass true so only cells with values count as used
-        const usedDataRange = dataRange.getUsedRangeOrNullObject(
-            true /* valuesOnly */
-        );
-
-        //Must sync before reading value returned from *OrNullObject method/property.
-        await context.sync();
-
-        if (usedDataRange.isNullObject) {
-            console.log("Need Data to Make Chart");
-            console.log("To create a meaningful chart, press 'Fill the table' (or add names to the Product column and numbers to some of the other cells). Then press 'Try to create chart' again.");
-        } else {
-            const chart = sheet.charts.add(
-                Excel.ChartType.columnClustered,
-                dataRange,
-                "Columns"
-            );
-            chart.setPosition("A15", "F30");
-            chart.title.text = "Quarterly sales chart";
-            chart.legend.position = "Right";
-            chart.legend.format.fill.setSolidColor("white");
-            chart.dataLabels.format.font.size = 15;
-            chart.dataLabels.format.font.color = "black";
-        }
-
-        await context.sync();
-    });
-'Excel.Range#group:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/outline.yaml
-
-
-    Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        
-        // Group the larger, main level. Note that the outline controls
-        // will be on row 10, meaning 4-9 will collapse and expand.
-        sheet.getRange("4:9").group(Excel.GroupOption.byRows);
-
-        // Group the smaller, sublevels. Note that the outline controls
-        // will be on rows 6 and 9, meaning 4-5 and 7-8 will collapse and expand.
-        sheet.getRange("4:5").group(Excel.GroupOption.byRows);
-        sheet.getRange("7:8").group(Excel.GroupOption.byRows);
-        await context.sync();
-    });
-'Excel.Range#hyperlink:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-hyperlink.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Orders");
-
-        let productsRange = sheet.getRange("A3:A5");
-        productsRange.load("values");
-
-        await context.sync();
-
-        // Create a hyperlink to a URL 
-        // for each product name in the first table.
-        for (let i = 0; i < productsRange.values.length; i++) {
-            let cellRange = productsRange.getCell(i, 0);
-            let cellText = productsRange.values[i][0];
-
-            let hyperlink = {
-                textToDisplay: cellText,
-                screenTip: "Search Bing for '" + cellText + "'",
-                address: "https://www.bing.com?q=" + cellText
-            }
-            cellRange.hyperlink = hyperlink;
-        }
-
-        await context.sync();
-    });
-'Excel.Range#merge:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-merged-ranges.yaml
-
-
-    await Excel.run(async (context) => {
-      // Retrieve the worksheet and the table in that worksheet.
       const sheet = context.workbook.worksheets.getActiveWorksheet();
-      const tableRange = sheet.getRange("B2:E6");
-
-      // Create a merged range in the first row of the table.
-      const chartTitle = tableRange.getRow(0);
-      chartTitle.merge(true);
-
-      // Format the merged range.
-      chartTitle.format.horizontalAlignment = "Center";
-
+      const sumCell = sheet.getRange("P4");
+      
+      // Copy everything. The formulas will be contextually updated based on their new locations.
+      sumCell.autoFill("P4:P7", Excel.AutoFillType.fillCopy);
+      sumCell.format.autofitColumns();
       await context.sync();
     });
-'Excel.Range#moveTo:member(1)':
+'Excel.Range#getCellProperties:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-copyfrom.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/cell-properties.yaml
 
 
     await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        // Place a label in front of the moved data.
-        sheet.getRange("F12").values = [["Moved Range:"]];
+        const cell = context.workbook.getActiveCell();
 
-        // Move the range from A1:E1 to G12:K12.
-        sheet.getRange("A1:E1").moveTo("G12");
+        // Define the cell properties to get by setting the matching LoadOptions to true.
+        const propertiesToGet = cell.getCellProperties({
+            address: true,
+            format: {
+                fill: {
+                    color: true
+                },
+                font: {
+                    color: true
+                }
+            },
+            style: true
+        });
+
+        // Sync to get the data from the workbook.
         await context.sync();
-    });
-'Excel.Range#removeDuplicates:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-remove-duplicates.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("B2:D11");
-
-        const deleteResult = range.removeDuplicates([0],true);    
-        deleteResult.load();    
-        await context.sync();
-
-        console.log(deleteResult.removed + " entries with duplicate names removed.");
-        console.log(deleteResult.uniqueRemaining + " entries with unique names remain in the range.");
-    });
-'Excel.Range#set:member(2)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/90-scenarios/multiple-property-set.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Sample");
-
-        const sourceRange = sheet.getRange("B2:E2");
-        sourceRange.load("format/fill/color, format/font/name, format/font/color");
-        await context.sync();
-
-        // Set properties based on the loaded and synced 
-        // source range.
-        const targetRange = sheet.getRange("B7:E7");
-        targetRange.set(sourceRange); 
-        targetRange.format.autofitColumns();
-        await context.sync();
+        const cellProperties = propertiesToGet.value[0][0];
+        console.log(
+            `Address: ${cellProperties.address}\nStyle: ${cellProperties.style}\nFill Color: ${cellProperties.format.fill.color}\nFont Color: ${cellProperties.format.font.color}`);
     });
 'Excel.Range#setCellProperties:member(1)':
   - >-
@@ -5982,36 +5833,359 @@
         sheet.getUsedRange().format.autofitColumns();
         await context.sync();
     });
-'Excel.Range#sort:member':
+'Excel.Range#copyFrom:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/event-column-and-row-sort.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-copyfrom.yaml
 
 
-    async function sortTopToBottom(criteria: string) {
-        await Excel.run(async (context) => {
-            const sheet = context.workbook.worksheets.getActiveWorksheet();
-            const range = sheet.getRange("A1:E5");
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        // Place a label in front of the copied data.
+        sheet.getRange("F2").values = [["Copied Formula"]];
 
-            // Find the column header that provides the sort criteria.
-            const header = range.find(criteria, {});
-            header.load("columnIndex");
-            await context.sync();
+        // Copy a range preserving the formulas.
+        // Note: non-formula values are copied over as is.
+        sheet.getRange("G2").copyFrom("A1:E1", Excel.RangeCopyType.formulas);
+        await context.sync();
+    });
+'Excel.Range#moveTo:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-copyfrom.yaml
 
-            range.sort.apply(
-                [
-                    {
-                        key: header.columnIndex,
-                        sortOn: Excel.SortOn.value
-                    }
-                ],
-                false /*matchCase*/,
-                true /*hasHeaders*/,
-                Excel.SortOrientation.rows
-            );
-            await context.sync();
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        // Place a label in front of the moved data.
+        sheet.getRange("F12").values = [["Moved Range:"]];
+
+        // Move the range from A1:E1 to G12:K12.
+        sheet.getRange("A1:E1").moveTo("G12");
+        await context.sync();
+    });
+'Excel.Range#getDependents:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-dependents.yaml
+
+
+    // This function highlights all the dependent cells of the active cell.
+
+    // Dependent cells contain formulas that refer to other cells.
+
+    await Excel.run(async (context) => {
+      // Get addresses of the active cell's dependent cells.
+      const range = context.workbook.getActiveCell();
+      const dependents = range.getDependents();
+      range.load("address");
+      dependents.areas.load("address");
+      await context.sync();
+
+      console.log(`All dependent cells of ${range.address}:`);
+
+      // Use the dependents API to loop through dependents of the active cell.
+      for (let i = 0; i < dependents.areas.items.length; i++) {
+        // Highlight and print out the address of each dependent cell.
+        dependents.areas.items[i].format.fill.color = "Orange";
+        console.log(`  ${dependents.areas.items[i].address}`);
+      }
+      await context.sync();
+    });
+'Excel.Range#getSpillingToRange:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/dynamic-arrays.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+
+      // Set G4 to a formula that returns a dynamic array.
+      const targetCell = sheet.getRange("G4");
+      targetCell.formulas = [["=A4:D4"]];
+
+      // Get the address of the cells that the dynamic array spilled into.
+      const spillRange = targetCell.getSpillingToRange();
+      spillRange.load("address");
+
+      // Fit the columns for readability.
+      sheet.getUsedRange().format.autofitColumns();
+      await context.sync();
+
+      console.log(`Copying the table headers spilled into ${spillRange.address}.`);
+    });
+'Excel.Range#find:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-find.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const table = sheet.tables.getItem("ExpensesTable");
+        const searchRange = table.getRange();
+
+        // NOTE: If no match is found, an ItemNotFound error
+        // is thrown when Range.find is evaluated.
+        const searchText = (document.getElementById("searchText") as HTMLTextAreaElement).value;
+        const foundRange = searchRange.find(searchText, {
+            completeMatch: isCompleteMatchToggle,
+            matchCase: isMatchCaseToggle,
+            searchDirection: searchDirectionToggle
         });
-    }
+        
+        foundRange.load("address");
+        await context.sync();
+
+
+        console.log(foundRange.address);
+    });
+'Excel.Range#findOrNullObject:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-find.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const table = sheet.tables.getItem("ExpensesTable");
+        const searchRange = table.getRange();
+        const searchText = (document.getElementById("searchText") as HTMLTextAreaElement).value;
+        const foundRange = searchRange.findOrNullObject(searchText, {
+            completeMatch: isCompleteMatchToggle,
+            matchCase: isMatchCaseToggle,
+            searchDirection: searchDirectionToggle
+        });
+        
+        foundRange.load("address");
+        await context.sync();
+
+        if (foundRange.isNullObject) {
+            console.log("Text not found");
+        } else {
+            console.log(foundRange.address);
+        }
+    });
+'Excel.Range#getExtendedRange:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-get-range-edge.yaml
+
+
+    await Excel.run(async (context) => {
+      // Get the selected range.
+      const range = context.workbook.getSelectedRange();
+
+      // Specify the direction with the `KeyboardDirection` enum.
+      const direction = Excel.KeyboardDirection.down;
+
+      // Get the active cell in the workbook.
+      const activeCell = context.workbook.getActiveCell();
+
+      // Get all the cells from the currently selected range to the bottom-most edge of the used range.
+      // This method acts like the Ctrl+Shift+Arrow key keyboard shortcut while a range is selected.
+      const extendedRange = range.getExtendedRange(
+        direction,
+        activeCell // If the selected range contains more than one cell, the active cell must be defined.
+      );
+      extendedRange.select();
+
+      await context.sync();
+    });
+'Excel.Range#getRangeEdge:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-get-range-edge.yaml
+
+
+    await Excel.run(async (context) => {
+      // Get the selected range.
+      const range = context.workbook.getSelectedRange();
+
+      // Specify the direction with the `KeyboardDirection` enum.
+      const direction = Excel.KeyboardDirection.up;
+
+      // Get the active cell in the workbook.
+      const activeCell = context.workbook.getActiveCell();
+
+      // Get the top-most cell of the current used range.
+      // This method acts like the Ctrl+Arrow key keyboard shortcut while a range is selected.
+      const rangeEdge = range.getRangeEdge(
+        direction,
+        activeCell // If the selected range contains more than one cell, the active cell must be defined.
+      );
+      rangeEdge.select();
+
+      await context.sync();
+    });
+'Excel.Range#hyperlink:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-hyperlink.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Orders");
+
+        let productsRange = sheet.getRange("A3:A5");
+        productsRange.load("values");
+
+        await context.sync();
+
+        // Create a hyperlink to a URL 
+        // for each product name in the first table.
+        for (let i = 0; i < productsRange.values.length; i++) {
+            let cellRange = productsRange.getCell(i, 0);
+            let cellText = productsRange.values[i][0];
+
+            let hyperlink = {
+                textToDisplay: cellText,
+                screenTip: "Search Bing for '" + cellText + "'",
+                address: "https://www.bing.com?q=" + cellText
+            }
+            cellRange.hyperlink = hyperlink;
+        }
+
+        await context.sync();
+    });
+'Excel.Range#getIntersectionOrNullObject:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-relationships.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const dataRange = salesTable.getDataBodyRange();
+
+        // We want the most recent quarter that has data, so
+        // exclude quarters without data and get the last of
+        // the remaining columns.
+        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
+        const currentQuarterRange = usedDataRange.getLastColumn();
+
+        // Asian and European teams have separate contests.
+        const asianSalesRange = sheet.getRange("A2:E4");
+        const europeanSalesRange = sheet.getRange("A5:E7");
+
+        // The data for each chart is the intersection of the
+        // current quarter column and the rows for the continent.
+        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+
+        // Must sync before you can test the output of *OrNullObject
+        // method/property.
+        await context.sync();
+
+        if (asianContestRange.isNullObject) {
+            // See the declaration of this function for how to
+            // test this code path.
+            reportMissingData("Asian");
+        } else {
+            createContinentChart(
+                sheet,
+                "Asian",
+                asianContestRange,
+                "A9",
+                "F24"
+            );
+        }
+
+        if (europeanContestRange.isNullObject) {
+            // See the declaration of this function for how to
+            // test this code path.
+            reportMissingData("European");
+        } else {
+            createContinentChart(
+                sheet,
+                "European",
+                europeanContestRange,
+                "A25",
+                "F40"
+            );
+        }
+
+        await context.sync();
+    });
+'Excel.Range#getUsedRange:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-relationships.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const dataRange = salesTable.getDataBodyRange();
+
+        // We want the most recent quarter that has data, so
+        // exclude quarters without data and get the last of
+        // the remaining columns.
+        const usedDataRange = dataRange.getUsedRange(true /* valuesOnly */);
+        const currentQuarterRange = usedDataRange.getLastColumn();
+
+        // Asian and European teams have separate contests.
+        const asianSalesRange = sheet.getRange("A2:E4");
+        const europeanSalesRange = sheet.getRange("A5:E7");
+
+        // The data for each chart is the intersection of the
+        // current quarter column and the rows for the continent.
+        const asianContestRange = asianSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+        const europeanContestRange = europeanSalesRange.getIntersectionOrNullObject(currentQuarterRange);
+
+        // Must sync before you can test the output of *OrNullObject
+        // method/property.
+        await context.sync();
+
+        if (asianContestRange.isNullObject) {
+            // See the declaration of this function for how to
+            // test this code path.
+            reportMissingData("Asian");
+        } else {
+            createContinentChart(
+                sheet,
+                "Asian",
+                asianContestRange,
+                "A9",
+                "F24"
+            );
+        }
+
+        if (europeanContestRange.isNullObject) {
+            // See the declaration of this function for how to
+            // test this code path.
+            reportMissingData("European");
+        } else {
+            createContinentChart(
+                sheet,
+                "European",
+                europeanContestRange,
+                "A25",
+                "F40"
+            );
+        }
+
+        await context.sync();
+    });
+'Excel.Range#removeDuplicates:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-remove-duplicates.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B2:D11");
+
+        const deleteResult = range.removeDuplicates([0],true);    
+        deleteResult.load();    
+        await context.sync();
+
+        console.log(deleteResult.removed + " entries with duplicate names removed.");
+        console.log(deleteResult.uniqueRemaining + " entries with unique names remain in the range.");
+    });
 'Excel.Range#style:member':
   - >-
     // Link to full sample:
@@ -6029,64 +6203,63 @@
 
         await context.sync();
     });
-'Excel.Range#ungroup:member(1)':
+'Excel.Range#getUsedRangeOrNullObject:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/outline.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/used-range.yaml
 
 
-    Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        
-        // This removes two levels of groups from the "A1-R10" range.
-        // Any groups at the same level on the same dimension will be removed by a single call.
-        sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byRows);
-        sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byRows);
-        sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byColumns);
-        sheet.getRange("A1:R10").ungroup(Excel.GroupOption.byColumns);
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const dataRange = salesTable.getDataBodyRange();
+
+        // Pass true so only cells with values count as used
+        const usedDataRange = dataRange.getUsedRangeOrNullObject(
+            true /* valuesOnly */
+        );
+
+        //Must sync before reading value returned from *OrNullObject method/property.
+        await context.sync();
+
+        if (usedDataRange.isNullObject) {
+            console.log("Need Data to Make Chart");
+            console.log("To create a meaningful chart, press 'Fill the table' (or add names to the Product column and numbers to some of the other cells). Then press 'Try to create chart' again.");
+        } else {
+            const chart = sheet.charts.add(
+                Excel.ChartType.columnClustered,
+                dataRange,
+                "Columns"
+            );
+            chart.setPosition("A15", "F30");
+            chart.title.text = "Quarterly sales chart";
+            chart.legend.position = "Right";
+            chart.legend.format.fill.setSolidColor("white");
+            chart.dataLabels.format.font.size = 15;
+            chart.dataLabels.format.font.color = "black";
+        }
+
         await context.sync();
     });
-'Excel.Range#values:member':
+'Excel.Range#set:member(2)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-cell-control.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/90-scenarios/multiple-property-set.yaml
 
-
-    // Change the value of the checkbox in B3.
 
     await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getActiveWorksheet();
-      const range = sheet.getRange("B3");
+        const sheet = context.workbook.worksheets.getItem("Sample");
 
-      range.values = [["TRUE"]];
-      await context.sync();
-    });
-'Excel.Range#valuesAsJson:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-formatted-number.yaml
+        const sourceRange = sheet.getRange("B2:E2");
+        sourceRange.load("format/fill/color, format/font/name, format/font/color");
+        await context.sync();
 
-
-    // This function creates a double data type,
-
-    // and sets the format of this data type as a date.
-
-    await Excel.run(async (context) => {
-      // Get the Sample worksheet and a range on that sheet.
-      const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
-      const dateRange = sheet.getRange("A1");
-
-      // Write a number formatted as a date to cell A1.
-      dateRange.valuesAsJson = [
-        [
-          {
-            type: Excel.CellValueType.double,
-            basicValue: 32889.0,
-            numberFormat: "m/d/yyyy"
-          }
-        ]
-      ];
-      await context.sync();
+        // Set properties based on the loaded and synced 
+        // source range.
+        const targetRange = sheet.getRange("B7:E7");
+        targetRange.set(sourceRange); 
+        targetRange.format.autofitColumns();
+        await context.sync();
     });
 'Excel.RangeAreas#format:member':
   - >-
@@ -6477,6 +6650,19 @@
         await context.sync();
         console.log("Settings changed handler registered.");
     });
+'Excel.SettingCollection#onSettingsChanged:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
+
+
+    await Excel.run(async (context) => {
+        const settings = context.workbook.settings; 
+        settings.onSettingsChanged.add(onChangedSetting);
+
+        await context.sync();
+        console.log("Settings changed handler registered.");
+    });
 'Excel.SettingCollection#getItemOrNullObject:member(1)':
   - >-
     // Link to full sample:
@@ -6498,19 +6684,6 @@
         }
 
         await context.sync();
-    });
-'Excel.SettingCollection#onSettingsChanged:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
-
-
-    await Excel.run(async (context) => {
-        const settings = context.workbook.settings; 
-        settings.onSettingsChanged.add(onChangedSetting);
-
-        await context.sync();
-        console.log("Settings changed handler registered.");
     });
 'Excel.Shape#delete:member(1)':
   - >-
@@ -6547,21 +6720,22 @@
         shape.fill.foregroundColor = "yellow"
         await context.sync();
     });
-'Excel.Shape#getAsImage:member(1)':
+'Excel.Shape#rotation:member':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-images.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-create-and-delete.yaml
 
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Shapes");
-        const shape = sheet.shapes.getItem("Image");
-        const result = shape.getAsImage(Excel.PictureFormat.png);
+        const shape = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.triangle);
+        shape.left = 100;
+        shape.top = 300;
+        shape.height = 150;
+        shape.width = 200;
+        shape.rotation = 45;
+        shape.fill.clear();
         await context.sync();
-
-        const imageString = result.value;
-        // Your add-in would save this string as a .png file.
-        console.log("The image's Base64-encoded string: " + imageString);
     });
 'Excel.Shape#group:member':
   - >-
@@ -6578,17 +6752,21 @@
 
         await context.sync();
     });
-'Excel.Shape#incrementLeft:member(1)':
+'Excel.Shape#getAsImage:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-move-and-order.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-images.yaml
 
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Shapes");
-        const shape = sheet.shapes.getItem("Square")
-        shape.incrementLeft(-25);
+        const shape = sheet.shapes.getItem("Image");
+        const result = shape.getAsImage(Excel.PictureFormat.png);
         await context.sync();
+
+        const imageString = result.value;
+        // Your add-in would save this string as a .png file.
+        console.log("The image's Base64-encoded string: " + imageString);
     });
 'Excel.Shape#incrementRotation:member(1)':
   - >-
@@ -6600,18 +6778,6 @@
         const sheet = context.workbook.worksheets.getItem("Shapes");
         const shape = sheet.shapes.getItem("Image");
         shape.incrementRotation(180);
-        await context.sync();
-    });
-'Excel.Shape#incrementTop:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-move-and-order.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Shapes");
-        const shape = sheet.shapes.getItem("Pentagon")
-        shape.incrementTop(25);
         await context.sync();
     });
 'Excel.Shape#line:member':
@@ -6633,6 +6799,30 @@
 
         await context.sync();
     });
+'Excel.Shape#incrementLeft:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-move-and-order.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Shapes");
+        const shape = sheet.shapes.getItem("Square")
+        shape.incrementLeft(-25);
+        await context.sync();
+    });
+'Excel.Shape#incrementTop:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-move-and-order.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Shapes");
+        const shape = sheet.shapes.getItem("Pentagon")
+        shape.incrementTop(25);
+        await context.sync();
+    });
 'Excel.Shape#lockAspectRatio:member':
   - >-
     // Link to full sample:
@@ -6644,23 +6834,6 @@
         const shape = sheet.shapes.getItem("Octagon")
         shape.lockAspectRatio = true;
         shape.scaleHeight(1.25, Excel.ShapeScaleType.currentSize);
-        await context.sync();
-    });
-'Excel.Shape#rotation:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-create-and-delete.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Shapes");
-        const shape = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.triangle);
-        shape.left = 100;
-        shape.top = 300;
-        shape.height = 150;
-        shape.width = 200;
-        shape.rotation = 45;
-        shape.fill.clear();
         await context.sync();
     });
 'Excel.Shape#scaleHeight:member(1)':
@@ -7571,115 +7744,35 @@
 
       await context.sync();
     });
-'Excel.Workbook#close:member(1)':
+'Excel.Workbook#properties:member':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-save-and-close.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/26-document/properties.yaml
 
 
     await Excel.run(async (context) => {
-        context.workbook.close(Excel.CloseBehavior.save);
-    });
-'Excel.Workbook#getActiveCell:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-get-active-cell.yaml
+        let titleValue = "Excel document properties API";
+        let subjectValue = "Set and get document properties";
+        let keywordsValue = "Set and get operations";
+        let commentsValue = "This is an Excel document properties API code sample";
+        let categoryValue = "Office Add-ins";
+        let managerValue = "John";
+        let companyValue = "Microsoft";
 
+        let docProperties = context.workbook.properties;
 
-    await Excel.run(async (context) => {
-
-        let myWorkbook = context.workbook;
-        let activeCell = myWorkbook.getActiveCell();
-        activeCell.load("address");
+        // Set the writeable document properties.
+        docProperties.title = titleValue;
+        docProperties.subject = subjectValue;
+        docProperties.keywords = keywordsValue;
+        docProperties.comments = commentsValue;
+        docProperties.category = categoryValue;
+        docProperties.manager = managerValue;
+        docProperties.company = companyValue;
 
         await context.sync();
-        
-        console.log("The active cell is " + activeCell.address);
-    });
-'Excel.Workbook#getActiveShapeOrNullObject:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-get-active.yaml
 
-
-    // This method gets the active shape and displays it as an image in the task
-    pane.
-
-    await Excel.run(async (context) => {
-      // Get the currently active shape, if any.
-      const activeShape = context.workbook.getActiveShapeOrNullObject();
-      
-      if (activeShape) {
-        // Convert the active shape to an image.
-        const shapeImage = activeShape.getAsImage(Excel.PictureFormat.png);
-        await context.sync();
-        
-        // Display the image in the task pane.
-        const imageContainer = document.getElementById("image");
-        imageContainer.innerHTML = ''; // Clear the container before adding a new image.
-        const imageElement = document.createElement("img");
-        imageElement.src = "data:image/png;base64," + shapeImage.value;
-        imageContainer.appendChild(imageElement);              
-      } else {
-        console.log("No active shape");
-      }
-    });
-'Excel.Workbook#getSelectedRanges:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-areas.yaml
-
-
-    await Excel.run(async (context) => {
-
-        const selectedRanges = context.workbook.getSelectedRanges();
-        selectedRanges.format.fill.color = "lightblue";
-
-        await context.sync();
-    })
-'Excel.Workbook#insertWorksheetsFromBase64:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-insert-external-worksheets.yaml
-
-
-    // Retrieve the file and set up an HTML FileReader element. 
-
-    const myFile = document.getElementById("file") as HTMLInputElement;
-
-    const reader = new FileReader();
-
-
-    reader.onload = (event) => {
-        // Remove the metadata before the Base64-encoded string.
-        const startIndex = reader.result.toString().indexOf("base64,");
-        externalWorkbook = reader.result.toString().substr(startIndex + 7);
-    };
-
-
-    // Read the file as a data URL so that we can parse the Base64-encoded
-    string.
-
-    reader.readAsDataURL(myFile.files[0]);
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-insert-external-worksheets.yaml
-
-
-    await Excel.run(async (context) => {
-        // Retrieve the source workbook.
-        const workbook = context.workbook;
-        
-        // Set up the insert options.
-        const options = {
-            sheetNamesToInsert: [], // Insert all the worksheets from the source workbook.
-            positionType: Excel.WorksheetPositionType.after, // Insert after the `relativeTo` sheet.
-            relativeTo: "Sheet1" // The sheet relative to which the other worksheets will be inserted. Used with `positionType`.
-        };
-        
-        // Insert the new worksheets.
-        workbook.insertWorksheetsFromBase64(externalWorkbook, options);
-        await context.sync();
+        console.log("Set the following document properties: title, subject, keywords, comments, category, manager, company.");
     });
 'Excel.Workbook#onActivated:member':
   - >-
@@ -7725,45 +7818,19 @@
         console.log(`\t${pivotTable.name}`);
       });
     });
-'Excel.Workbook#properties:member':
+'Excel.Workbook#getSelectedRanges:member(1)':
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/26-document/properties.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-areas.yaml
 
 
     await Excel.run(async (context) => {
-        let titleValue = "Excel document properties API";
-        let subjectValue = "Set and get document properties";
-        let keywordsValue = "Set and get operations";
-        let commentsValue = "This is an Excel document properties API code sample";
-        let categoryValue = "Office Add-ins";
-        let managerValue = "John";
-        let companyValue = "Microsoft";
 
-        let docProperties = context.workbook.properties;
-
-        // Set the writeable document properties.
-        docProperties.title = titleValue;
-        docProperties.subject = subjectValue;
-        docProperties.keywords = keywordsValue;
-        docProperties.comments = commentsValue;
-        docProperties.category = categoryValue;
-        docProperties.manager = managerValue;
-        docProperties.company = companyValue;
+        const selectedRanges = context.workbook.getSelectedRanges();
+        selectedRanges.format.fill.color = "lightblue";
 
         await context.sync();
-
-        console.log("Set the following document properties: title, subject, keywords, comments, category, manager, company.");
-    });
-'Excel.Workbook#save:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-save-and-close.yaml
-
-
-    await Excel.run(async (context) => {
-        context.workbook.save(Excel.SaveBehavior.save);
-    });
+    })
 'Excel.Workbook#styles:member':
   - >-
     // Link to full sample:
@@ -7789,6 +7856,112 @@
         await context.sync();
 
         console.log("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
+    });
+'Excel.Workbook#getActiveShapeOrNullObject:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-get-active.yaml
+
+
+    // This method gets the active shape and displays it as an image in the task
+    pane.
+
+    await Excel.run(async (context) => {
+      // Get the currently active shape, if any.
+      const activeShape = context.workbook.getActiveShapeOrNullObject();
+      
+      if (activeShape) {
+        // Convert the active shape to an image.
+        const shapeImage = activeShape.getAsImage(Excel.PictureFormat.png);
+        await context.sync();
+        
+        // Display the image in the task pane.
+        const imageContainer = document.getElementById("image");
+        imageContainer.innerHTML = ''; // Clear the container before adding a new image.
+        const imageElement = document.createElement("img");
+        imageElement.src = "data:image/png;base64," + shapeImage.value;
+        imageContainer.appendChild(imageElement);              
+      } else {
+        console.log("No active shape");
+      }
+    });
+'Excel.Workbook#getActiveCell:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-get-active-cell.yaml
+
+
+    await Excel.run(async (context) => {
+
+        let myWorkbook = context.workbook;
+        let activeCell = myWorkbook.getActiveCell();
+        activeCell.load("address");
+
+        await context.sync();
+        
+        console.log("The active cell is " + activeCell.address);
+    });
+'Excel.Workbook#insertWorksheetsFromBase64:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-insert-external-worksheets.yaml
+
+
+    // Retrieve the file and set up an HTML FileReader element. 
+
+    const myFile = document.getElementById("file") as HTMLInputElement;
+
+    const reader = new FileReader();
+
+
+    reader.onload = (event) => {
+        // Remove the metadata before the Base64-encoded string.
+        const startIndex = reader.result.toString().indexOf("base64,");
+        externalWorkbook = reader.result.toString().substr(startIndex + 7);
+    };
+
+
+    // Read the file as a data URL so that we can parse the Base64-encoded
+    string.
+
+    reader.readAsDataURL(myFile.files[0]);
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-insert-external-worksheets.yaml
+
+
+    await Excel.run(async (context) => {
+        // Retrieve the source workbook.
+        const workbook = context.workbook;
+        
+        // Set up the insert options.
+        const options = {
+            sheetNamesToInsert: [], // Insert all the worksheets from the source workbook.
+            positionType: Excel.WorksheetPositionType.after, // Insert after the `relativeTo` sheet.
+            relativeTo: "Sheet1" // The sheet relative to which the other worksheets will be inserted. Used with `positionType`.
+        };
+        
+        // Insert the new worksheets.
+        workbook.insertWorksheetsFromBase64(externalWorkbook, options);
+        await context.sync();
+    });
+'Excel.Workbook#close:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-save-and-close.yaml
+
+
+    await Excel.run(async (context) => {
+        context.workbook.close(Excel.CloseBehavior.save);
+    });
+'Excel.Workbook#save:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-save-and-close.yaml
+
+
+    await Excel.run(async (context) => {
+        context.workbook.save(Excel.SaveBehavior.save);
     });
 'Excel.WorkbookProtection#protect:member(1)':
   - >-
@@ -7849,6 +8022,243 @@
       }
       await context.sync();
     });
+'Excel.Worksheet#customProperties:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/26-document/custom-properties.yaml
+
+
+    await Excel.run(async (context) => {
+      // Load the keys and values of all custom properties in the current worksheet.
+      const customWorksheetProperties = context.workbook.worksheets.getActiveWorksheet().customProperties;
+      customWorksheetProperties.load(["key", "value"]);
+      await context.sync();
+
+      // Log each custom property to the console.
+      // Note that your document may have more properties than those you have set using this snippet.
+      customWorksheetProperties.items.forEach((property) => {
+        console.log(`${property.key}:${property.value}`);
+      });
+    });
+'Excel.Worksheet#onColumnSorted:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/event-column-and-row-sort.yaml
+
+
+    await Excel.run(async (context) => {
+        console.log("Adding column handler");
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        // This will fire whenever a column has been moved as the result of a sort action.
+        sheet.onColumnSorted.add((event) => {
+            return Excel.run((context) => {
+                console.log("Column sorted: " + event.address);
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Clear formatting for section, then highlight the sorted area.
+                sheet.getRange("A1:E5").format.fill.clear();
+                if (event.address !== "") {
+                    sheet.getRanges(event.address).format.fill.color = "yellow";
+                }
+
+                return context.sync();
+            });
+        });
+    });
+'Excel.Worksheet#onRowSorted:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/event-column-and-row-sort.yaml
+
+
+    await Excel.run(async (context) => {
+        console.log("Adding row handler");
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        // This will fire whenever a row has been moved as the result of a sort action.
+        sheet.onRowSorted.add((event) => {
+            return Excel.run((context) => {
+                console.log("Row sorted: " + event.address);
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // Clear formatting for section, then highlight the sorted area.
+                sheet.getRange("A1:E5").format.fill.clear();
+                if (event.address !== "") {
+                    sheet.getRanges(event.address).format.fill.color = "yellow";
+                }
+
+                return context.sync();
+            });
+        });
+    });
+'Excel.Worksheet#onSingleClicked:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/event-worksheet-single-click.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        sheet.onSingleClicked.add((event) => {
+            return Excel.run((context) => {
+                console.log(`Click detected at ${event.address} (pixel offset from upper-left cell corner: ${event.offsetX}, ${event.offsetY})`);
+                return context.sync();
+            });
+        });
+
+        console.log("The worksheet click handler is registered.");
+
+        await context.sync();
+    });
+'Excel.Worksheet#onFormulaChanged:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-formula-changed.yaml
+
+
+    await Excel.run(async (context) => {
+      // Retrieve the worksheet named "Sample".
+      let sheet = context.workbook.worksheets.getItem("Sample");
+      
+      // Register the formula changed event handler for this worksheet.
+      sheet.onFormulaChanged.add(formulaChangeHandler);
+      await context.sync();
+      
+      console.log("Registered a formula changed event handler for this worksheet.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-formula-changed.yaml
+
+
+    async function formulaChangeHandler(event:
+    Excel.WorksheetFormulaChangedEventArgs) {
+      await Excel.run(async (context) => {
+        // Retrieve details about the formula change event.
+        const cellAddress = event.formulaDetails[0].cellAddress;
+        const previousFormula = event.formulaDetails[0].previousFormula;
+        const source = event.source;
+        
+        // Print out the change event details.
+        console.log(
+          `The formula in cell ${cellAddress} changed. 
+          The previous formula was: ${previousFormula}. 
+          The source of the change was: ${source}.`
+        );
+      });
+    }
+'Excel.Worksheet#onChanged:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        sheet.onChanged.add(onChange);
+        await context.sync();
+
+        console.log("Added a worksheet-level data-changed event handler.");
+    });
+'Excel.Worksheet#onProtectionChanged:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet-protection.yaml
+
+
+    // This function registers an event handler for the onProtectionChanged
+    event of a worksheet.
+
+    await Excel.run(async (context) => {
+        // Set "Sample" as the active worksheet.
+        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+        const sheet = context.workbook.worksheets.add("Sample");
+        sheet.activate();
+
+        // Register the onProtectionChanged event handler.
+        sheet.onProtectionChanged.add(checkProtection);
+        await context.sync();
+        console.log("Added a worksheet protection change event handler.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet-protection.yaml
+
+
+    async function checkProtection(event:
+    Excel.WorksheetProtectionChangedEventArgs) {
+        // This function is an event handler that returns the protection status of a worksheet
+        // and information about the changed worksheet.
+        await Excel.run(async (context) => {
+            const protectionStatus = event.isProtected;
+            const worksheetId = event.worksheetId;
+            const source = event.source;
+            console.log("Protection status changed. Protection status is now: " + protectionStatus + ".");
+            console.log("    ID of changed worksheet: " + worksheetId + ".");
+            console.log("    Source of change event: " + source + ".");
+        });
+    }
+'Excel.Worksheet#showOutlineLevels:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/outline.yaml
+
+
+    Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        // This shows the top 3 outline levels; collapsing any additional sublevels.
+        sheet.showOutlineLevels(3, 3);
+        await context.sync();
+    });
+'Excel.Worksheet#slicers:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-slicer.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Pivot");
+        const slicer = sheet.slicers.add(
+            "Farm Sales", /* The slicer data source. For PivotTables, this can be the PivotTable object reference or name. */
+            "Type" /* The field in the data source to filter by. For PivotTables, this can be a PivotField object reference or ID. */
+        );
+        slicer.name = "Fruit Slicer";
+        await context.sync();
+    });
+'Excel.Worksheet#pivotTables:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-get-pivottables.yaml
+
+
+    await Excel.run(async (context) => {
+      // Get the names of all the PivotTables in the current worksheet.
+      const pivotTables = context.workbook.worksheets.getActiveWorksheet().pivotTables;
+      pivotTables.load("name");
+      await context.sync();
+
+      // Display the names in the console.
+      console.log("PivotTables in the current worksheet:")
+      pivotTables.items.forEach((pivotTable) => {
+        console.log(`\t${pivotTable.name}`);
+      });
+    });
+'Excel.Worksheet#getRanges:member(1)':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-areas.yaml
+
+
+    await Excel.run(async (context) => {
+
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        const specifiedRanges = sheet.getRanges("D3:D5, G3:G5");
+        specifiedRanges.format.fill.color = "pink";
+
+        await context.sync();
+    })
 'Excel.Worksheet#autoFilter:member':
   - >-
     // Link to full sample:
@@ -7891,24 +8301,6 @@
 
         console.log("'" + sampleSheet.name + "' was copied to '" + copiedSheet.name + "'")
     });
-'Excel.Worksheet#customProperties:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/26-document/custom-properties.yaml
-
-
-    await Excel.run(async (context) => {
-      // Load the keys and values of all custom properties in the current worksheet.
-      const customWorksheetProperties = context.workbook.worksheets.getActiveWorksheet().customProperties;
-      customWorksheetProperties.load(["key", "value"]);
-      await context.sync();
-
-      // Log each custom property to the console.
-      // Note that your document may have more properties than those you have set using this snippet.
-      customWorksheetProperties.items.forEach((property) => {
-        console.log(`${property.key}:${property.value}`);
-      });
-    });
 'Excel.Worksheet#findAllOrNullObject:member(1)':
   - >-
     // Link to full sample:
@@ -7929,6 +8321,18 @@
         } else {
             foundRanges.format.fill.color = "green"
         }
+    });
+'Excel.Worksheet#showGridlines:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/gridlines.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        sheet.showGridlines = true;
+
+        await context.sync();
     });
 'Excel.Worksheet#getNext:member(1)':
   - >-
@@ -7984,237 +8388,6 @@
         let previousYear = previousYearSheet.name.substr(5, 4);
         console.log("Two Year Tax Due Comparison", `Tax due for ${currentYear} was ${currentTaxDueRange.text[0][0]}\nTax due for ${previousYear} was ${previousTaxDueRange.text[0][0]}`)
 
-        await context.sync();
-    });
-'Excel.Worksheet#getRanges:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-areas.yaml
-
-
-    await Excel.run(async (context) => {
-
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        const specifiedRanges = sheet.getRanges("D3:D5, G3:G5");
-        specifiedRanges.format.fill.color = "pink";
-
-        await context.sync();
-    })
-'Excel.Worksheet#onChanged:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
-
-
-    await Excel.run(async (context) => {
-        let sheet = context.workbook.worksheets.getItem("Sample");
-        sheet.onChanged.add(onChange);
-        await context.sync();
-
-        console.log("Added a worksheet-level data-changed event handler.");
-    });
-'Excel.Worksheet#onColumnSorted:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/event-column-and-row-sort.yaml
-
-
-    await Excel.run(async (context) => {
-        console.log("Adding column handler");
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-        // This will fire whenever a column has been moved as the result of a sort action.
-        sheet.onColumnSorted.add((event) => {
-            return Excel.run((context) => {
-                console.log("Column sorted: " + event.address);
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-                // Clear formatting for section, then highlight the sorted area.
-                sheet.getRange("A1:E5").format.fill.clear();
-                if (event.address !== "") {
-                    sheet.getRanges(event.address).format.fill.color = "yellow";
-                }
-
-                return context.sync();
-            });
-        });
-    });
-'Excel.Worksheet#onFormulaChanged:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-formula-changed.yaml
-
-
-    await Excel.run(async (context) => {
-      // Retrieve the worksheet named "Sample".
-      let sheet = context.workbook.worksheets.getItem("Sample");
-      
-      // Register the formula changed event handler for this worksheet.
-      sheet.onFormulaChanged.add(formulaChangeHandler);
-      await context.sync();
-      
-      console.log("Registered a formula changed event handler for this worksheet.");
-    });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-formula-changed.yaml
-
-
-    async function formulaChangeHandler(event:
-    Excel.WorksheetFormulaChangedEventArgs) {
-      await Excel.run(async (context) => {
-        // Retrieve details about the formula change event.
-        const cellAddress = event.formulaDetails[0].cellAddress;
-        const previousFormula = event.formulaDetails[0].previousFormula;
-        const source = event.source;
-        
-        // Print out the change event details.
-        console.log(
-          `The formula in cell ${cellAddress} changed. 
-          The previous formula was: ${previousFormula}. 
-          The source of the change was: ${source}.`
-        );
-      });
-    }
-'Excel.Worksheet#onProtectionChanged:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet-protection.yaml
-
-
-    // This function registers an event handler for the onProtectionChanged
-    event of a worksheet.
-
-    await Excel.run(async (context) => {
-        // Set "Sample" as the active worksheet.
-        context.workbook.worksheets.getItemOrNullObject("Sample").delete();
-        const sheet = context.workbook.worksheets.add("Sample");
-        sheet.activate();
-
-        // Register the onProtectionChanged event handler.
-        sheet.onProtectionChanged.add(checkProtection);
-        await context.sync();
-        console.log("Added a worksheet protection change event handler.");
-    });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet-protection.yaml
-
-
-    async function checkProtection(event:
-    Excel.WorksheetProtectionChangedEventArgs) {
-        // This function is an event handler that returns the protection status of a worksheet
-        // and information about the changed worksheet.
-        await Excel.run(async (context) => {
-            const protectionStatus = event.isProtected;
-            const worksheetId = event.worksheetId;
-            const source = event.source;
-            console.log("Protection status changed. Protection status is now: " + protectionStatus + ".");
-            console.log("    ID of changed worksheet: " + worksheetId + ".");
-            console.log("    Source of change event: " + source + ".");
-        });
-    }
-'Excel.Worksheet#onRowSorted:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/event-column-and-row-sort.yaml
-
-
-    await Excel.run(async (context) => {
-        console.log("Adding row handler");
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-        // This will fire whenever a row has been moved as the result of a sort action.
-        sheet.onRowSorted.add((event) => {
-            return Excel.run((context) => {
-                console.log("Row sorted: " + event.address);
-                const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-                // Clear formatting for section, then highlight the sorted area.
-                sheet.getRange("A1:E5").format.fill.clear();
-                if (event.address !== "") {
-                    sheet.getRanges(event.address).format.fill.color = "yellow";
-                }
-
-                return context.sync();
-            });
-        });
-    });
-'Excel.Worksheet#onSingleClicked:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/event-worksheet-single-click.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        sheet.onSingleClicked.add((event) => {
-            return Excel.run((context) => {
-                console.log(`Click detected at ${event.address} (pixel offset from upper-left cell corner: ${event.offsetX}, ${event.offsetY})`);
-                return context.sync();
-            });
-        });
-
-        console.log("The worksheet click handler is registered.");
-
-        await context.sync();
-    });
-'Excel.Worksheet#pivotTables:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-get-pivottables.yaml
-
-
-    await Excel.run(async (context) => {
-      // Get the names of all the PivotTables in the current worksheet.
-      const pivotTables = context.workbook.worksheets.getActiveWorksheet().pivotTables;
-      pivotTables.load("name");
-      await context.sync();
-
-      // Display the names in the console.
-      console.log("PivotTables in the current worksheet:")
-      pivotTables.items.forEach((pivotTable) => {
-        console.log(`\t${pivotTable.name}`);
-      });
-    });
-'Excel.Worksheet#showGridlines:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/gridlines.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        sheet.showGridlines = true;
-
-        await context.sync();
-    });
-'Excel.Worksheet#showOutlineLevels:member(1)':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/outline.yaml
-
-
-    Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-
-        // This shows the top 3 outline levels; collapsing any additional sublevels.
-        sheet.showOutlineLevels(3, 3);
-        await context.sync();
-    });
-'Excel.Worksheet#slicers:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-slicer.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Pivot");
-        const slicer = sheet.slicers.add(
-            "Farm Sales", /* The slicer data source. For PivotTables, this can be the PivotTable object reference or name. */
-            "Type" /* The field in the data source to filter by. For PivotTables, this can be a PivotField object reference or ID. */
-        );
-        slicer.name = "Fruit Slicer";
         await context.sync();
     });
 'Excel.Worksheet#tabColor:member':
@@ -8318,6 +8491,45 @@
             }
         });
     }  
+'Excel.WorksheetCollection#onActivated:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheets = context.workbook.worksheets;
+        sheets.onActivated.add(onActivate);
+
+        await context.sync();
+        console.log("A handler has been registered for the OnActivate event.");
+    });
+'Excel.WorksheetCollection#onAdded:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets;
+        sheet.onAdded.add(onWorksheetAdd);
+
+        await context.sync();
+        console.log("A handler has been registered for the OnAdded event.");
+    });
+'Excel.WorksheetCollection#onDeactivated:member':
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheets = context.workbook.worksheets;
+        sheets.onDeactivated.add(onDeactivate);
+
+        await context.sync();
+        console.log("A handler has been registered for the OnDeactivate event.");
+    });
 'Excel.WorksheetCollection#getFirst:member(1)':
   - >-
     // Link to full sample:
@@ -8377,45 +8589,6 @@
         console.log(`Tax Rate change from ${firstYear} to ${lastYear}`, `Tax rate for ${firstYear}: ${firstTaxRateRange.text[0][0]}\nTax rate for ${lastYear}: ${lastTaxRateRange.text[0][0]}`)
 
         await context.sync();
-    });
-'Excel.WorksheetCollection#onActivated:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
-
-
-    await Excel.run(async (context) => {
-        let sheets = context.workbook.worksheets;
-        sheets.onActivated.add(onActivate);
-
-        await context.sync();
-        console.log("A handler has been registered for the OnActivate event.");
-    });
-'Excel.WorksheetCollection#onAdded:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
-
-
-    await Excel.run(async (context) => {
-        let sheet = context.workbook.worksheets;
-        sheet.onAdded.add(onWorksheetAdd);
-
-        await context.sync();
-        console.log("A handler has been registered for the OnAdded event.");
-    });
-'Excel.WorksheetCollection#onDeactivated:member':
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
-
-
-    await Excel.run(async (context) => {
-        let sheets = context.workbook.worksheets;
-        sheets.onDeactivated.add(onDeactivate);
-
-        await context.sync();
-        console.log("A handler has been registered for the OnDeactivate event.");
     });
 'Excel.WorksheetCustomPropertyCollection#add:member(1)':
   - >-

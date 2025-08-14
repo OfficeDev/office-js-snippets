@@ -1,0 +1,185 @@
+order: 17
+id: excel-chart-leader-lines
+name: Leader lines
+description: Show and hide leader lines for chart labels.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("add-data-labels").addEventListener("click", () => tryCatch(addDataLabels));
+        document.getElementById("hide-chart-leader-lines").addEventListener("click", () => tryCatch(hideChartLeaderLines));
+        document.getElementById("show-chart-leader-lines").addEventListener("click", () => tryCatch(showChartLeaderLines));
+        document.getElementById("change-leader-line-format").addEventListener("click", () => tryCatch(changeLeaderLineFormat));
+
+        const sheetName = "Sample";
+
+        async function addDataLabels() {
+          // The following code adds data labels to the chart and positions them to demonstrate leader lines.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const chart = sheet.charts.getItemAt(0);
+            const series = chart.series.getItemAt(0);
+            
+            // Enable data labels for the series. Leader lines are enabled by default.
+            series.hasDataLabels = true;
+            series.points.load("items");
+            await context.sync();
+            
+            // Load the top position for each data label.
+            series.points.items.forEach((point) => point.dataLabel.load("top"));
+            await context.sync();
+
+            // Move some data labels to create distance from their chart points.
+            const point1 = series.points.items[1]; 
+            const point2 = series.points.items[2]; 
+            point1.dataLabel.top -= 50; 
+            point2.dataLabel.top += 50;
+            
+            // Format the data labels.
+            series.dataLabels.geometricShapeType = Excel.GeometricShapeType.rectangle;
+            series.dataLabels.showCategoryName = true;
+            series.dataLabels.format.border.weight = 1;
+            
+            await context.sync();
+          });
+        }
+
+        async function hideChartLeaderLines() {
+          // The following code disables leader lines for chart data labels.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const chart = sheet.charts.getItemAt(0);
+            const series = chart.series.getItemAt(0);
+            const dataLabels = series.dataLabels;
+            
+            // Disable leader lines.
+            dataLabels.showLeaderLines = false;
+            
+            await context.sync();
+          });
+        }
+
+        async function showChartLeaderLines() {
+          // The following code enables leader lines for chart data labels.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const chart = sheet.charts.getItemAt(0);
+            const series = chart.series.getItemAt(0);
+            const dataLabels = series.dataLabels;
+            
+            // Enable leader lines.
+            dataLabels.showLeaderLines = true;
+
+            await context.sync();
+          });
+        }
+
+        async function changeLeaderLineFormat() {
+          // The following code changes the format of leader lines. It adjusts color, weight, and line style.
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem(sheetName);
+            const chart = sheet.charts.getItemAt(0);
+            const series = chart.series.getItemAt(0);
+            const dataLabels = series.dataLabels;
+            const lineFormat = dataLabels.leaderLines.format;
+
+            // Set leader line formatting properties.
+            lineFormat.line.color = "blue";
+            lineFormat.line.weight = 2;
+            lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
+            await context.sync();
+          });
+        }
+
+        /** Create sample data and a line chart for the leader lines demo. */
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject(sheetName).delete();
+            const sheet = context.workbook.worksheets.add(sheetName);
+
+            // Add sample data to the worksheet.
+            const dataRange = sheet.getRange("A1:C4");
+            dataRange.values = sampleData;
+
+            // Create a line chart.
+            const chart = sheet.charts.add(Excel.ChartType.line, dataRange);
+            chart.title.text = "Sales Quantity";
+            
+            sheet.activate();
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+
+        /** Sample data for the chart. */
+        const sampleData = [
+          ["Type", "Product A", "Product B"],
+          ["Q1", 15, 20],
+          ["Q2", 22, 15],
+          ["Q3", 33, 47]
+        ];
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            <p>This sample shows how to add leader lines for data labels on your charts.</p>
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+                <span class="ms-Button-label">Create a chart</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="add-data-labels" class="ms-Button">
+                <span class="ms-Button-label">Add data labels</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <button id="hide-chart-leader-lines" class="ms-Button">
+                <span class="ms-Button-label">Hide leader lines</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <button id="show-chart-leader-lines" class="ms-Button">
+                <span class="ms-Button-label">Show leader lines</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <button id="change-leader-line-format" class="ms-Button">
+                <span class="ms-Button-label">Change format of the leader lines</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

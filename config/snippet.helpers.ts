@@ -91,7 +91,7 @@ function scrubCarriageReturns(snippet: ISnippet) {
 export function getScrubbedSnippet(snippet: ISnippet, keep: SnippetFieldType): ISnippet {
     let copy = {};
     forIn(snippetFields, (fieldType, fieldName) => {
-        if (fieldType & keep) {
+        if (fieldType & keep && snippet[fieldName] !== undefined) {
             copy[fieldName] = snippet[fieldName];
         }
     });

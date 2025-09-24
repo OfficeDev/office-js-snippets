@@ -103,7 +103,7 @@ export function getShareableYaml(rawSnippet: ISnippet, additionalFields: ISnippe
     const snippet = { ...getScrubbedSnippet(rawSnippet, SnippetFieldType.PUBLIC), ...additionalFields };
     scrubCarriageReturns(snippet);
 
-    return jsyaml.safeDump(snippet, {
+    return jsyaml.dump(snippet, {
         indent: 4,
         lineWidth: -1,
         sortKeys: <any>((a, b) => snippetFieldSortingOrder[a] - snippetFieldSortingOrder[b]),

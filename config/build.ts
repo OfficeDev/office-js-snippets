@@ -2,7 +2,7 @@
 
 import * as path from 'path';
 import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
@@ -84,7 +84,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
 
             const fullPath = path.resolve(dir, file.relativePath);
             const originalFileContents = fsx.readFileSync(fullPath).toString().trim();
-            let snippet = jsyaml.safeLoad(originalFileContents) as ISnippet;
+            let snippet = jsyaml.load(originalFileContents) as ISnippet;
 
             // Do validations & auto-corrections
             validateStringFieldNotEmptyOrThrow(snippet, 'name');
@@ -537,7 +537,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
             };
         });
 
-        let contents = jsyaml.safeDump(modifiedItems, {
+        let contents = jsyaml.dump(modifiedItems, {
             skipInvalid: true /* skip "undefined" (e.g., for "order" on some of the snippets) */
         });
 

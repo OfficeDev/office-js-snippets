@@ -1,10 +1,10 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import * as jsyaml from 'js-yaml';
 import { console } from './status';
-import * as rimraf from 'rimraf';
+import rimraf from 'rimraf';
 import { isObject, isNil, isString, isEmpty } from 'lodash';
 
 export interface SnippetFileInput {
@@ -39,7 +39,7 @@ export interface SnippetProcessedData {
  * @param message Message of the banner.
  * @param chalkFunction Chalk color function.
  */
-export const banner = (title: string, message: string = null, chalkFn: chalk.ChalkChain = null) => {
+export const banner = (title: string, message: string = null, chalkFn: any = null) => {
     if (!chalkFn) {
         chalkFn = chalk.bold;
     }
@@ -55,7 +55,7 @@ export const banner = (title: string, message: string = null, chalkFn: chalk.Cha
 };
 
 export function getPrintableDetails(item: any, indent: number) {
-    const details = jsyaml.safeDump(item, {
+    const details = jsyaml.dump(item, {
         indent: 4,
         lineWidth: -1,
         skipInvalid: true

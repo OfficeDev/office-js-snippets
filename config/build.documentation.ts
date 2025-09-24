@@ -36,7 +36,7 @@ export async function buildReferenceDocSnippetExtracts(
     await rmRf('snippet-extractor-output');
     await mkDir('snippet-extractor-output');
 
-    const contents = snippetExtractsPerHost.map(extracts => jsyaml.safeDump(extracts)).join('');
+    const contents = snippetExtractsPerHost.map(extracts => jsyaml.dump(extracts)).join('');
     await writeFile(path.resolve(`snippet-extractor-output/snippets.yaml`), contents);
 }
 
@@ -119,7 +119,7 @@ function getExtractedDataFromSnippet(
     const filename = snippetIdsToFilenames[row.snippetId];
     if (filename) {
         try {
-            const script = (jsyaml.safeLoad(fs.readFileSync(filename).toString()) as ISnippet).script.content;
+            const script = (jsyaml.load(fs.readFileSync(filename).toString()) as ISnippet).script.content;
 
             const fullSnippetTextArray = script.split('\n')
                 .map(line => line.replace(/\r/, ''));

@@ -4,7 +4,7 @@ import * as os from 'os';
 import chalk from 'chalk';
 import * as jsyaml from 'js-yaml';
 import { console } from './status';
-import rimraf from 'rimraf';
+import { rimraf } from 'rimraf';
 import { isObject, isNil, isString, isEmpty } from 'lodash';
 
 export interface SnippetFileInput {
@@ -83,16 +83,11 @@ export const mkDir = (dir: string) =>
 * Deletes a folder.
 * @param dir An absolute path to the directory.
 */
-export const rmRf = (dir: string) =>
-    new Promise<string>((resolve, reject) => {
-        const location = path.resolve(dir);
-        rimraf(location, (err) => {
-            if (err) {
-                return reject(err);
-            }
-            return resolve(location);
-        });
-    });
+export const rmRf = async (dir: string): Promise<string> => {
+    const location = path.resolve(dir);
+    await rimraf(location);
+    return location;
+};
 
 /**
  * Load all the files and folders in a given directory.

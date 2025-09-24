@@ -3,6 +3,7 @@
 import * as path from 'path';
 import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
 import chalk from 'chalk';
+import escapeStringRegexp from 'escape-string-regexp';
 import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
@@ -14,7 +15,6 @@ import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
 import * as jsyaml from 'js-yaml';
-import escapeStringRegexp = require('escape-string-regexp');
 import * as fsx from 'fs-extra';
 
 

@@ -3,7 +3,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 import chalk from 'chalk';
 import * as jsyaml from 'js-yaml';
-import { console } from './status';
 import { rimraf } from 'rimraf';
 import { isObject, isNil, isString, isEmpty } from 'lodash';
 

@@ -2,7 +2,8 @@
 
 import * as path from 'path';
 import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
+import escapeStringRegexp from 'escape-string-regexp';
 import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
@@ -14,7 +15,6 @@ import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
 import { startCase, groupBy, map } from 'lodash';
 import * as jsyaml from 'js-yaml';
-import escapeStringRegexp = require('escape-string-regexp');
 import * as fsx from 'fs-extra';
 
 
@@ -84,7 +84,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
 
             const fullPath = path.resolve(dir, file.relativePath);
             const originalFileContents = fsx.readFileSync(fullPath).toString().trim();
-            let snippet = jsyaml.safeLoad(originalFileContents) as ISnippet;
+            let snippet = jsyaml.load(originalFileContents) as ISnippet;
 
             // Do validations & auto-corrections
             validateStringFieldNotEmptyOrThrow(snippet, 'name');
@@ -103,7 +103,11 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
             const additionalFields: ISnippet = <any>{};
             additionalFields.id = snippet.id;
             additionalFields.api_set = snippet.api_set;
-            additionalFields.author = snippet.author;
+
+            // Only set author field if it has a value
+            if (snippet.author) {
+                additionalFields.author = snippet.author;
+            }
 
             if ((typeof (snippet as any).order) !== 'undefined') {
                 // # for ordering, if present (used for samples only)
@@ -537,7 +541,7 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
             };
         });
 
-        let contents = jsyaml.safeDump(modifiedItems, {
+        let contents = jsyaml.dump(modifiedItems, {
             skipInvalid: true /* skip "undefined" (e.g., for "order" on some of the snippets) */
         });
 

@@ -1,5 +1,5 @@
 import * as nodeStatus from 'node-status';
-import * as chalk from 'chalk';
+import chalk from 'chalk';
 import { isString, find, isNil, isArray } from 'lodash';
 
 interface IStage {

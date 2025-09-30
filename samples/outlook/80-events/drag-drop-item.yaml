@@ -1,0 +1,72 @@
+id: outlook-events-drag-drop-item
+name: Drag and drop an item into the task pane
+description: Handles the drag-and-drop event when a user drags and drops messages and file attachments into the add-in task pane.
+host: OUTLOOK
+api_set:
+    Mailbox: '1.5'
+script:
+    content: |
+        Office.onReady(() => {
+            dragAndDropEventHandler(event);
+        });
+
+        function dragAndDropEventHandler(event) {
+            Office.context.mailbox.addHandlerAsync(Office.EventType.DragAndDropEvent, (event) => {
+            console.log(`Event type: ${event.type}`);
+
+            const eventData = event.dragAndDropEventData;
+            console.log(`x-coordinate: ${eventData.pageX}, y-coordinate: ${eventData.pageY}`);
+
+            if (eventData.type == "drop") {
+              console.log("Items dropped into task pane.");
+              const files = eventData.dataTransfer.files;
+              files.forEach((file) => {
+                const content = file.fileContent;
+                const name = file.name;
+                const fileType = file.type;
+                console.log(`File name: ${name}`);
+                console.log(`File type: ${fileType}`);
+                console.log(`Contents: ${content.text().then((text) => { console.log(text); })}`);
+              });
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            <p class="ms-font-m">Drag and drop messages and file attachments into the add-in task pane.</p>
+            <p>To learn more about the drag-and-drop feature, see <a
+                    href="https://learn.microsoft.com/office/dev/add-ins/outlook/drag-drop-items">Drag and drop messages and
+                    attachments into the task pane of an Outlook add-in</a>.</p>
+            <p><b>Required mode</b>: Compose or Read</p>
+          <p><b>Supported Outlook clients</b>: Outlook on the web and the new Outlook on Windows</p>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <ol>
+                <li>Drag a message or file attachment from your mailbox to the task pane. As you drag the item across the task pane, the event name and the coordinates of your mouse pointer are displayed in the console.</li> 
+                <li>Drop the message or file attachment into the task pane. The properties
+                of the dropped item are displayed in the console.</li>
+            </ol>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

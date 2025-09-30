@@ -91,7 +91,7 @@ function scrubCarriageReturns(snippet: ISnippet) {
 export function getScrubbedSnippet(snippet: ISnippet, keep: SnippetFieldType): ISnippet {
     let copy = {};
     forIn(snippetFields, (fieldType, fieldName) => {
-        if (fieldType & keep) {
+        if (fieldType & keep && snippet[fieldName] !== undefined) {
             copy[fieldName] = snippet[fieldName];
         }
     });
@@ -103,7 +103,7 @@ export function getShareableYaml(rawSnippet: ISnippet, additionalFields: ISnippe
     const snippet = { ...getScrubbedSnippet(rawSnippet, SnippetFieldType.PUBLIC), ...additionalFields };
     scrubCarriageReturns(snippet);
 
-    return jsyaml.safeDump(snippet, {
+    return jsyaml.dump(snippet, {
         indent: 4,
         lineWidth: -1,
         sortKeys: <any>((a, b) => snippetFieldSortingOrder[a] - snippetFieldSortingOrder[b]),

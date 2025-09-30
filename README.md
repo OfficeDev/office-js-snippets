@@ -13,8 +13,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 1. [Fork](https://help.github.com/articles/about-forks/) this project into your GitHub account.
 1. Clone your fork to your development computer.
 1. Ensure that you have Node, version 6.10+, installed. (To check the version run the command `node -v`.)
-1. Install `yarn` as a global package `npm install yarn --global`.
-1. Be sure your CLI is in the root of the office-js-snippets repo and run `yarn install`. (It's similar to `npm install`.)
+1. Be sure your CLI is in the root of the office-js-snippets repo and run `npm install` to install all dependencies.
 1. Set up the original \OfficeDev\office-js-snippets as the upstream repo for your local repo by following the steps in [Configuring a remote for a fork](https://help.github.com/articles/configuring-a-remote-for-a-fork/).
 1. If you'll be using Visual Studio Code as your editor, install the [TSLint](https://marketplace.visualstudio.com/items?itemName=eg2.tslint) extension for Visual Studio Code.
 
@@ -46,11 +45,11 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 
 1. Open one of the `.yaml` files already in the group folder. If it has an `order` property near the top, then the snippets in the group folder are ordered in a particular sequence in Script Lab. Add an `order` property to the top of your `.yaml` file and give it a number that is between the order numbers of the snippets between which you want it to appear.
 1. Copy your `.yaml` file to the chosen group folder.
-1. Run `yarn start`. If there are no problems, the output will end with a `Done!`. If there are errors, review the output to check what caused the build validation to fail, and fix as needed. See [**Known errors and fixes**](#known-errors-and-fixes-in-the-build-tool) for more information.
+1. Run `npm start`. If there are no problems, the output will end with a `Done!`. If there are errors, review the output to check what caused the build validation to fail, and fix as needed. See [**Known errors and fixes**](#known-errors-and-fixes-in-the-build-tool) for more information.
 
-    > **Note**: The `yarn start` command adds an `id` property to the top of the file.
+    > **Note**: The `npm start` command adds an `id` property to the top of the file.
 
-1. Re-run `yarn start`, and fix errors, until the build succeeds.
+1. Re-run `npm start`, and fix errors, until the build succeeds.
 1. Run `git status`. You should see that, in addition to your new `.yaml` file (or possibly new folder), a `playlist\{host}.yaml` file (where `{host}` is `excel`, `word`, etc.) has also been changed. This is expected. The build tool you just ran added a reference to your new snippet to this file.
 1. Run the following two commands. The commit message should be a brief description of what the snippet demonstrates; for example, `"shows how to use getWhatever method"`.
 

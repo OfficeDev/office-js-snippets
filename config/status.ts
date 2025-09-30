@@ -1,6 +1,5 @@
-import * as nodeStatus from 'node-status';
-import * as chalk from 'chalk';
-import { isString, find, isNil, isArray } from 'lodash';
+import chalk from 'chalk';
+import { isString, isNil, isArray } from 'lodash';
 
 interface IStage {
     steps: any[];
@@ -13,16 +12,29 @@ export class Status {
     steps: { [step: string]: boolean } = {};
 
     get console() {
-        return nodeStatus.console();
+        // Return the global console object methods
+        return {
+            log: global.console.log.bind(global.console),
+            error: global.console.error.bind(global.console),
+            warn: global.console.warn.bind(global.console),
+            info: global.console.info.bind(global.console)
+        };
     }
 
     constructor() {
-        /* Initialize the status library */
-        this.stages = nodeStatus.addItem('stages', {
-            steps: []
-        });
+        /* Initialize the simple status system */
+        this.stages = {
+            steps: [],
+            count: 0,
+            doneStep: this.doneStep.bind(this)
+        };
+    }
 
-        nodeStatus.start();
+    private doneStep(completed: boolean, message?: string): void {
+        const symbol = completed ? chalk.green('✓') : chalk.red('✗');
+        if (message) {
+            global.console.log(`${symbol} ${message}`);
+        }
     }
 
     /**
@@ -37,22 +49,18 @@ export class Status {
         success = success && additionalDetails.findIndex(item => item instanceof Error) < 0;
 
         const messageArray = getDetailsArray();
+        const symbol = success ? chalk.green('✓') : chalk.red('✗');
 
-        if (messageArray.length === 0) {
-            this.stages.doneStep(success);
-        } else {
-            // Add a newline before
-            messageArray.splice(0, 0, '');
-            this.stages.doneStep(success, messageArray.join('\n    * ') + '\n');
-            //FIXME `${chalk.bold.red('WARNING: one of the messages above was an error')}`)
+        // Log the completion with symbol
+        global.console.log(`${symbol} ${stage}`);
+
+        if (messageArray.length > 0) {
+            messageArray.forEach(msg => {
+                global.console.log(`    * ${msg}`);
+            });
         }
 
         this.steps[stage] = false;
-
-        if (!find(this.steps as any, (item) => item === true)) {
-            nodeStatus.stop();
-        }
-
 
         // Helper:
         function getDetailsArray() {
@@ -82,12 +90,13 @@ export class Status {
     }
 
     /**
-     * Add a new stage and complete the previous stage.
+     * Add a new stage and mark it as started.
      * @param stage Name of the stage.
      */
     add(stage: string) {
         this.stages.steps.push(stage);
         this.steps[stage] = true;
+        global.console.log(chalk.cyan(`○ ${stage}`));
     }
 }
 

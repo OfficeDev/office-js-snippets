@@ -445,6 +445,141 @@ Excel.CalculationType:enum:
       context.application.calculate(Excel.CalculationType.recalculate);
       await context.sync();
     });
+Excel.CardLayoutSection:type:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-entity-attribution.yaml
+
+
+    function makeProductEntity(productID: number, productName: string, product?:
+    any) {
+      const entity: Excel.EntityCellValue = {
+        type: Excel.CellValueType.entity,
+        text: productName,
+        properties: { /* Excel.EntityPropertyType */
+          "Product ID": {
+            type: Excel.CellValueType.string,
+            basicValue: productID.toString() || ""
+          },
+          "Product Name": {
+            type: Excel.CellValueType.string,
+            basicValue: productName || ""
+          },
+          "Quantity Per Unit": {
+            type: Excel.CellValueType.string,
+            basicValue: product.quantityPerUnit || ""
+          },
+          // Add Unit Price as a formatted number.
+          "Unit Price": {
+            type: Excel.CellValueType.formattedNumber,
+            basicValue: product.unitPrice,
+            numberFormat: "$* #,##0.00"
+          }
+        },
+        layouts: { /* Excel.EntityViewLayouts */
+          card: { /* Excel.EntityCardLayout */
+            title: { property: "Product Name" },
+            sections: [ /* Excel.CardLayoutSection */
+              {
+                layout: "List",
+                properties: ["Product ID"]
+              },
+              {
+                layout: "List",
+                title: "Quantity and price",
+                collapsible: true,
+                collapsed: false,
+                properties: ["Quantity Per Unit", "Unit Price"]
+              }
+            ]
+          }
+        },
+        provider: {
+          description: product.providerName, // Name of the data provider. Displays as a tooltip when hovering over the logo. Also displays as a fallback if the source address for the image is broken.
+          logoSourceAddress: product.sourceAddress, // Source URL of the logo to display.
+          logoTargetAddress: product.targetAddress // Destination URL that the logo navigates to when clicked.
+        }
+      };
+
+      return entity;
+    }
+Excel.CellBorder:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/cell-properties.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        // Creating the SettableCellProperties objects to use for the range.
+        // In your add-in, these should be created once, outside the function.
+        const topHeaderProps: Excel.SettableCellProperties = {
+            // The style property takes a string matching the name of an Excel style.
+            // Built-in style names are listed in the `BuiltInStyle` enum.
+            // Note that a style will overwrite any formatting,
+            // so do not use the format property with the style property.
+            style: "Heading1"
+        };
+
+        const headerProps: Excel.SettableCellProperties = {
+            // Any subproperties of format that are not set will not be changed when these cell properties are set.
+            format: {
+                fill: {
+                    color: "Blue"
+                },
+                font: {
+                    color: "White",
+                    bold: true
+                }
+            }
+        };
+
+        const nonApplicableProps: Excel.SettableCellProperties = {
+            format: {
+                fill: {
+                    pattern: Excel.FillPattern.gray25
+                },
+                font: {
+                    color: "Gray",
+                    italic: true
+                }
+            }
+        };
+
+        const matchupScoreProps: Excel.SettableCellProperties = {
+            format: {
+                borders: {
+                    bottom: {
+                        style: Excel.BorderLineStyle.continuous
+                    },
+                    left: {
+                        style: Excel.BorderLineStyle.continuous
+                    },
+                    right: {
+                        style: Excel.BorderLineStyle.continuous
+                    },
+                    top: {
+                        style: Excel.BorderLineStyle.continuous
+                    }
+                }
+            }
+        };
+
+        const range = sheet.getRange("A1:E5");
+
+        // You can use empty JSON objects to avoid changing a cell's properties.
+        range.setCellProperties([
+            [topHeaderProps, {}, {}, {}, {}],
+            [{}, {}, headerProps, headerProps, headerProps],
+            [{}, headerProps, nonApplicableProps, matchupScoreProps, matchupScoreProps],
+            [{}, headerProps, matchupScoreProps, nonApplicableProps, matchupScoreProps],
+            [{}, headerProps, matchupScoreProps, matchupScoreProps, nonApplicableProps]
+        ]);
+
+        sheet.getUsedRange().format.autofitColumns();
+        await context.sync();
+    });
 Excel.CellControl:type:
   - >-
     // Link to full sample:
@@ -3492,6 +3627,43 @@ Excel.DataPivotHierarchy#name:member:
         dataHierarchies.items[1].name = "Wholesale";
         await context.sync();
     });
+Excel.DataValidationErrorAlert:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/22-data-validation/data-validation.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Decision");
+        const rankingRange = sheet.tables.getItem("NameOptionsTable").columns.getItem("Ranking").getDataBodyRange();
+
+        // When you are developing, it is a good practice to
+        // clear the dataValidation object with each run of your code.
+        rankingRange.dataValidation.clear();
+
+        let greaterThanZeroRule = {
+            wholeNumber: {
+                formula1: 0,
+                operator: Excel.DataValidationOperator.greaterThan
+            }
+        };
+        rankingRange.dataValidation.rule = greaterThanZeroRule;
+
+        rankingRange.dataValidation.prompt = {
+            message: "Please enter a positive number.",
+            showPrompt: true,
+            title: "Positive numbers only."
+        };
+
+        rankingRange.dataValidation.errorAlert = {
+            message: "Sorry, only positive numbers are allowed",
+            showAlert: true,
+            style: "Stop",
+            title: "Negative Number Entered"
+        };
+
+        await context.sync();
+    });
 Excel.DataValidation#errorAlert:member:
   - >-
     // Link to full sample:
@@ -3835,6 +4007,64 @@ Excel.DynamicFilterCriteria:enum:
 
         await context.sync();
        });
+Excel.EntityCardLayout:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-entity-attribution.yaml
+
+
+    function makeProductEntity(productID: number, productName: string, product?:
+    any) {
+      const entity: Excel.EntityCellValue = {
+        type: Excel.CellValueType.entity,
+        text: productName,
+        properties: { /* Excel.EntityPropertyType */
+          "Product ID": {
+            type: Excel.CellValueType.string,
+            basicValue: productID.toString() || ""
+          },
+          "Product Name": {
+            type: Excel.CellValueType.string,
+            basicValue: productName || ""
+          },
+          "Quantity Per Unit": {
+            type: Excel.CellValueType.string,
+            basicValue: product.quantityPerUnit || ""
+          },
+          // Add Unit Price as a formatted number.
+          "Unit Price": {
+            type: Excel.CellValueType.formattedNumber,
+            basicValue: product.unitPrice,
+            numberFormat: "$* #,##0.00"
+          }
+        },
+        layouts: { /* Excel.EntityViewLayouts */
+          card: { /* Excel.EntityCardLayout */
+            title: { property: "Product Name" },
+            sections: [ /* Excel.CardLayoutSection */
+              {
+                layout: "List",
+                properties: ["Product ID"]
+              },
+              {
+                layout: "List",
+                title: "Quantity and price",
+                collapsible: true,
+                collapsed: false,
+                properties: ["Quantity Per Unit", "Unit Price"]
+              }
+            ]
+          }
+        },
+        provider: {
+          description: product.providerName, // Name of the data provider. Displays as a tooltip when hovering over the logo. Also displays as a fallback if the source address for the image is broken.
+          logoSourceAddress: product.sourceAddress, // Source URL of the logo to display.
+          logoTargetAddress: product.targetAddress // Destination URL that the logo navigates to when clicked.
+        }
+      };
+
+      return entity;
+    }
 Excel.EntityCompactLayoutIcons:enum:
   - >-
     // Link to full sample:
@@ -3863,6 +4093,122 @@ Excel.EntityCompactLayoutIcons:enum:
         ]);
       });
       return entities;
+    }
+Excel.EntityPropertyType:type:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-entity-attribution.yaml
+
+
+    function makeProductEntity(productID: number, productName: string, product?:
+    any) {
+      const entity: Excel.EntityCellValue = {
+        type: Excel.CellValueType.entity,
+        text: productName,
+        properties: { /* Excel.EntityPropertyType */
+          "Product ID": {
+            type: Excel.CellValueType.string,
+            basicValue: productID.toString() || ""
+          },
+          "Product Name": {
+            type: Excel.CellValueType.string,
+            basicValue: productName || ""
+          },
+          "Quantity Per Unit": {
+            type: Excel.CellValueType.string,
+            basicValue: product.quantityPerUnit || ""
+          },
+          // Add Unit Price as a formatted number.
+          "Unit Price": {
+            type: Excel.CellValueType.formattedNumber,
+            basicValue: product.unitPrice,
+            numberFormat: "$* #,##0.00"
+          }
+        },
+        layouts: { /* Excel.EntityViewLayouts */
+          card: { /* Excel.EntityCardLayout */
+            title: { property: "Product Name" },
+            sections: [ /* Excel.CardLayoutSection */
+              {
+                layout: "List",
+                properties: ["Product ID"]
+              },
+              {
+                layout: "List",
+                title: "Quantity and price",
+                collapsible: true,
+                collapsed: false,
+                properties: ["Quantity Per Unit", "Unit Price"]
+              }
+            ]
+          }
+        },
+        provider: {
+          description: product.providerName, // Name of the data provider. Displays as a tooltip when hovering over the logo. Also displays as a fallback if the source address for the image is broken.
+          logoSourceAddress: product.sourceAddress, // Source URL of the logo to display.
+          logoTargetAddress: product.targetAddress // Destination URL that the logo navigates to when clicked.
+        }
+      };
+
+      return entity;
+    }
+Excel.EntityViewLayouts:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-entity-attribution.yaml
+
+
+    function makeProductEntity(productID: number, productName: string, product?:
+    any) {
+      const entity: Excel.EntityCellValue = {
+        type: Excel.CellValueType.entity,
+        text: productName,
+        properties: { /* Excel.EntityPropertyType */
+          "Product ID": {
+            type: Excel.CellValueType.string,
+            basicValue: productID.toString() || ""
+          },
+          "Product Name": {
+            type: Excel.CellValueType.string,
+            basicValue: productName || ""
+          },
+          "Quantity Per Unit": {
+            type: Excel.CellValueType.string,
+            basicValue: product.quantityPerUnit || ""
+          },
+          // Add Unit Price as a formatted number.
+          "Unit Price": {
+            type: Excel.CellValueType.formattedNumber,
+            basicValue: product.unitPrice,
+            numberFormat: "$* #,##0.00"
+          }
+        },
+        layouts: { /* Excel.EntityViewLayouts */
+          card: { /* Excel.EntityCardLayout */
+            title: { property: "Product Name" },
+            sections: [ /* Excel.CardLayoutSection */
+              {
+                layout: "List",
+                properties: ["Product ID"]
+              },
+              {
+                layout: "List",
+                title: "Quantity and price",
+                collapsible: true,
+                collapsed: false,
+                properties: ["Quantity Per Unit", "Unit Price"]
+              }
+            ]
+          }
+        },
+        provider: {
+          description: product.providerName, // Name of the data provider. Displays as a tooltip when hovering over the logo. Also displays as a fallback if the source address for the image is broken.
+          logoSourceAddress: product.sourceAddress, // Source URL of the logo to display.
+          logoTargetAddress: product.targetAddress // Destination URL that the logo navigates to when clicked.
+        }
+      };
+
+      return entity;
     }
 Excel.ErrorCellValue:type:
   - >-

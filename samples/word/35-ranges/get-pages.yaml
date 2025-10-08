@@ -9,9 +9,15 @@ api_set:
 script:
     content: |
         document.getElementById("get-pages-selected-range").addEventListener("click", () => tryCatch(getPagesOfSelectedRange));
-        document.getElementById("get-pages-third-paragraph").addEventListener("click", () => tryCatch(getPagesOfThirdParagraph));
-        document.getElementById("get-pages-enclosing-viewport").addEventListener("click", () => tryCatch(getPagesEnclosingViewport));
+        document
+          .getElementById("get-pages-third-paragraph")
+          .addEventListener("click", () => tryCatch(getPagesOfThirdParagraph));
+        document
+          .getElementById("get-pages-enclosing-viewport")
+          .addEventListener("click", () => tryCatch(getPagesEnclosingViewport));
         document.getElementById("get-all-pages").addEventListener("click", () => tryCatch(getAllPages));
+        document.getElementById("get-all-panes").addEventListener("click", () => tryCatch(getAllPanes));
+        document.getElementById("get-all-windows").addEventListener("click", () => tryCatch(getAllWindows));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
         async function getPagesOfSelectedRange() {
@@ -27,11 +33,11 @@ script:
             const pagesText = [];
             for (let i = 0; i < pages.items.length; i++) {
               const page = pages.items[i];
-              page.load('index');
+              page.load("index");
               pagesIndexes.push(page);
 
               const range = page.getRange();
-              range.load('text');
+              range.load("text");
               pagesText.push(range);
             }
 
@@ -63,11 +69,11 @@ script:
             const pagesText = [];
             for (let i = 0; i < pages.items.length; i++) {
               const page = pages.items[i];
-              page.load('index');
+              page.load("index");
               pagesIndexes.push(page);
 
               const range = page.getRange();
-              range.load('text');
+              range.load("text");
               pagesText.push(range);
             }
 
@@ -106,7 +112,7 @@ script:
             const pagesIndexes = [];
             for (let i = 0; i < pageCount; i++) {
               const page = pages.items[i];
-              page.load('index');
+              page.load("index");
               pagesIndexes.push(page);
             }
 
@@ -143,15 +149,15 @@ script:
             const pagesFirstParagraphText = [];
             for (let i = 0; i < pages.items.length; i++) {
               const page = pages.items[i];
-              page.load('index');
+              page.load("index");
               pagesIndexes.push(page);
 
               const paragraphs = page.getRange().paragraphs;
-              paragraphs.load('items/length');
+              paragraphs.load("items/length");
               pagesNumberOfParagraphs.push(paragraphs);
 
               const firstParagraph = paragraphs.getFirst();
-              firstParagraph.load('text');
+              firstParagraph.load("text");
               pagesFirstParagraphText.push(firstParagraph);
             }
 
@@ -162,6 +168,33 @@ script:
               console.log(`Number of paragraphs: ${pagesNumberOfParagraphs[i].items.length}`);
               console.log("First paragraph's text:", pagesFirstParagraphText[i].text);
             }
+          });
+        }
+
+        async function getAllPanes() {
+          await Word.run(async (context) => {
+            // Gets all the panes in the active document window.
+
+            // Get the active window.
+            const activeWindow: Word.Window = context.document.activeWindow;
+            activeWindow.load("panes/items/length");
+
+            await context.sync();
+
+            const panes: Word.PaneCollection = activeWindow.panes;
+            console.log(`Number of panes in the current document window: ${panes.items.length}`);
+          });
+        }
+
+        async function getAllWindows() {
+          await Word.run(async (context) => {
+            // Gets the document windows.
+            const windows: Word.WindowCollection = context.document.windows;
+            windows.load("windows/items/length");
+
+            await context.sync();
+
+            console.log(`Number of windows for this document: ${windows.items.length}`);
           });
         }
 
@@ -225,6 +258,12 @@ template:
           </button>
             <button id="get-all-pages" class="ms-Button">
             <span class="ms-Button-label">Get all pages</span>
+          </button>
+          <button id="get-all-panes" class="ms-Button">
+            <span class="ms-Button-label">Get all panes</span>
+          </button>
+          <button id="get-all-windows" class="ms-Button">
+            <span class="ms-Button-label">Get all windows</span>
           </button>
         </section>
     language: html

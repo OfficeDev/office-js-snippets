@@ -134,11 +134,12 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
                 accumulatedErrors.push(`One or more critical errors on ${file.relativePath}`);
             }
 
-            // Define dictionary of words in file.group that require special casing
+            // Define dictionary of words in file.group that require special casing or punctuation
             let dictionary = {
                 'Apis': 'APIs',
                 'Pivottable': 'PivotTable',
-                'Xml': 'XML'
+                'Xml': 'XML',
+                'On Premises': 'On-Premises'
             };
 
             let groupName = replaceUsingDictionary(dictionary, startCase(file.group));
@@ -167,6 +168,15 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
 
         function replaceUsingDictionary(dictionary: { [key: string]: string }, originalName: string): string {
             let text = startCase(file.group);
+
+            // First try to replace multi-word phrases
+            for (const [key, value] of Object.entries(dictionary)) {
+                if (key.includes(' ') && text.includes(key)) {
+                    text = text.replace(new RegExp(key, 'g'), value);
+                }
+            }
+
+            // Then replace individual words
             let parts = text.split(' ').map(item => dictionary[item] || item);
             return parts.join(' ');
         }

@@ -11,6 +11,7 @@ script:
         document
           .getElementById("insert-text-box-into-current-selection")
           .addEventListener("click", () => tryCatch(insertTextBoxIntoCurrentSelection));
+        document.getElementById("get-text-boxes-in-main-doc").addEventListener("click", () => tryCatch(getTextBoxesInMainDoc));
         document
           .getElementById("get-text-wrap-of-text-box-in-main-doc")
           .addEventListener("click", () => tryCatch(getTextWrapOfTextBoxInMainDoc));
@@ -18,13 +19,15 @@ script:
           .getElementById("set-text-wrap-of-text-box-in-main-doc")
           .addEventListener("click", () => tryCatch(setTextWrapPropertiesOfTextBoxInMainDoc));
         document
-          .getElementById("get-text-from-text-box-in-main-doc")
-          .addEventListener("click", () => tryCatch(getTextFromTextBoxInMainDoc));
-        document
           .getElementById("get-text-frame-of-text-box-in-main-doc")
           .addEventListener("click", () => tryCatch(getTextFrameOfTextBoxInMainDoc));
-        document.getElementById("get-text-boxes-in-main-doc").addEventListener("click", () => tryCatch(getTextBoxesInMainDoc));
+        document
+          .getElementById("set-text-frame-of-text-box-in-main-doc")
+          .addEventListener("click", () => tryCatch(setTextFramePropertiesOfTextBoxInMainDoc));
         document.getElementById("set-text-box-properties").addEventListener("click", () => tryCatch(setTextBoxProperties));
+        document
+          .getElementById("get-text-from-text-box-in-main-doc")
+          .addEventListener("click", () => tryCatch(getTextFromTextBoxInMainDoc));
         document
           .getElementById("insert-content-control-into-text-box")
           .addEventListener("click", () => tryCatch(insertContentControlIntoTextBox));
@@ -38,7 +41,7 @@ script:
         document
           .getElementById("insert-text-box-in-header-at-first-paragraph")
           .addEventListener("click", () => tryCatch(insertTextBoxInHeaderAtFirstParagraph));
-        document.getElementById("get-text-box-in-header").addEventListener("click", () => tryCatch(getTextBoxInHeader));
+        document.getElementById("get-text-boxes-in-header").addEventListener("click", () => tryCatch(getTextBoxesInHeader));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
         async function insertTextBoxIntoCurrentSelection() {
@@ -56,6 +59,28 @@ script:
             await context.sync();
 
             console.log("Inserted a text box at the beginning of the current selection.");
+          });
+        }
+
+        async function getTextBoxesInMainDoc() {
+          await Word.run(async (context) => {
+            // Gets text boxes in the main document.
+            const shapes: Word.ShapeCollection = context.document.body.shapes;
+            shapes.load();
+            await context.sync();
+
+            if (shapes.items.length > 0) {
+              console.log(`Number of shapes found in the main document: ${shapes.items.length}`);
+              shapes.items.forEach(function (shape, index) {
+                if (shape.type === Word.ShapeType.textBox) {
+                  console.log(`Shape ${index} in the main document has a text box. Properties:`, shape);
+                } else {
+                  console.log(`Shape ${index} in the main document doesn't have a text box.`);
+                }
+              });
+            } else {
+              console.log("No shapes found in main document.");
+            }
           });
         }
 
@@ -77,7 +102,7 @@ script:
 
         async function setTextWrapPropertiesOfTextBoxInMainDoc() {
           await Word.run(async (context) => {
-            // Sets the text wrap properties of the first text box.
+            // Sets text wrap properties of the first text box.
             const firstShapeWithTextBox: Word.Shape = context.document.body.shapes
               .getByTypes([Word.ShapeType.textBox])
               .getFirstOrNullObject();
@@ -90,26 +115,10 @@ script:
             }
 
             const textWrap: Word.ShapeTextWrap = firstShapeWithTextBox.textWrap;
-
             textWrap.type = Word.ShapeTextWrapType.square;
             textWrap.side = Word.ShapeTextWrapSide.both;
 
             console.log("The first text box's text wrap properties were updated:", textWrap);
-          });
-        }
-
-        async function getTextFromTextBoxInMainDoc() {
-          await Word.run(async (context) => {
-            // Gets text from the first text box in the main document.
-            const shape: Word.Shape = context.document.body.shapes.getByTypes([Word.ShapeType.textBox]).getFirstOrNullObject();
-            shape.load("body/text");
-            await context.sync();
-
-            console.log(
-              shape.isNullObject
-                ? "No shapes with text boxes found in main document."
-                : `Text in first text box: ${shape.body.text}`
-            );
           });
         }
 
@@ -129,22 +138,24 @@ script:
           });
         }
 
-        async function getTextBoxesInMainDoc() {
+        async function setTextFramePropertiesOfTextBoxInMainDoc() {
           await Word.run(async (context) => {
-            // Gets text boxes in the main document.
-            const shapes: Word.ShapeCollection = context.document.body.shapes;
-            shapes.load();
+            // Sets text frame properties of the first text box in the main document.
+            const shape: Word.Shape = context.document.body.shapes.getByTypes([Word.ShapeType.textBox]).getFirstOrNullObject();
+            shape.load("textFrame");
             await context.sync();
 
-            if (shapes.items.length > 0) {
-              shapes.items.forEach(function (shape, index) {
-                if (shape.type === Word.ShapeType.textBox) {
-                  console.log(`Shape ${index} in the main document has a text box. Properties:`, shape);
-                }
-              });
-            } else {
-              console.log("No shapes found in main document.");
+            if (shape.isNullObject) {
+              console.log("No shapes with text boxes found in main document.");
+              return;
             }
+
+            const textFrame: Word.TextFrame = shape.textFrame;
+            textFrame.verticalAlignment = Word.ShapeTextVerticalAlignment.bottom;
+            textFrame.orientation = Word.ShapeTextOrientation.vertical270;
+            textFrame.autoSizeSetting = Word.ShapeAutoSize.shapeToFitText;
+
+            console.log("The first text box's text frame properties were updated:", textFrame);
           });
         }
 
@@ -161,6 +172,21 @@ script:
             await context.sync();
 
             console.log("The first text box's properties were updated:", firstShapeWithTextBox);
+          });
+        }
+
+        async function getTextFromTextBoxInMainDoc() {
+          await Word.run(async (context) => {
+            // Gets text from the first text box in the main document.
+            const shape: Word.Shape = context.document.body.shapes.getByTypes([Word.ShapeType.textBox]).getFirstOrNullObject();
+            shape.load("body/text");
+            await context.sync();
+
+            console.log(
+              shape.isNullObject
+                ? "No shapes with text boxes found in main document."
+                : `Text in first text box: ${shape.body.text}`
+            );
           });
         }
 
@@ -195,7 +221,7 @@ script:
             contentControlsInTextBox.load();
             await context.sync();
 
-            console.log(`There are ${contentControlsInTextBox.items.length} content controls in total.`);
+            console.log(`Number of content controls: ${contentControlsInTextBox.items.length}`);
           });
         }
 
@@ -250,7 +276,7 @@ script:
           });
         }
 
-        async function getTextBoxInHeader() {
+        async function getTextBoxesInHeader() {
           await Word.run(async (context) => {
             // Gets text boxes in the header.
             const shapes: Word.ShapeCollection = context.document.sections
@@ -260,9 +286,12 @@ script:
             await context.sync();
 
             if (shapes.items.length > 0) {
+              console.log(`Number of shapes found in the header: ${shapes.items.length}`);
               shapes.items.forEach(function (shape, index) {
                 if (shape.type === Word.ShapeType.textBox) {
-                  console.log(`Shape ${index} in header has a text box. Properties:`, shape);
+                  console.log(`Shape ${index} in the header has a text box. Properties:`, shape);
+                } else {
+                  console.log(`Shape ${index} in the header doesn't have a text box.`);
                 }
               });
             } else {
@@ -322,41 +351,45 @@ template:
             <button id="insert-text-box-into-current-selection" class="ms-Button">
             <span class="ms-Button-label">Insert text box into current selection</span>
           </button>
-            <button id="get-text-wrap-of-text-box-in-main-doc" class="ms-Button">
-            <span class="ms-Button-label">Get text wrap properties of first text box</span>
-          </button>
-            <button id="set-text-wrap-of-text-box-in-main-doc" class="ms-Button">
-            <span class="ms-Button-label">Set text wrap properties of first text box</span>
-          </button>
-            <button id="get-text-from-text-box-in-main-doc" class="ms-Button">
-            <span class="ms-Button-label">Get text from first text box</span>
-          </button>
-            <button id="get-text-frame-of-text-box-in-main-doc" class="ms-Button">
-            <span class="ms-Button-label">Get text frame of first text box</span>
-          </button>
             <button id="get-text-boxes-in-main-doc" class="ms-Button">
             <span class="ms-Button-label">Get text boxes</span>
+          </button>
+            <p>The following buttons act on the first text box in the main document.</p>
+            <button id="get-text-wrap-of-text-box-in-main-doc" class="ms-Button">
+            <span class="ms-Button-label">Get text wrap properties</span>
+          </button>
+            <button id="set-text-wrap-of-text-box-in-main-doc" class="ms-Button">
+            <span class="ms-Button-label">Set text wrap properties</span>
+          </button>
+            <button id="get-text-frame-of-text-box-in-main-doc" class="ms-Button">
+            <span class="ms-Button-label">Get text frame</span>
+          </button>
+            <button id="set-text-frame-of-text-box-in-main-doc" class="ms-Button">
+            <span class="ms-Button-label">Set text frame properties</span>
           </button>
             <button id="set-text-box-properties" class="ms-Button">
             <span class="ms-Button-label">Set text box properties</span>
           </button>
+            <button id="get-text-from-text-box-in-main-doc" class="ms-Button">
+            <span class="ms-Button-label">Get text</span>
+          </button>
             <button id="insert-content-control-into-text-box" class="ms-Button">
-            <span class="ms-Button-label">Insert content control into text box</span>
+            <span class="ms-Button-label">Insert content control</span>
           </button>
             <button id="get-content-controls-in-text-box" class="ms-Button">
-            <span class="ms-Button-label">Get content controls in text box</span>
+            <span class="ms-Button-label">Get content controls</span>
           </button>
             <button id="insert-picture-at-start-of-text-box" class="ms-Button">
-            <span class="ms-Button-label">Insert picture into text box</span>
+            <span class="ms-Button-label">Insert picture</span>
           </button>
             <button id="delete-first-text-box" class="ms-Button">
-            <span class="ms-Button-label">Delete first text box from document</span>
+            <span class="ms-Button-label">Delete</span>
           </button>
             <h4>Header</h4>
             <button id="insert-text-box-in-header-at-first-paragraph" class="ms-Button">
             <span class="ms-Button-label">Insert text box</span>
           </button>
-            <button id="get-text-box-in-header" class="ms-Button">
+            <button id="get-text-boxes-in-header" class="ms-Button">
             <span class="ms-Button-label">Get text boxes</span>
           </button>
         </section>

@@ -7,16 +7,32 @@ api_set:
     Mailbox: '1.1'
 script:
     content: |-
-        document.getElementById("get").addEventListener("click", get);
+        document.getElementById("get-utc").addEventListener("click", getUtc);
+        document.getElementById("get-local").addEventListener("click", getLocal);
         document.getElementById("set").addEventListener("click", set);
 
-        function get() {
+        function getUtc() {
           Office.context.mailbox.item.start.getAsync((result) => {
             if (result.status !== Office.AsyncResultStatus.Succeeded) {
               console.error(`Action failed with message ${result.error.message}`);
               return;
             }
-            console.log(`Appointment starts: ${result.value}`);
+
+            const time = result.value;
+            console.log(`Appointment starts: ${time.toUTCString()}`);
+          });
+        }
+
+        function getLocal() {
+          Office.context.mailbox.item.start.getAsync((result) => {
+            if (result.status !== Office.AsyncResultStatus.Succeeded) {
+              console.error(`Action failed with message ${result.error.message}`);
+              return;
+            }
+
+            const time = result.value;
+            const localTime = Office.context.mailbox.convertToLocalClientTime(time);
+            console.log(`Appointment starts: ${localTime.month + 1}/${localTime.date}/${localTime.year}, ${localTime.hours}:${localTime.minutes}:${localTime.seconds}`);
           });
         }
 
@@ -43,9 +59,12 @@ template:
             <button id="set" class="ms-Button">
               <div class="ms-Button-label">Set start date and time</div>
             </button>
-            <button id="get" class="ms-Button">
-            <div class="ms-Button-label">Get start date and time</div>
-          </button>
+            <button id="get-utc" class="ms-Button">
+              <div class="ms-Button-label">Get start date and time (UTC)</div>
+            </button>
+            <button id="get-local" class="ms-Button">
+              <div class="ms-Button-label">Get start date and time (local)</div>
+            </button>
         </section>
     language: html
 style:

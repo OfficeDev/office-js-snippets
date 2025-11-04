@@ -1,0 +1,168 @@
+order: 2
+id: word-shapes-manage-geometric-shapes
+name: Manage geometric shapes
+description: Shows how to work with geometric shapes.
+host: WORD
+api_set:
+    WordApiDesktop: '1.2'
+script:
+    content: |
+        document.getElementById("insert-heptagon").addEventListener("click", () => tryCatch(insertGeometricShape_Heptagon));
+        document.getElementById("insert-moon").addEventListener("click", () => tryCatch(insertGeometricShape_Moon));
+        document.getElementById("get-geometric-shapes").addEventListener("click", () => tryCatch(getGeometricShapes));
+        document.getElementById("get-moons").addEventListener("click", () => tryCatch(getMoonGeometricShapes));
+        document.getElementById("get-first-geometric-shape").addEventListener("click", () => tryCatch(getFirstGeometricShape));
+        document.getElementById("get-first-heptagon").addEventListener("click", () => tryCatch(getFirstHeptagon));
+
+        async function insertGeometricShape_Heptagon() {
+          await Word.run(async (context) => {
+            // Inserts a heptagon geometric shape at the beginning of the selection.
+            const selection: Word.Range = context.document.getSelection();
+            const shapeOptions: Word.InsertShapeOptions = {
+              height: 120,
+              width: 120,
+            };
+            selection.insertGeometricShape(Word.GeometricShapeType.heptagon, shapeOptions);
+            await context.sync();
+
+            console.log("Inserted a heptagon.");
+          });
+        }
+
+        async function insertGeometricShape_Moon() {
+          await Word.run(async (context) => {
+            // Inserts a moon geometric shape at the beginning of the selection.
+            const selection: Word.Range = context.document.getSelection();
+            const shapeOptions: Word.InsertShapeOptions = {
+              height: 120,
+              width: 120,
+              left: 120,
+            };
+            selection.insertGeometricShape(Word.GeometricShapeType.moon, shapeOptions);
+            await context.sync();
+
+            console.log("Inserted a heptagon.");
+          });
+        }
+
+        async function getGeometricShapes() {
+          await Word.run(async (context) => {
+            // Gets the geometric shapes from the document body.
+            const geometricShapes: Word.ShapeCollection = context.document.body.shapes.getByTypes([
+              Word.ShapeType.geometricShape,
+            ]);
+            geometricShapes.load();
+            await context.sync();
+
+            console.log("Geometric shapes found in the document body:", geometricShapes);
+          });
+        }
+
+        async function getMoonGeometricShapes() {
+          await Word.run(async (context) => {
+            // Gets the moon geometric shapes from the document body.
+            const moons: Word.ShapeCollection = context.document.body.shapes.getByGeometricTypes([
+              Word.GeometricShapeType.moon,
+            ]);
+            moons.load();
+            await context.sync();
+
+            console.log("Moons found in the document body:", moons);
+          });
+        }
+
+        async function getFirstGeometricShape() {
+          await Word.run(async (context) => {
+            // Gets the first geometric shape found in the document body.
+            const geometricShape: Word.Shape = context.document.body.shapes
+              .getByTypes([Word.ShapeType.geometricShape])
+              .getFirstOrNullObject();
+            geometricShape.load();
+            await context.sync();
+
+            if (geometricShape.isNullObject) {
+              console.log("No geometric shapes found in the document body.");
+              return;
+            }
+
+            console.log(
+              `First geometric shape found in the document body is of type ${geometricShape.geometricShapeType}:`,
+              geometricShape,
+            );
+          });
+        }
+
+        async function getFirstHeptagon() {
+          await Word.run(async (context) => {
+            // Gets the first heptagon found in the document body.
+            const heptagon: Word.Shape = context.document.body.shapes
+              .getByGeometricTypes([Word.GeometricShapeType.heptagon])
+              .getFirstOrNullObject();
+            heptagon.load();
+            await context.sync();
+
+            if (heptagon.isNullObject) {
+              console.log("No heptagons found in the document body.");
+              return;
+            }
+
+            console.log("First heptagon found in the document body:", heptagon);
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            This sample demonstrates how to work with geometric shapes.
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="insert-heptagon" class="ms-Button">
+            <span class="ms-Button-label">Insert heptagon</span>
+          </button>
+            <button id="insert-moon" class="ms-Button">
+                <span class="ms-Button-label">Insert moon</span>
+            </button>
+            <button id="get-geometric-shapes" class="ms-Button">
+                <span class="ms-Button-label">Get geometric shapes</span>
+            </button>
+            <button id="get-moons" class="ms-Button">
+                <span class="ms-Button-label">Get moons</span>
+            </button>
+            <button id="get-first-geometric-shape" class="ms-Button">
+                <span class="ms-Button-label">Get first geometric shape</span>
+            </button>
+            <button id="get-first-heptagon" class="ms-Button">
+                <span class="ms-Button-label">Get first heptagon</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

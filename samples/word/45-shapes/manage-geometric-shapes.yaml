@@ -13,6 +13,7 @@ script:
         document.getElementById("get-moons").addEventListener("click", () => tryCatch(getMoonGeometricShapes));
         document.getElementById("get-first-geometric-shape").addEventListener("click", () => tryCatch(getFirstGeometricShape));
         document.getElementById("get-first-heptagon").addEventListener("click", () => tryCatch(getFirstHeptagon));
+        document.getElementById("get-first-moon-fill").addEventListener("click", () => tryCatch(getFirstMoonColorFill));
 
         async function insertGeometricShape_Heptagon() {
           await Word.run(async (context) => {
@@ -41,7 +42,7 @@ script:
             selection.insertGeometricShape(Word.GeometricShapeType.moon, shapeOptions);
             await context.sync();
 
-            console.log("Inserted a heptagon.");
+            console.log("Inserted a moon.");
           });
         }
 
@@ -110,6 +111,31 @@ script:
           });
         }
 
+        async function getFirstMoonColorFill() {
+          await Word.run(async (context) => {
+            // Gets the color fill properties of the first moon found in the document body.
+            const moon: Word.Shape = context.document.body.shapes
+              .getByGeometricTypes([Word.GeometricShapeType.moon])
+              .getFirstOrNullObject();
+            moon.load("fill");
+            await context.sync();
+
+            if (moon.isNullObject) {
+              console.log("No moons found in the document body.");
+              return;
+            }
+
+            const moonFill: Word.ShapeFill = moon.fill;
+            const moonFillType = moonFill.type as Word.ShapeFillType;
+
+            console.log("Color fill properties of the first moon found in the document body:");
+            console.log(`\tForeground color: ${moonFill.foregroundColor}`);
+            console.log(`\tBackground color: ${moonFill.backgroundColor}`);
+            console.log(`\tTransparency: ${moonFill.transparency}`);
+            console.log(`\tFill type: ${moonFillType}`);
+          });
+        }
+
         // Default helper for invoking an action and handling errors.
         async function tryCatch(callback) {
           try {
@@ -144,6 +170,9 @@ template:
             </button>
             <button id="get-first-heptagon" class="ms-Button">
                 <span class="ms-Button-label">Get first heptagon</span>
+            </button>
+            <button id="get-first-moon-fill" class="ms-Button">
+                <span class="ms-Button-label">Get color fill of first moon</span>
             </button>
         </section>
     language: html

@@ -14,6 +14,8 @@ script:
         document.getElementById("get-first-geometric-shape").addEventListener("click", () => tryCatch(getFirstGeometricShape));
         document.getElementById("get-first-heptagon").addEventListener("click", () => tryCatch(getFirstHeptagon));
         document.getElementById("get-first-moon-fill").addEventListener("click", () => tryCatch(getFirstMoonColorFill));
+        document.getElementById("clear-first-moon-fill").addEventListener("click", () => tryCatch(clearFirstMoonColorFill));
+        document.getElementById("set-first-moon-fill").addEventListener("click", () => tryCatch(setFirstMoonColorFill));
 
         async function insertGeometricShape_Heptagon() {
           await Word.run(async (context) => {
@@ -136,6 +138,56 @@ script:
           });
         }
 
+        async function clearFirstMoonColorFill() {
+          await Word.run(async (context) => {
+            // Clears the color fill properties of the first moon found in the document body.
+            const moon: Word.Shape = context.document.body.shapes
+              .getByGeometricTypes([Word.GeometricShapeType.moon])
+              .getFirstOrNullObject();
+            moon.load("fill");
+            await context.sync();
+
+            if (moon.isNullObject) {
+              console.log("No moons found in the document body.");
+              return;
+            }
+
+            const moonFill: Word.ShapeFill = moon.fill;
+            console.log("Current fill properties of the first moon found in the document body:", moonFill);
+
+            moonFill.clear();
+            moonFill.load();
+            await context.sync();
+
+            console.log("Cleared the color fill properties of the first moon found in the document body:", moonFill);
+          });
+        }
+
+        async function setFirstMoonColorFill() {
+          await Word.run(async (context) => {
+            // Sets color fill properties of the first moon found in the document body.
+            const moon: Word.Shape = context.document.body.shapes
+              .getByGeometricTypes([Word.GeometricShapeType.moon])
+              .getFirstOrNullObject();
+            moon.load("fill");
+            await context.sync();
+
+            if (moon.isNullObject) {
+              console.log("No moons found in the document body.");
+              return;
+            }
+
+            const moonFill: Word.ShapeFill = moon.fill;
+            console.log("Current fill properties of the first moon found in the document body:", moonFill);
+
+            moonFill.setSolidColor("green");
+            moonFill.load();
+            await context.sync();
+
+            console.log("Updated color fill properties of the first moon found in the document body:", moonFill);
+          });
+        }
+
         // Default helper for invoking an action and handling errors.
         async function tryCatch(callback) {
           try {
@@ -171,8 +223,15 @@ template:
             <button id="get-first-heptagon" class="ms-Button">
                 <span class="ms-Button-label">Get first heptagon</span>
             </button>
+            <h4>Work with color fill properties of the first moon</h4>
             <button id="get-first-moon-fill" class="ms-Button">
-                <span class="ms-Button-label">Get color fill of first moon</span>
+                <span class="ms-Button-label">Get color fill</span>
+            </button>
+            <button id="clear-first-moon-fill" class="ms-Button">
+                <span class="ms-Button-label">Clear color fill properties</span>
+            </button>
+            <button id="set-first-moon-fill" class="ms-Button">
+                <span class="ms-Button-label">Set color fill properties</span>
             </button>
         </section>
     language: html

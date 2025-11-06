@@ -236,8 +236,8 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
         const isOfficeSnippet = officeHosts.indexOf(host.toUpperCase()) >= 0;
         const canonicalOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/1/hosted/office.js';
         const betaOfficeJsReference = 'https://appsforoffice.microsoft.com/lib/beta/hosted/office.js';
-        const officeDTS = '@types/office-js';
-        const betaOfficeDTS = '@types/office-js-preview';
+        const officeDTS = 'https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts';
+        const betaOfficeDTS = 'https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts';
 
         const officeJsReferences =
             snippet.libraries.split('\n')
@@ -247,14 +247,12 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
         const officeDtsReferences =
             snippet.libraries.split('\n')
                 .map(reference => reference.trim())
-                .filter(reference => reference.match(/.*((@types\/office-js(-preview)?)|(office\.d\.ts))$/gi));
+                .filter(reference => reference.match(/.*((@types\/office-js(-preview)?)|((index|office)\.d\.ts))$/gi));
         /* Note: regex matches:
-            - @types/office-js
-            - @types/office-js-preview
-            - https://unpkg.com/etc/office.d.ts
+            - https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts
+            - https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts
            But not:
-            - @types/office-jsfake
-            - https://unpkg.com/etc/office.d.ts.ish
+            - https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.tsfake
             - office.d.ts.unrelated
          */
 

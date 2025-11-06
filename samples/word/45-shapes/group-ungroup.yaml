@@ -1,0 +1,136 @@
+order: 3
+id: word-shapes-group-ungroup
+name: Group and ungroup shapes
+description: Shows how to group and ungroup shapes.
+host: WORD
+api_set:
+    WordApiDesktop: '1.2'
+script:
+    content: |
+        document.getElementById("group-shapes").addEventListener("click", () => tryCatch(groupShapes));
+        document.getElementById("ungroup-shapes").addEventListener("click", () => tryCatch(ungroupShapes));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function groupShapes() {
+          await Word.run(async (context) => {
+            // Groups the shapes (including text boxes) found in the document body.
+            const shapes: Word.ShapeCollection = context.document.body.shapes.getByTypes([
+              Word.ShapeType.geometricShape,
+              Word.ShapeType.textBox,
+            ]);
+            shapes.load("items");
+            await context.sync();
+
+            const numShapes = shapes.items.length;
+            if (numShapes === 0) {
+              console.log("No shapes found in document body.");
+              return;
+            }
+
+            console.log(`Number of shapes to group: ${numShapes}`);
+
+            const groupedShape: Word.Shape = shapes.group();
+            groupedShape.load("shapeGroup/shapes");
+            await context.sync();
+
+            const shapeGroup: Word.ShapeGroup = groupedShape.shapeGroup;
+            console.log("Shapes grouped:", shapeGroup.shapes);
+            groupedShape.select();
+          });
+        }
+
+        async function ungroupShapes() {
+          await Word.run(async (context) => {
+            // Ungroups the first set of grouped shapes (including text boxes) found in the document body.
+            const firstShapeGroup: Word.Shape = context.document.body.shapes.getByTypes([Word.ShapeType.group]).getFirstOrNullObject();
+            firstShapeGroup.load("shapeGroup/shapes");
+            await context.sync();
+
+            if (firstShapeGroup.isNullObject) {
+              console.log("No shape groups found in the document body.");
+              return;
+            }
+
+            let shapeGroup: Word.ShapeGroup = firstShapeGroup.shapeGroup;
+            console.log("About to ungroup first shape group found in document body:", shapeGroup.shapes);
+            shapeGroup.ungroup();
+
+            console.log("Ungrouped first shape group.");
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+
+            // Inserts a text box.
+            const textBoxOptions: Word.InsertShapeOptions = {
+              top: 0,
+              left: 0,
+              height: 100,
+              width: 100,
+            };
+            body.paragraphs.getLast().insertTextBox("placeholder text", textBoxOptions);
+
+            // Inserts a geometric shape.
+            const geometricShapeOptions: Word.InsertShapeOptions = {
+              height: 120,
+              width: 120,
+              left: 120,
+            };
+            body.paragraphs.getLast().insertGeometricShape(Word.GeometricShapeType.star24, geometricShapeOptions);
+            await context.sync();
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            This sample demonstrates how to group and ungroup shapes.
+        </section>
+        <section class="ms-Fabric setup ms-font-m">
+            <h3>Set up</h3>
+            <button id="setup" class="ms-Button">
+              <span class="ms-Button-label">Add shapes</span>
+            </button>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="group-shapes" class="ms-Button">
+              <span class="ms-Button-label">Group shapes</span>
+            </button>
+            <button id="ungroup-shapes" class="ms-Button">
+              <span class="ms-Button-label">Ungroup shapes</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

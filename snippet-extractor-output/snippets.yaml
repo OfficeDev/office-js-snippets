@@ -26554,6 +26554,34 @@ Word.Paragraph#insertContentControl:member(1):
 
       await context.sync();
     });
+Word.Paragraph#insertGeometricShape:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/group-ungroup.yaml
+
+
+    await Word.run(async (context) => {
+      const body: Word.Body = context.document.body;
+      body.clear();
+
+      // Inserts a text box.
+      const textBoxOptions: Word.InsertShapeOptions = {
+        top: 0,
+        left: 0,
+        height: 100,
+        width: 100,
+      };
+      body.paragraphs.getLast().insertTextBox("placeholder text", textBoxOptions);
+
+      // Inserts a geometric shape.
+      const geometricShapeOptions: Word.InsertShapeOptions = {
+        height: 120,
+        width: 120,
+        left: 120,
+      };
+      body.paragraphs.getLast().insertGeometricShape(Word.GeometricShapeType.star24, geometricShapeOptions);
+      await context.sync();
+    });
 Word.Paragraph#insertText:member(1):
   - >-
     // Link to full sample:
@@ -27483,7 +27511,7 @@ Word.Range#insertGeometricShape:member(1):
       selection.insertGeometricShape(Word.GeometricShapeType.moon, shapeOptions);
       await context.sync();
 
-      console.log("Inserted a heptagon.");
+      console.log("Inserted a moon.");
     });
 Word.Range#insertTextBox:member(1):
   - >-
@@ -27965,6 +27993,37 @@ Word.Shape#delete:member(1):
 
       console.log("The first text box in document was deleted.");
     });
+Word.Shape#select:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/group-ungroup.yaml
+
+
+    await Word.run(async (context) => {
+      // Groups the shapes (including text boxes) found in the document body.
+      const shapes: Word.ShapeCollection = context.document.body.shapes.getByTypes([
+        Word.ShapeType.geometricShape,
+        Word.ShapeType.textBox,
+      ]);
+      shapes.load("items");
+      await context.sync();
+
+      const numShapes = shapes.items.length;
+      if (numShapes === 0) {
+        console.log("No shapes found in document body.");
+        return;
+      }
+
+      console.log(`Number of shapes to group: ${numShapes}`);
+
+      const groupedShape: Word.Shape = shapes.group();
+      groupedShape.load("shapeGroup/shapes");
+      await context.sync();
+
+      const shapeGroup: Word.ShapeGroup = groupedShape.shapeGroup;
+      console.log("Shapes grouped:", shapeGroup.shapes);
+      groupedShape.select();
+    });
 Word.Shape#body:member:
   - >-
     // Link to full sample:
@@ -27985,6 +28044,34 @@ Word.Shape#body:member:
       await context.sync();
 
       console.log("New content control properties:", newControl);
+    });
+Word.Shape#fill:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-geometric-shapes.yaml
+
+
+    await Word.run(async (context) => {
+      // Gets the color fill properties of the first moon found in the document body.
+      const moon: Word.Shape = context.document.body.shapes
+        .getByGeometricTypes([Word.GeometricShapeType.moon])
+        .getFirstOrNullObject();
+      moon.load("fill");
+      await context.sync();
+
+      if (moon.isNullObject) {
+        console.log("No moons found in the document body.");
+        return;
+      }
+
+      const moonFill: Word.ShapeFill = moon.fill;
+      const moonFillType = moonFill.type as Word.ShapeFillType;
+
+      console.log("Color fill properties of the first moon found in the document body:");
+      console.log(`\tForeground color: ${moonFill.foregroundColor}`);
+      console.log(`\tBackground color: ${moonFill.backgroundColor}`);
+      console.log(`\tTransparency: ${moonFill.transparency}`);
+      console.log(`\tFill type: ${moonFillType}`);
     });
 Word.Shape#geometricShapeType:member:
   - >-
@@ -28195,6 +28282,203 @@ Word.ShapeCollection#getFirstOrNullObject:member(1):
           ? "No shapes with text boxes found in main document."
           : `Text in first text box: ${shape.body.text}`
       );
+    });
+Word.ShapeCollection#group:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/group-ungroup.yaml
+
+
+    await Word.run(async (context) => {
+      // Groups the shapes (including text boxes) found in the document body.
+      const shapes: Word.ShapeCollection = context.document.body.shapes.getByTypes([
+        Word.ShapeType.geometricShape,
+        Word.ShapeType.textBox,
+      ]);
+      shapes.load("items");
+      await context.sync();
+
+      const numShapes = shapes.items.length;
+      if (numShapes === 0) {
+        console.log("No shapes found in document body.");
+        return;
+      }
+
+      console.log(`Number of shapes to group: ${numShapes}`);
+
+      const groupedShape: Word.Shape = shapes.group();
+      groupedShape.load("shapeGroup/shapes");
+      await context.sync();
+
+      const shapeGroup: Word.ShapeGroup = groupedShape.shapeGroup;
+      console.log("Shapes grouped:", shapeGroup.shapes);
+      groupedShape.select();
+    });
+Word.ShapeFill:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-geometric-shapes.yaml
+
+
+    await Word.run(async (context) => {
+      // Gets the color fill properties of the first moon found in the document body.
+      const moon: Word.Shape = context.document.body.shapes
+        .getByGeometricTypes([Word.GeometricShapeType.moon])
+        .getFirstOrNullObject();
+      moon.load("fill");
+      await context.sync();
+
+      if (moon.isNullObject) {
+        console.log("No moons found in the document body.");
+        return;
+      }
+
+      const moonFill: Word.ShapeFill = moon.fill;
+      const moonFillType = moonFill.type as Word.ShapeFillType;
+
+      console.log("Color fill properties of the first moon found in the document body:");
+      console.log(`\tForeground color: ${moonFill.foregroundColor}`);
+      console.log(`\tBackground color: ${moonFill.backgroundColor}`);
+      console.log(`\tTransparency: ${moonFill.transparency}`);
+      console.log(`\tFill type: ${moonFillType}`);
+    });
+Word.ShapeFill#clear:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-geometric-shapes.yaml
+
+
+    await Word.run(async (context) => {
+      // Sets color fill properties of the first moon found in the document body.
+      const moon: Word.Shape = context.document.body.shapes
+        .getByGeometricTypes([Word.GeometricShapeType.moon])
+        .getFirstOrNullObject();
+      moon.load("fill");
+      await context.sync();
+
+      if (moon.isNullObject) {
+        console.log("No moons found in the document body.");
+        return;
+      }
+
+      const moonFill: Word.ShapeFill = moon.fill;
+      console.log("Current fill properties of the first moon found in the document body:", moonFill);
+
+      moonFill.setSolidColor("green");
+      moonFill.load();
+      await context.sync();
+
+      console.log("Updated color fill properties of the first moon found in the document body:", moonFill);
+    });
+Word.ShapeFill#setSolidColor:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-geometric-shapes.yaml
+
+
+    await Word.run(async (context) => {
+      // Sets color fill properties of the first moon found in the document body.
+      const moon: Word.Shape = context.document.body.shapes
+        .getByGeometricTypes([Word.GeometricShapeType.moon])
+        .getFirstOrNullObject();
+      moon.load("fill");
+      await context.sync();
+
+      if (moon.isNullObject) {
+        console.log("No moons found in the document body.");
+        return;
+      }
+
+      const moonFill: Word.ShapeFill = moon.fill;
+      console.log("Current fill properties of the first moon found in the document body:", moonFill);
+
+      moonFill.setSolidColor("green");
+      moonFill.load();
+      await context.sync();
+
+      console.log("Updated color fill properties of the first moon found in the document body:", moonFill);
+    });
+Word.ShapeFillType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-geometric-shapes.yaml
+
+
+    await Word.run(async (context) => {
+      // Gets the color fill properties of the first moon found in the document body.
+      const moon: Word.Shape = context.document.body.shapes
+        .getByGeometricTypes([Word.GeometricShapeType.moon])
+        .getFirstOrNullObject();
+      moon.load("fill");
+      await context.sync();
+
+      if (moon.isNullObject) {
+        console.log("No moons found in the document body.");
+        return;
+      }
+
+      const moonFill: Word.ShapeFill = moon.fill;
+      const moonFillType = moonFill.type as Word.ShapeFillType;
+
+      console.log("Color fill properties of the first moon found in the document body:");
+      console.log(`\tForeground color: ${moonFill.foregroundColor}`);
+      console.log(`\tBackground color: ${moonFill.backgroundColor}`);
+      console.log(`\tTransparency: ${moonFill.transparency}`);
+      console.log(`\tFill type: ${moonFillType}`);
+    });
+Word.ShapeGroup:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/group-ungroup.yaml
+
+
+    await Word.run(async (context) => {
+      // Groups the shapes (including text boxes) found in the document body.
+      const shapes: Word.ShapeCollection = context.document.body.shapes.getByTypes([
+        Word.ShapeType.geometricShape,
+        Word.ShapeType.textBox,
+      ]);
+      shapes.load("items");
+      await context.sync();
+
+      const numShapes = shapes.items.length;
+      if (numShapes === 0) {
+        console.log("No shapes found in document body.");
+        return;
+      }
+
+      console.log(`Number of shapes to group: ${numShapes}`);
+
+      const groupedShape: Word.Shape = shapes.group();
+      groupedShape.load("shapeGroup/shapes");
+      await context.sync();
+
+      const shapeGroup: Word.ShapeGroup = groupedShape.shapeGroup;
+      console.log("Shapes grouped:", shapeGroup.shapes);
+      groupedShape.select();
+    });
+Word.ShapeGroup#ungroup:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/group-ungroup.yaml
+
+
+    await Word.run(async (context) => {
+      // Ungroups the first set of grouped shapes (including text boxes) found in the document body.
+      const firstShapeGroup: Word.Shape = context.document.body.shapes.getByTypes([Word.ShapeType.group]).getFirstOrNullObject();
+      firstShapeGroup.load("shapeGroup/shapes");
+      await context.sync();
+
+      if (firstShapeGroup.isNullObject) {
+        console.log("No shape groups found in the document body.");
+        return;
+      }
+
+      let shapeGroup: Word.ShapeGroup = firstShapeGroup.shapeGroup;
+      console.log("About to ungroup first shape group found in document body:", shapeGroup.shapes);
+      shapeGroup.ungroup();
+
+      console.log("Ungrouped first shape group.");
     });
 Word.ShapeTextOrientation:enum:
   - >-

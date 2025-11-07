@@ -8,6 +8,10 @@ api_set:
 script:
     content: |
         document.getElementById("group-shapes").addEventListener("click", () => tryCatch(groupShapes));
+        document.getElementById("move-group").addEventListener("click", () => tryCatch(moveGroup));
+        document.getElementById("scale-group").addEventListener("click", () => tryCatch(scaleGroup));
+        document.getElementById("change-group-position").addEventListener("click", () => tryCatch(changeGroupPosition));
+        document.getElementById("change-group-size").addEventListener("click", () => tryCatch(changeGroupSize));
         document.getElementById("ungroup-shapes").addEventListener("click", () => tryCatch(ungroupShapes));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
@@ -23,7 +27,7 @@ script:
 
             const numShapes = shapes.items.length;
             if (numShapes === 0) {
-              console.log("No shapes found in document body.");
+              console.log("No shapes found in the document body.");
               return;
             }
 
@@ -39,10 +43,12 @@ script:
           });
         }
 
-        async function ungroupShapes() {
+        async function moveGroup() {
           await Word.run(async (context) => {
-            // Ungroups the first set of grouped shapes (including text boxes) found in the document body.
-            const firstShapeGroup: Word.Shape = context.document.body.shapes.getByTypes([Word.ShapeType.group]).getFirstOrNullObject();
+            // Moves the first set of grouped shapes (including text boxes) found in the document body.
+            const firstShapeGroup: Word.Shape = context.document.body.shapes
+              .getByTypes([Word.ShapeType.group])
+              .getFirstOrNullObject();
             firstShapeGroup.load("shapeGroup/shapes");
             await context.sync();
 
@@ -52,10 +58,103 @@ script:
             }
 
             let shapeGroup: Word.ShapeGroup = firstShapeGroup.shapeGroup;
-            console.log("About to ungroup first shape group found in document body:", shapeGroup.shapes);
+            console.log("About to move the first shape group found in the document body:", shapeGroup.shapes);
+            firstShapeGroup.moveHorizontally(-10);
+            firstShapeGroup.moveVertically(50);
+
+            console.log("Moved the first shape group.");
+          });
+        }
+
+        async function scaleGroup() {
+          await Word.run(async (context) => {
+            // Scales the first set of grouped shapes (including text boxes) found in the document body.
+            const firstShapeGroup: Word.Shape = context.document.body.shapes
+              .getByTypes([Word.ShapeType.group])
+              .getFirstOrNullObject();
+            firstShapeGroup.load("shapeGroup/shapes");
+            await context.sync();
+
+            if (firstShapeGroup.isNullObject) {
+              console.log("No shape groups found in the document body.");
+              return;
+            }
+
+            let shapeGroup: Word.ShapeGroup = firstShapeGroup.shapeGroup;
+            console.log("About to scale the first shape group found in the document body:", shapeGroup.shapes);
+            firstShapeGroup.scaleHeight(0.75, Word.ShapeScaleType.currentSize);
+            firstShapeGroup.scaleWidth(0.5, Word.ShapeScaleType.currentSize, Word.ShapeScaleFrom.scaleFromBottomRight);
+
+            console.log("Scaled the first shape group.");
+          });
+        }
+
+        async function changeGroupPosition() {
+          await Word.run(async (context) => {
+            // Changes the position of the first set of grouped shapes (including text boxes) found in the document body.
+            const firstShapeGroup: Word.Shape = context.document.body.shapes
+              .getByTypes([Word.ShapeType.group])
+              .getFirstOrNullObject();
+            firstShapeGroup.load("shapeGroup/shapes");
+            await context.sync();
+
+            if (firstShapeGroup.isNullObject) {
+              console.log("No shape groups found in the document body.");
+              return;
+            }
+
+            let shapeGroup: Word.ShapeGroup = firstShapeGroup.shapeGroup;
+            console.log("About to change the position of the first shape group found in document body:", shapeGroup.shapes);
+            firstShapeGroup.relativeVerticalPosition = Word.RelativeVerticalPosition.insideMargin;
+            firstShapeGroup.relativeHorizontalPosition = Word.RelativeHorizontalPosition.margin;
+
+            console.log("Changed the position of the first shape group.");
+          });
+        }
+
+        async function changeGroupSize() {
+          await Word.run(async (context) => {
+            // Changes the relative size of the first set of grouped shapes (including text boxes) found in the document body.
+            const firstShapeGroup: Word.Shape = context.document.body.shapes
+              .getByTypes([Word.ShapeType.group])
+              .getFirstOrNullObject();
+            firstShapeGroup.load("shapeGroup/shapes");
+            await context.sync();
+
+            if (firstShapeGroup.isNullObject) {
+              console.log("No shape groups found in the document body.");
+              return;
+            }
+
+            let shapeGroup: Word.ShapeGroup = firstShapeGroup.shapeGroup;
+            console.log("About to change the relative size of the first shape group found in the document body:", shapeGroup.shapes);
+            firstShapeGroup.relativeHorizontalSize = Word.RelativeSize.insideMargin;
+            firstShapeGroup.relativeVerticalSize = Word.RelativeSize.bottomMargin;
+            firstShapeGroup.heightRelative = 50;
+
+            console.log("Changed the relative size of the first shape group.");
+          });
+        }
+
+        async function ungroupShapes() {
+          await Word.run(async (context) => {
+            // Ungroups the first set of grouped shapes (including text boxes) found in the document body.
+            const firstShapeGroup: Word.Shape = context.document.body.shapes
+              .getByTypes([Word.ShapeType.group])
+              .getFirstOrNullObject();
+            firstShapeGroup.load("shapeGroup/shapes");
+            await context.sync();
+
+            if (firstShapeGroup.isNullObject) {
+              console.log("No shape groups found in the document body.");
+              return;
+            }
+
+            let shapeGroup: Word.ShapeGroup = firstShapeGroup.shapeGroup;
+            console.log("About to ungroup the first shape group found in the document body:", shapeGroup.shapes);
             shapeGroup.ungroup();
 
-            console.log("Ungrouped first shape group.");
+            console.log("Ungrouped the first shape group.");
           });
         }
 
@@ -108,11 +207,23 @@ template:
         <section class="ms-Fabric samples ms-font-m">
             <h3>Try it out</h3>
             <button id="group-shapes" class="ms-Button">
-              <span class="ms-Button-label">Group shapes</span>
-            </button>
+            <span class="ms-Button-label">Group shapes</span>
+          </button>
+            <button id="move-group" class="ms-Button">
+            <span class="ms-Button-label">Move group</span>
+          </button>
+            <button id="scale-group" class="ms-Button">
+            <span class="ms-Button-label">Scale group</span>
+          </button>
+            <button id="change-group-position" class="ms-Button">
+            <span class="ms-Button-label">Change group position</span>
+          </button>
+            <button id="change-group-size" class="ms-Button">
+            <span class="ms-Button-label">Change group size</span>
+          </button>
             <button id="ungroup-shapes" class="ms-Button">
-              <span class="ms-Button-label">Ungroup shapes</span>
-            </button>
+            <span class="ms-Button-label">Ungroup shapes</span>
+          </button>
         </section>
     language: html
 style:
@@ -130,7 +241,7 @@ style:
     language: css
 libraries: |-
     https://appsforoffice.microsoft.com/lib/1/hosted/office.js
-    https://appsforoffice.microsoft.com/lib/1/hosted/office.d.ts
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts
 
     https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
     https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

@@ -1,0 +1,166 @@
+order: 4
+id: word-shapes-manage-canvases
+name: Work with canvases
+description: Shows how to work with canvases.
+host: WORD
+api_set:
+    WordApiDesktop: '1.2'
+script:
+    content: |
+        document.getElementById("insert-canvas").addEventListener("click", () => tryCatch(insertCanvas));
+        document.getElementById("get-canvases").addEventListener("click", () => tryCatch(getCanvases));
+        document.getElementById("get-first-canvas").addEventListener("click", () => tryCatch(getFirstCanvas));
+        document.getElementById("move-first-canvas").addEventListener("click", () => tryCatch(moveFirstCanvas));
+        document.getElementById("delete-first-canvas").addEventListener("click", () => tryCatch(deleteFirstCanvas));
+
+        async function insertCanvas() {
+          await Word.run(async (context) => {
+            // Inserts a canvas in the document.
+            const canvasShape: Word.Shape = context.document.getSelection().insertCanvas();
+            canvasShape.load();
+            await context.sync();
+
+            canvasShape.select();
+            console.log("Inserted canvas:", canvasShape);
+
+            const canvas: Word.Canvas = canvasShape.canvas;
+            canvas.load("shape,shapes");
+            await context.sync();
+
+            console.log("Canvas object:", canvas);
+          });
+        }
+
+        async function getCanvases() {
+          await Word.run(async (context) => {
+            // Gets the canvases found in the document body.
+            const canvases: Word.ShapeCollection = context.document.body.shapes.getByTypes([Word.ShapeType.canvas]);
+            canvases.load("items");
+            await context.sync();
+
+            if (canvases.items.length == 0) {
+              console.log("No canvases found in the document body.");
+              return;
+            }
+
+            console.log("Canvases found in the document body:", canvases);
+          });
+        }
+
+        async function getFirstCanvas() {
+          await Word.run(async (context) => {
+            // Gets the first canvas found in the document body.
+            const canvasShape: Word.Shape = context.document.body.shapes
+              .getByTypes([Word.ShapeType.canvas])
+              .getFirstOrNullObject();
+            canvasShape.load();
+            canvasShape.load("canvas/shapes");
+            await context.sync();
+
+            if (canvasShape.isNullObject) {
+              console.log("No canvases found in the document body.");
+              return;
+            }
+
+            console.log("First canvas found in the document body:", canvasShape);
+            console.log("Shapes associated with the first canvas:", canvasShape.canvas.shapes);
+            canvasShape.select();
+          });
+        }
+
+        async function moveFirstCanvas() {
+          await Word.run(async (context) => {
+            // Moves the first canvas found in the document body.
+            const canvasShape: Word.Shape = context.document.body.shapes
+              .getByTypes([Word.ShapeType.canvas])
+              .getFirstOrNullObject();
+            canvasShape.load();
+            canvasShape.load("canvas/shapes");
+            await context.sync();
+
+            if (canvasShape.isNullObject) {
+              console.log("No canvases found in the document body.");
+              return;
+            }
+
+            console.log("First canvas found in the document body:", canvasShape);
+            canvasShape.moveHorizontally(50);
+            canvasShape.moveVertically(-10);
+            console.log("Moved the first canvas.");
+          });
+        }
+
+        async function deleteFirstCanvas() {
+          await Word.run(async (context) => {
+            // Deletes the first canvas found in the document body.
+            const canvasShape: Word.Shape = context.document.body.shapes
+              .getByTypes([Word.ShapeType.canvas])
+              .getFirstOrNullObject();
+            canvasShape.load();
+            canvasShape.load("canvas/shapes");
+            await context.sync();
+
+            if (canvasShape.isNullObject) {
+              console.log("No canvases found in the document body.");
+              return;
+            }
+
+            console.log("First canvas found in the document body:", canvasShape);
+            canvasShape.delete();
+            console.log("Deleted the first canvas.");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            This sample demonstrates how to work with canvases.
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="insert-canvas" class="ms-Button">
+            <span class="ms-Button-label">Insert canvas</span>
+          </button>
+            <button id="get-canvases" class="ms-Button">
+                <span class="ms-Button-label">Get canvases</span>
+            </button>
+            <button id="get-first-canvas" class="ms-Button">
+                <span class="ms-Button-label">Get first canvas</span>
+            </button>
+            <button id="move-first-canvas" class="ms-Button">
+                <span class="ms-Button-label">Move first canvas</span>
+            </button>
+            <button id="delete-first-canvas" class="ms-Button">
+                <span class="ms-Button-label">Delete first canvas</span>
+            </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

@@ -1,0 +1,70 @@
+order: 2
+id: outlook-get-token-status
+name: Get the status of EWS tokens in an organization
+description: Gets the status of Exchange Web Services (EWS) callback tokens in an organization.
+host: OUTLOOK
+api_set:
+    Mailbox: preview
+script:
+    content: |
+        document.getElementById("get-status").addEventListener("click", getTokenStatus);
+
+        function getTokenStatus() {
+          Office.context.mailbox.diagnostics.ews.getTokenStatusAsync((result) => {
+            if (result.status === Office.AsyncResultStatus.Failed) {
+              console.log(result.error.message);
+              return;
+            }
+
+            const status = result.value;
+            switch (status) {
+              case 0:
+                console.log("EWS callback tokens are enabled.");
+                break;
+              case 1:
+                console.log("EWS callback tokens are disabled.");
+                break;
+              case 2:
+                console.log(
+                  "The organization has an Exchange Online environment. Legacy Exchange tokens are no longer supported.",
+                );
+                break;
+            }
+          });
+        }
+    language: typescript
+template:
+    content: |-
+        <section class="ms-Fabric ms-font-m">
+            <p>This sample shows how to determine if Exchange Web Services (EWS) callback tokens are supported in an organization.
+                <p>
+                    <b>Required mode</b>: Compose or Read
+                </p>
+            </p>
+        </section>
+        <section class="ms-Fabric samples ms-font-m">
+            <h3>Try it out</h3>
+            <button id="get-status" class="ms-Button">
+              <span class="ms-Button-label">Get token status</span>
+          </button>
+        </section>
+    language: html
+style:
+    content: |-
+        section.samples {
+            margin-top: 20px;
+        }
+
+        section.samples .ms-Button, section.setup .ms-Button {
+            display: block;
+            margin-bottom: 5px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts
+
+    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
+    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

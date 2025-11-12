@@ -4,14 +4,17 @@ name: Work with text range selections
 description: Get, set, load, and save text range selections.
 host: POWERPOINT
 api_set:
-    PowerPointApi: '1.5'
+    PowerPointApi: '1.8'
 script:
-    content: |-
+    content: |
         document.getElementById("getSelectedTextRange").addEventListener("click", () => tryCatch(getSelectedTextRange));
         document.getElementById("setSelectedTextRange").addEventListener("click", () => tryCatch(setSelectedTextRange));
         document.getElementById("changeColor").addEventListener("click", () => tryCatch(changeColor));
         document.getElementById("saveTextSelection").addEventListener("click", () => tryCatch(saveTextSelection));
         document.getElementById("loadTextSelection").addEventListener("click", () => tryCatch(loadTextSelection));
+        document
+          .getElementById("getSelectedTextRangeProperties")
+          .addEventListener("click", () => tryCatch(getSelectedTextRangeComplexProperties));
 
         async function getSelectedTextRange() {
           // Gets the selected text range and prints data about the range on the task pane.
@@ -37,7 +40,7 @@ script:
             txtExplained = txtExplained.replace(/\v/g, "<font color=red>VV</font>");
             let finalTable = "";
             finalTable +=
-              "<br><table border=1 cellpadding=3 cellspacing=0><tr><td bgcolor=#3333EE><font color=white>Index</font></td><td bgcolor=#3333EE><font color=white>Id</font></td></tr>";
+              "<table border=1 cellpadding=3 cellspacing=0><tr><td bgcolor=#3333EE><font color=white>Index</font></td><td bgcolor=#3333EE><font color=white>Id</font></td></tr>";
             finalTable += "<tr><td>Raw</td><td>" + textRange.text + "</td></tr>";
             finalTable += "<tr><td>Html</td><td>" + txtHtml + "</td></tr>";
             finalTable += "<tr><td>Exp</td><td>" + txtExplained + "</td></tr>";
@@ -45,7 +48,7 @@ script:
             finalTable += "<tr><td>Length</td><td>" + textRange.length + "</td></tr>";
             finalTable += "</table>";
             const outputSpan = document.getElementById("outputSpan");
-            outputSpan.innerHTML = ""
+            outputSpan.innerHTML = "";
             outputSpan.innerHTML += finalTable;
           });
         }
@@ -132,9 +135,39 @@ script:
           await PowerPoint.run(async (context) => {
             const slide1: PowerPoint.Slide = context.presentation.slides.getItem(savedTextSlideSelection[0]);
             const shape1: PowerPoint.Shape = slide1.shapes.getItem(savedTextShapeSelection[0]);
-            const textRange: PowerPoint.TextRange = shape1.textFrame.textRange.getSubstring(savedTextTextRangeStart, savedTextTextRangeLength);
+            const textRange: PowerPoint.TextRange = shape1.textFrame.textRange.getSubstring(
+              savedTextTextRangeStart,
+              savedTextTextRangeLength,
+            );
             textRange.setSelected();
             await context.sync();
+          });
+        }
+
+        async function getSelectedTextRangeComplexProperties() {
+          // Gets navigational (complex) properties of the selected text range.
+          await PowerPoint.run(async (context) => {
+            const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
+            textRange.load("font,paragraphFormat/bulletFormat,paragraphFormat/horizontalAlignment");
+            await context.sync();
+
+            console.log("Font properties of selected text range:");
+            console.log(`\tallCaps: ${textRange.font.allCaps}`);
+            console.log(`\tbold: ${textRange.font.bold}`);
+            console.log(`\tcolor: ${textRange.font.color}`);
+            console.log(`\tdoubleStrikethrough: ${textRange.font.doubleStrikethrough}`);
+            console.log(`\titalic: ${textRange.font.italic}`);
+            console.log(`\tname: ${textRange.font.name}`);
+            console.log(`\tsize: ${textRange.font.size}`);
+            console.log(`\tsmallCaps: ${textRange.font.smallCaps}`);
+            console.log(`\tstrikethrough: ${textRange.font.strikethrough}`);
+            console.log(`\tsubscript: ${textRange.font.subscript}`);
+            console.log(`\tsuperscript: ${textRange.font.superscript}`);
+            console.log(`\tunderline: ${textRange.font.underline}`);
+
+            console.log("Paragraph format properties of selected text range:");
+            console.log(`\tbulletFormat.visible: ${textRange.paragraphFormat.bulletFormat.visible}`);
+            console.log(`\thorizontalAlignment: ${textRange.paragraphFormat.horizontalAlignment}`);
           });
         }
 
@@ -151,16 +184,20 @@ script:
 template:
     content: |-
         <section class="description">
-          <p>This sample shows how to get selected text, and how to select specific text.</p>
+            <p>This sample shows how to get selected text, and how to select specific text.</p>
         </section>
         <section class="samples">
-          <h3>Try it out</h3>
-          <button id="getSelectedTextRange" >Get selected text range</button>
-          <br><button id="setSelectedTextRange" >Selects the first 10 characters of the selected shape.</button>
-          <br><button id="changeColor" >Change color of selected text</button>
-          <br><button id="saveTextSelection" >Save text selection</button>
-          <br><button id="loadTextSelection" >Load the saved selection</button>
-          <span id="outputSpan"></span>
+            <h3>Try it out</h3>
+            <p>Before choosing the <b>Get selected text range</b> button, add text to a slide and select some text.</p>
+            <button id="getSelectedTextRange">Get selected text range</button>
+            <button id="setSelectedTextRange">Selects first 10 characters of selected shape</button>
+            <button id="changeColor">Change color of selected text</button>
+            <button id="saveTextSelection">Save text selection</button>
+            <button id="loadTextSelection">Load the saved selection</button>
+            <button id="getSelectedTextRangeProperties">Get selected text range properties</button>
+            <h4>Output</h4>
+            <span id="outputSpan"></span>
+            <p>Output from choosing the <b>Get selected text range</b> button is displayed in this section.</p>
         </section>
     language: html
 style:

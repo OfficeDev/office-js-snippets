@@ -25,8 +25,7 @@ script:
           if (resultElement) {
             resultElement.innerHTML = "";
             const listElement = document.createElement("ul");
-            listElement.className = "ms-List";
-            listElement.id = "ms-List"; // Ensure the list has an ID for later reference
+            listElement.id = "result-list"; // Ensure the list has an ID for later reference
             resultElement.appendChild(listElement);
           }
 
@@ -47,7 +46,7 @@ script:
               data.query.search.forEach((val) => {
                 const date = moment(val.timestamp).format("YYYY-MM-DD hh:mm A");
                 const listItem = build_list_item(val.title, val.pageid, val.snippet, date);
-                const listElement = document.getElementById("ms-List");
+                const listElement = document.getElementById("result-list");
                 if (listElement) {
                   const tempDiv = document.createElement("div");
                   tempDiv.innerHTML = listItem;
@@ -61,7 +60,7 @@ script:
               return data.query;
             })
             .then((data) => {
-              const listItems = document.querySelectorAll(".ms-ListItem");
+              const listItems = document.querySelectorAll(".list-item");
               listItems.forEach((item) => {
                 const link = item.querySelector(".listItem-link a");
                 if (!link || link.innerHTML.length === 0) {
@@ -92,7 +91,7 @@ script:
               }
 
               if (images && images.length > 0) {
-                const imageElement = itemHTML.querySelector(".ms-ListItem-image");
+                const imageElement = itemHTML.querySelector(".list-item-image");
                 if (imageElement) {
                   imageElement.setAttribute("data-image", images[0].title);
                 }
@@ -114,7 +113,7 @@ script:
               const pageData = data.query.pages[pageid];
               if (pageData && pageData.original && pageData.original.source) {
                 const originalImage = pageData.original.source;
-                const imageElement = itemHTML.querySelector(".ms-ListItem-image");
+                const imageElement = itemHTML.querySelector(".list-item-image");
 
                 if (originalImage && imageElement) {
                   const imgElement = document.createElement("img");
@@ -124,7 +123,7 @@ script:
                   return true;
                 }
               } else {
-                const imageElement = itemHTML.querySelector(".ms-ListItem-image");
+                const imageElement = itemHTML.querySelector(".list-item-image");
                 const img = imageElement ? imageElement.dataset.image : undefined;
                 if (img) {
                   const pageInfoResult = await fetch(build_wiki_file_search(img));
@@ -138,7 +137,7 @@ script:
                 const page = data.query.pages[key];
                 if (page && page.thumbnail && page.thumbnail.source) {
                   const thumbnail = page.thumbnail.source;
-                  const imageElement = itemHTML.querySelector(".ms-ListItem-image");
+                  const imageElement = itemHTML.querySelector(".list-item-image");
 
                   if (thumbnail && imageElement) {
                     const imgElement = document.createElement("img");
@@ -186,19 +185,10 @@ script:
         /* Render */
         function build_list_item(title, pageid, summary, ts) {
           return `
-            <li class="ms-ListItem ms-ListItem--image" tabindex="0" data-pageid="${pageid}">
-              <div class="ms-ListItem-image"></div>
-              <span class="ms-ListItem-secondaryText listItem-link">${title}</span>
+            <li class="list-item" tabindex="0" data-pageid="${pageid}">
+              <div class="list-item-image"></div>
+              <span class="list-item-title listItem-link">${title}</span>
               <span>${summary}</span>
-              <div class="ms-ListItem-selectionTarget"></div>
-              <div class="ms-ListItem-actions">
-                <div class="ms-ListItem-action">
-                  <i class="ms-Icon ms-Icon--Flag"></i>
-                </div>
-                <div class="ms-ListItem-action">
-                  <i class="ms-Icon ms-Icon--Pinned"></i>
-                </div>
-              </div>
             </li>`;
         }
     language: typescript
@@ -207,7 +197,7 @@ template:
         <header class="header" style="text-align: center">
           <h1>Search Wikipedia</h1>
         </header>
-        <section class="description">
+        <section>
           <p>This sample shows how to query external API (Wikipedia) with the text currently selected in the presentation.</p>
          </section>
         <section class="setup">
@@ -283,6 +273,51 @@ style:
             text-align: center;
             background-color: #f3f2f1;
             padding: 10px;
+        }
+
+        #result-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .list-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .list-item:hover {
+            background-color: #f3f2f1;
+        }
+
+        .list-item-image {
+            width: 70px;
+            height: 70px;
+            margin-bottom: 8px;
+        }
+
+        .list-item-image img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .list-item-title {
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .list-item-title a {
+            color: #0078d4;
+            text-decoration: none;
+        }
+
+        .list-item-title a:hover {
+            text-decoration: underline;
         }
     language: css
 libraries: |-

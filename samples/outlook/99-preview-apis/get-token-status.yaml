@@ -7,24 +7,24 @@ api_set:
     Mailbox: preview
 script:
     content: |
-        document.getElementById("get-status").addEventListener("click", getTokenStatus);
+        document.getElementById("get-status").addEventListener("click",
+        getTokenStatus);
 
         function getTokenStatus() {
-          Office.context.mailbox.diagnostics.ews.getTokenStatusAsync((result) => {
+          Office.context.mailbox.diagnostics.ews.getTokenStatusAsync({ isRest: false }, (result) => {
             if (result.status === Office.AsyncResultStatus.Failed) {
               console.log(result.error.message);
               return;
             }
-
             const status = result.value;
             switch (status) {
-              case 0:
+              case Office.MailboxEnums.TokenStatus.Enabled:
                 console.log("EWS callback tokens are enabled.");
                 break;
-              case 1:
+              case Office.MailboxEnums.TokenStatus.Disabled:
                 console.log("EWS callback tokens are disabled.");
                 break;
-              case 2:
+              case Office.MailboxEnums.TokenStatus.Removed:
                 console.log(
                   "The organization has an Exchange Online environment. Legacy Exchange tokens are no longer supported.",
                 );
@@ -35,36 +35,80 @@ script:
     language: typescript
 template:
     content: |-
-        <section class="ms-Fabric ms-font-m">
-            <p>This sample shows how to determine if Exchange Web Services (EWS) callback tokens are supported in an organization.
-                <p>
-                    <b>Required mode</b>: Compose or Read
-                </p>
-            </p>
+        <section>
+            <p>This sample shows how to determine if Exchange Web Services (EWS) callback tokens are supported in an
+                organization.
+          </p>
+          <p><b>Supported Outlook clients</b>: Web and Windows (new and classic (Version 2510, Build 19328.20000 or later))</p>
+          <p>
+            <b>Required mode</b>: Compose or Read
+          </p>
         </section>
-        <section class="ms-Fabric samples ms-font-m">
+        <section>
             <h3>Try it out</h3>
-            <button id="get-status" class="ms-Button">
-              <span class="ms-Button-label">Get token status</span>
+            <button id="get-status">Get token status
           </button>
         </section>
     language: html
 style:
     content: |-
-        section.samples {
-            margin-top: 20px;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
         }
 
-        section.samples .ms-Button, section.setup .ms-Button {
-            display: block;
-            margin-bottom: 5px;
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
             margin-left: 20px;
+            margin-bottom: 5px;
             min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #106ebe;
+        }
+
+        button:active {
+            background-color: #005a9e;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
         }
     language: css
 libraries: |-
     https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
     https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts
-
-    https://unpkg.com/office-ui-fabric-core@11.1.0/dist/css/fabric.min.css
-    https://unpkg.com/office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css

@@ -4,12 +4,13 @@ name: Select shapes by type
 description: Gets shapes in a slide based on their type, such as GeometricShape or Line.
 host: POWERPOINT
 api_set:
-    PowerPointApi: '1.4'
+    PowerPointApi: '1.8'
 script:
-    content: |-
+    content: |
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("change-lines").addEventListener("click", () => tryCatch(changeLines));
         document.getElementById("change-geometric-shapes").addEventListener("click", () => tryCatch(changeGeometricShapes));
+        document.getElementById("get-placeholder-shapes").addEventListener("click", () => tryCatch(getPlaceholderShapes));
 
         async function changeLines() {
           // Changes the dash style of every line in the slide.
@@ -48,6 +49,38 @@ script:
           });
         }
 
+        async function getPlaceholderShapes() {
+          // Gets the placeholder shapes in the slide.
+          await PowerPoint.run(async (context) => {
+            // Get properties for every shape in the collection.
+            const shapes: PowerPoint.ShapeCollection = context.presentation.slides.getItemAt(0).shapes;
+            shapes.load("type,name");
+            await context.sync();
+
+            const placeholderShapes = [];
+            console.log(`Number of shapes found: ${shapes.items.length}`);
+            shapes.items.forEach((shape) => {
+              if (shape.type === PowerPoint.ShapeType.placeholder) {
+                // Load placeholderFormat property.
+                // PowerPoint throws an exception if you try to load this property on a shape that isn't a placeholder type.
+                shape.load("placeholderFormat");
+                placeholderShapes.push(shape);
+              }
+            });
+            await context.sync();
+
+            console.log(`Number of placeholder shapes found: ${placeholderShapes.length}`);
+            for (let i = 0; i < placeholderShapes.length; i++) {
+              let currentPlaceholder: PowerPoint.PlaceholderFormat = placeholderShapes[i].placeholderFormat;
+              let placeholderType = currentPlaceholder.type as PowerPoint.PlaceholderType;
+              let placeholderContainedType = currentPlaceholder.containedType as PowerPoint.ShapeType;
+              console.log(`Shape "${placeholderShapes[i].name}" placeholder properties:`);
+              console.log(`\ttype: ${placeholderType}`);
+              console.log(`\tcontainedType: ${placeholderContainedType}`);
+            }
+          });
+        }
+
         async function setup() {
           await PowerPoint.run(async (context) => {
             // Create shapes of different types.
@@ -58,13 +91,13 @@ script:
               left: 100,
               top: 100,
               height: 150,
-              width: 150
+              width: 150,
             });
             shapes.addGeometricShape(PowerPoint.GeometricShapeType.octagon, {
               left: 400,
               top: 300,
               height: 150,
-              width: 150
+              width: 150,
             });
 
             // Create lines.
@@ -72,13 +105,13 @@ script:
               left: 400,
               top: 150,
               height: 20,
-              width: 150
+              width: 150,
             });
             shapes.addLine(PowerPoint.ConnectorType.curve, {
               left: 100,
               top: 300,
               height: 150,
-              width: 20
+              width: 20,
             });
 
             await context.sync();
@@ -98,26 +131,29 @@ script:
 template:
     content: |-
         <section class="ms-Fabric ms-font-m">
-          <p>This sample shows how select and change shapes based on their types.</p>
+            <p>This sample shows how select and change shapes based on their types.</p>
         </section>
         <section class="ms-Fabric samples ms-font-m">
-          <h3>Setup</h3>
-          <p>Create some shapes in a new, blank presentation.</p>
-          <p />
-          <button id="setup" class="ms-Button">
+            <h3>Setup</h3>
+            <p>Create some shapes in a new, blank presentation.</p>
+            <p />
+            <button id="setup" class="ms-Button">
                 <span class="ms-Button-label">Setup</span>
             </button>
-          <p />
-          <h3>Try it out</h3>
-          <p />
-          <button id="change-lines" class="ms-Button">
+            <p />
+            <h3>Try it out</h3>
+            <p />
+            <button id="change-lines" class="ms-Button">
               <span class="ms-Button-label">Change lines</span>
           </button>
-          <p />
-          <button id="change-geometric-shapes" class="ms-Button">
+            <p />
+            <button id="change-geometric-shapes" class="ms-Button">
               <span class="ms-Button-label">Change geometric shapes</span>
           </button>
-          <p />
+            <p />
+            <button id="get-placeholder-shapes" class="ms-Button">
+              <span class="ms-Button-label">Get placeholder shapes</span>
+          </button>
         </section>
     language: html
 style:

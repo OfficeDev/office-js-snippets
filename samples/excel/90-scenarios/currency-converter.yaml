@@ -12,7 +12,6 @@ script:
         * Copyright (c) Riwut Libinuko. All rights reserved. Licensed under the MIT license.
         */
 
-        declare let moment: any;
         const tableName = "TransactionTable";
 
         let tableSetup: Record<string, number> = {};
@@ -44,8 +43,7 @@ script:
                     const baseCurrency = row.values[0][tableSetup["Base"]];
 
                     if (priceInBase === "") {
-                        const dateMoment = moment.fromOADate(transactionDate);
-                        const period = dateMoment.format("YYYY-MM-DD");
+                        const period = excelDateToISOString(transactionDate);
                         const queryUrl = convertValue(currency, baseCurrency, period, period);
 
                         const result = fetch(queryUrl).then(response => response.json());
@@ -109,6 +107,20 @@ script:
           const baseUrl = "https://api.exchangeratesapi.io/latest";
           const query = `?base=${currencyOrig}&symbols=${currencyBase},${currencyOrig}&start_at=${start}&end_at=${end}`;
           return baseUrl + query;
+        }
+
+        /** Convert Excel OLE Automation date to ISO date string (YYYY-MM-DD) */
+        function excelDateToISOString(excelDate: number): string {
+          // Excel dates are stored as days since December 30, 1899
+          const excelEpoch = new Date(1899, 11, 30);
+          const msPerDay = 24 * 60 * 60 * 1000;
+          const date = new Date(excelEpoch.getTime() + excelDate * msPerDay);
+          
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          
+          return `${year}-${month}-${day}`;
         }
 
         /** Default helper for invoking an action and handling errors. */
@@ -222,7 +234,4 @@ style:
     language: css
 libraries: |-
     https://appsforoffice.microsoft.com/lib/1/hosted/office.js
-    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts    
-
-    moment@2.18.1
-    moment-msdate@0.2.2
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

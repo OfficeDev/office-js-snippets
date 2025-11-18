@@ -3,7 +3,6 @@
 import * as path from 'path';
 import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
 import chalk from 'chalk';
-import escapeStringRegexp from 'escape-string-regexp';
 import { status } from './status';
 import {
     SnippetFileInput, SnippetProcessedData,
@@ -329,76 +328,13 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
 
     function validateVersionNumbersOnLibraries(snippet: ISnippet, messages: any[]): void {
         const { scriptReferences, linkReferences } = processLibraries(snippet);
-        const allWithoutVersionNumbers = ([].concat(scriptReferences).concat(linkReferences) as string[])
-            .filter(item => item.startsWith('https://unpkg.com/'))
-            .map(item => item.substr('https://unpkg.com/'.length))
-            .filter(item => {
-                const containsVersionNumberRegex = /^(@[a-zA-Z_\-0-9]+\/)?([a-zA-Z_0-9\-]+)@[0-9\.]*.*$/;
-                /* Tested with:
-                        @microsoft/office-js-helpers
-                            => wrong
+        const unpkgReferences = ([].concat(scriptReferences).concat(linkReferences) as string[])
+            .filter(item => item.startsWith('https://unpkg.com/'));
 
-                        @microsoft/office-js-helpers/lib.js
-                            => wrong
-
-                        @microsoft/office-js-helpers@0.6.5
-                            => right
-
-                        @microsoft/office-js-helpers@0.6.5
-                            => right
-
-                        jquery@0.6.0/lib.js
-                            => right
-
-                        jquery@0.6.0
-                            => right
-
-                        jquery/lib.js
-                            => wrong
-
-                        foo-bar/
-                            => wrong
-
-                        foo-bar@1.5
-                            => right
-
-                        foobar2@1.5
-                            => right
-                */
-
-                return !item.match(containsVersionNumberRegex);
+        if (unpkgReferences.length > 0) {
+            unpkgReferences.forEach(item => {
+                messages.push(new Error(`Library reference "${item}" uses unpkg, which is no longer allowed. Please use an alternative CDN.`));
             });
-
-        if (allWithoutVersionNumbers.length === 0) {
-            return;
-        }
-
-        const defaultSubstitutions = {
-            'jquery': 'jquery@3.1.1',
-            'office-ui-fabric-js/dist/js/fabric.min.js': 'office-ui-fabric-js@1.5.0/dist/js/fabric.min.js',
-            '@microsoft/office-js-helpers/dist/office.helpers.min.js': '@microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js',
-            'core-js/client/core.min.js': 'core-js@2.4.1/client/core.min.js',
-            'office-ui-fabric-core/dist/css/fabric.min.css': 'office-ui-fabric-core@11.1.0/dist/css/fabric.min.css',
-            'office-ui-fabric-js/dist/css/fabric.min.css': 'office-ui-fabric-core@11.1.0/dist/css/fabric.min.css',
-            'office-ui-fabric-js/dist/css/fabric.components.min.css': 'office-ui-fabric-js@1.5.0/dist/css/fabric.components.min.css'
-        };
-
-        let hadDefaultSubstitution = false;
-        allWithoutVersionNumbers.forEach(item => {
-            if (defaultSubstitutions[item]) {
-                const regex = new RegExp(`(^\s*)${escapeStringRegexp(item)}(.*)`, 'm');
-                snippet.libraries = snippet.libraries.replace(regex, ($0, $1, $2) => $1 + defaultSubstitutions[item] + $2);
-
-                messages.push(new Error(`Missing version number on library ${item}. If building locally, substituting with a default of ` +
-                    `"${defaultSubstitutions[item]}", but failing the build.`));
-                hadDefaultSubstitution = true;
-            }
-
-            messages.push(new Error(`Missing version number on library ${item}. A version # is required for NPM packages.`));
-        });
-
-        if (hadDefaultSubstitution) {
-            messages.push(new Error('Please check your pending changes to see the default-substituted library version(s).'));
         }
     }
 

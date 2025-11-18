@@ -34,7 +34,7 @@ script:
                 // you can do something with it, such as print the file, store the file in a database, etc.
                 console.log("Received the full contents of the file.");
 
-                let base64string = base64js.fromByteArray(byteArray);
+                let base64string = arrayBufferToBase64(byteArray);
                 const fileContentsElement = document.getElementById("file-contents") as HTMLTextAreaElement;
                 fileContentsElement.value = base64string;
                 fileContentsElement.style.display = "block";
@@ -150,10 +150,14 @@ script:
             }
         }
 
-        declare namespace base64js {
-            /** Takes a byte array and returns a Base64 string
-             * Imported from https://www.npmjs.com/package/base64-js package. */
-            function fromByteArray(array: number[]): string;
+        /** Helper function to convert byte array to Base64 string using native browser APIs */
+        function arrayBufferToBase64(byteArray: number[]): string {
+            let binary = '';
+            const len = byteArray.length;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(byteArray[i]);
+            }
+            return btoa(binary);
         }
     language: typescript
 template:
@@ -240,5 +244,3 @@ style:
 libraries: |-
     https://appsforoffice.microsoft.com/lib/1/hosted/office.js
     https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts
-
-    https://unpkg.com/base64-js@1.2.1/base64js.min.js

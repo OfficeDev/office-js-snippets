@@ -48,11 +48,11 @@ script:
             const bottomLeftColor = (document.getElementById("bottom-left") as HTMLInputElement).value;
             const bottomRightColor = (document.getElementById("bottom-right") as HTMLInputElement).value;
 
-            // Convert HEX colors to RGB using TinyColor.
-            const topLeftRgb = tinycolor(topLeftColor).toRgb();
-            const topRightRgb = tinycolor(topRightColor).toRgb();
-            const bottomLeftRgb = tinycolor(bottomLeftColor).toRgb();
-            const bottomRightRgb = tinycolor(bottomRightColor).toRgb();
+            // Convert HEX colors to RGB.
+            const topLeftRgb = hexToRgb(topLeftColor);
+            const topRightRgb = hexToRgb(topRightColor);
+            const bottomLeftRgb = hexToRgb(bottomLeftColor);
+            const bottomRightRgb = hexToRgb(bottomRightColor);
 
             if (Office.context.requirements.isSetSupported("ExcelApi", "1.9")) {
                 // ExcelApi 1.9 introduced the setCellProperties APIs to efficiently set different properties
@@ -96,11 +96,11 @@ script:
             const bottomLeftColor = (document.getElementById("bottom-left") as HTMLInputElement).value;
             const bottomRightColor = (document.getElementById("bottom-right") as HTMLInputElement).value;
 
-            // Convert HEX to RGB using TinyColor.
-            const topLeftRgb = tinycolor(topLeftColor).toRgb();
-            const topRightRgb = tinycolor(topRightColor).toRgb();
-            const bottomLeftRgb = tinycolor(bottomLeftColor).toRgb();
-            const bottomRightRgb = tinycolor(bottomRightColor).toRgb();
+            // Convert HEX to RGB.
+            const topLeftRgb = hexToRgb(topLeftColor);
+            const topRightRgb = hexToRgb(topRightColor);
+            const bottomLeftRgb = hexToRgb(bottomLeftColor);
+            const bottomRightRgb = hexToRgb(bottomRightColor);
 
             const topColors = getColorsArray(
                 topLeftRgb,
@@ -117,7 +117,7 @@ script:
             for (let col = 0; col < size; col++) {
                 const columnColors = getColorsArray(topColors[col], bottomColors[col], size);
                 for (let row = 0; row < size; row++) {
-                    colors2D[row][col] = tinycolor(columnColors[row]).toHexString();
+                    colors2D[row][col] = rgbToHex(columnColors[row]);
                 }
             }
 
@@ -138,14 +138,43 @@ script:
             return result;
         }
 
+        /** Helper function to convert HEX color to RGB object */
+        function hexToRgb(hex: string): { r: number; g: number; b: number } {
+            // Remove the hash if present
+            hex = hex.replace(/^#/, '');
+            
+            // Parse the hex values
+            const bigint = parseInt(hex, 16);
+            return {
+                r: (bigint >> 16) & 255,
+                g: (bigint >> 8) & 255,
+                b: bigint & 255
+            };
+        }
+
+        /** Helper function to convert RGB object to HEX string */
+        function rgbToHex(rgb: { r: number; g: number; b: number }): string {
+            const r = Math.round(rgb.r).toString(16).padStart(2, '0');
+            const g = Math.round(rgb.g).toString(16).padStart(2, '0');
+            const b = Math.round(rgb.b).toString(16).padStart(2, '0');
+            return `#${r}${g}${b}`;
+        }
+
+        /** Helper function to generate random HEX color */
+        function randomColor(): string {
+            const r = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+            const g = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+            const b = Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
+            return `#${r}${g}${b}`;
+        }
+
         function randomizeColors() {
             // Select all color input elements.
             const colorInputs = document.querySelectorAll("#color-table input[type='color']");
             
             // Iterate through each color input and set a random color.
             colorInputs.forEach((input) => {
-                const randomColor = tinycolor.random().toHexString();
-                (input as HTMLInputElement).value = randomColor;
+                (input as HTMLInputElement).value = randomColor();
             });
         }
     language: typescript
@@ -181,7 +210,7 @@ template:
             </button>
             <div id="credits">
                 <div>
-                    Uses the <a href="https://github.com/bgrins/TinyColor" target="_blank">TinyColor</a> library.
+                    Uses native JavaScript color conversions.
                 </div>
             </div>
         </section>
@@ -256,5 +285,3 @@ style:
 libraries: |-
     https://appsforoffice.microsoft.com/lib/1/hosted/office.js
     https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts
-    https://unpkg.com/tinycolor2@1.4.1/tinycolor.js
-    @types/tinycolor2

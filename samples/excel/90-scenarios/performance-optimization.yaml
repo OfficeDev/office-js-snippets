@@ -95,7 +95,7 @@ script:
         async function setup() {
           await Excel.run(async (context) => {
             // Create a sample worksheet.
-            const sheet = await OfficeHelpers.ExcelUtilities.forceCreateSheet(context.workbook, "Sample");
+            const sheet = await forceCreateSheet(context.workbook, "Sample");
             sheet.activate();
             sheet.getCell(0, 0).values = [["Row Total"]];
 
@@ -122,13 +122,20 @@ script:
           });
         }
 
+        /** Helper to create or recreate a worksheet */
+        async function forceCreateSheet(workbook: Excel.Workbook, sheetName: string): Promise<Excel.Worksheet> {
+          workbook.worksheets.getItemOrNullObject(sheetName).delete();
+          await workbook.context.sync();
+          return workbook.worksheets.add(sheetName);
+        }
+
         /** Default helper for invoking an action and handling errors. */
         async function tryCatch(callback) {
           try {
             await callback();
           } catch (error) {
-            OfficeHelpers.UI.notify(error);
-            OfficeHelpers.Utilities.log(error);
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
           }
         }
     language: typescript
@@ -219,5 +226,3 @@ style:
 libraries: |-
     https://appsforoffice.microsoft.com/lib/1/hosted/office.js
     https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts
-    https://unpkg.com/@microsoft/office-js-helpers@0.7.4/dist/office.helpers.min.js
-    https://unpkg.com/@microsoft/office-js-helpers@0.7.4/dist/office.helpers.d.ts

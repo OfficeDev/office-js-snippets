@@ -3,19 +3,30 @@ name: Blank snippet
 description: Create a new snippet from a blank template.
 author: OfficeDev
 host: POWERPOINT
-api_set: {}
+api_set:
+    PowerPointApi: '1.2'
 script:
-    content: |-
-        document.getElementById("run").addEventListener("click", run);
+    content: |
+        document.getElementById("run").addEventListener("click", () => tryCatch(run));
 
-        function run() {
-            Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, (asyncResult) => {
-                if (asyncResult.status === Office.AsyncResultStatus.Failed) {
-                    console.error(asyncResult.error.message);
-                } else {
-                    console.log(`The selected data is "${asyncResult.value}".`);
-                }
-            });
+        async function run() {
+          await PowerPoint.run(async (context) => {
+            context.presentation.load("slides");
+
+            console.log("Your code goes here");
+
+            await context.sync();
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
         }
     language: typescript
 template:

@@ -1,15 +1,13 @@
 order: 4
 id: excel-scenarios-working-with-dates
 name: Working with dates
-description: Shows how to work with dates by using the Moment JavaScript library with the Moment-MSDate plug-in.
+description: Shows how to work with dates by converting between JavaScript timestamps and Excel's OLE Automation date format.
 author: OfficeDev
 host: EXCEL
 api_set:
     ExcelApi: '1.4'
 script:
     content: |-
-        declare var moment: any;
-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("set-date-value-using-timestamp").addEventListener("click", () => tryCatch(setDateValueUsingTimestamp));
         document.getElementById("get-date-value").addEventListener("click", () => tryCatch(getDateValue));
@@ -21,10 +19,10 @@ script:
                 const now = Date.now();
                 console.log(`set (timestamp): ${now}`);
 
-                const nowMoment = moment(now);
-                console.log(`set (moment): ${JSON.stringify(nowMoment)}`);
+                const nowDate = new Date(now);
+                console.log(`set (date): ${nowDate.toISOString()}`);
 
-                const nowMS = nowMoment.toOADate();
+                const nowMS = dateToOADate(nowDate);
                 console.log(`set (MSDate): ${nowMS}`);
 
                 const dateRange = sheet.getRange("B4");
@@ -48,13 +46,29 @@ script:
                 const nowMS = dateRange.values[0][0];
                 console.log(`get (MSDate): ${nowMS}`);
 
-                const nowMoment = moment.fromOADate(nowMS);
-                console.log(`get (moment): ${JSON.stringify(nowMoment)}`);
+                const nowDate = oaDateToDate(nowMS);
+                console.log(`get (date): ${nowDate.toISOString()}`);
 
-                const now = nowMoment.unix();
+                const now = Math.floor(nowDate.getTime() / 1000);
                 console.log(`get (timestamp): ${now}`)
 
             });
+        }
+
+        /** Convert JavaScript Date to Excel OLE Automation date. */
+        function dateToOADate(date: Date): number {
+            // Excel dates are stored as days since December 30, 1899.
+            const excelEpoch = new Date(1899, 11, 30);
+            const msPerDay = 24 * 60 * 60 * 1000;
+            return (date.getTime() - excelEpoch.getTime()) / msPerDay;
+        }
+
+        /** Convert Excel OLE Automation date to JavaScript Date. */
+        function oaDateToDate(oaDate: number): Date {
+            // Excel dates are stored as days since December 30, 1899.
+            const excelEpoch = new Date(1899, 11, 30);
+            const msPerDay = 24 * 60 * 60 * 1000;
+            return new Date(excelEpoch.getTime() + oaDate * msPerDay);
         }
 
         async function setup() {
@@ -95,7 +109,7 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample shows how to set and get date values in a range and manipulating them using the Moment JavaScript library with the Moment-MSDate plug-in.</p>
+            <p>This sample shows how to set and get date values in a range and convert between JavaScript timestamps and Excel's OLE Automation date format.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -169,6 +183,3 @@ style:
 libraries: |-
     https://appsforoffice.microsoft.com/lib/1/hosted/office.js
     https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts
-
-    moment@2.18.1
-    moment-msdate@0.2.2

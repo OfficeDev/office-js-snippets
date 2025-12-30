@@ -1,0 +1,45 @@
+order: 4
+id: excel-custom-functions-invocation-address
+name: Invocation address sample
+description: Reference the custom function's cell location to adjust behavior.
+host: EXCEL
+api_set:
+    CustomFunctionsRuntime: 1.5
+script:
+    content: |
+        /**
+         * Returns localized price for an item, based on the calling cell's sheet.
+         * @customfunction
+         * @param {string} itemId The item identifier. Must be "SKU-001" or "SKU-002" for this example.
+         * @param {CustomFunctions.Invocation} invocation The cell address context.
+         * @requiresAddress
+         */
+        async function PRICE(itemId: string, invocation: CustomFunctions.Invocation): Promise<number> {
+          // The function assumes worksheets are named based on the local market.
+          // In this example, there are "EU", "APAC", and "US" worksheets.
+          // The invocation address is in the form "WorksheetName!CellAddress".
+          const address = invocation.address;
+          const sheetName = address.split("!")[0];
+
+          // Look up a base price from a service or cache.
+          const base = await getBasePrice(itemId);
+
+          // Apply market-specific adjustments.
+          switch (sheetName) {
+            case "EU": return base * 1.20;
+            case "APAC": return base * 1.10;
+            case "US": return base * 1.07;
+            default: return base;
+          }
+        }
+
+        // An example price catalog lookup function.
+        // This would be replaced with your service.
+        async function getBasePrice(itemId: string): Promise<number> {
+          const catalog: Record<string, number> = { "SKU-001": 19.99, "SKU-002": 49.0 };
+          return catalog[itemId];
+        }
+    language: typescript
+libraries: |
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

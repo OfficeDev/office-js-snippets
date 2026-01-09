@@ -1,0 +1,252 @@
+order: 17
+id: word-document-manage-watermark
+name: Watermarks
+description: Shows how to add and remove a watermark to the document using shapes.
+host: WORD
+api_set:
+    WordApiDesktop: '1.2'
+script:
+    content: |
+        document.getElementById("add-watermark").addEventListener("click", () => tryCatch(addWatermark));
+        document.getElementById("remove-watermark").addEventListener("click", () => tryCatch(removeWatermark));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function addWatermark() {
+          // Adds a watermark to the document using a text box shape.
+          await Word.run(async (context) => {
+            // Get the watermark text from the input field.
+            const watermarkText: string = (document.getElementById("watermark-text") as HTMLInputElement).value;
+
+            if (!watermarkText) {
+              console.warn("Please enter watermark text.");
+              return;
+            }
+
+            // Get the first section's header. 
+            // The watermark needs to be in the header so it appears on all pages.
+            const section: Word.Section = context.document.sections.getFirst();
+            const header: Word.Body = section.getHeader(Word.HeaderFooterType.primary);
+
+            // Check if a watermark already exists by looking for text boxes in the header.
+            const existingShapes: Word.ShapeCollection = header.shapes.getByTypes([Word.ShapeType.textBox]);
+            existingShapes.load("items");
+            await context.sync();
+
+            if (existingShapes.items.length > 0) {
+              console.warn("A watermark already exists in this document. Please remove it first.");
+              return;
+            }
+
+            // Get the first paragraph in the header to insert the text box.
+            const firstParagraph: Word.Paragraph = header.paragraphs.getFirst();
+
+            // Insert the watermark as a text box in the header.
+            // Position it in the center of the page and rotate it.
+            const watermark: Word.Shape = firstParagraph.insertTextBox(watermarkText, {
+              top: 200,
+              left: 50,
+              width: 600,
+              height: 100
+            });
+
+            // Style the watermark.
+            watermark.rotation = -45; // Rotate diagonally
+            watermark.fill.transparency = 0.7; // Make it semi-transparent
+            watermark.fill.setSolidColor("#CCCCCC"); // Gray color
+
+            // Style the text inside the watermark.
+            const textFrame: Word.TextFrame = watermark.textFrame;
+            textFrame.verticalAlignment = Word.ShapeTextVerticalAlignment.middle;
+
+            // Access the body of the text box to format the text.
+            const textBody: Word.Body = watermark.body;
+            textBody.font.size = 60;
+            textBody.font.bold = true;
+            textBody.font.color = "#999999";
+            textBody.paragraphs.getFirst().alignment = Word.Alignment.centered;
+
+            await context.sync();
+
+            console.log("Watermark added successfully.");
+          });
+        }
+
+        async function removeWatermark() {
+          // Removes the watermark from the document.
+          await Word.run(async (context) => {
+            // Get the first section's header where the watermark is located.
+            const section: Word.Section = context.document.sections.getFirst();
+            const header: Word.Body = section.getHeader(Word.HeaderFooterType.primary);
+
+            // Find all text boxes in the header (which include the watermark).
+            const textBoxes: Word.ShapeCollection = header.shapes.getByTypes([Word.ShapeType.textBox]);
+            textBoxes.load("items");
+            await context.sync();
+
+            if (textBoxes.items.length === 0) {
+              console.warn("No watermark found in this document.");
+              return;
+            }
+
+            // Delete all text boxes in the header.
+            textBoxes.items.forEach((textBox) => {
+              textBox.delete();
+            });
+
+            await context.sync();
+
+            console.log("Watermark removed successfully.");
+          });
+        }
+
+        async function setup() {
+          // Adds sample content to the document.
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+
+            body.insertParagraph("Watermark Sample Document", Word.InsertLocation.start).style = "Title";
+            body.insertParagraph(
+              "This is a sample document that demonstrates how to add and remove watermarks using the Word JavaScript API.",
+              Word.InsertLocation.end
+            ).style = "Normal";
+            body.insertParagraph("About Watermarks", Word.InsertLocation.end).style = "Heading 1";
+            body.insertParagraph(
+              "A watermark is text or a picture that appears behind document content. It appears faded in the background. You can insert predefined watermark text, such as DRAFT or CONFIDENTIAL, or you can create a custom watermark. In this sample, we create a custom text watermark using a rotated text box shape that's placed in the document header.",
+              Word.InsertLocation.end
+            ).style = "Normal";
+
+            body.insertParagraph("How to Use This Sample", Word.InsertLocation.end).style = "Heading 1";
+            body.insertParagraph(
+              "1. Enter custom watermark text in the input field (or use the default text).",
+              Word.InsertLocation.end
+            ).style = "List Bullet";
+            body.insertParagraph(
+              "2. Click 'Add watermark' to insert the watermark into the document.",
+              Word.InsertLocation.end
+            ).style = "List Bullet";
+            body.insertParagraph(
+              "3. The watermark will appear diagonally across all pages in the document.",
+              Word.InsertLocation.end
+            ).style = "List Bullet";
+            body.insertParagraph(
+              "4. Click 'Remove watermark' to remove the watermark from the document.",
+              Word.InsertLocation.end
+            ).style = "List Bullet";
+
+            // Add a page break to demonstrate the watermark on multiple pages.
+            body.insertBreak(Word.BreakType.page, Word.InsertLocation.end);
+
+            body.insertParagraph("Additional Content", Word.InsertLocation.end).style = "Heading 1";
+            body.insertParagraph(
+              "This is the second page of the document. Notice that the watermark appears on this page as well, because it's placed in the document header which repeats on all pages.",
+              Word.InsertLocation.end
+            ).style = "Normal";
+
+            await context.sync();
+
+            console.log("Sample document created.");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |
+        <section>
+            <p>This sample shows how to add a watermark to a Word document using a rotated text box in the header, and how to remove it.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <button id="setup">Add sample content</button>
+        </section>
+        <section class="samples">
+            <h3>Try it out</h3>
+            <label for="watermark-text">Watermark text:</label>
+            <input id="watermark-text" type="text" value="CONFIDENTIAL" placeholder="Enter watermark text" />
+            <button id="add-watermark">Add watermark</button>
+            <button id="remove-watermark">Remove watermark</button>
+        </section>
+    language: html
+style:
+    content: |
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            max-width: 300px;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-right: 8px;
+            margin-bottom: 5px;
+            min-width: 120px;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        .setup {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .samples h3 {
+            color: #0078d4;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

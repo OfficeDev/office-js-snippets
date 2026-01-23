@@ -1,11 +1,11 @@
 order: 15
 id: excel-events-worksheet
 name: Worksheet events
-description: Registers event handlers that run when data is changed in worksheet, the selected range changes in a worksheet, or the worksheet is recalculated.
+description: Registers event handlers that run when worksheet events occur.
 author: OfficeDev
 host: EXCEL
 api_set:
-    ExcelApi: '1.7'
+    ExcelApi: '1.17'
 script:
     content: |-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
@@ -18,6 +18,9 @@ script:
         document.getElementById("recalculate").addEventListener("click", () => tryCatch(recalculate));
 
         document.getElementById("delete-data").addEventListener("click", () => tryCatch(deleteData));
+
+        document.getElementById("register-on-name-changed-handler").addEventListener("click", () => tryCatch(registerOnNameChangedHandler));
+        document.getElementById("change-worksheet-name").addEventListener("click", () => tryCatch(changeWorksheetName));
 
         async function registerSelectionChangedHandler() {
             await Excel.run(async (context) => {
@@ -131,11 +134,44 @@ script:
                     console.log(`    Cells deleted shift direction: ` + event.changeDirectionState.deleteShiftDirection);
                 }
             });
+        }
+
+        async function registerOnNameChangedHandler() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+                sheet.onNameChanged.add(onNameChanged);
+                await context.sync();
+
+                console.log("Added a worksheet-level onNameChanged event handler.");
+            });
+        }
+
+        async function changeWorksheetName() {
+            await Excel.run(async (context) => {
+                let sheet = context.workbook.worksheets.getItem("Sample");
+
+                // Change the worksheet name to trigger the event.
+                sheet.name = `NewWorksheetName`;
+                await context.sync();
+
+                console.log(`Changed worksheet name to: ` + sheet.name);
+            });
+        }
+
+        async function onNameChanged(event: Excel.WorksheetNameChangedEventArgs) {
+            await Excel.run(async (context) => {
+                console.log(`Handler for worksheet onNameChanged event has been triggered.`);
+                console.log(`    Name before change: ` + event.nameBefore);
+                console.log(`    Name after change: ` + event.nameAfter);
+            });
         }  
 
         async function setup() {
             await Excel.run(async (context) => {
+                // Remove the previous sample worksheet.
                 context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                
+                // Create the main Sample worksheet with data.
                 const sheet = context.workbook.worksheets.add("Sample");
 
                 let salesTable = sheet.tables.add("A1:F1", true);
@@ -170,7 +206,7 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample shows how to register and use an event handler for the worksheet onSelectionChanged event.</p>
+            <p>This sample shows how to register and use event handlers for worksheet events.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -178,16 +214,22 @@ template:
         </section>
         <section>
             <h3>Try it out</h3>
-            <p><b>Selection Changed</b></p><section>
+            <h4>Selection changed</h4>
             <button id="register-on-selection-changed-handler">Register onSelectionChanged handler</button>
             <button id="select-range">Select range</button>
-            <p><b>Changed and Calculated</b></p>
+
+            <h4>Changed and calculated</h4>
             <button id="register-on-changed-handler">Register onChanged event handler</button>
             <button id="register-onCalculated-handler">Register onCalculated handler</button>
             <button id="recalculate">Change the value of E2</button>
-            <p><b>Detect insert and delete shift directions</b></p>
-            <p>Use the "Insert" and "Delete" buttons in the Excel UI to trigger the onChanged event. Or, use the following "Delete" button to see the properties returned by the event when a table row is removed.</p>
+
+            <h4>Detect insert and delete shift directions</h4>
+            <p>Use the <strong>Insert</strong> and <strong>Delete</strong> buttons in the Excel UI to trigger the onChanged event. Or, use the following button to see the properties returned by the event when a table row is removed.</p>
             <button id="delete-data">Delete data from table</button>
+
+            <h4>Worksheet name changed</h4>
+            <button id="register-on-name-changed-handler">Register onNameChanged handler</button>
+            <button id="change-worksheet-name">Change worksheet name</button>
         </section>
     language: html
 style:

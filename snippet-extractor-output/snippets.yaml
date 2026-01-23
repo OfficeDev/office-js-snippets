@@ -861,6 +861,42 @@ Excel.CellPropertiesLoadOptions#address:member:
         console.log(
             `Address: ${cellProperties.address}\nStyle: ${cellProperties.style}\nFill Color: ${cellProperties.format.fill.color}\nFont Color: ${cellProperties.format.font.color}`);
     });
+Excel.CellValue:type:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-web-image.yaml
+
+
+    // This function inserts a web image into the currently selected cell.
+
+    await Excel.run(async (context) => {
+      // Retrieve image data from the task pane and then clear the input fields.
+      const imageUrl = (document.getElementById("url") as HTMLInputElement).value;
+      const imageAltText = (document.getElementById("alt-text") as HTMLInputElement).value;
+      clearForm();
+
+      // Load the active cell.
+      const activeCell = context.workbook.getActiveCell();
+      activeCell.load();
+      await context.sync();
+
+      if (!imageUrl) {
+        console.log("Please enter an image URL.");
+        return;
+      }
+
+      // Create a web image object and assign the image details.
+      const webImage: Excel.WebImageCellValue = {
+        type: "WebImage", /* The string equivalent of `Excel.CellValueType.webImage`. */
+        address: imageUrl,
+        altText: imageAltText     
+      };
+
+      // Insert web image into the active cell.
+      activeCell.valuesAsJson = [[webImage]];
+
+      await context.sync();
+    });
 Excel.CellValueConditionalFormat#format:member:
   - >-
     // Link to full sample:
@@ -8791,7 +8827,7 @@ Excel.WorksheetChangedEventArgs#changeDirectionState:member:
                 console.log(`    Cells deleted shift direction: ` + event.changeDirectionState.deleteShiftDirection);
             }
         });
-    }  
+    }
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
@@ -8834,6 +8870,34 @@ Excel.WorksheetChangedEventArgs#triggerSource:member:
             if (event.changeDirectionState.deleteShiftDirection) {
                 console.log(`    Cells deleted shift direction: ` + event.changeDirectionState.deleteShiftDirection);
             }
+        });
+    }
+Excel.WorksheetMovedEventArgs:event:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
+
+
+    async function onWorksheetMoved(event) {
+        await Excel.run(async (context) => {
+            console.log("Handler for worksheet onMoved event has been triggered.");
+            console.log(`    Worksheet ID: ${event.worksheetId}`);
+            console.log(`    Position before move: ${event.positionBefore}`);
+            console.log(`    Position after move: ${event.positionAfter}`);
+            console.log(`    Event source: ${event.source}`);
+        });
+    }
+Excel.WorksheetNameChangedEventArgs:event:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    async function onNameChanged(event: Excel.WorksheetNameChangedEventArgs) {
+        await Excel.run(async (context) => {
+            console.log(`Handler for worksheet onNameChanged event has been triggered.`);
+            console.log(`    Name before change: ` + event.nameBefore);
+            console.log(`    Name after change: ` + event.nameAfter);
         });
     }  
 Excel.WorksheetCollection#onActivated:member:

@@ -1,11 +1,11 @@
 order: 14
 id: excel-events-workbook-and-worksheet-collection
 name: Workbook and worksheet collection events
-description: Registers event handlers that run when a worksheet is added, activated, or deactivated, or when the settings of a workbook are changed.
+description: Registers event handlers that run when a worksheet is added, activated, deactivated, moved, or when the settings of a workbook are changed.
 author: OfficeDev
 host: EXCEL
 api_set:
-    ExcelApi: '1.7'
+    ExcelApi: '1.17'
 script:
     content: |-
         document.getElementById("register-on-add-handler").addEventListener("click", () => tryCatch(registerOnAddHandler));
@@ -14,6 +14,9 @@ script:
         document.getElementById("register-on-activate-handler").addEventListener("click", () => tryCatch(registerOnActivateHandler));
         document.getElementById("register-on-deactivate-handler").addEventListener("click", () => tryCatch(registerOnDeactivateHandler));
         document.getElementById("delete-worksheet").addEventListener("click", () => tryCatch(deleteWorksheet));
+
+        document.getElementById("register-on-moved-handler").addEventListener("click", () => tryCatch(registerOnMovedHandler));
+        document.getElementById("move-worksheet").addEventListener("click", () => tryCatch(moveWorksheet));
 
         document.getElementById("create-setting").addEventListener("click", () => tryCatch(createSetting));
         document.getElementById("change-setting").addEventListener("click", () => tryCatch(changeSetting));
@@ -99,6 +102,50 @@ script:
             });
         }
 
+        async function registerOnMovedHandler() {
+            await Excel.run(async (context) => {
+                let sheets = context.workbook.worksheets;
+                sheets.load("items");
+                await context.sync();
+
+                if (sheets.items.length > 0) {
+                    let sheet = sheets.items[0];
+                    sheets.onMoved.add(onWorksheetMoved);
+                    await context.sync();
+                    console.log("A handler has been registered for the worksheet onMoved event.");
+                } else {
+                    console.log("No worksheets available to register onMoved event.");
+                }
+            });
+        }
+
+        async function moveWorksheet() {
+            await Excel.run(async (context) => {
+                let sheets = context.workbook.worksheets;
+                sheets.load("items");
+                await context.sync();
+
+                if (sheets.items.length > 1) {
+                    let firstSheet = sheets.items[0];
+                    firstSheet.position = sheets.items.length - 1;
+                    await context.sync();
+                    console.log(`Moved worksheet "${firstSheet.name}" to the end.`);
+                } else {
+                    console.log("Need at least 2 worksheets to demonstrate moving.");
+                }
+            });
+        }
+
+        async function onWorksheetMoved(event) {
+            await Excel.run(async (context) => {
+                console.log("Handler for worksheet onMoved event has been triggered.");
+                console.log(`    Worksheet ID: ${event.worksheetId}`);
+                console.log(`    Position before move: ${event.positionBefore}`);
+                console.log(`    Position after move: ${event.positionAfter}`);
+                console.log(`    Event source: ${event.source}`);
+            });
+        }
+
         async function createSetting() {
             await Excel.run(async (context) => {
                 const settings = context.workbook.settings;
@@ -172,20 +219,23 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample shows how to register and use handlers for when a worksheet is added, activated, or deactivated, or when the settings of a workbook are changed.</p>
+            <p>This sample shows how to register and use event handlers for workbook and worksheet collection events.</p>
         </section>
         <section>
             <h3>Try it out</h3>
-            <p><b>Added</b></p>
+            <h4>Added</h4>
             <section>
                 <button id="register-on-add-handler">Register onAdded event handler</button>
                 <button id="add-worksheet">Add worksheet</button>
             </section>
-            <p><b>Activated/Deactivated</b></p>
+            <h4>Activated and deactivated</h4>
             <button id="register-on-activate-handler">Register onActivated event handler</button>
             <button id="register-on-deactivate-handler">Register onDeactivated event handler</button> 
             <button id="delete-worksheet">Delete worksheet</button>
-            <p><b>Settings</b></p>
+            <h4>Worksheet moved</h4>
+            <button id="register-on-moved-handler">Register onMoved handler</button>
+            <button id="move-worksheet">Move first worksheet to end</button>
+            <h4>Settings changed</h4>
             <button id="create-setting">Create setting</button>
             <button id="register-settings-changed-handler">Register settings-changed handler</button>
             <button id="change-setting">Change setting</button>

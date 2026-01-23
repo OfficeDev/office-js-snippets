@@ -1,12 +1,65 @@
 id: powerpoint-hyperlinks-manage-hyperlinks
-name: Get hyperlinks
-description: Gets the hyperlinks found in a slide.
+name: Manage hyperlinks
+description: Gets and sets hyperlinks on a slide.
 host: POWERPOINT
 api_set:
-    PowerPointApi: '1.6'
+    PowerPointApi: '1.10'
 script:
-    content: |-
+    content: |
+        document
+          .getElementById("set-hyperlink-on-text-range")
+          .addEventListener("click", () => tryCatch(setHyperlinkOnTextRange));
+        document.getElementById("set-hyperlink-on-shape").addEventListener("click", () => tryCatch(setHyperlinkOnShape));
         document.getElementById("get-hyperlinks").addEventListener("click", () => tryCatch(getHyperlinks));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function setHyperlinkOnTextRange() {
+          // Sets a hyperlink on the selected text range.
+          await PowerPoint.run(async (context) => {
+            const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+            const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange().load("text");
+            const hyperlinks: PowerPoint.HyperlinkCollection = slide.hyperlinks;
+            const hyperlinkAddOptions: PowerPoint.HyperlinkAddOptions = {
+              address: "https://bing.com",
+              screenTip: "Screen tip for text",
+            };
+            let hyperlink: PowerPoint.Hyperlink = hyperlinks.add(textRange, hyperlinkAddOptions).load("address,screenTip");
+            try {
+              await context.sync();
+            } catch {
+              console.warn("Confirm that you have at least one slide and you've selected a contiguous range of text on the active slide.");
+              return;
+            }
+
+            console.log(
+              `Added link "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}") to the selected text "${textRange.text}".`,
+            );
+          });
+        }
+
+        async function setHyperlinkOnShape() {
+          // Sets a hyperlink on the first selected shape.
+          await PowerPoint.run(async (context) => {
+            const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+            const shape: PowerPoint.Shape = context.presentation.getSelectedShapes().getItemAt(0).load("id,type");
+            const hyperlinks: PowerPoint.HyperlinkCollection = slide.hyperlinks;
+            const hyperlinkAddOptions: PowerPoint.HyperlinkAddOptions = {
+              address: "https://bing.com",
+              screenTip: "Screen tip for shape",
+            };
+            let hyperlink: PowerPoint.Hyperlink = hyperlinks.add(shape, hyperlinkAddOptions).load("address,screenTip");
+            try {
+              await context.sync();
+            } catch {
+              console.warn("Confirm that you have at least one slide and you've selected a shape on the active slide.");
+              return;
+            }
+
+            console.log(
+              `Added link "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}") to the first selected shape (ID: ${shape.id}, type: ${shape.type}).`,
+            );
+          });
+        }
 
         async function getHyperlinks() {
           // Gets the hyperlinks found in the first selected slide.
@@ -16,10 +69,50 @@ script:
             const hyperlinksCount = hyperlinks.getCount();
             await context.sync();
 
-            console.log(`${hyperlinksCount.value} hyperlinks found in first selected slide:`);
+            console.log(
+              `${hyperlinksCount.value} hyperlinks found in first selected slide${hyperlinksCount.value === 0 ? "." : ":"}`,
+            );
             for (let link of hyperlinks.items) {
-              console.log(`Address: "${link.address}" (Screen tip: "${link.screenTip}")`);
+              console.log(`Address: "${link.address}" (screen tip: "${link.screenTip}").`);
             }
+          });
+        }
+
+        async function setup() {
+          await PowerPoint.run(async (context) => {
+            // Adds a new slide with two shapes.
+            const slideCountResult = context.presentation.slides.getCount();
+            context.presentation.slides.add();
+            await context.sync();
+
+            const newSlide = context.presentation.slides.getItemAt(slideCountResult.value);
+            newSlide.load("id");
+
+            // Create two shapes.
+            const shape1 = newSlide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+            shape1.left = 100;
+            shape1.top = 100;
+            shape1.width = 150;
+            shape1.height = 100;
+            shape1.fill.foregroundColor = "darkred";
+
+            const shape2 = newSlide.shapes.addTextBox("Hello, world!", {
+              left: 100,
+              top: 300,
+              height: 300,
+              width: 450,
+            });
+            shape2.name = "Textbox for testing";
+
+            await context.sync();
+
+            console.log(`Added slide - ID: ${newSlide.id}`);
+
+            // Switch to the new slide.
+            context.presentation.setSelectedSlides([newSlide.id]);
+            await context.sync();
+
+            console.log(`Switched to the new slide - ID: ${newSlide.id}`);
           });
         }
 
@@ -36,11 +129,20 @@ script:
 template:
     content: |-
         <section>
-            <p>Demonstrates how to get the hyperlinks located in a slide.</p>
+            <p>Demonstrates how to get and set hyperlinks on a slide.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <button id="setup">Set up</button>
         </section>
         <section>
             <h3>Try it out</h3>
-            <p>First, add at least one hyperlink to a slide then select at least one slide.</p>
+            <p>Select text on the slide then click <b>Set hyperlink on text</b> button
+                <button id="set-hyperlink-on-text-range">Set hyperlink on text</button>
+            </p>
+            <p>Select a shape on the slide then click <b>Set hyperlink on shape</b> button
+                <button id="set-hyperlink-on-shape">Set hyperlink on shape</button>
+            </p>
             <button id="get-hyperlinks">Get hyperlinks</button>
         </section>
     language: html

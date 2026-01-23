@@ -16730,10 +16730,40 @@ PowerPoint.Hyperlink:class:
       const hyperlinksCount = hyperlinks.getCount();
       await context.sync();
 
-      console.log(`${hyperlinksCount.value} hyperlinks found in first selected slide:`);
+      console.log(
+        `${hyperlinksCount.value} hyperlinks found in first selected slide${hyperlinksCount.value === 0 ? "." : ":"}`,
+      );
       for (let link of hyperlinks.items) {
-        console.log(`Address: "${link.address}" (Screen tip: "${link.screenTip}")`);
+        console.log(`Address: "${link.address}" (screen tip: "${link.screenTip}").`);
       }
+    });
+PowerPoint.HyperlinkAddOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/hyperlinks/manage-hyperlinks.yaml
+
+
+    // Sets a hyperlink on the selected text range.
+
+    await PowerPoint.run(async (context) => {
+      const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+      const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange().load("text");
+      const hyperlinks: PowerPoint.HyperlinkCollection = slide.hyperlinks;
+      const hyperlinkAddOptions: PowerPoint.HyperlinkAddOptions = {
+        address: "https://bing.com",
+        screenTip: "Screen tip for text",
+      };
+      let hyperlink: PowerPoint.Hyperlink = hyperlinks.add(textRange, hyperlinkAddOptions).load("address,screenTip");
+      try {
+        await context.sync();
+      } catch {
+        console.warn("Confirm that you have at least one slide and you've selected a contiguous range of text on the active slide.");
+        return;
+      }
+
+      console.log(
+        `Added link "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}") to the selected text "${textRange.text}".`,
+      );
     });
 PowerPoint.HyperlinkCollection:class:
   - >-
@@ -16749,9 +16779,11 @@ PowerPoint.HyperlinkCollection:class:
       const hyperlinksCount = hyperlinks.getCount();
       await context.sync();
 
-      console.log(`${hyperlinksCount.value} hyperlinks found in first selected slide:`);
+      console.log(
+        `${hyperlinksCount.value} hyperlinks found in first selected slide${hyperlinksCount.value === 0 ? "." : ":"}`,
+      );
       for (let link of hyperlinks.items) {
-        console.log(`Address: "${link.address}" (Screen tip: "${link.screenTip}")`);
+        console.log(`Address: "${link.address}" (screen tip: "${link.screenTip}").`);
       }
     });
 PowerPoint.InsertSlideFormatting:enum:
@@ -18600,6 +18632,34 @@ PowerPoint.Slide#setSelectedShapes:member(1):
       console.log(`IDs: ${shape1.id}, ${shape2.id}`);
       slide1.setSelectedShapes([shape1.id, shape2.id]);
       await context.sync();
+    });
+PowerPoint.Slide#hyperlinks:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/hyperlinks/manage-hyperlinks.yaml
+
+
+    // Sets a hyperlink on the first selected shape.
+
+    await PowerPoint.run(async (context) => {
+      const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+      const shape: PowerPoint.Shape = context.presentation.getSelectedShapes().getItemAt(0).load("id,type");
+      const hyperlinks: PowerPoint.HyperlinkCollection = slide.hyperlinks;
+      const hyperlinkAddOptions: PowerPoint.HyperlinkAddOptions = {
+        address: "https://bing.com",
+        screenTip: "Screen tip for shape",
+      };
+      let hyperlink: PowerPoint.Hyperlink = hyperlinks.add(shape, hyperlinkAddOptions).load("address,screenTip");
+      try {
+        await context.sync();
+      } catch {
+        console.warn("Confirm that you have at least one slide and you've selected a shape on the active slide.");
+        return;
+      }
+
+      console.log(
+        `Added link "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}") to the first selected shape (ID: ${shape.id}, type: ${shape.type}).`,
+      );
     });
 PowerPoint.SlideCollection:class:
   - >-

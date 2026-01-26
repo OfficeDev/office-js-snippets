@@ -11,6 +11,14 @@ script:
           .addEventListener("click", () => tryCatch(setHyperlinkOnTextRange));
         document.getElementById("set-hyperlink-on-shape").addEventListener("click", () => tryCatch(setHyperlinkOnShape));
         document.getElementById("get-hyperlinks").addEventListener("click", () => tryCatch(getHyperlinks));
+        document
+          .getElementById("update-text-range-hyperlink")
+          .addEventListener("click", () => tryCatch(updateHyperlinkOnTextRange));
+        document.getElementById("update-shape-hyperlink").addEventListener("click", () => tryCatch(updateHyperlinkOnShape));
+        document
+          .getElementById("delete-text-range-hyperlink")
+          .addEventListener("click", () => tryCatch(deleteHyperlinkFromTextRange));
+        document.getElementById("delete-shape-hyperlink").addEventListener("click", () => tryCatch(deleteHyperlinkFromShape));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
         async function setHyperlinkOnTextRange() {
@@ -27,7 +35,9 @@ script:
             try {
               await context.sync();
             } catch {
-              console.warn("Confirm that you have at least one slide and you've selected a contiguous range of text on the active slide.");
+              console.warn(
+                "Confirm that you have at least one slide and you've selected a contiguous range of text on the active slide.",
+              );
               return;
             }
 
@@ -75,6 +85,104 @@ script:
             for (let link of hyperlinks.items) {
               console.log(`Address: "${link.address}" (screen tip: "${link.screenTip}").`);
             }
+          });
+        }
+
+        async function updateHyperlinkOnTextRange() {
+          // Updates the first hyperlink found in the text range selection on the current slide.
+          await PowerPoint.run(async (context) => {
+            const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange().load("text");
+            let hyperlink: PowerPoint.Hyperlink = textRange.hyperlinks.getItemAt(0).load("address,screenTip");
+            try {
+              await context.sync();
+            } catch {
+              console.warn(
+                "Confirm that you have at least one slide and you've selected a contiguous range of text containing at least one hyperlink on the active slide.",
+              );
+              return;
+            }
+
+            console.log(
+              `About to update first link "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}") found in the selected text "${textRange.text}"...`,
+            );
+
+            hyperlink.address = "https://www.microsoft.com";
+            hyperlink.screenTip = "Updated screen tip of link on text range";
+
+            console.log(
+              `Updated first link found in the selected text "${textRange.text}" to "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}").`,
+            );
+          });
+        }
+
+        async function updateHyperlinkOnShape() {
+          // Updates the hyperlink on the first selected shape on the current slide.
+          await PowerPoint.run(async (context) => {
+            const shape: PowerPoint.Shape = context.presentation.getSelectedShapes().getItemAt(0).load("type");
+            const hyperlinkAddOptions: PowerPoint.HyperlinkAddOptions = {
+              address: "https://www.microsoft.com",
+              screenTip: "Updated screen tip of link on shape",
+            };
+            const hyperlink: PowerPoint.Hyperlink = shape.setHyperlink(hyperlinkAddOptions).load("address,screenTip");
+            try {
+              await context.sync();
+            } catch {
+              console.warn("Confirm that you have at least one slide and you've selected a shape on the active slide.");
+              return;
+            }
+
+            console.log(
+              `Updated link on the selected ${shape.type} shape to "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}").`,
+            );
+          });
+        }
+
+        async function deleteHyperlinkFromTextRange() {
+          // Deletes the first hyperlink found in the selected text on the current slide.
+          await PowerPoint.run(async (context) => {
+            const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange().load("text");
+            let hyperlink: PowerPoint.Hyperlink = textRange.hyperlinks.getItemAt(0).load("address,screenTip");
+            try {
+              await context.sync();
+            } catch {
+              console.warn(
+                "Confirm that you have at least one slide and you've selected a contiguous range of text containing at least one hyperlink on the active slide.",
+              );
+              return;
+            }
+
+            console.log(
+              `About to delete first link "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}") found in the selected text "${textRange.text}".`,
+            );
+
+            hyperlink.delete();
+
+            console.log(`Deleted first link found in the selected text "${textRange.text}".`);
+          });
+        }
+
+        async function deleteHyperlinkFromShape() {
+          // Deletes the hyperlink from the first selected shape on the current slide.
+          await PowerPoint.run(async (context) => {
+            const shape: PowerPoint.Shape = context.presentation.getSelectedShapes().getItemAt(0).load("type");
+
+            // Get an object representing the hyperlink on the selected shape. No need to set any properties since it's going to be deleted.
+            const hyperlink: PowerPoint.Hyperlink = shape.setHyperlink();
+
+            try {
+              await context.sync();
+            } catch {
+              console.warn("Confirm that you have at least one slide and you've selected a shape on the active slide.");
+              return;
+            }
+
+            console.log(
+              `About to delete link from the selected ${shape.type} shape.`,
+            );
+
+            hyperlink.delete();
+
+            console.log("Deleted link from the selected shape.");
           });
         }
 
@@ -144,6 +252,18 @@ template:
                 <button id="set-hyperlink-on-shape">Set hyperlink on shape</button>
             </p>
             <button id="get-hyperlinks">Get hyperlinks</button>
+            <p>Select hyperlinked text on the slide then click <b>Update hyperlink on text</b> button
+                <button id="update-text-range-hyperlink">Update hyperlink on text</button>
+            </p>
+            <p>Select hyperlinked shape on the slide then click <b>Update hyperlink on shape</b> button
+                <button id="update-shape-hyperlink">Update hyperlink on shape</button>
+            </p>
+            <p>Select hyperlinked text on the slide then click <b>Delete hyperlink from text</b> button
+                <button id="delete-text-range-hyperlink">Delete hyperlink from text</button>
+            </p>
+            <p>Select hyperlinked shape on the slide then click <b>Delete hyperlink from shape</b> button
+                <button id="delete-shape-hyperlink">Delete hyperlink from shape</button>
+                <p>
         </section>
     language: html
 style:

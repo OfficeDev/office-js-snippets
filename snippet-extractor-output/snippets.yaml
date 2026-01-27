@@ -861,6 +861,42 @@ Excel.CellPropertiesLoadOptions#address:member:
         console.log(
             `Address: ${cellProperties.address}\nStyle: ${cellProperties.style}\nFill Color: ${cellProperties.format.fill.color}\nFont Color: ${cellProperties.format.font.color}`);
     });
+Excel.CellValue:type:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-web-image.yaml
+
+
+    // This function inserts a web image into the currently selected cell.
+
+    await Excel.run(async (context) => {
+      // Retrieve image data from the task pane and then clear the input fields.
+      const imageUrl = (document.getElementById("url") as HTMLInputElement).value;
+      const imageAltText = (document.getElementById("alt-text") as HTMLInputElement).value;
+      clearForm();
+
+      // Load the active cell.
+      const activeCell = context.workbook.getActiveCell();
+      activeCell.load();
+      await context.sync();
+
+      if (!imageUrl) {
+        console.log("Please enter an image URL.");
+        return;
+      }
+
+      // Create a web image object and assign the image details.
+      const webImage: Excel.WebImageCellValue = {
+        type: "WebImage", /* The string equivalent of `Excel.CellValueType.webImage`. */
+        address: imageUrl,
+        altText: imageAltText     
+      };
+
+      // Insert web image into the active cell.
+      activeCell.valuesAsJson = [[webImage]];
+
+      await context.sync();
+    });
 Excel.CellValueConditionalFormat#format:member:
   - >-
     // Link to full sample:
@@ -8791,7 +8827,7 @@ Excel.WorksheetChangedEventArgs#changeDirectionState:member:
                 console.log(`    Cells deleted shift direction: ` + event.changeDirectionState.deleteShiftDirection);
             }
         });
-    }  
+    }
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
@@ -8834,6 +8870,34 @@ Excel.WorksheetChangedEventArgs#triggerSource:member:
             if (event.changeDirectionState.deleteShiftDirection) {
                 console.log(`    Cells deleted shift direction: ` + event.changeDirectionState.deleteShiftDirection);
             }
+        });
+    }
+Excel.WorksheetMovedEventArgs:event:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
+
+
+    async function onWorksheetMoved(event) {
+        await Excel.run(async (context) => {
+            console.log("Handler for worksheet onMoved event has been triggered.");
+            console.log(`    Worksheet ID: ${event.worksheetId}`);
+            console.log(`    Position before move: ${event.positionBefore}`);
+            console.log(`    Position after move: ${event.positionAfter}`);
+            console.log(`    Event source: ${event.source}`);
+        });
+    }
+Excel.WorksheetNameChangedEventArgs:event:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    async function onNameChanged(event: Excel.WorksheetNameChangedEventArgs) {
+        await Excel.run(async (context) => {
+            console.log(`Handler for worksheet onNameChanged event has been triggered.`);
+            console.log(`    Name before change: ` + event.nameBefore);
+            console.log(`    Name after change: ` + event.nameAfter);
         });
     }  
 Excel.WorksheetCollection#onActivated:member:
@@ -16730,10 +16794,40 @@ PowerPoint.Hyperlink:class:
       const hyperlinksCount = hyperlinks.getCount();
       await context.sync();
 
-      console.log(`${hyperlinksCount.value} hyperlinks found in first selected slide:`);
+      console.log(
+        `${hyperlinksCount.value} hyperlinks found in first selected slide${hyperlinksCount.value === 0 ? "." : ":"}`,
+      );
       for (let link of hyperlinks.items) {
-        console.log(`Address: "${link.address}" (Screen tip: "${link.screenTip}")`);
+        console.log(`Address: "${link.address}" (screen tip: "${link.screenTip}").`);
       }
+    });
+PowerPoint.HyperlinkAddOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/hyperlinks/manage-hyperlinks.yaml
+
+
+    // Sets a hyperlink on the selected text range.
+
+    await PowerPoint.run(async (context) => {
+      const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+      const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange().load("text");
+      const hyperlinks: PowerPoint.HyperlinkCollection = slide.hyperlinks;
+      const hyperlinkAddOptions: PowerPoint.HyperlinkAddOptions = {
+        address: "https://bing.com",
+        screenTip: "Screen tip for text",
+      };
+      let hyperlink: PowerPoint.Hyperlink = hyperlinks.add(textRange, hyperlinkAddOptions).load("address,screenTip");
+      try {
+        await context.sync();
+      } catch {
+        console.warn("Confirm that you have at least one slide and you've selected a contiguous range of text on the active slide.");
+        return;
+      }
+
+      console.log(
+        `Added link "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}") to the selected text "${textRange.text}".`,
+      );
     });
 PowerPoint.HyperlinkCollection:class:
   - >-
@@ -16749,9 +16843,11 @@ PowerPoint.HyperlinkCollection:class:
       const hyperlinksCount = hyperlinks.getCount();
       await context.sync();
 
-      console.log(`${hyperlinksCount.value} hyperlinks found in first selected slide:`);
+      console.log(
+        `${hyperlinksCount.value} hyperlinks found in first selected slide${hyperlinksCount.value === 0 ? "." : ":"}`,
+      );
       for (let link of hyperlinks.items) {
-        console.log(`Address: "${link.address}" (Screen tip: "${link.screenTip}")`);
+        console.log(`Address: "${link.address}" (screen tip: "${link.screenTip}").`);
       }
     });
 PowerPoint.InsertSlideFormatting:enum:
@@ -18600,6 +18696,34 @@ PowerPoint.Slide#setSelectedShapes:member(1):
       console.log(`IDs: ${shape1.id}, ${shape2.id}`);
       slide1.setSelectedShapes([shape1.id, shape2.id]);
       await context.sync();
+    });
+PowerPoint.Slide#hyperlinks:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/hyperlinks/manage-hyperlinks.yaml
+
+
+    // Sets a hyperlink on the first selected shape.
+
+    await PowerPoint.run(async (context) => {
+      const slide: PowerPoint.Slide = context.presentation.getSelectedSlides().getItemAt(0);
+      const shape: PowerPoint.Shape = context.presentation.getSelectedShapes().getItemAt(0).load("id,type");
+      const hyperlinks: PowerPoint.HyperlinkCollection = slide.hyperlinks;
+      const hyperlinkAddOptions: PowerPoint.HyperlinkAddOptions = {
+        address: "https://bing.com",
+        screenTip: "Screen tip for shape",
+      };
+      let hyperlink: PowerPoint.Hyperlink = hyperlinks.add(shape, hyperlinkAddOptions).load("address,screenTip");
+      try {
+        await context.sync();
+      } catch {
+        console.warn("Confirm that you have at least one slide and you've selected a shape on the active slide.");
+        return;
+      }
+
+      console.log(
+        `Added link "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}") to the first selected shape (ID: ${shape.id}, type: ${shape.type}).`,
+      );
     });
 PowerPoint.SlideCollection:class:
   - >-

@@ -8872,7 +8872,7 @@ Excel.WorksheetChangedEventArgs#triggerSource:member:
             }
         });
     }
-Excel.WorksheetMovedEventArgs:event:
+Excel.WorksheetMovedEventArgs:interface:
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
@@ -8887,7 +8887,7 @@ Excel.WorksheetMovedEventArgs:event:
             console.log(`    Event source: ${event.source}`);
         });
     }
-Excel.WorksheetNameChangedEventArgs:event:
+Excel.WorksheetNameChangedEventArgs:interface:
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
@@ -16801,6 +16801,35 @@ PowerPoint.Hyperlink:class:
         console.log(`Address: "${link.address}" (screen tip: "${link.screenTip}").`);
       }
     });
+PowerPoint.Hyperlink#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/hyperlinks/manage-hyperlinks.yaml
+
+
+    // Deletes the first hyperlink found in the selected text on the current
+    slide.
+
+    await PowerPoint.run(async (context) => {
+      const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange().load("text");
+      let hyperlink: PowerPoint.Hyperlink = textRange.hyperlinks.getItemAt(0).load("address,screenTip");
+      try {
+        await context.sync();
+      } catch {
+        console.warn(
+          "Confirm that you have at least one slide and you've selected a contiguous range of text containing at least one hyperlink on the active slide.",
+        );
+        return;
+      }
+
+      console.log(
+        `About to delete first link "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}") found in the selected text "${textRange.text}".`,
+      );
+
+      hyperlink.delete();
+
+      console.log(`Deleted first link found in the selected text "${textRange.text}".`);
+    });
 PowerPoint.HyperlinkAddOptions:interface:
   - >-
     // Link to full sample:
@@ -16821,7 +16850,9 @@ PowerPoint.HyperlinkAddOptions:interface:
       try {
         await context.sync();
       } catch {
-        console.warn("Confirm that you have at least one slide and you've selected a contiguous range of text on the active slide.");
+        console.warn(
+          "Confirm that you have at least one slide and you've selected a contiguous range of text on the active slide.",
+        );
         return;
       }
 
@@ -17443,6 +17474,32 @@ PowerPoint.Shape#getTable:member(1):
           console.log("Table RowCount: " + table.rowCount + " and columnCount: " + table.columnCount);
         } else console.log("Selected shape isn't table.");
       } else console.log("No shape selected.");
+    });
+PowerPoint.Shape#setHyperlink:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/hyperlinks/manage-hyperlinks.yaml
+
+
+    // Updates the hyperlink on the first selected shape on the current slide.
+
+    await PowerPoint.run(async (context) => {
+      const shape: PowerPoint.Shape = context.presentation.getSelectedShapes().getItemAt(0).load("type");
+      const hyperlinkAddOptions: PowerPoint.HyperlinkAddOptions = {
+        address: "https://www.microsoft.com",
+        screenTip: "Updated screen tip of link on shape",
+      };
+      const hyperlink: PowerPoint.Hyperlink = shape.setHyperlink(hyperlinkAddOptions).load("address,screenTip");
+      try {
+        await context.sync();
+      } catch {
+        console.warn("Confirm that you have at least one slide and you've selected a shape on the active slide.");
+        return;
+      }
+
+      console.log(
+        `Updated link on the selected ${shape.type} shape to "${hyperlink.address}" (screen tip: "${hyperlink.screenTip}").`,
+      );
     });
 PowerPoint.Shape#setZOrder:member(1):
   - >-

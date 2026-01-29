@@ -12,7 +12,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 
 1. [Fork](https://help.github.com/articles/about-forks/) this project into your GitHub account.
 1. Clone your fork to your development computer.
-1. Ensure that you have Node, version 6.10 or later, installed. (To check the version, run the command `node -v`.)
+1. Ensure that you have Node, version 20 or later, installed. (To check the version, run the command `node -v`.)
 1. Make sure your CLI is in the root of the office-js-snippets repo and run `npm install` to install all dependencies.
 1. Follow the steps in [Configuring a remote for a fork](https://help.github.com/articles/configuring-a-remote-for-a-fork/) to set up the original \OfficeDev\office-js-snippets as the upstream repo for your local repo.
 1. If you use Visual Studio Code as your editor, install the [TSLint](https://marketplace.visualstudio.com/items?itemName=eg2.tslint) extension for Visual Studio Code.

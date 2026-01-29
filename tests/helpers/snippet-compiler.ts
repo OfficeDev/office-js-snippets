@@ -47,11 +47,6 @@ export function compileSnippet(snippet: TestSnippet): CompilationResult {
   // Build complete types array
   const types = [officeTypes, ...externalTypes];
 
-  // Note: We don't include lodash extensions as a separate file because TypeScript's
-  // module augmentation has limitations with computed type aliases like ThrottleSettingsLeading.
-  // Instead, we handle the lodash maxWait issue in the diagnostic filter below.
-  const lodashExtensionsFile = null;
-
   // Configure compiler options
   const compilerOptions: ts.CompilerOptions = {
     target: ts.ScriptTarget.ES2018,
@@ -68,13 +63,10 @@ export function compileSnippet(snippet: TestSnippet): CompilationResult {
   };
 
   // Create a custom compiler host
-  const host = createCompilerHost(sourceFile, compilerOptions, lodashExtensionsFile);
+  const host = createCompilerHost(sourceFile, compilerOptions);
 
   // Create program and get diagnostics
-  const fileNames = lodashExtensionsFile
-    ? ['snippet.ts', 'lodash-extensions.d.ts']
-    : ['snippet.ts'];
-  const program = ts.createProgram(fileNames, compilerOptions, host);
+  const program = ts.createProgram(['snippet.ts'], compilerOptions, host);
   const diagnostics = ts.getPreEmitDiagnostics(program);
 
   // Parse diagnostics
@@ -143,8 +135,7 @@ declare const OfficeHelpers: OfficeHelpers | undefined;
  */
 function createCompilerHost(
   sourceFile: ts.SourceFile,
-  options: ts.CompilerOptions,
-  lodashExtensionsFile?: ts.SourceFile | null
+  options: ts.CompilerOptions
 ): ts.CompilerHost {
   const host = ts.createCompilerHost(options);
 
@@ -152,9 +143,6 @@ function createCompilerHost(
   host.getSourceFile = (fileName, languageVersion) => {
     if (fileName === 'snippet.ts') {
       return sourceFile;
-    }
-    if (fileName === 'lodash-extensions.d.ts' && lodashExtensionsFile) {
-      return lodashExtensionsFile;
     }
     return originalGetSourceFile(fileName, languageVersion);
   };

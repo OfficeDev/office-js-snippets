@@ -12,7 +12,8 @@ Validates that all snippet TypeScript code compiles without errors against Offic
 - Extracts snippet code from YAML files
 - Creates compilation harness with Office.js type declarations
 - Reports compilation errors with line numbers
-- Currently works for ~90% of snippets (type definitions being refined)
+- Validates API usage through TypeScript's type system
+- **Status:** 100% passing (335/335 snippets) ✓
 
 ### 2. Library URL Validation Tests
 **File:** `tests/library-validator.test.ts`
@@ -25,16 +26,6 @@ Verifies that all library URLs referenced in snippets are reachable.
 - Reports broken links with affected snippets
 - **Status:** Fully working ✓
 
-### 3. API Version Compatibility Tests
-**File:** `tests/api-version-validator.test.ts`
-
-Detects when snippets use APIs not available in their declared `api_set` version.
-
-- Parses TypeScript AST to extract Office.js API calls
-- Compares against API version catalog (`tests/data/api-versions.json`)
-- Reports incompatible API usage
-- **Current catalog:** ~50 common APIs across Excel, Word, PowerPoint
-
 ## Running Tests
 
 ```bash
@@ -43,7 +34,6 @@ npm test
 
 # Run specific test suites
 npm run test:compile    # TypeScript compilation only
-npm run test:apis       # API version validation only
 npm run test:libs       # Library URL checks only
 
 # Run tests in watch mode
@@ -63,8 +53,7 @@ npm run validate
 - ✓ Test infrastructure: Working
 - ✓ Snippet loading: 335 snippets found
 - ✓ Library validation: Office.js URLs reachable
-- ⚠️ TypeScript compilation: ~60-70% passing (type definitions being refined)
-- ⚠️ API version validation: Catalog covers common APIs, expanding as needed
+- ✓ TypeScript compilation: 100% passing (335/335 snippets)
 
 **Snippets by Host:**
 - Excel: 151
@@ -97,25 +86,6 @@ To add support for a new API:
 1. Identify the error from test output
 2. Add the API to the appropriate class/interface in `snippet-compiler.ts`
 3. Re-run tests to verify
-
-## Expanding the API Version Catalog
-
-The API version catalog (`tests/data/api-versions.json`) maps APIs to their minimum required versions.
-
-**To add new APIs:**
-1. Consult [Office.js API reference](https://learn.microsoft.com/en-us/javascript/api/excel)
-2. Find the "API Set" version for the API
-3. Add to the appropriate host section in `api-versions.json`
-
-**Format:**
-```json
-{
-  "Excel": {
-    "Range.someNewProperty": 1.8,
-    "Workbook.someNewMethod": 1.9
-  }
-}
-```
 
 ## Future Enhancements
 

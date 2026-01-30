@@ -146,11 +146,6 @@ export function getExternalLibraryTypes(snippet: TestSnippet): string[] {
   const libraries = snippet.libraries || '';
   const code = snippet.script?.content || '';
 
-  // Check for jQuery
-  if (libraries.includes('jquery') || code.match(/\$\(/)) {
-    types.push('jquery');
-  }
-
   // Check for Lodash
   if (libraries.includes('lodash') || code.match(/\b_\./)) {
     types.push('lodash');

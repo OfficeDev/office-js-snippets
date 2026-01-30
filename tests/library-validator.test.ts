@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { getAllSnippets, getOfficeJsLibraries, TestSnippet } from './helpers/test-helpers';
 
 // Cache for URL validation results to avoid repeated requests
@@ -28,11 +27,17 @@ async function validateUrl(url: string, retries = 2): Promise<{ ok: boolean; sta
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // Use AbortController for timeout with native fetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch(url, {
         method: 'HEAD',
-        timeout: 10000, // 10 second timeout
+        signal: controller.signal,
         redirect: 'follow'
       });
+
+      clearTimeout(timeoutId);
 
       const result = {
         ok: response.ok,

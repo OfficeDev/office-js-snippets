@@ -33,7 +33,7 @@ export function compileSnippet(snippet: TestSnippet): CompilationResult {
   const sourceFile = ts.createSourceFile(
     'snippet.ts',
     wrappedCode,
-    ts.ScriptTarget.ES2018,
+    ts.ScriptTarget.ES2024,
     true
   );
 
@@ -49,9 +49,9 @@ export function compileSnippet(snippet: TestSnippet): CompilationResult {
 
   // Configure compiler options
   const compilerOptions: ts.CompilerOptions = {
-    target: ts.ScriptTarget.ES2018,
+    target: ts.ScriptTarget.ES2024,
     module: ts.ModuleKind.CommonJS,
-    lib: ['lib.es2018.d.ts', 'lib.dom.d.ts'],
+    lib: ['lib.es2024.d.ts', 'lib.dom.d.ts'],
     strict: false,
     noEmit: true,
     skipLibCheck: true,

@@ -100,10 +100,10 @@ const INCLUDED_GROUPS = [
 const EXCLUDED_PATTERNS = [
   '*preview-apis*',        // Preview APIs change frequently
   '*events*',              // Event handlers require event emitter mocking
-  '*cellvalue*',           // Requires Excel.CellValueType enum (see CLAUDE.md for solution)
+  '*cellvalue*',           // Requires Excel.CellValueType enum (see README "When tests are needed")
   '*custom-functions*',    // Runs in separate JavaScript runtime
-  '*search*',              // Requires Excel.SearchDirection enum (see CLAUDE.md for solution)
-  '*find*',                // Requires Excel.SearchDirection enum (see CLAUDE.md for solution)
+  '*search*',              // Requires Excel.SearchDirection enum (see README "When tests are needed")
+  '*find*',                // Requires Excel.SearchDirection enum (see README "When tests are needed")
   '*tetromino*',           // Tetris game requires complex DOM manipulation
 ];
 
@@ -237,6 +237,8 @@ const snippetsByHost = allSnippets.reduce((acc, snippet) => {
   }
 
   describe(`Auto-Generated Runtime Tests - ${host}`, () => {
+    let consoleErrorSpy: jest.SpyInstance;
+
     beforeEach(() => {
       // Reset global objects
       (global as any).Excel = undefined;
@@ -247,7 +249,7 @@ const snippetsByHost = allSnippets.reduce((acc, snippet) => {
 
       // Mock console
       jest.spyOn(console, 'log').mockImplementation();
-      jest.spyOn(console, 'error').mockImplementation();
+      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
     });
 
     afterEach(() => {
@@ -259,7 +261,9 @@ const snippetsByHost = allSnippets.reduce((acc, snippet) => {
 
       test(testName, async () => {
         await runSnippetTest(snippet);
-        expect(true).toBe(true);
+
+        // Verify no errors were logged - if console.error was called, the snippet failed
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
       }, 15000); // Timeout allows for complex snippets with multiple async operations
     });
   });

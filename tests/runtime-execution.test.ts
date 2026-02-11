@@ -8,12 +8,13 @@ import * as path from 'path';
 
 describe('Runtime Execution Tests - Excel', () => {
   let consoleSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     (global as any).Excel = undefined;
     (global as any).Office = undefined;
     consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    jest.spyOn(console, 'error').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
   });
 
   afterEach(() => {
@@ -35,6 +36,9 @@ describe('Runtime Execution Tests - Excel', () => {
 
         // Verify console output
         expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('The range address was'));
+
+        // Verify no errors were logged
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
   });
@@ -48,6 +52,9 @@ describe('Runtime Execution Tests - Excel', () => {
 
         // Verify console output
         expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('The selected data is'));
+
+        // Verify no errors were logged
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
   });
@@ -55,12 +62,13 @@ describe('Runtime Execution Tests - Excel', () => {
 
 describe('Runtime Execution Tests - Word', () => {
   let consoleSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     (global as any).Word = undefined;
     (global as any).Office = undefined;
     consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    jest.spyOn(console, 'error').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
   });
 
   afterEach(() => {
@@ -82,6 +90,9 @@ describe('Runtime Execution Tests - Word', () => {
 
         // Verify console output
         expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('The selected text was'));
+
+        // Verify no errors were logged
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
   });
@@ -95,6 +106,9 @@ describe('Runtime Execution Tests - Word', () => {
 
         // Verify console output
         expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('The selected data is'));
+
+        // Verify no errors were logged
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
   });
@@ -102,12 +116,13 @@ describe('Runtime Execution Tests - Word', () => {
 
 describe('Runtime Execution Tests - PowerPoint', () => {
   let consoleSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     (global as any).PowerPoint = undefined;
     (global as any).Office = undefined;
     consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    jest.spyOn(console, 'error').mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
   });
 
   afterEach(() => {
@@ -125,6 +140,9 @@ describe('Runtime Execution Tests - PowerPoint', () => {
         expect(mockContext.presentation.slides.getItemAt).toHaveBeenCalledWith(0);
         expect(mockShapes.addTextBox).toHaveBeenCalledWith('Hello!', expect.any(Object));
         expect(mockContext.sync).toHaveBeenCalled();
+
+        // Verify no errors were logged
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
   });
@@ -138,6 +156,9 @@ describe('Runtime Execution Tests - PowerPoint', () => {
 
         // Verify console output
         expect(consoleSpy).toHaveBeenCalled();
+
+        // Verify no errors were logged
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
   });

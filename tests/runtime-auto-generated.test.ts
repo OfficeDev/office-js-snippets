@@ -258,38 +258,8 @@ const snippetsByHost = allSnippets.reduce((acc, snippet) => {
       const testName = `${host}: ${snippet.name || snippet.id}`;
 
       test(testName, async () => {
-        try {
-          await runSnippetTest(snippet);
-          expect(true).toBe(true);
-        } catch (error: any) {
-          /**
-           * Error handling strategy:
-           *
-           * Some snippets may slip through the inclusion/exclusion filters and attempt to
-           * use features our mocks don't support. Rather than failing the entire test suite,
-           * we detect expected mock limitation errors and skip those tests gracefully.
-           *
-           * Expected errors include:
-           * - Missing properties/methods on mock objects
-           * - Missing button handlers
-           * - Missing function implementations
-           *
-           * Unexpected errors (e.g., actual code bugs) will still fail the test.
-           */
-          const isExpectedFailure =
-            error.message.includes('Cannot read properties of undefined') ||
-            error.message.includes('No handler found for button') ||
-            error.message.includes('is not a function') ||
-            error.message.includes('Cannot read property');
-
-          if (isExpectedFailure) {
-            console.log(`⚠️  Skipped ${testName}: needs advanced mock (${error.message.substring(0, 50)}...)`);
-            return;
-          } else {
-            console.error(`❌ Failed ${testName}:`, error.message);
-            throw error;
-          }
-        }
+        await runSnippetTest(snippet);
+        expect(true).toBe(true);
       }, 15000); // Timeout allows for complex snippets with multiple async operations
     });
   });

@@ -17,8 +17,12 @@ function transpileTypeScript(code: string): string {
 
 /**
  * Execute a snippet's code in a controlled runtime environment
+ *
+ * Note: This function is synchronous. It executes snippet initialization code immediately
+ * (e.g., registering button click handlers). Async operations like button handlers are
+ * executed separately via clickButton() to ensure errors are properly caught.
  */
-export async function executeSnippetCode(snippet: TestSnippet): Promise<void> {
+export function executeSnippetCode(snippet: TestSnippet): void {
   const code = snippet.script.content;
 
   // Transpile TypeScript to JavaScript if needed

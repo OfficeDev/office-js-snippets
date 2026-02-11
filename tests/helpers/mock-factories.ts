@@ -21,9 +21,14 @@ export function createOfficeCommonApiMock() {
     },
     context: {
       document: {
-        getSelectedDataAsync: jest.fn((coercionType: any, callback: Function) => {
-          callback({ status: 'succeeded', value: 'Mock selected data' });
-        }),
+        getSelectedDataAsync: jest.fn(
+          (coercionType: any, optionsOrCallback?: any, callback?: Function) => {
+            // Handle both 2-arg (coercionType, callback) and 3-arg (coercionType, options, callback) overloads
+            const cb: Function =
+              typeof optionsOrCallback === 'function' ? optionsOrCallback : (callback as Function);
+            cb({ status: 'succeeded', value: 'Mock selected data' });
+          }
+        ),
         setSelectedDataAsync: jest.fn((data: any, options: any, callback: Function) => {
           callback({ status: 'succeeded' });
         }),

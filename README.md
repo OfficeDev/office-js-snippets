@@ -130,7 +130,7 @@ Tests run automatically and don't require manual configuration:
 
 - **Compilation tests** - Auto-generated for every snippet.
 - **Library tests** - Auto-generated for every snippet with library references.
-- **Runtime tests** - Auto-generated for snippets in tested groups (covers 97% of all snippets).
+- **Runtime tests** - Auto-generated for snippets in tested groups.
 
 Some advanced snippet patterns aren't covered by auto-generated runtime tests:
 

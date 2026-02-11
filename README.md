@@ -50,20 +50,25 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
     > **Note**: The `npm start` command adds an `id` property to the top of the file.
 
 1. Re-run `npm start`, and fix errors, until the build succeeds.
-1. Run `npm test` to validate your snippet compiles correctly and all library URLs are reachable. This command runs the same tests that run automatically in CI when you create your pull request. If there are errors, fix them and re-run the tests.
+1. Run `npm test` to validate your snippet. This command runs the same tests that run automatically in CI when you create your pull request. The tests verify:
+   - TypeScript code compiles correctly
+   - Library URLs are valid and reachable
+   - Snippet executes without runtime errors (for most snippets)
+
+   If there are errors, fix them and re-run the tests.
 
     > **Note**: You can also run `npm run validate` to run the full validation suite (build + lint + tests) in one command.
 1. Run `git status`. You should see that, in addition to your new `.yaml` file (or possibly new folder), a `playlist\{host}.yaml` file (where `{host}` is `excel`, `word`, and so on) is also changed. This change is expected. The build tool you just ran added a reference to your new snippet to this file.
 1. Run the following two commands. The commit message should be a brief description of what the snippet demonstrates; for example, `"shows how to use getWhatever method"`.
 
-    ```
+    ```cli
     git add -A
     git commit -m "{commit message}"
     ```
 
 1. Push the snippet to your fork by running:
 
-    ```
+    ```cli
     git push --set-upstream origin {name_of_your_new_branch}
     ```
 
@@ -83,7 +88,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
     > **Note**: Since your pull request passed locally (both `npm start` and `npm test`), it should pass the CI checks too. The CI validates TypeScript compilation, library URLs, and code quality. If CI fails, check the error messages and fix the issues locally, then push your changes to update the pull request.
 
 1. The reviewers might make comments on your pull request and ask you to make changes. Make changes in Script Lab and then repeat the process of creating the `.yaml` file. You don't have to create the new branch again, but make sure it is checked out when you copy the changed `.yaml` file over the previous version. After you commit and push the changed version to your fork, the new version is automatically added to your existing pull request. *Do **not** create a new pull request.*
-1. When the reviewers are satisfied, your pull request is merged to the `main` branch and the pull request is closed.
+1. When the reviewers are satisfied, they merge your pull request to the `main` branch and close the pull request.
 
     > **Note**: In a few days, the repo admins merge your snippet into the `prod` branch. It then appears in the **Samples** area of Script Lab. (It's in the **My Snippets** area as soon as you create it.)
 
@@ -92,6 +97,49 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
 #### Known errors and fixes in the build tool
 
 - An error that says the `name` property has uppercase letters or other disallowed characters doesn't refer to the `name` property in the file. It refers to the file name itself. You also get this error if the file extension isn't `.yaml`.
+
+## Testing
+
+The repository includes automated tests to ensure snippet quality and catch errors before deployment.
+
+### Running tests
+
+After adding or modifying a snippet, run the tests to validate your changes:
+
+```bash
+# Run all tests (recommended)
+npm test
+
+# Run full validation (build + lint + tests)
+npm run validate
+```
+
+### Test types
+
+The test suite validates three aspects of snippet quality:
+
+- **TypeScript compilation** - Ensures all snippet code compiles correctly with proper type checking.
+- **Library validation** - Verifies library references use versioned CDN URLs.
+- **Runtime execution** - Executes snippets in a simulated Office environment to catch runtime errors.
+
+> **Note**: The CI system automatically runs these tests on pull requests. Your pull request must pass all tests before it can be merged.
+
+### When tests are needed
+
+Tests run automatically and don't require manual configuration:
+
+- **Compilation tests** - Auto-generated for every snippet.
+- **Library tests** - Auto-generated for every snippet with library references.
+- **Runtime tests** - Auto-generated for snippets in tested groups (covers 97% of all snippets).
+
+Some advanced snippet patterns aren't covered by auto-generated runtime tests:
+
+- Event handler registration (`onChanged.add`, `onSelectionChanged.add`).
+- Custom functions (`CustomFunctions.associate`).
+- Preview APIs (unstable, change frequently).
+- Snippets using specific enums like `Excel.SearchDirection` or `Excel.CellValueType`.
+
+These snippets still get compilation and library validation, which catches most issues.
 
 ## Style guidelines
 
@@ -124,7 +172,7 @@ async function tryCatch(callback) {
 A few style rules to observe:
 
 - Use standard TypeScript indentation.
-- For each button, define a corresponding `async` function to run when the button is clicked. If the page has only one button, you can name the `async` function `run`. Otherwise, choose a descriptive name.
+- For each button, define a corresponding `async` function to run when the button is clicked. If the page has only one button, name the `async` function `run`. Otherwise, choose a descriptive name.
 - Each button-click handler should call the `tryCatch` function, passing in the name of the `async` function to execute when the button is clicked.
 - Use `all-lower-case-and-hyphenated` for all HTML IDs.
 - Unless you're explicitly showing a polished UI, you don't need to include the popup notification except for one or two samples. It's a lot of HTML and JavaScript code, and it's not strictly Fabric-y. There's a more "correct" way to do this by using components.

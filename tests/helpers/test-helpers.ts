@@ -112,6 +112,31 @@ export function getApiSetVersion(snippet: TestSnippet): number | undefined {
 }
 
 /**
+ * Load a snippet by relative path
+ */
+export function loadSnippetByPath(relativePath: string): TestSnippet {
+  const fullPath = path.resolve(__dirname, '../../', relativePath);
+
+  // Extract metadata from path (e.g., "samples/excel/01-basics/basic-api-call.yaml")
+  const parts = relativePath.split(path.sep);
+  const file_name = parts[parts.length - 1];
+  const isPublic = parts[0] === 'samples';
+  const host = parts.length > 1 ? parts[1] : '';
+  const group = parts.length > 2 ? parts[2] : '';
+
+  const file: SnippetFileInput = {
+    file_name,
+    relativePath,
+    fullPath,
+    host,
+    group,
+    isPublic,
+  };
+
+  return loadSnippet(file);
+}
+
+/**
  * Check if a snippet uses preview Office.js APIs
  */
 export function usesPreviewApis(snippet: TestSnippet): boolean {

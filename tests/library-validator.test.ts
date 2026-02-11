@@ -89,7 +89,13 @@ async function validateSnippetLibraries(snippet: TestSnippet): Promise<{ url: st
 }
 
 describe('Library URL Validation', () => {
-  const snippets = getAllSnippets();
+  // Exclude snippets that aren't Office.js snippets
+  const EXCLUDED_SNIPPET_IDS = [
+    'web-web-default', // Blank web template, not an Office.js snippet
+  ];
+
+  const snippets = getAllSnippets()
+    .filter(snippet => !EXCLUDED_SNIPPET_IDS.includes(snippet.id));
 
   if (snippets.length === 0) {
     test('No snippets found to test', () => {

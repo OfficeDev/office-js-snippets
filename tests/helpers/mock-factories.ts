@@ -110,10 +110,40 @@ export function createWordMock(options: WordMockOptions = {}) {
     bodyText = 'Mock body text',
   } = options;
 
+  // Mock for getText() return value
+  const mockTextValue = {
+    value: paragraphText,
+  };
+
   const mockParagraph = {
     text: paragraphText,
     font: { color: '', bold: false },
     load: jest.fn(),
+    getText: jest.fn(() => mockTextValue),
+  };
+
+  // Mock paragraph collection
+  const mockParagraphs = {
+    getFirst: jest.fn(() => mockParagraph),
+    items: [mockParagraph],
+  };
+
+  // Mock table cell body
+  const mockCellBody = {
+    text: 'Mock cell text',
+    load: jest.fn(),
+  };
+
+  // Mock table
+  const mockTable = {
+    getCell: jest.fn(() => ({ body: mockCellBody })),
+    load: jest.fn(),
+  };
+
+  // Mock table collection
+  const mockTables = {
+    getFirst: jest.fn(() => mockTable),
+    items: [mockTable],
   };
 
   const mockRange = {
@@ -122,12 +152,35 @@ export function createWordMock(options: WordMockOptions = {}) {
     load: jest.fn(),
     insertText: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
+    paragraphs: mockParagraphs,
   };
 
   const mockBody = {
     text: bodyText,
     insertParagraph: jest.fn(() => mockParagraph),
     insertText: jest.fn(),
+    insertTable: jest.fn(() => mockTable),
+    load: jest.fn(),
+    tables: mockTables,
+  };
+
+  // Mock document properties
+  const mockProperties = {
+    author: 'Mock Author',
+    title: 'Mock Title',
+    subject: 'Mock Subject',
+    comments: 'Mock Comments',
+    keywords: 'Mock Keywords',
+    manager: 'Mock Manager',
+    company: 'Mock Company',
+    category: 'Mock Category',
+    applicationName: 'Microsoft Word',
+    creationDate: new Date('2024-01-01'),
+    lastAuthor: 'Mock Last Author',
+    lastPrintDate: new Date('2024-01-02'),
+    lastSaveTime: new Date('2024-01-03'),
+    revisionNumber: 1,
+    template: 'Normal.dotm',
     load: jest.fn(),
   };
 
@@ -135,6 +188,8 @@ export function createWordMock(options: WordMockOptions = {}) {
     document: {
       body: mockBody,
       getSelection: jest.fn(() => mockRange),
+      properties: mockProperties,
+      compare: jest.fn(),
     },
     sync: jest.fn().mockResolvedValue(undefined),
   };
@@ -151,6 +206,10 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockRange,
     mockBody,
     mockParagraph,
+    mockParagraphs,
+    mockTable,
+    mockTables,
+    mockProperties,
   };
 }
 

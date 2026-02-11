@@ -180,6 +180,11 @@ async function runSnippetTest(snippet: TestSnippet) {
       case 'WORD':
         const wordMock = createWordMock();
         (global as any).Word = wordMock.mockObject;
+        // Add enums that some snippets need
+        (global as any).Word.CompareTarget = {
+          compareTargetCurrent: 'Current',
+          compareTargetNew: 'New',
+        };
         break;
       case 'POWERPOINT':
         const pptMock = createPowerPointMock();

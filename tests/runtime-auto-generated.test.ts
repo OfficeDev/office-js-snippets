@@ -278,22 +278,26 @@ async function runSnippetTest(snippet: TestSnippet, consoleErrorSpy?: jest.SpyIn
   } else {
     const host = snippet.host?.toUpperCase();
     switch (host) {
-      case 'EXCEL':
+      case 'EXCEL': {
         const excelMock = createExcelMock();
         (global as any).Excel = excelMock.mockObject;
         break;
-      case 'WORD':
+      }
+      case 'WORD': {
         const wordMock = createWordMock();
         (global as any).Word = wordMock.mockObject;
         break;
-      case 'POWERPOINT':
+      }
+      case 'POWERPOINT': {
         const pptMock = createPowerPointMock();
         (global as any).PowerPoint = pptMock.mockObject;
         break;
-      case 'ONENOTE':
+      }
+      case 'ONENOTE': {
         const oneNoteMock = createOneNoteMock();
         (global as any).OneNote = oneNoteMock.mockObject;
         break;
+      }
       default:
         throw new Error(`Unsupported host: ${host}`);
     }
@@ -439,8 +443,8 @@ const snippetsByHostAndGroup = allSnippets.reduce((acc, snippet) => {
       (global as any).Office = undefined;
 
       // Mock console
-      jest.spyOn(console, 'log').mockImplementation();
-      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {

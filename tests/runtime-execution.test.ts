@@ -13,8 +13,8 @@ describe('Runtime Execution Tests - Excel', () => {
   beforeEach(() => {
     (global as any).Excel = undefined;
     (global as any).Office = undefined;
-    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -67,8 +67,8 @@ describe('Runtime Execution Tests - Word', () => {
   beforeEach(() => {
     (global as any).Word = undefined;
     (global as any).Office = undefined;
-    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -121,8 +121,8 @@ describe('Runtime Execution Tests - PowerPoint', () => {
   beforeEach(() => {
     (global as any).PowerPoint = undefined;
     (global as any).Office = undefined;
-    consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {

@@ -118,7 +118,8 @@ export function loadSnippetByPath(relativePath: string): TestSnippet {
   const fullPath = path.resolve(__dirname, '../../', relativePath);
 
   // Extract metadata from path (e.g., "samples/excel/01-basics/basic-api-call.yaml")
-  const parts = relativePath.split(path.sep);
+  // Use regex to handle both forward and backward slashes for cross-platform compatibility
+  const parts = relativePath.split(/[/\\]/);
   const file_name = parts[parts.length - 1];
   const isPublic = parts[0] === 'samples';
   const host = parts.length > 1 ? parts[1] : '';

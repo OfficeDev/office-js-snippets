@@ -80,11 +80,6 @@ const INCLUDED_GROUPS = [
 
   // PowerPoint - Excluded groups
   // 'preview-apis',         // Preview APIs are unstable and change frequently
-
-  // OneNote - Core APIs
-  'pages',
-  'section',
-  'notebook',
 ];
 
 /**
@@ -104,7 +99,7 @@ const EXCLUDED_PATTERNS = [
   '*custom-functions*',    // Runs in separate JavaScript runtime
   '*search*',              // Requires Excel.SearchDirection enum (see README "When tests are needed")
   '*find*',                // Requires Excel.SearchDirection enum (see README "When tests are needed")
-  '*tetromino*',           // Tetris game requires complex DOM manipulation
+  '*tetromino*',           // Game requires complex DOM manipulation
 ];
 
 /**
@@ -270,37 +265,92 @@ async function runSnippetTest(snippet: TestSnippet, consoleErrorSpy?: jest.SpyIn
 }
 
 /**
- * Load and categorize all snippets by host
+ * Get the feature group from a snippet's relative path
+ *
+ * Example: 'excel/42-range/formatting.yaml' → '42-range'
+ * Example: 'samples/excel/42-range/formatting.yaml' → '42-range'
  */
-const allSnippets = getAllSnippets();
-const snippetsByHost = allSnippets.reduce((acc, snippet) => {
-  const host = snippet.host?.toUpperCase() || 'UNKNOWN';
-  if (!acc[host]) acc[host] = [];
-  acc[host].push(snippet);
-  return acc;
-}, {} as Record<string, TestSnippet[]>);
+function getFeatureGroup(snippet: TestSnippet): string {
+  const pathParts = snippet.relativePath.split(/[/\\]/);
+
+  // Find the index of the host (excel, word, powerpoint, onenote)
+  const host = snippet.host?.toLowerCase();
+  const hostIndex = pathParts.findIndex(part => part.toLowerCase() === host);
+
+  // Group is the next part after host
+  if (hostIndex !== -1 && hostIndex + 1 < pathParts.length) {
+    return pathParts[hostIndex + 1];
+  }
+
+  // Fallback to the filename if we can't determine the group
+  return pathParts[pathParts.length - 1].replace('.yaml', '');
+}
 
 /**
- * Generate test suites for each Office host
+ * Get a human-readable name for a feature group
  *
- * Tests are organized by host (Excel, Word, PowerPoint, OneNote) and filtered based on:
- * 1. Must-test snippets (always included for smoke testing)
- * 2. Exclusion patterns (snippets requiring unsupported features)
- * 3. Included groups (snippet groups compatible with our mocks)
+ * Removes number prefixes and converts to title case
+ */
+function getGroupDisplayName(group: string): string {
+  // Remove number prefix (e.g., '42-range' → 'range')
+  const withoutNumber = group.replace(/^\d+-/, '');
+
+  // Convert kebab-case to Title Case
+  return withoutNumber
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
+ * Load and categorize all snippets by host and feature group
+ */
+const allSnippets = getAllSnippets();
+const snippetsByHostAndGroup = allSnippets.reduce((acc, snippet) => {
+  const host = snippet.host?.toUpperCase() || 'UNKNOWN';
+  const group = getFeatureGroup(snippet);
+
+  if (!acc[host]) acc[host] = {};
+  if (!acc[host][group]) acc[host][group] = [];
+
+  acc[host][group].push(snippet);
+  return acc;
+}, {} as Record<string, Record<string, TestSnippet[]>>);
+
+/**
+ * Generate test suites organized by host and feature group
+ *
+ * Creates nested describe blocks:
+ * - Host level (Excel, Word, PowerPoint, OneNote)
+ *   - Feature group level (Basics, Charts, Ranges, etc.)
+ *     - Individual tests
+ *
+ * This structure makes it easier to identify which specific feature area has issues.
  */
 ['EXCEL', 'WORD', 'POWERPOINT', 'ONENOTE'].forEach((host) => {
-  const hostSnippets = (snippetsByHost[host] || [])
-    .filter(s => {
+  const hostGroups = snippetsByHostAndGroup[host] || {};
+  const groupNames = Object.keys(hostGroups);
+
+  if (groupNames.length === 0) {
+    return;
+  }
+
+  // Filter groups to only those with snippets that pass our filters
+  const validGroups = groupNames.filter((group) => {
+    const filteredSnippets = hostGroups[group].filter(s => {
       if (MUST_TEST_SNIPPETS.includes(s.id)) return true;
       if (isExcluded(s)) return false;
       return isInIncludedGroup(s);
     });
+    return filteredSnippets.length > 0;
+  });
 
-  if (hostSnippets.length === 0) {
+  // Skip this host entirely if no valid groups
+  if (validGroups.length === 0) {
     return;
   }
 
-  describe(`Auto-Generated Runtime Tests - ${host}`, () => {
+  describe(`${host} Runtime Tests`, () => {
     let consoleErrorSpy: jest.SpyInstance;
 
     beforeEach(() => {
@@ -320,17 +370,31 @@ const snippetsByHost = allSnippets.reduce((acc, snippet) => {
       jest.restoreAllMocks();
     });
 
-    hostSnippets.forEach((snippet) => {
-      const testName = `${host}: ${snippet.name || snippet.id}`;
+    // Create a describe block for each feature group
+    validGroups.forEach((group) => {
+      const groupSnippets = hostGroups[group]
+        .filter(s => {
+          if (MUST_TEST_SNIPPETS.includes(s.id)) return true;
+          if (isExcluded(s)) return false;
+          return isInIncludedGroup(s);
+        });
 
-      test(testName, async () => {
-        await runSnippetTest(snippet, consoleErrorSpy);
+      const displayName = getGroupDisplayName(group);
 
-        // Verify no errors were logged during the "run" button click
-        // Note: consoleErrorSpy is cleared after setup in runSnippetTest, so this only
-        // catches errors from the main "run" button, allowing setup to fail gracefully
-        expect(consoleErrorSpy).not.toHaveBeenCalled();
-      }, 15000); // Timeout allows for complex snippets with multiple async operations
+      describe(displayName, () => {
+        groupSnippets.forEach((snippet) => {
+          const testName = snippet.name || snippet.id;
+
+          test(testName, async () => {
+            await runSnippetTest(snippet, consoleErrorSpy);
+
+            // Verify no errors were logged during the "run" button click
+            // Note: consoleErrorSpy is cleared after setup in runSnippetTest, so this only
+            // catches errors from the main "run" button, allowing setup to fail gracefully
+            expect(consoleErrorSpy).not.toHaveBeenCalled();
+          }, 15000); // Timeout allows for complex snippets with multiple async operations
+        });
+      });
     });
   });
 });

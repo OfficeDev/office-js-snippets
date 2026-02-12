@@ -18,9 +18,25 @@ function transpileTypeScript(code: string): string {
 /**
  * Execute a snippet's code in a controlled runtime environment
  *
- * Note: This function is synchronous. It executes snippet initialization code immediately
- * (e.g., registering button click handlers). Async operations like button handlers are
- * executed separately via clickButton() to ensure errors are properly caught.
+ * TESTING SCOPE: This executes snippet code for SYNTAX VERIFICATION only.
+ * It does NOT verify correct Office.js behavior or real-world functionality.
+ *
+ * What this tests:
+ * ✅ Code executes without JavaScript syntax errors
+ * ✅ Button handlers register correctly
+ * ✅ No undefined variable references or typos
+ *
+ * What this does NOT test:
+ * ❌ Correct behavior with real Office collections
+ * ❌ Proper load/sync patterns
+ * ❌ Visual output or document state
+ * ❌ Error handling with real Office.js
+ *
+ * Implementation notes:
+ * - Synchronous execution - runs initialization code immediately
+ * - Button handlers registered but not yet clicked
+ * - Async operations executed separately via clickButton()
+ * - Global mocks (Excel, Word, etc.) already set up before execution
  *
  * Security: Uses Function constructor to execute snippet code. This is safe because:
  * - All snippets are from this repository (trusted source)

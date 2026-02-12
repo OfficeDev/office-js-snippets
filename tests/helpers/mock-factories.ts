@@ -3,6 +3,53 @@ import { OfficeApp } from 'office-addin-manifest';
 
 /**
  * Factory for creating Office API mocks
+ *
+ * IMPORTANT LIMITATIONS:
+ *
+ * These mocks provide basic API structure for syntax testing but do NOT replicate
+ * real Office.js behavior. They are suitable for smoke tests only.
+ *
+ * What these mocks provide:
+ * ✅ Basic object structure (context, workbook, worksheet, range, etc.)
+ * ✅ Common properties (address, text, name, etc.)
+ * ✅ Method stubs (load, sync, getRange, etc.)
+ * ✅ Simple return values (fixed strings, numbers)
+ *
+ * What these mocks do NOT provide:
+ * ❌ Dynamic collections - items[] arrays never change
+ * ❌ load/sync semantics - properties are always available immediately
+ * ❌ State updates - mutations don't affect subsequent reads
+ * ❌ Real batching - sync() doesn't actually batch requests
+ * ❌ Error simulation - mocks don't throw Office.js errors
+ * ❌ Ordering guarantees - collection item order may not match real Office
+ *
+ * Examples of what won't work correctly:
+ *
+ * // Collections don't update:
+ * body.insertParagraph("New text", "End");
+ * await context.sync();
+ * console.log(paragraphs.items.length); // Still returns original length!
+ *
+ * // load() doesn't control availability:
+ * range.load("address"); // Does nothing
+ * await context.sync();   // Does nothing
+ * console.log(range.address); // Works anyway (shouldn't without load)
+ *
+ * // Iterations use static data:
+ * paragraphs.items.forEach(p => {
+ *   console.log(p.text); // Always same paragraphs, never changes
+ * });
+ *
+ * Use these mocks for:
+ * ✅ Verifying code syntax is correct
+ * ✅ Checking API method names aren't typos
+ * ✅ Basic smoke testing that code runs
+ *
+ * Do NOT rely on these mocks for:
+ * ❌ Verifying correct Office.js behavior
+ * ❌ Testing collection operations
+ * ❌ Validating load/sync patterns
+ * ❌ Confirming output correctness
  */
 
 // Common Office API mocks

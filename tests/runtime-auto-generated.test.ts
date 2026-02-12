@@ -1,15 +1,35 @@
 /**
- * Auto-generated runtime tests for Office.js snippets
+ * Auto-generated runtime smoke tests for Office.js snippets
  *
- * This test suite dynamically generates runtime tests for snippet groups that are compatible
- * with our mock Office.js environment. Tests verify that snippets execute without errors.
+ * SCOPE: These are SMOKE TESTS that verify snippets execute without JavaScript errors.
+ * They do NOT verify correct Office.js behavior or real-world functionality.
  *
- * Coverage: ~195 tests across 36 snippet groups (97% of targeted snippets)
+ * What we test:
+ * ✅ Syntax correctness - no JavaScript errors when executing
+ * ✅ API names exist - methods and properties are spelled correctly
+ * ✅ Basic code paths - setup and run buttons execute without exceptions
+ *
+ * What we DON'T test:
+ * ❌ Collection behavior - items[] arrays are static, never change
+ * ❌ load/sync semantics - all properties immediately available, no batching
+ * ❌ Dynamic state - insertParagraph(), add(), remove() don't update collections
+ * ❌ Ordering guarantees - no verification of collection item order
+ * ❌ Error conditions - mocks don't throw errors like real Office.js
+ * ❌ Visual output - can't verify what appears in the document
+ *
+ * Mock limitations:
+ * - Collections use fixed arrays (e.g., paragraphs.items always returns same array)
+ * - load() and sync() are no-ops (data already "loaded")
+ * - Mutations don't update state (adding a table doesn't increase tables.items.length)
+ *
+ * Coverage: ~195 snippets tested (syntax verification only)
+ * Real testing: All snippets should be manually tested in Script Lab with real Office
  *
  * Maintenance:
  * - Add new snippet groups to INCLUDED_GROUPS when they are created
  * - Groups using unsupported features should remain commented out with explanation
  * - Update EXCLUDED_PATTERNS if new problematic patterns are identified
+ * - Remember: passing tests ≠ correct behavior, only ≠ syntax errors
  */
 
 import { getAllSnippets, TestSnippet } from './helpers/test-helpers';
@@ -86,12 +106,25 @@ const INCLUDED_GROUPS = [
 /**
  * Exclusion patterns for snippets that cannot be tested with current mocks
  *
- * These patterns identify snippets that use features our mocks don't support:
+ * These patterns identify snippets that use features our mocks don't support.
+ * Note: Many snippets that DO run may still have incorrect behavior due to
+ * collection/state limitations - passing tests only mean "no syntax errors."
+ *
+ * Explicitly excluded patterns:
  * - Missing enum definitions (SearchDirection, CellValueType)
  * - Event handler registration (requires event emitter mocking)
  * - Custom function runtime (different JavaScript context)
  * - Complex DOM manipulation (beyond basic button clicks)
  * - Unstable preview APIs
+ *
+ * Implicitly limited (not excluded, but unreliable):
+ * - Snippets that iterate through collections
+ * - Snippets that check collection.items.length
+ * - Snippets that depend on item ordering
+ * - Snippets that add/remove items and read them back
+ * - Snippets with complex load/sync dependencies
+ *
+ * These limited patterns may pass tests but have incorrect behavior in real Office.
  */
 const EXCLUDED_PATTERNS = [
   '*preview-apis*',        // Preview APIs change frequently
@@ -162,11 +195,30 @@ function usesCommonApi(snippet: TestSnippet): boolean {
  * 1. setup - Prepares initial data/environment (allowed to fail gracefully)
  * 2. run - Main functionality (errors here fail the test)
  *
- * This approach:
- * - Tests snippets with working setup buttons more thoroughly
- * - Allows snippets with unsupported setup operations to still test their run functionality
- * - Avoids memory issues from clicking too many buttons
- * - Skips event handler registration which can cause test issues
+ * IMPORTANT: This only tests that buttons execute without JavaScript errors.
+ * It does NOT verify that the buttons produce correct results.
+ *
+ * Coverage: ~20% of total buttons across all snippets
+ * - We click: setup, run
+ * - We skip: get, insert, delete, register-events, and other action buttons
+ *
+ * Rationale:
+ * - setup + run represent core user workflow
+ * - Additional buttons often require specific state or user input
+ * - Clicking all buttons causes memory issues (OOM)
+ * - Event registration buttons cause test environment issues
+ * - Many buttons are variations of the same operation
+ *
+ * What this tests:
+ * ✅ Button handlers are registered without errors
+ * ✅ Code in setup/run functions has valid syntax
+ * ✅ No undefined references or typos in main code paths
+ *
+ * What this does NOT test:
+ * ❌ Whether setup actually prepares correct state
+ * ❌ Whether run produces correct output
+ * ❌ Other button functionality (only ~20% tested)
+ * ❌ User workflows beyond setup → run
  */
 
 /**
@@ -194,11 +246,29 @@ function requiresUserInput(snippet: TestSnippet): boolean {
 /**
  * Execute a snippet with appropriate mocks based on its host and API type
  *
- * Sets up the global environment with the correct mock objects, executes the snippet,
- * clicks setup button (allowing it to fail), then clicks run button (errors fail the test).
+ * SMOKE TEST ONLY: Verifies snippet executes without JavaScript errors.
+ * Does NOT verify correct Office.js behavior or output.
+ *
+ * Test procedure:
+ * 1. Set up mock Office.js environment (Excel, Word, PowerPoint, or OneNote)
+ * 2. Execute snippet code (registers button handlers)
+ * 3. Click setup button if exists (failure allowed - clears error spy after)
+ * 4. Click run button if exists (failure causes test to fail)
+ * 5. Assert no console.error calls from run button
+ *
+ * What this verifies:
+ * ✅ No JavaScript syntax errors
+ * ✅ API methods exist (not typos)
+ * ✅ Code completes without throwing
+ *
+ * What this does NOT verify:
+ * ❌ Correct behavior (collections are static)
+ * ❌ Output correctness (no document state)
+ * ❌ load/sync patterns (all data immediately available)
+ * ❌ Error handling (mocks don't throw errors)
  *
  * @param snippet - The snippet to test
- * @param consoleErrorSpy - Spy to track console.error calls
+ * @param consoleErrorSpy - Spy to track console.error calls (cleared after setup)
  */
 async function runSnippetTest(snippet: TestSnippet, consoleErrorSpy?: jest.SpyInstance) {
   const buttonHandlers = new Map<string, Function>();
@@ -314,14 +384,25 @@ const snippetsByHostAndGroup = allSnippets.reduce((acc, snippet) => {
 }, {} as Record<string, Record<string, TestSnippet[]>>);
 
 /**
- * Generate test suites organized by host and feature group
+ * Generate smoke test suites organized by host and feature group
  *
  * Creates nested describe blocks:
  * - Host level (Excel, Word, PowerPoint, OneNote)
  *   - Feature group level (Basics, Charts, Ranges, etc.)
- *     - Individual tests
+ *     - Individual tests (syntax verification only)
  *
- * This structure makes it easier to identify which specific feature area has issues.
+ * Structure benefits:
+ * - Easy to identify which feature area has syntax errors
+ * - Better test isolation for debugging
+ * - Clearer failure patterns
+ *
+ * REMEMBER: All tests in this file are smoke tests (syntax only).
+ * Passing tests ≠ correct behavior, only ≠ JavaScript errors.
+ * Feature groups with passing tests may still have bugs in:
+ * - Collection operations (static mocks)
+ * - load/sync patterns (no-op in mocks)
+ * - Dynamic state (mutations don't update collections)
+ * - Visual output (can't verify)
  */
 ['EXCEL', 'WORD', 'POWERPOINT', 'ONENOTE'].forEach((host) => {
   const hostGroups = snippetsByHostAndGroup[host] || {};

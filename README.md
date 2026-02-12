@@ -88,7 +88,7 @@ A collection of code snippets built with [Script Lab](//github.com/OfficeDev/scr
     > **Note**: Since your pull request passed locally (both `npm start` and `npm test`), it should pass the CI checks too. The CI validates TypeScript compilation, library URLs, and code quality. If CI fails, check the error messages and fix the issues locally, then push your changes to update the pull request.
 
 1. The reviewers might make comments on your pull request and ask you to make changes. Make changes in Script Lab and then repeat the process of creating the `.yaml` file. You don't have to create the new branch again, but make sure it is checked out when you copy the changed `.yaml` file over the previous version. After you commit and push the changed version to your fork, the new version is automatically added to your existing pull request. *Do **not** create a new pull request.*
-1. When the reviewers are satisfied, they merge your pull request to the `main` branch and close the pull request.
+1. When the reviewers are satisfied, they merge your pull request into the `main` branch and close the pull request.
 
     > **Note**: In a few days, the repo admins merge your snippet into the `prod` branch. It then appears in the **Samples** area of Script Lab. (It's in the **My Snippets** area as soon as you create it.)
 
@@ -120,26 +120,72 @@ The test suite validates three aspects of snippet quality:
 
 - **TypeScript compilation** - Ensures all snippet code compiles correctly with proper type checking.
 - **Library validation** - Verifies library references use versioned CDN URLs.
-- **Runtime execution** - Executes snippets in a simulated Office environment to catch runtime errors.
+- **Runtime smoke tests** - Executes snippets with mock Office.js APIs to catch syntax errors and basic runtime problems.
 
 > **Note**: The CI system automatically runs these tests on pull requests. Your pull request must pass all tests before it can be merged.
 
-### When tests are needed
+### Test scope and limitations
 
-Tests run automatically and don't require manual configuration:
+**What runtime tests verify:**
+
+- Snippets execute without JavaScript syntax errors.
+- API method and property names are correct (no typos).
+- Basic code paths complete without throwing exceptions.
+- Button handlers register correctly.
+
+**What runtime tests don't verify:**
+
+- Correct behavior with real Office.js collections.
+- Proper `load()` and `sync()` sequencing.
+- Dynamic collection changes (add or remove items).
+- Collection size, ordering, or iteration correctness.
+- Error handling and edge cases.
+- Visual output or document state.
+- Behavior with real Office documents.
+
+**Mock environment limitations:**
+
+The test environment uses static mocks that don't fully replicate Office.js behavior:
+
+- Collections (ranges, paragraphs, tables) use fixed arrays that never change.
+- `load()` and `sync()` are no-ops - all properties are immediately available.
+- Adding or removing items doesn't update `collection.items[]`.
+- No Office.js error conditions are simulated.
+- No batching or request queue behavior.
+
+**Good candidates for automated testing:**
+
+- Simple property access and assignment.
+- Methods that don't involve collections.
+- Single-object operations.
+- Basic API call syntax.
+
+**Require manual testing in Office:**
+
+- Iterating through collections.
+- Logic depending on collection size or ordering.
+- Dynamic collection modifications.
+- Nested `load()` calls and complex `sync()` patterns.
+- Error handling.
+- Visual output verification.
+
+### When to use tests
+
+Tests run automatically and don't require manual configuration for these cases:
 
 - **Compilation tests** - Auto-generated for every snippet.
 - **Library tests** - Auto-generated for every snippet with library references.
-- **Runtime tests** - Auto-generated for snippets in tested groups.
+- **Runtime smoke tests** - Auto-generated for about 195 snippets across compatible groups.
 
-Some advanced snippet patterns aren't covered by auto-generated runtime tests:
+Automated runtime tests don't cover some snippet patterns:
 
-- Event handler registration (`onChanged.add`, `onSelectionChanged.add`).
-- Custom functions (`CustomFunctions.associate`).
-- Preview APIs (unstable, change frequently).
-- Snippets using specific enums like `Excel.SearchDirection` or `Excel.CellValueType`.
+- Event handler registration (`onChanged.add`, `onSelectionChanged.add`) - mocking limitations
+- Custom functions (`CustomFunctions.associate`) - separate JavaScript runtime
+- Preview APIs - unstable, change frequently
+- Complex collection operations - mock environment limitations
+- Specific enums like `Excel.SearchDirection` or `Excel.CellValueType` - not in mock
 
-These snippets still get compilation and library validation, which catches most issues.
+**Test all snippets manually in Script Lab before submitting a PR** to verify correct behavior in real Office applications.
 
 ## Style guidelines
 

@@ -21,6 +21,13 @@ function transpileTypeScript(code: string): string {
  * Note: This function is synchronous. It executes snippet initialization code immediately
  * (e.g., registering button click handlers). Async operations like button handlers are
  * executed separately via clickButton() to ensure errors are properly caught.
+ *
+ * Security: Uses Function constructor to execute snippet code. This is safe because:
+ * - All snippets are from this repository (trusted source)
+ * - Code is validated during build process (npm start)
+ * - Code is reviewed in PRs before merging
+ * - Tests run in isolated Node.js environment, not in browser
+ * - No user-provided or external code is executed
  */
 export function executeSnippetCode(snippet: TestSnippet): void {
   const code = snippet.script.content;

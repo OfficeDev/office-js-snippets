@@ -53,7 +53,7 @@ const INCLUDED_GROUPS = [
   // '30-events',            // Requires event handler mocking
 
   // Word - Core APIs
-  'basics',
+  '01-basics',
   '10-content-controls',
   '15-images',
   '20-lists',
@@ -69,6 +69,7 @@ const INCLUDED_GROUPS = [
   // '99-preview-apis',      // Preview APIs are unstable and change frequently
 
   // PowerPoint - Core APIs
+  'basics',
   'slide-management',
   'shapes',
   'text',
@@ -214,11 +215,6 @@ async function runSnippetTest(snippet: TestSnippet, consoleErrorSpy?: jest.SpyIn
       case 'WORD':
         const wordMock = createWordMock();
         (global as any).Word = wordMock.mockObject;
-        // Add enums that some snippets need
-        (global as any).Word.CompareTarget = {
-          compareTargetCurrent: 'Current',
-          compareTargetNew: 'New',
-        };
         break;
       case 'POWERPOINT':
         const pptMock = createPowerPointMock();
@@ -267,8 +263,8 @@ async function runSnippetTest(snippet: TestSnippet, consoleErrorSpy?: jest.SpyIn
 /**
  * Get the feature group from a snippet's relative path
  *
+ * Extracts the folder name after the host directory.
  * Example: 'excel/42-range/formatting.yaml' → '42-range'
- * Example: 'samples/excel/42-range/formatting.yaml' → '42-range'
  */
 function getFeatureGroup(snippet: TestSnippet): string {
   const pathParts = snippet.relativePath.split(/[/\\]/);
@@ -392,7 +388,7 @@ const snippetsByHostAndGroup = allSnippets.reduce((acc, snippet) => {
             // Note: consoleErrorSpy is cleared after setup in runSnippetTest, so this only
             // catches errors from the main "run" button, allowing setup to fail gracefully
             expect(consoleErrorSpy).not.toHaveBeenCalled();
-          }, 15000); // Timeout allows for complex snippets with multiple async operations
+          }, 5000); // 5s timeout is sufficient for mock environment (195 tests = ~16 min max)
         });
       });
     });

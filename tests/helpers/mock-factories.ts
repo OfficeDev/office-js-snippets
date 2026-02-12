@@ -29,9 +29,14 @@ export function createOfficeCommonApiMock() {
             cb({ status: 'succeeded', value: 'Mock selected data' });
           }
         ),
-        setSelectedDataAsync: jest.fn((data: any, options: any, callback: Function) => {
-          callback({ status: 'succeeded' });
-        }),
+        setSelectedDataAsync: jest.fn(
+          (data: any, optionsOrCallback?: any, callback?: Function) => {
+            // Handle both 2-arg (data, callback) and 3-arg (data, options, callback) overloads
+            const cb: Function =
+              typeof optionsOrCallback === 'function' ? optionsOrCallback : (callback as Function);
+            cb({ status: 'succeeded' });
+          }
+        ),
       },
     },
   };
@@ -200,8 +205,17 @@ export function createWordMock(options: WordMockOptions = {}) {
     }),
   };
 
+  // Create the mock object
+  const wordMockObject = new OfficeMockObject(mockData, OfficeApp.Word) as any;
+
+  // Add enums that some snippets need
+  wordMockObject.CompareTarget = {
+    compareTargetCurrent: 'Current',
+    compareTargetNew: 'New',
+  };
+
   return {
-    mockObject: new OfficeMockObject(mockData, OfficeApp.Word),
+    mockObject: wordMockObject,
     mockContext,
     mockRange,
     mockBody,

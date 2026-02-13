@@ -2,7 +2,14 @@ import { getAllSnippets, hasTypeScriptCode } from './helpers/test-helpers';
 import { compileSnippet } from './helpers/snippet-compiler';
 
 describe('Snippet TypeScript Compilation', () => {
-  const snippets = getAllSnippets().filter(hasTypeScriptCode);
+  // Exclude snippets that aren't Office.js snippets
+  const EXCLUDED_SNIPPET_IDS = [
+    'web-web-default', // Blank web template, not an Office.js snippet
+  ];
+
+  const snippets = getAllSnippets()
+    .filter(hasTypeScriptCode)
+    .filter(snippet => !EXCLUDED_SNIPPET_IDS.includes(snippet.id));
 
   if (snippets.length === 0) {
     test('No snippets found to test', () => {

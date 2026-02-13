@@ -1,0 +1,218 @@
+order: 11
+id: excel-workbook-undo-grouping
+name: Undo grouping
+description: Group multiple API operations into a single undoable action.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: '1.20'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("format-with-grouping").addEventListener("click", () => tryCatch(formatWithGrouping));
+        document.getElementById("format-without-grouping").addEventListener("click", () => tryCatch(formatWithoutGrouping));
+
+        async function formatWithGrouping() {
+          // Use mergeUndoGroup to group multiple operations into a single undo action.
+          await Excel.run({ mergeUndoGroup: true }, async (context) => {
+            const workbook = context.workbook;
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            // Apply formatting to multiple ranges.
+            const headerRange = sheet.getRange("A1:D1");
+            headerRange.format.fill.color = "#4472C4";
+            headerRange.format.font.color = "white";
+            headerRange.format.font.bold = true;
+
+            await context.sync();
+
+            const dataRange = sheet.getRange("A2:D6");
+            dataRange.format.borders.getItem("EdgeTop").style = "Continuous";
+            dataRange.format.borders.getItem("EdgeBottom").style = "Continuous";
+            dataRange.format.borders.getItem("EdgeLeft").style = "Continuous";
+            dataRange.format.borders.getItem("EdgeRight").style = "Continuous";
+
+            await context.sync();
+
+            const totalRow = sheet.getRange("A6:D6");
+            totalRow.format.fill.color = "#D9E1F2";
+            totalRow.format.font.bold = true;
+
+            // Return focus to the workbook.
+            workbook.focus(); // Note that this API is only supported on desktop. In Excel on the web, you must manually return focus to the worksheet after clicking a task pane button.
+
+            await context.sync();
+
+            console.log("Applied formatting with undo grouping. Use Ctrl+Z (Cmd+Z on Mac) once to undo all changes.");
+          });
+        }
+
+        async function formatWithoutGrouping() {
+          // Without mergeUndoGroup, each context.sync() creates a separate undo entry.
+          await Excel.run(async (context) => {
+            const workbook = context.workbook;
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            // Apply formatting to multiple ranges.
+            const headerRange = sheet.getRange("A1:D1");
+            headerRange.format.fill.color = "#70AD47";
+            headerRange.format.font.color = "white";
+            headerRange.format.font.bold = true;
+
+            await context.sync();
+
+            const dataRange = sheet.getRange("A2:D6");
+            dataRange.format.borders.getItem("EdgeTop").style = "Continuous";
+            dataRange.format.borders.getItem("EdgeBottom").style = "Continuous";
+            dataRange.format.borders.getItem("EdgeLeft").style = "Continuous";
+            dataRange.format.borders.getItem("EdgeRight").style = "Continuous";
+
+            await context.sync();
+
+            const totalRow = sheet.getRange("A6:D6");
+            totalRow.format.fill.color = "#E2EFDA";
+            totalRow.format.font.bold = true;
+
+            // Return focus to the workbook.
+            workbook.focus(); // Note that this API is only supported on desktop. In Excel on the web, you must manually return focus to the worksheet after clicking a task pane button.
+
+            await context.sync();
+
+            console.log("Applied formatting without undo grouping. Use Ctrl+Z (Cmd+Z on Mac) three times to undo all changes.");
+          });
+        }
+
+        /** Set up the worksheet with sample data. */
+        async function setup() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+            // Clear any existing formatting.
+            const usedRange = sheet.getUsedRange();
+            usedRange.clear(Excel.ClearApplyTo.formats);
+
+            // Add sample data.
+            const data = [
+              ["Product", "Q1", "Q2", "Q3"],
+              ["Apples", 100, 150, 120],
+              ["Oranges", 80, 90, 100],
+              ["Bananas", 120, 110, 130],
+              ["Grapes", 90, 100, 95],
+              ["Total", 390, 450, 445]
+            ];
+
+            const dataRange = sheet.getRange("A1:D6");
+            dataRange.values = data;
+            dataRange.format.autofitColumns();
+
+            // Activate the worksheet to return focus to the workbook.
+            sheet.activate();
+
+            await context.sync();
+
+            console.log("Setup complete. Try formatting with and without undo grouping.");
+          });
+        }
+
+        /** Helper function to invoke an action and handle errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+          <p>This sample demonstrates undo grouping. Combine multiple API operations into a single undo action so users can undo all changes at once.</p>
+        </section>
+        <section class="setup">
+          <h3>Set up</h3>
+          <button id="setup">Add sample data</button>
+        </section>
+        <section>
+          <h3>Try it out</h3>
+          <h4>With undo grouping</h4>
+          <p>Select <strong>Format with grouping</strong>. Focus returns to the workbook automatically. Use <kbd>Ctrl</kbd>+<kbd>Z</kbd> (or <kbd>Cmd</kbd>+<kbd>Z</kbd> on Mac) once to undo all formatting changes.</p>
+          <button id="format-with-grouping">Format with grouping</button>
+
+          <h4>Without undo grouping</h4>
+          <p>Select <strong>Format without grouping</strong>. Focus returns to the workbook automatically. Use <kbd>Ctrl</kbd>+<kbd>Z</kbd> (or <kbd>Cmd</kbd>+<kbd>Z</kbd> on Mac) three times to undo all formatting changes.</p>
+          <button id="format-without-grouping">Format without grouping</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        h4 {
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        kbd {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

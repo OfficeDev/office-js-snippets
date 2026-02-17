@@ -1,19 +1,18 @@
 order: 6
 id: excel-data-types-entity-attribution
-name: 'Data types: Entity value attribution properties'
-description: This sample shows how to set data provider attributions on entity values in the card layout.
+name: 'Data types: Entity card attributions and layout types'
+description: Set data provider attributions on entity values and use different card layout types including list, two-column, and table.
 host: EXCEL
 api_set:
-    ExcelApi: '1.16'
+    ExcelApi: '1.19'
 script:
     content: |-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("add-entities-to-table").addEventListener("click", () => tryCatch(addEntitiesToTable));
 
         async function addEntitiesToTable() {
-          // This function retrieves data for each of the existing products in the table,
-          // creates entity values for each of those products, and adds the entities
-          // to the table.
+          // Retrieve product data from the table, create entity values,
+          // and add the entities to the table.
           await Excel.run(async (context) => {
             const productsTable = context.workbook.tables.getItem("ProductsTable");
 
@@ -27,13 +26,12 @@ script:
 
             await context.sync();
 
-            // Set up the entities by mapping the product names to
-            // the sample JSON product data.
+            // Create entities from the table data.
             const entities = dataRange.values.map((rowValues) => {
-              // Get products and product properties.
+              // Get the product data.
               const product = getProduct(rowValues[1]);
 
-              // Create entities by combining Products Table data and JSON data.
+              // Create an entity with table data and JSON data.
               return [makeProductEntity(rowValues[1], rowValues[2], product)];
             });
 
@@ -68,6 +66,18 @@ script:
                 type: Excel.CellValueType.formattedNumber,
                 basicValue: product.unitPrice,
                 numberFormat: "$* #,##0.00"
+              },
+              "Units In Stock": {
+                type: Excel.CellValueType.double,
+                basicValue: product.unitsInStock
+              },
+              "Units On Order": {
+                type: Excel.CellValueType.double,
+                basicValue: product.unitsOnOrder
+              },
+              "Reorder Level": {
+                type: Excel.CellValueType.double,
+                basicValue: product.reorderLevel
               }
             },
             layouts: { /* Excel.EntityViewLayouts */
@@ -79,31 +89,38 @@ script:
                     properties: ["Product ID"]
                   },
                   {
-                    layout: "List",
+                    layout: "TwoColumn", /* Excel.CardLayoutTwoColumnSection */
                     title: "Quantity and price",
                     collapsible: true,
                     collapsed: false,
                     properties: ["Quantity Per Unit", "Unit Price"]
+                  },
+                  {
+                    layout: "Table", /* Excel.CardLayoutTableSection */
+                    title: "Stock information",
+                    collapsible: true,
+                    collapsed: false,
+                    properties: ["Units In Stock", "Units On Order", "Reorder Level"]
                   }
                 ]
               }
             },
             provider: {
               description: product.providerName, // Name of the data provider. Displays as a tooltip when hovering over the logo. Also displays as a fallback if the source address for the image is broken.
-              logoSourceAddress: product.sourceAddress, // Source URL of the logo to display.
-              logoTargetAddress: product.targetAddress // Destination URL that the logo navigates to when clicked.
+              logoSourceAddress: product.sourceAddress, // Source URL of the logo.
+              logoTargetAddress: product.targetAddress // URL to open when you select the logo.
             }
           };
 
           return entity;
         }
 
-        // Get products and product properties. 
+        // Get a product by its ID.
         function getProduct(productID: number): any {
           return products.find((p) => p.productID == productID);
         }
 
-        /** Set up Sample worksheet. */ 
+        /** Set up the Sample worksheet. */ 
         async function setup() {
           await Excel.run(async (context) => {
             context.workbook.worksheets.getItemOrNullObject("Sample").delete();
@@ -128,7 +145,7 @@ script:
           });
         }
 
-        /** Default helper for invoking an action and handling errors. */ 
+        /** Helper function to invoke an action and handle errors. */ 
         async function tryCatch(callback) {
           try {
             await callback();
@@ -138,13 +155,16 @@ script:
           }
         }
 
-        /** Sample JSON product data. */ 
+        /** Sample JSON product data. */
         const products = [
           {
             productID: 1,
             productName: "Chai",
             quantityPerUnit: "10 boxes x 20 bags",
             unitPrice: 18,
+            unitsInStock: 39,
+            unitsOnOrder: 0,
+            reorderLevel: 10,
             providerName: "Microsoft",
             sourceAddress: "https://github.com/OfficeDev/office-js-snippets/blob/main/.github/images/microsoft-logo.png?raw=true",
             targetAddress: "http://microsoft.com"
@@ -154,6 +174,9 @@ script:
             productName: "Chang",
             quantityPerUnit: "24 - 12 oz bottles",
             unitPrice: 19,
+            unitsInStock: 17,
+            unitsOnOrder: 40,
+            reorderLevel: 25,
             providerName: "MSN",
             sourceAddress: "https://github.com/OfficeDev/office-js-snippets/blob/main/.github/images/msn-logo.png?raw=true",
             targetAddress: "http://msn.com"
@@ -163,6 +186,9 @@ script:
             productName: "Aniseed Syrup",
             quantityPerUnit: "12 - 550 ml bottles",
             unitPrice: 10,
+            unitsInStock: 13,
+            unitsOnOrder: 70,
+            reorderLevel: 25,
             providerName: "Xbox",
             sourceAddress: "https://github.com/OfficeDev/office-js-snippets/blob/main/.github/images/xbox-logo.png?raw=true",
             targetAddress: "http://xbox.com"
@@ -172,6 +198,9 @@ script:
             productName: "Chef Anton's Cajun Seasoning",
             quantityPerUnit: "48 - 6 oz jars",
             unitPrice: 22,
+            unitsInStock: 53,
+            unitsOnOrder: 0,
+            reorderLevel: 0,
             providerName: "Microsoft",
             sourceAddress: "https://github.com/OfficeDev/office-js-snippets/blob/main/.github/images/microsoft-logo.png?raw=true",
             targetAddress: "http://microsoft.com"
@@ -181,6 +210,9 @@ script:
             productName: "Chef Anton's Gumbo Mix",
             quantityPerUnit: "36 boxes",
             unitPrice: 21.35,
+            unitsInStock: 0,
+            unitsOnOrder: 0,
+            reorderLevel: 0,
             providerName: "MSN",
             sourceAddress: "https://github.com/OfficeDev/office-js-snippets/blob/main/.github/images/msn-logo.png?raw=true",
             targetAddress: "http://msn.com"
@@ -190,7 +222,14 @@ script:
 template:
     content: |-
         <section>
-          <p>This sample shows how to set data provider attributions on entity values in the card layout. The data is aggregated from three different data providers, and three attributions are displayed.</p>
+          <p>This sample sets data provider attributions on entity values and uses different card layout types.</p>
+          <p>The data comes from three different data providers.</p>
+          <p>The entity card uses three layout types:</p>
+          <ul>
+            <li><strong>List</strong>: Shows the Product ID.</li>
+            <li><strong>Two-column</strong>: Shows quantity and price side by side.</li>
+            <li><strong>Table</strong>: Shows stock information in a table.</li>
+          </ul>
         </section>
         <section class="setup">
           <h3>Set up</h3>
@@ -199,8 +238,8 @@ template:
         <section>
           <h3>Try it out</h3>
           <button id="add-entities-to-table">Add entity values</button>
-          <p>To see the entity value's data attribution, click the icon to the left of the title in the <strong>Product</strong> column after selecting <strong>Add entity values</strong>. </p>
-          <p>The data attribution appears as a logo in the bottom left corner of the entity card. Hover over the logo to see the name of the data provider. Click on the logo to visit the data provider's URL.</p>
+          <p>After you select <strong>Add entity values</strong>, select the icon to the left of a title in the <strong>Product</strong> column to see the data attribution.</p>
+          <p>A logo appears in the bottom-left corner of the entity card. Hover over the logo to see the data provider name. Select the logo to visit the data provider URL.</p>
         </section>
     language: html
 style:

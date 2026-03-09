@@ -1,0 +1,219 @@
+order: 7
+id: powerpoint-shapes-get-shape-as-image
+name: Get shape as image
+description: Renders a selected shape as a Base64-encoded PNG image.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.10'
+script:
+    content: |
+        document.getElementById("getImageDefault").addEventListener("click", () => tryCatch(getImageDefault));
+        document.getElementById("getImageWithSize").addEventListener("click", () => tryCatch(getImageWithSize));
+        document.getElementById("getImageWithAllOptions").addEventListener("click", () => tryCatch(getImageWithAllOptions));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function getImageDefault() {
+          // Gets an image of the first selected shape using default options
+          // (PNG format at the shape's original size).
+          await PowerPoint.run(async (context) => {
+            const shapes: PowerPoint.ShapeScopedCollection = context.presentation.getSelectedShapes();
+            const shapeCount = shapes.getCount();
+            await context.sync();
+
+            if (shapeCount.value === 0) {
+              console.warn("No shapes are selected. Please select a shape and try again.");
+              return;
+            }
+
+            const shape: PowerPoint.Shape = shapes.getItemAt(0);
+            // Call getImageAsBase64 with no options - returns PNG at the shape's true size.
+            const imageResult: OfficeExtension.ClientResult<string> = shape.getImageAsBase64();
+            await context.sync();
+
+            displayImage(imageResult.value, "Default (original size, PNG)");
+          });
+        }
+
+        async function getImageWithSize() {
+          // Gets an image of the first selected shape scaled to a specific width.
+          // When only width is specified, height is calculated automatically to preserve aspect ratio.
+          await PowerPoint.run(async (context) => {
+            const shapes: PowerPoint.ShapeScopedCollection = context.presentation.getSelectedShapes();
+            const shapeCount = shapes.getCount();
+            await context.sync();
+
+            if (shapeCount.value === 0) {
+              console.warn("No shapes are selected. Please select a shape and try again.");
+              return;
+            }
+
+            const shape: PowerPoint.Shape = shapes.getItemAt(0);
+            const options: PowerPoint.ShapeGetImageOptions = {
+              width: 200,
+              // Height is omitted - it will be calculated to preserve the aspect ratio.
+            };
+            const imageResult: OfficeExtension.ClientResult<string> = shape.getImageAsBase64(options);
+            await context.sync();
+
+            displayImage(imageResult.value, "Scaled to 200px wide (aspect ratio preserved)");
+          });
+        }
+
+        async function getImageWithAllOptions() {
+          // Gets an image of the first selected shape with all options specified:
+          // a fixed width, height, and explicit PNG format.
+          await PowerPoint.run(async (context) => {
+            const shapes: PowerPoint.ShapeScopedCollection = context.presentation.getSelectedShapes();
+            const shapeCount = shapes.getCount();
+            await context.sync();
+
+            if (shapeCount.value === 0) {
+              console.warn("No shapes are selected. Please select a shape and try again.");
+              return;
+            }
+
+            const shape: PowerPoint.Shape = shapes.getItemAt(0);
+            const options: PowerPoint.ShapeGetImageOptions = {
+              format: PowerPoint.ShapeGetImageFormatType.png,
+              width: 300,
+              height: 150,
+              // Both width and height are specified, so the image is scaled to fit within
+              // 300x150 pixels. The image may not fill both dimensions if the aspect ratios differ.
+            };
+            const imageResult: OfficeExtension.ClientResult<string> = shape.getImageAsBase64(options);
+            await context.sync();
+
+            displayImage(imageResult.value, "PNG, 300x150px");
+          });
+        }
+
+        function displayImage(base64String: string, label: string) {
+          const container = document.getElementById("imageContainer");
+          container.innerHTML = "";
+
+          const heading = document.createElement("p");
+          heading.textContent = label;
+          container.appendChild(heading);
+
+          const img = document.createElement("img");
+          img.src = `data:image/png;base64,${base64String}`;
+          img.style.maxWidth = "100%";
+          img.style.border = "1px solid #ccc";
+          container.appendChild(img);
+
+          console.log(`Image rendered: ${label} (Base64 length: ${base64String.length})`);
+        }
+
+        async function setup() {
+          await PowerPoint.run(async (context) => {
+            // Adds a new slide with two shapes.
+            const slideCountResult = context.presentation.slides.getCount();
+            context.presentation.slides.add();
+            await context.sync();
+
+            const newSlide = context.presentation.slides.getItemAt(slideCountResult.value);
+            newSlide.load("id");
+
+            // Create two shapes.
+            const shape1 = newSlide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+            shape1.left = 100;
+            shape1.top = 100;
+            shape1.width = 150;
+            shape1.height = 100;
+            shape1.fill.foregroundColor = "darkred";
+
+            const shape2 = newSlide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.ellipse);
+            shape2.left = 300;
+            shape2.top = 100;
+            shape2.width = 150;
+            shape2.height = 100;
+            shape2.fill.foregroundColor = "darkblue";
+
+            await context.sync();
+
+            console.log(`Added slide - ID: ${newSlide.id}`);
+
+            // Switch to the new slide.
+            context.presentation.setSelectedSlides([newSlide.id]);
+            await context.sync();
+
+            console.log(`Switched to the new slide - ID: ${newSlide.id}`);
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to render a shape as a Base64-encoded PNG image using <code>Shape.getImageAsBase64</code>.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>First, select a shape on the slide.</p>
+            <button id="getImageDefault">Get image (default options)</button>
+            <button id="getImageWithSize">Get image (200px wide)</button>
+            <button id="getImageWithAllOptions">Get image (PNG, 300x150px)</button>
+            <div id="imageContainer" style="margin-top: 10px;"></div>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

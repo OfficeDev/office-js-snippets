@@ -16670,7 +16670,15 @@ PowerPoint.BulletFormat:class:
     await PowerPoint.run(async (context) => {
       const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
       textRange.load("font,paragraphFormat/bulletFormat,paragraphFormat/horizontalAlignment");
+
+      const parentTextFrame: PowerPoint.TextFrame = textRange.getParentTextFrame();
+      const parentShape: PowerPoint.Shape = parentTextFrame.getParentShape();
+      const parentSlide: PowerPoint.Slide = parentShape.getParentSlide();
+      parentShape.load("id");
+      parentSlide.load("id");
       await context.sync();
+
+      console.log(`Selected text range found in parent shape with ID ${parentShape.id} on parentSlide with ID ${parentSlide.id}`);
 
       console.log("Font properties of selected text range:");
       console.log(`\tallCaps: ${textRange.font.allCaps}`);
@@ -17265,7 +17273,15 @@ PowerPoint.ParagraphFormat:class:
     await PowerPoint.run(async (context) => {
       const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
       textRange.load("font,paragraphFormat/bulletFormat,paragraphFormat/horizontalAlignment");
+
+      const parentTextFrame: PowerPoint.TextFrame = textRange.getParentTextFrame();
+      const parentShape: PowerPoint.Shape = parentTextFrame.getParentShape();
+      const parentSlide: PowerPoint.Slide = parentShape.getParentSlide();
+      parentShape.load("id");
+      parentSlide.load("id");
       await context.sync();
+
+      console.log(`Selected text range found in parent shape with ID ${parentShape.id} on parentSlide with ID ${parentSlide.id}`);
 
       console.log("Font properties of selected text range:");
       console.log(`\tallCaps: ${textRange.font.allCaps}`);
@@ -17799,6 +17815,45 @@ PowerPoint.Shape#getImageAsBase64:member(1):
       await context.sync();
 
       displayImage(imageResult.value, "Default (original size, PNG)");
+    });
+PowerPoint.Shape#getParentSlide:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/text/get-set-textrange.yaml
+
+
+    // Gets navigational (complex) properties of the selected text range.
+
+    await PowerPoint.run(async (context) => {
+      const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
+      textRange.load("font,paragraphFormat/bulletFormat,paragraphFormat/horizontalAlignment");
+
+      const parentTextFrame: PowerPoint.TextFrame = textRange.getParentTextFrame();
+      const parentShape: PowerPoint.Shape = parentTextFrame.getParentShape();
+      const parentSlide: PowerPoint.Slide = parentShape.getParentSlide();
+      parentShape.load("id");
+      parentSlide.load("id");
+      await context.sync();
+
+      console.log(`Selected text range found in parent shape with ID ${parentShape.id} on parentSlide with ID ${parentSlide.id}`);
+
+      console.log("Font properties of selected text range:");
+      console.log(`\tallCaps: ${textRange.font.allCaps}`);
+      console.log(`\tbold: ${textRange.font.bold}`);
+      console.log(`\tcolor: ${textRange.font.color}`);
+      console.log(`\tdoubleStrikethrough: ${textRange.font.doubleStrikethrough}`);
+      console.log(`\titalic: ${textRange.font.italic}`);
+      console.log(`\tname: ${textRange.font.name}`);
+      console.log(`\tsize: ${textRange.font.size}`);
+      console.log(`\tsmallCaps: ${textRange.font.smallCaps}`);
+      console.log(`\tstrikethrough: ${textRange.font.strikethrough}`);
+      console.log(`\tsubscript: ${textRange.font.subscript}`);
+      console.log(`\tsuperscript: ${textRange.font.superscript}`);
+      console.log(`\tunderline: ${textRange.font.underline}`);
+
+      console.log("Paragraph format properties of selected text range:");
+      console.log(`\tbulletFormat.visible: ${textRange.paragraphFormat.bulletFormat.visible}`);
+      console.log(`\thorizontalAlignment: ${textRange.paragraphFormat.horizontalAlignment}`);
     });
 PowerPoint.Shape#getTable:member(1):
   - >-
@@ -18642,7 +18697,15 @@ PowerPoint.ShapeFont:class:
     await PowerPoint.run(async (context) => {
       const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
       textRange.load("font,paragraphFormat/bulletFormat,paragraphFormat/horizontalAlignment");
+
+      const parentTextFrame: PowerPoint.TextFrame = textRange.getParentTextFrame();
+      const parentShape: PowerPoint.Shape = parentTextFrame.getParentShape();
+      const parentSlide: PowerPoint.Slide = parentShape.getParentSlide();
+      parentShape.load("id");
+      parentSlide.load("id");
       await context.sync();
+
+      console.log(`Selected text range found in parent shape with ID ${parentShape.id} on parentSlide with ID ${parentSlide.id}`);
 
       console.log("Font properties of selected text range:");
       console.log(`\tallCaps: ${textRange.font.allCaps}`);
@@ -18978,6 +19041,41 @@ PowerPoint.ShapeScopedCollection#getCount:member(1):
       const outputSpan = document.getElementById("outputSpan");
       outputSpan.innerHTML = "";
       outputSpan.innerHTML += finalTable;
+    });
+PowerPoint.ShapeScopedCollection#getItemOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/shapes/get-shape-by-id.yaml
+
+
+    // Uses getItemOrNullObject to find a shape by ID within the selected
+    shapes.
+
+    // If the ID is not found in the selected shapes, the returned object's
+    isNullObject property is true.
+
+    await PowerPoint.run(async (context) => {
+      const shapeId = (document.getElementById("shape-id-input") as HTMLInputElement).value.trim();
+      if (!shapeId) {
+        console.log("Enter a shape ID in the text box first.");
+        return;
+      }
+
+      const selectedShapes: PowerPoint.ShapeScopedCollection = context.presentation.getSelectedShapes();
+
+      // getItemOrNullObject returns a Shape object without throwing if the ID isn't found.
+      const shape: PowerPoint.Shape = selectedShapes.getItemOrNullObject(shapeId);
+      shape.load("id,name,type");
+      await context.sync();
+
+      if (shape.isNullObject) {
+        console.log(`Shape ID "${shapeId}" was not found in the selected shapes.`);
+      } else {
+        console.log(`Shape found in the selected shapes.`);
+        console.log(`  ID: ${shape.id}`);
+        console.log(`  Name: "${shape.name}"`);
+        console.log(`  Type: ${shape.type}`);
+      }
     });
 PowerPoint.ShapeType:enum:
   - >-
@@ -19531,6 +19629,39 @@ PowerPoint.SlideScopedCollection:class:
       shapes.items.map((shape) => {
         savedShapeSelection.push(shape.id);
       });
+    });
+PowerPoint.SlideScopedCollection#getItemOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/get-slide-by-id.yaml
+
+
+    // Uses getItemOrNullObject to find a slide by ID within the selected
+    slides.
+
+    // If the ID is not found in the selected slides, the returned object's
+    isNullObject property is true.
+
+    await PowerPoint.run(async (context) => {
+      const slideId = (document.getElementById("slide-id-input") as HTMLInputElement).value.trim();
+      if (!slideId) {
+        console.log("Enter a slide ID in the text box first.");
+        return;
+      }
+
+      const selectedSlides: PowerPoint.SlideScopedCollection = context.presentation.getSelectedSlides();
+
+      // getItemOrNullObject returns a Slide object without throwing if the ID isn't found.
+      const slide: PowerPoint.Slide = selectedSlides.getItemOrNullObject(slideId);
+      slide.load("id");
+      await context.sync();
+
+      if (slide.isNullObject) {
+        console.log(`Slide ID "${slideId}" was not found in the selected slides.`);
+      } else {
+        console.log(`Slide found in the selected slides.`);
+        console.log(`  ID: ${slide.id}`);
+      }
     });
 PowerPoint.Table:class:
   - >-
@@ -20590,6 +20721,45 @@ PowerPoint.TextFrame:class:
       textRange10.setSelected();
       await context.sync();
     });
+PowerPoint.TextFrame#getParentShape:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/text/get-set-textrange.yaml
+
+
+    // Gets navigational (complex) properties of the selected text range.
+
+    await PowerPoint.run(async (context) => {
+      const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
+      textRange.load("font,paragraphFormat/bulletFormat,paragraphFormat/horizontalAlignment");
+
+      const parentTextFrame: PowerPoint.TextFrame = textRange.getParentTextFrame();
+      const parentShape: PowerPoint.Shape = parentTextFrame.getParentShape();
+      const parentSlide: PowerPoint.Slide = parentShape.getParentSlide();
+      parentShape.load("id");
+      parentSlide.load("id");
+      await context.sync();
+
+      console.log(`Selected text range found in parent shape with ID ${parentShape.id} on parentSlide with ID ${parentSlide.id}`);
+
+      console.log("Font properties of selected text range:");
+      console.log(`\tallCaps: ${textRange.font.allCaps}`);
+      console.log(`\tbold: ${textRange.font.bold}`);
+      console.log(`\tcolor: ${textRange.font.color}`);
+      console.log(`\tdoubleStrikethrough: ${textRange.font.doubleStrikethrough}`);
+      console.log(`\titalic: ${textRange.font.italic}`);
+      console.log(`\tname: ${textRange.font.name}`);
+      console.log(`\tsize: ${textRange.font.size}`);
+      console.log(`\tsmallCaps: ${textRange.font.smallCaps}`);
+      console.log(`\tstrikethrough: ${textRange.font.strikethrough}`);
+      console.log(`\tsubscript: ${textRange.font.subscript}`);
+      console.log(`\tsuperscript: ${textRange.font.superscript}`);
+      console.log(`\tunderline: ${textRange.font.underline}`);
+
+      console.log("Paragraph format properties of selected text range:");
+      console.log(`\tbulletFormat.visible: ${textRange.paragraphFormat.bulletFormat.visible}`);
+      console.log(`\thorizontalAlignment: ${textRange.paragraphFormat.horizontalAlignment}`);
+    });
 PowerPoint.TextFrame#autoSizeSetting:member:
   - >-
     // Link to full sample:
@@ -20633,6 +20803,45 @@ PowerPoint.TextRange:class:
       const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
       textRange.font.color = "green";
       await context.sync();
+    });
+PowerPoint.TextRange#getParentTextFrame:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/text/get-set-textrange.yaml
+
+
+    // Gets navigational (complex) properties of the selected text range.
+
+    await PowerPoint.run(async (context) => {
+      const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
+      textRange.load("font,paragraphFormat/bulletFormat,paragraphFormat/horizontalAlignment");
+
+      const parentTextFrame: PowerPoint.TextFrame = textRange.getParentTextFrame();
+      const parentShape: PowerPoint.Shape = parentTextFrame.getParentShape();
+      const parentSlide: PowerPoint.Slide = parentShape.getParentSlide();
+      parentShape.load("id");
+      parentSlide.load("id");
+      await context.sync();
+
+      console.log(`Selected text range found in parent shape with ID ${parentShape.id} on parentSlide with ID ${parentSlide.id}`);
+
+      console.log("Font properties of selected text range:");
+      console.log(`\tallCaps: ${textRange.font.allCaps}`);
+      console.log(`\tbold: ${textRange.font.bold}`);
+      console.log(`\tcolor: ${textRange.font.color}`);
+      console.log(`\tdoubleStrikethrough: ${textRange.font.doubleStrikethrough}`);
+      console.log(`\titalic: ${textRange.font.italic}`);
+      console.log(`\tname: ${textRange.font.name}`);
+      console.log(`\tsize: ${textRange.font.size}`);
+      console.log(`\tsmallCaps: ${textRange.font.smallCaps}`);
+      console.log(`\tstrikethrough: ${textRange.font.strikethrough}`);
+      console.log(`\tsubscript: ${textRange.font.subscript}`);
+      console.log(`\tsuperscript: ${textRange.font.superscript}`);
+      console.log(`\tunderline: ${textRange.font.underline}`);
+
+      console.log("Paragraph format properties of selected text range:");
+      console.log(`\tbulletFormat.visible: ${textRange.paragraphFormat.bulletFormat.visible}`);
+      console.log(`\thorizontalAlignment: ${textRange.paragraphFormat.horizontalAlignment}`);
     });
 PowerPoint.TextRange#setSelected:member(1):
   - >-
@@ -20709,7 +20918,15 @@ PowerPoint.TextRange#paragraphFormat:member:
     await PowerPoint.run(async (context) => {
       const textRange: PowerPoint.TextRange = context.presentation.getSelectedTextRange();
       textRange.load("font,paragraphFormat/bulletFormat,paragraphFormat/horizontalAlignment");
+
+      const parentTextFrame: PowerPoint.TextFrame = textRange.getParentTextFrame();
+      const parentShape: PowerPoint.Shape = parentTextFrame.getParentShape();
+      const parentSlide: PowerPoint.Slide = parentShape.getParentSlide();
+      parentShape.load("id");
+      parentSlide.load("id");
       await context.sync();
+
+      console.log(`Selected text range found in parent shape with ID ${parentShape.id} on parentSlide with ID ${parentSlide.id}`);
 
       console.log("Font properties of selected text range:");
       console.log(`\tallCaps: ${textRange.font.allCaps}`);

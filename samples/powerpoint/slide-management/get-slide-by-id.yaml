@@ -1,7 +1,7 @@
 order: 6
 id: powerpoint-slide-management-get-slide-by-id
-name: Get slide from selected slides by ID
-description: Gets a slide by its ID from the currently selected slides.
+name: Get selected slides
+description: Shows how to get the IDs of the selected slides and gets a slide by its ID if it's one of the currently selected slides.
 host: POWERPOINT
 api_set:
     PowerPointApi: '1.5'
@@ -23,7 +23,7 @@ script:
               return;
             }
 
-            console.log(`Selected slide IDs (${selectedSlides.items.length} slide(s)):`);
+            console.log(`Selected slide IDs (${selectedSlides.items.length} slides):`);
             selectedSlides.items.forEach((slide, index) => {
               console.log(`  Scoped index: [${index}] - ID: ${slide.id}`);
             });
@@ -32,7 +32,8 @@ script:
 
         async function getSlideById() {
           // Uses getItemOrNullObject to find a slide by ID within the selected slides.
-          // If the ID is not found in the selected slides, the returned object's isNullObject property is true.
+          // If the ID isn't found in the selected slides, the returned object's isNullObject property is true.
+          // If the ID is found in the selected slides, presentation displays that slide.
           await PowerPoint.run(async (context) => {
             const slideId = (document.getElementById("slide-id-input") as HTMLInputElement).value.trim();
             if (!slideId) {
@@ -52,6 +53,12 @@ script:
             } else {
               console.log(`Slide found in the selected slides.`);
               console.log(`  ID: ${slide.id}`);
+
+              // Switch to the slide.
+              context.presentation.setSelectedSlides([slide.id]);
+              await context.sync();
+
+              console.log(`Switched to the slide - ID: ${slide.id}`);
             }
           });
         }
@@ -91,21 +98,24 @@ script:
 template:
     content: |-
         <section>
-          <p>This sample demonstrates <code>SlideScopedCollection.getItemOrNullObject</code>, which retrieves a slide by its ID from the selected slides collection without throwing an error if the ID isn't found.</p>
+            <p>This sample demonstrates <code>SlideScopedCollection.getItemOrNullObject</code>, which retrieves a slide by its
+                ID from the selected slides collection without throwing an error if the ID isn't found.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
             <button id="setup">Set up</button>
         </section>
         <section>
-          <h3>Try it out</h3>
-          <p>Select one or more slides in the presentation, then click <b>Get selected slide IDs</b> to see their IDs in the console.</p>
-          <p />
-          <button id="get-selected-slide-ids">Get selected slide IDs</button>
-          <p />
-          <p>Enter one of the IDs (or an invalid ID) and click <b>Get slide by ID</b>.</p>
-          <p><label>Slide ID: <input id="slide-id-input" type="text" placeholder="Enter a slide ID" /></label></p>
-          <button id="get-slide-by-id">Get slide by ID</button>
+            <h3>Try it out</h3>
+            <p>First, select one or more slides in the presentation.</p>
+            <p />
+            <p>Click <b>Get selected slide IDs</b> to see their IDs in the
+                console.</p>
+            <button id="get-selected-slide-ids">Get selected slide IDs</button>
+            <p />
+            <p>Enter one of the IDs (or an invalid ID) and click <b>Get slide by ID</b>. Switches to the slide if found.</p>
+            <p><label>Slide ID: <input id="slide-id-input" type="text" placeholder="Enter a slide ID" /></label></p>
+            <button id="get-slide-by-id">Get slide by ID</button>
         </section>
     language: html
 style:

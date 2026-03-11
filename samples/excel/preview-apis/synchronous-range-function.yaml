@@ -1,0 +1,30 @@
+order: 10
+id: excel-custom-functions-sync-range
+name: Synchronous custom function - read a cell from a sheet
+description: A synchronous custom function that reads a cell value from a specific worksheet by name, evaluated synchronously with Excel's calculation process.
+host: EXCEL
+api_set:
+    CustomFunctionsRuntime: 1.5
+script:
+    content: |
+        /**
+         * Reads a cell value from a specific worksheet by name.
+         * @customfunction
+         * @supportSync
+         * @param {string} sheetName The name of the worksheet, e.g. "Sheet1"
+         * @param {string} cellAddress The cell address, e.g. "B2"
+         * @param {CustomFunctions.Invocation} invocation
+         * @returns {Promise<any>} The value of the specified cell.
+         */
+        async function getCellFromSheet(sheetName: string, cellAddress: string, invocation: CustomFunctions.Invocation): Promise<any> {
+          const context = new Excel.RequestContext();
+          context.setInvocation(invocation as any);
+          const range = context.workbook.worksheets.getItem(sheetName).getRange(cellAddress);
+          range.load("values");
+          await context.sync();
+          return range.values[0][0];
+        }
+    language: typescript
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts

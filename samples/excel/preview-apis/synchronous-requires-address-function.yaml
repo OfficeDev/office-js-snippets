@@ -1,0 +1,36 @@
+order: 11
+id: excel-custom-functions-sync-requires-address
+name: Synchronous custom function - column header
+description: A synchronous custom function that uses @requiresAddress to know its own cell location and reads the header (row 1) of that column, evaluated synchronously with Excel's calculation process.
+host: EXCEL
+api_set:
+    CustomFunctionsRuntime: 1.5
+script:
+    content: |
+        /**
+         * Returns the header value (row 1) for the column where this function is called,
+         * evaluated synchronously with Excel's calculation.
+         *
+         * Place this function in any cell below row 1, e.g. B5, and it will return
+         * the value from B1 -- the column header.
+         * @customfunction
+         * @supportSync
+         * @requiresAddress
+         * @param {CustomFunctions.Invocation} invocation
+         * @returns {Promise<string>} The header text from row 1 of the calling column.
+         */
+        async function getColumnHeader(invocation: CustomFunctions.Invocation): Promise<string> {
+          const [sheetName, cellAddress] = invocation.address.split("!");
+          const context = new Excel.RequestContext();
+          context.setInvocation(invocation as any);
+          const sheet = context.workbook.worksheets.getItem(sheetName);
+          // Navigate to row 1 of the calling cell's column.
+          const headerCell = sheet.getRange(cellAddress).getEntireColumn().getCell(0, 0);
+          headerCell.load("values");
+          await context.sync();
+          return String(headerCell.values[0][0]);
+        }
+    language: typescript
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts

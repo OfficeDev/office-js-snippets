@@ -1,7 +1,7 @@
 order: 5
 id: excel-scenarios-currency-converter
 name: Currency Converter
-description: Uses an exchange rate API to convert currency values based on their original transaction times.
+description: Converts currency values in a table using mock exchange rates for demonstration purposes.
 author: cakriwut
 host: EXCEL
 api_set:
@@ -34,25 +34,17 @@ script:
               return;
             }
 
-            const convertedCurrency = await Promise.all( 
-                table.rows.items.map( (row,idx) => {
-                    const priceInBase = row.values[0][tableSetup["Price in Base"]];
-                    const priceInCurrency = row.values[0][tableSetup["Price (Currency)"]];
-                    const transactionDate = row.values[0][tableSetup["Transaction Date"]];
-                    const currency = row.values[0][tableSetup["Currency"]];
-                    const baseCurrency = row.values[0][tableSetup["Base"]];
+            const convertedCurrency = table.rows.items.map((row) => {
+              const priceInBase = row.values[0][tableSetup["Price in Base"]];
+              const currency = row.values[0][tableSetup["Currency"]];
+              const baseCurrency = row.values[0][tableSetup["Base"]];
 
-                    if (priceInBase === "") {
-                        const period = excelDateToISOString(transactionDate);
-                        const queryUrl = convertValue(currency, baseCurrency, period, period);
-
-                        const result = fetch(queryUrl).then(response => response.json());
-                        return result;     
-                    } else {
-                      return -1;
-                    }     
-                })
-              );
+              if (priceInBase === "") {
+                return getMockRate(currency, baseCurrency);
+              } else {
+                return -1;
+              }
+            });
               
             let index =0;
             let skippedRows = [];
@@ -63,8 +55,10 @@ script:
 
               if (convertedCurrency[index] == -1) {
                 skippedRows.push(index+1);    
+              } else if (convertedCurrency[index] === null) {
+                console.error(`Row ${index+1}: No mock exchange rate available for this currency pair.`);
               } else {
-                const converted = convertedCurrency[index].rates[baseCurrency] * priceInCurrency;
+                const converted = convertedCurrency[index] * priceInCurrency;
                 priceBaseRange.values = [[converted]];
               }
               index++;
@@ -82,8 +76,8 @@ script:
           });
         }
 
-        /** Check if the table contains the necessary columns. 
-        *** These columns can be in any order within the
+        /** Check if the table contains the necessary columns.
+        *** These columns can be in any order within the table.
         **/
         function isTableValid(items: Excel.TableColumn[]) {
           // Build the column index, search table header
@@ -101,26 +95,24 @@ script:
           return true;
         }
 
-        /** Request currency exchange on specific date **/
-        function convertValue(currencyOrig, currencyBase, start, end) {
-          // GET https://api.exchangeratesapi.io/latest?symbols=SGD,USD&base=SGD&start_at=2019-10-05&end_at=2019-10-05
-          const baseUrl = "https://api.exchangeratesapi.io/latest";
-          const query = `?base=${currencyOrig}&symbols=${currencyBase},${currencyOrig}&start_at=${start}&end_at=${end}`;
-          return baseUrl + query;
-        }
+        /** Mock exchange rates for demonstration (approximate mid-market values). */
+        const mockRates: Record<string, Record<string, number>> = {
+          USD: { EUR: 0.92, GBP: 0.79, JPY: 149.50, SGD: 1.34, MYR: 4.72, CNY: 7.24, AUD: 1.53, CAD: 1.36, CHF: 0.90 },
+          EUR: { USD: 1.09, GBP: 0.86, JPY: 162.80, SGD: 1.46, MYR: 5.14, CNY: 7.88, AUD: 1.67, CAD: 1.48, CHF: 0.98 },
+          GBP: { USD: 1.27, EUR: 1.16, JPY: 189.90, SGD: 1.70, MYR: 5.99, CNY: 9.18, AUD: 1.94, CAD: 1.72, CHF: 1.14 },
+          SGD: { USD: 0.75, EUR: 0.69, GBP: 0.59, JPY: 111.60, MYR: 3.52, CNY: 5.40, AUD: 1.14, CAD: 1.02, CHF: 0.67 },
+          MYR: { USD: 0.21, EUR: 0.19, GBP: 0.17, JPY: 31.70, SGD: 0.28, CNY: 1.53, AUD: 0.32, CAD: 0.29, CHF: 0.19 },
+          CNY: { USD: 0.14, EUR: 0.13, GBP: 0.11, JPY: 20.65, SGD: 0.185, MYR: 0.65, AUD: 0.21, CAD: 0.19, CHF: 0.12 },
+          JPY: { USD: 0.0067, EUR: 0.0061, GBP: 0.0053, SGD: 0.009, MYR: 0.032, CNY: 0.049, AUD: 0.010, CAD: 0.0091, CHF: 0.006 },
+          AUD: { USD: 0.65, EUR: 0.60, GBP: 0.52, JPY: 97.6, SGD: 0.88, MYR: 3.09, CNY: 4.73, CAD: 0.89, CHF: 0.59 },
+          CAD: { USD: 0.74, EUR: 0.68, GBP: 0.58, JPY: 109.9, SGD: 0.99, MYR: 3.47, CNY: 5.32, AUD: 1.12, CHF: 0.66 },
+          CHF: { USD: 1.11, EUR: 1.02, GBP: 0.88, JPY: 166.1, SGD: 1.49, MYR: 5.24, CNY: 8.04, AUD: 1.70, CAD: 1.51 }
+        };
 
-        /** Convert Excel OLE Automation date to ISO date string (YYYY-MM-DD). */
-        function excelDateToISOString(excelDate: number): string {
-          // Excel dates are stored as days since December 30, 1899.
-          const excelEpoch = new Date(1899, 11, 30);
-          const msPerDay = 24 * 60 * 60 * 1000;
-          const date = new Date(excelEpoch.getTime() + excelDate * msPerDay);
-          
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          
-          return `${year}-${month}-${day}`;
+        /** Look up a mock exchange rate from one currency to another. Returns null if the pair is unsupported. */
+        function getMockRate(from: string, to: string): number | null {
+          if (from === to) return 1;
+          return mockRates[from]?.[to] ?? null;
         }
 
         /** Default helper for invoking an action and handling errors. */
@@ -144,7 +136,9 @@ script:
             transactionTable.getHeaderRowRange().values = [["Product", "Currency", "Price (Currency)", "Transaction Date", "Base", "Price in Base"]];
             transactionTable.rows.add(null, [
               ["Frames", "MYR", 5000, "2019-10-05", "SGD", null],
-              ["Chains", "CNY", 12000, "2019-10-04", "SGD", null]
+              ["Chains", "CNY", 12000, "2019-10-04", "SGD", null],
+              ["Widgets", "GBP", 3200, "2019-10-03", "USD", null],
+              ["Gears", "JPY", 850000, "2019-10-02", "EUR", null]
             ]);
             transactionTable.getRange().format.autofitColumns();
             sheet.activate();
@@ -157,10 +151,10 @@ template:
           <h1>Simple Currency Converter</h1>
         </header>
         <section>
-          <p>Simple currency converter shows how to read data from a transaction table, and uses currency converter API to
+          <p>This simple currency converter shows how to read data from a transaction table and uses a mock currency converter to
             calculate the amount in base currency. </p>
-          <p>The code also performs table validation and identify if the table has predefined headers. You can try to to rearrange the the
-            column, and see by yourself! </p>
+          <p>The code also performs table validation and identifies if the table has predefined headers. You can try to rearrange the
+            columns and see for yourself! </p>
         </section>
         <section class="setup">
           <h3>Set up</h3>
@@ -168,8 +162,7 @@ template:
         </section>
         <section>
           <h3>Try it out</h3>
-          <p>The currency conversion is provided by <a href="https://exchangeratesapi.io">exchangeratesapi.io</a> which uses
-            exchange rate data published by the European Central Bank. Click "Convert"</p>
+          <p>The currency conversion uses built-in mock exchange rates for demonstration purposes. Click "Convert"</p>
           <button id="convert">Convert</button>
         </section>
     language: html

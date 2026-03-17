@@ -1,22 +1,35 @@
 order: 2
 id: word-tables-manage-formatting
 name: Table formatting
-description: Gets the formatting details of a table, a table row, and a table cell, including borders, alignment, and cell padding.
+description: Gets and sets the formatting details of a table, a table row, and a table cell, including borders, alignment, and cell padding.
 author: OfficeDev
 host: WORD
 api_set:
     WordApi: '1.3'
 script:
-    content: |-
+    content: |
         document.getElementById("get-table-alignment").addEventListener("click", () => tryCatch(getTableAlignment));
+        document.getElementById("set-table-alignment").addEventListener("click", () => tryCatch(setTableAlignment));
         document.getElementById("get-table-border").addEventListener("click", () => tryCatch(getTableBorder));
+        document.getElementById("set-table-border").addEventListener("click", () => tryCatch(setTableBorder));
         document.getElementById("get-table-cell-padding").addEventListener("click", () => tryCatch(getTableCellPadding));
+        document.getElementById("set-table-cell-padding").addEventListener("click", () => tryCatch(setTableCellPadding));
         document.getElementById("get-table-row-alignment").addEventListener("click", () => tryCatch(getTableRowAlignment));
+        document.getElementById("set-table-row-alignment").addEventListener("click", () => tryCatch(setTableRowAlignment));
         document.getElementById("get-table-row-border").addEventListener("click", () => tryCatch(getTableRowBorder));
+        document.getElementById("set-table-row-border").addEventListener("click", () => tryCatch(setTableRowBorder));
         document.getElementById("get-table-row-cell-padding").addEventListener("click", () => tryCatch(getTableRowCellPadding));
+        document.getElementById("set-table-row-cell-padding").addEventListener("click", () => tryCatch(setTableRowCellPadding));
         document.getElementById("get-table-cell-alignment").addEventListener("click", () => tryCatch(getTableCellAlignment));
+        document.getElementById("set-table-cell-alignment").addEventListener("click", () => tryCatch(setTableCellAlignment));
         document.getElementById("get-table-cell-border").addEventListener("click", () => tryCatch(getTableCellBorder));
-        document.getElementById("get-table-cell-cell-padding").addEventListener("click", () => tryCatch(getTableCellCellPadding));
+        document.getElementById("set-table-cell-border").addEventListener("click", () => tryCatch(setTableCellBorder));
+        document
+          .getElementById("get-table-cell-cell-padding")
+          .addEventListener("click", () => tryCatch(getTableCellCellPadding));
+        document
+          .getElementById("set-table-cell-cell-padding")
+          .addEventListener("click", () => tryCatch(setTableCellCellPadding));
         document.getElementById("setup").addEventListener("click", () => tryCatch(insertTable));
 
         async function getTableAlignment() {
@@ -26,7 +39,27 @@ script:
             firstTable.load(["alignment", "horizontalAlignment", "verticalAlignment"]);
             await context.sync();
 
-            console.log(`Details about the alignment of the first table:`, `- Alignment of the table within the containing page column: ${firstTable.alignment}`, `- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`, `- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`);
+            console.log(
+              `Details about the alignment of the first table:`,
+              `- Alignment of the table within the containing page column: ${firstTable.alignment}`,
+              `- Horizontal alignment of every cell in the table: ${firstTable.horizontalAlignment}`,
+              `- Vertical alignment of every cell in the table: ${firstTable.verticalAlignment}`,
+            );
+          });
+        }
+
+        async function setTableAlignment() {
+          // Sets alignment details on the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            firstTable.alignment = Word.Alignment.centered;
+            firstTable.horizontalAlignment = Word.Alignment.centered;
+            firstTable.verticalAlignment = Word.VerticalAlignment.center;
+            await context.sync();
+
+            console.log(
+              "Set alignment on the first table:", "- alignment=centered", "- horizontalAlignment=centered", "- verticalAlignment=center",
+            );
           });
         }
 
@@ -39,7 +72,27 @@ script:
             border.load(["type", "color", "width"]);
             await context.sync();
 
-            console.log(`Details about the ${borderLocation} border of the first table:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
+            console.log(
+              `Details about the ${borderLocation} border of the first table:`,
+              `- Color: ${border.color}`,
+              `- Type: ${border.type}`,
+              `- Width: ${border.width} points`,
+            );
+          });
+        }
+
+        async function setTableBorder() {
+          // Sets border details on the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const borderLocation = Word.BorderLocation.top;
+            const border: Word.TableBorder = firstTable.getBorder(borderLocation);
+            border.color = "blue";
+            border.type = Word.BorderType.double;
+            border.width = 3;
+            await context.sync();
+
+            console.log(`Set the ${borderLocation} border of the first table:`, "- color=blue", "- type=double", "- width=3 points");
           });
         }
 
@@ -52,8 +105,20 @@ script:
             await context.sync();
 
             console.log(
-              `Cell padding details about the ${cellPaddingLocation} border of the first table: ${cellPadding.value} points`
+              `Cell padding details about the ${cellPaddingLocation} border of the first table: ${cellPadding.value} points`,
             );
+          });
+        }
+
+        async function setTableCellPadding() {
+          // Sets cell padding on the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const cellPaddingLocation = Word.CellPaddingLocation.right;
+            firstTable.setCellPadding(cellPaddingLocation, 10);
+            await context.sync();
+
+            console.log(`Set cell padding on the ${cellPaddingLocation} side of the first table to 10 points`);
           });
         }
 
@@ -65,7 +130,24 @@ script:
             firstTableRow.load(["horizontalAlignment", "verticalAlignment"]);
             await context.sync();
 
-            console.log(`Details about the alignment of the first table's first row:`, `- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`, `- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`);
+            console.log(
+              `Details about the alignment of the first table's first row:`,
+              `- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`,
+              `- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`,
+            );
+          });
+        }
+
+        async function setTableRowAlignment() {
+          // Sets content alignment on the first row of the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstTableRow: Word.TableRow = firstTable.rows.getFirst();
+            firstTableRow.horizontalAlignment = Word.Alignment.right;
+            firstTableRow.verticalAlignment = Word.VerticalAlignment.bottom;
+            await context.sync();
+
+            console.log("Set alignment on the first table's first row:", "- horizontalAlignment=right", "- verticalAlignment=bottom");
           });
         }
 
@@ -79,7 +161,30 @@ script:
             border.load(["type", "color", "width"]);
             await context.sync();
 
-            console.log(`Details about the ${borderLocation} border of the first table's first row:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
+            console.log(
+              `Details about the ${borderLocation} border of the first table's first row:`,
+              `- Color: ${border.color}`,
+              `- Type: ${border.type}`,
+              `- Width: ${border.width} points`,
+            );
+          });
+        }
+
+        async function setTableRowBorder() {
+          // Sets border details on the first row of the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstTableRow: Word.TableRow = firstTable.rows.getFirst();
+            const borderLocation = Word.BorderLocation.bottom;
+            const border: Word.TableBorder = firstTableRow.getBorder(borderLocation);
+            border.color = "red";
+            border.type = Word.BorderType.double;
+            border.width = 3;
+            await context.sync();
+
+            console.log(
+              `Set the ${borderLocation} border of the first table's first row:`, "- color=red", "- type=double", "- width=3 points",
+            );
           });
         }
 
@@ -93,8 +198,21 @@ script:
             await context.sync();
 
             console.log(
-              `Cell padding details about the ${cellPaddingLocation} border of the first table's first row: ${cellPadding.value} points`
+              `Cell padding details about the ${cellPaddingLocation} border of the first table's first row: ${cellPadding.value} points`,
             );
+          });
+        }
+
+        async function setTableRowCellPadding() {
+          // Sets cell padding on the first row of the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstTableRow: Word.TableRow = firstTable.rows.getFirst();
+            const cellPaddingLocation = Word.CellPaddingLocation.bottom;
+            firstTableRow.setCellPadding(cellPaddingLocation, 10);
+            await context.sync();
+
+            console.log(`Set cell padding on the ${cellPaddingLocation} side of the first table's first row to 10 points`);
           });
         }
 
@@ -107,7 +225,27 @@ script:
             firstCell.load(["horizontalAlignment", "verticalAlignment"]);
             await context.sync();
 
-            console.log(`Details about the alignment of the first table's first cell:`, `- Horizontal alignment of the cell's content: ${firstCell.horizontalAlignment}`, `- Vertical alignment of the cell's content: ${firstCell.verticalAlignment}`);
+            console.log(
+              `Details about the alignment of the first table's first cell:`,
+              `- Horizontal alignment of the cell's content: ${firstCell.horizontalAlignment}`,
+              `- Vertical alignment of the cell's content: ${firstCell.verticalAlignment}`,
+            );
+          });
+        }
+
+        async function setTableCellAlignment() {
+          // Sets content alignment on the first cell of the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstTableRow: Word.TableRow = firstTable.rows.getFirst();
+            const firstCell: Word.TableCell = firstTableRow.cells.getFirst();
+            firstCell.horizontalAlignment = Word.Alignment.left;
+            firstCell.verticalAlignment = Word.VerticalAlignment.top;
+            await context.sync();
+
+            console.log(
+              "Set alignment on the first table's first cell:", "- horizontalAlignment=left", "- verticalAlignment=top",
+            );
           });
         }
 
@@ -121,7 +259,30 @@ script:
             border.load(["type", "color", "width"]);
             await context.sync();
 
-            console.log(`Details about the ${borderLocation} border of the first table's first cell:`, `- Color: ${border.color}`, `- Type: ${border.type}`, `- Width: ${border.width} points`);
+            console.log(
+              `Details about the ${borderLocation} border of the first table's first cell:`,
+              `- Color: ${border.color}`,
+              `- Type: ${border.type}`,
+              `- Width: ${border.width} points`,
+            );
+          });
+        }
+
+        async function setTableCellBorder() {
+          // Sets border details on the first cell of the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstCell: Word.TableCell = firstTable.getCell(0, 0);
+            const borderLocation = "Left";
+            const border: Word.TableBorder = firstCell.getBorder(borderLocation);
+            border.color = "green";
+            border.type = Word.BorderType.double;
+            border.width = 3;
+            await context.sync();
+
+            console.log(
+              `Set the ${borderLocation} border of the first table's first cell:`, "- color=green", "- type=double", "- width=3 points",
+            );
           });
         }
 
@@ -135,8 +296,21 @@ script:
             await context.sync();
 
             console.log(
-              `Cell padding details about the ${cellPaddingLocation} border of the first table's first cell: ${cellPadding.value} points`
+              `Cell padding details about the ${cellPaddingLocation} border of the first table's first cell: ${cellPadding.value} points`,
             );
+          });
+        }
+
+        async function setTableCellCellPadding() {
+          // Sets cell padding on the first cell of the first table in the document.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstCell: Word.TableCell = firstTable.getCell(0, 0);
+            const cellPaddingLocation = "Left";
+            firstCell.setCellPadding(cellPaddingLocation, 10);
+            await context.sync();
+
+            console.log(`Set cell padding on the ${cellPaddingLocation} side of the first table's first cell to 10 points`);
           });
         }
 
@@ -145,7 +319,7 @@ script:
             // Use a two-dimensional array to hold the initial table values.
             const data = [
               ["Tokyo", "Beijing", "Seattle"],
-              ["Apple", "Orange", "Pineapple"]
+              ["Apple", "Orange", "Pineapple"],
             ];
             const table = context.document.body.insertTable(2, 3, "Start", data);
             table.styleBuiltIn = Word.BuiltInStyleName.gridTable5Dark_Accent2;
@@ -168,8 +342,8 @@ script:
 template:
     content: |-
         <section>
-            This sample shows how to get various formatting details about a table, a table row, and a table cell, including
-            borders, alignment, and cell padding.
+            This sample shows how to get and set various formatting details about a table, a table row, and a table cell,
+            including borders, alignment, and cell padding.
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -179,21 +353,30 @@ template:
             <h3>Try it out</h3>
             <h4>Table formatting</h4>
             <p>
-                <button id="get-table-alignment">Get table alignment </button>
-                <button id="get-table-border">Get table border </button>
-                <button id="get-table-cell-padding">Get table cell padding </button>
+                <button id="get-table-alignment">Get table alignment</button>
+                <button id="set-table-alignment">Set table alignment</button>
+                <button id="get-table-border">Get table border</button>
+                <button id="set-table-border">Set table border</button>
+                <button id="get-table-cell-padding">Get table cell padding</button>
+                <button id="set-table-cell-padding">Set table cell padding</button>
             </p>
             <h4>Table row formatting</h4>
             <p>
                 <button id="get-table-row-alignment">Get row alignment</button>
+                <button id="set-table-row-alignment">Set row alignment</button>
                 <button id="get-table-row-border">Get row border</button>
+                <button id="set-table-row-border">Set row border</button>
                 <button id="get-table-row-cell-padding">Get row cell padding</button>
+                <button id="set-table-row-cell-padding">Set row cell padding</button>
             </p>
             <h4>Table cell formatting</h4>
             <p>
                 <button id="get-table-cell-alignment">Get cell alignment</button>
+                <button id="set-table-cell-alignment">Set cell alignment</button>
                 <button id="get-table-cell-border">Get cell border</button>
+                <button id="set-table-cell-border">Set cell border</button>
                 <button id="get-table-cell-cell-padding">Get cell padding</button>
+                <button id="set-table-cell-cell-padding">Set cell padding</button>
             </p>
         </section>
     language: html

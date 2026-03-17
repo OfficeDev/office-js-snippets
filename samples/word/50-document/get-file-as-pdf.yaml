@@ -11,7 +11,7 @@ script:
         function run() {
           Office.context.document.getFileAsync(Office.FileType.Pdf, (result) => {
             if (result.status === Office.AsyncResultStatus.Failed) {
-              console.error(result.error.message);
+              console.error("getFileAsync failed:", result.error);
             } else {
               const myFile = result.value;
               const sliceCount = myFile.sliceCount;
@@ -43,14 +43,14 @@ script:
               if (++slicesReceived === sliceCount) {
                 // All slices have been received.
                 file.closeAsync();
-                onGotAllSlices(docDataSlices).catch((err) => console.error(err));
+                onGotAllSlices(docDataSlices).catch((err) => console.error("onGetAllSlices error:", err));
               } else {
                 getSliceAsync(file, ++nextSlice, sliceCount, gotAllSlices, docDataSlices, slicesReceived);
               }
             } else {
               gotAllSlices = false;
               file.closeAsync();
-              console.log("getSliceAsync Error:", sliceResult.error.message);
+              console.error("getSliceAsync Error:", sliceResult.error);
             }
           });
         }

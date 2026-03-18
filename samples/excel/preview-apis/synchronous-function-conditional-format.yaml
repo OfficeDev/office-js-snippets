@@ -1,108 +1,77 @@
 order: 12
 id: excel-custom-functions-sync-conditional-format
 name: Synchronous custom function - conditional formatting
-description: A synchronous custom function used in a conditional format rule to highlight cells that exceed a target value, updated dynamically during Excel's calculation.
+description: Sets up sample data and a conditional format rule that uses a synchronous custom function to highlight cells exceeding a target. Import and register the "Synchronous custom function" sample first.
 host: EXCEL
 api_set:
-    CustomFunctionsRuntime: 1.5
+    ExcelApi: '1.6'
 script:
     content: |-
-        /**
-         * Returns true if the value exceeds the target read from another cell,
-         * evaluated synchronously with Excel's calculation.
-         * Use this function in a conditional format rule to highlight cells dynamically.
-         * @customfunction
-         * @supportSync
-         * @param {number} value The value to check.
-         * @param {string} targetAddress The cell address containing the target threshold, e.g. "$A$1"
-         * @param {CustomFunctions.Invocation} invocation
-         * @returns {Promise<boolean>} True if value exceeds the target.
-         */
-        async function exceedsTarget(value: number, targetAddress: string, invocation: CustomFunctions.Invocation): Promise<boolean> {
-          const context = new Excel.RequestContext();
-          context.setInvocation(invocation as any);
-          const range = context.workbook.worksheets.getActiveWorksheet().getRange(targetAddress);
-          range.load("values");
-          await context.sync();
-          const target = range.values[0][0];
-          return typeof target === "number" && value > target;
-        }
+        document.getElementById("run").addEventListener("click", () => tryCatch(run));
 
-        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
-        document.getElementById("verify").addEventListener("click", () => tryCatch(verify));
+        async function run() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
 
-        async function setup() {
-          await Excel.run(async (context) => {
-            const sheet = context.workbook.worksheets.getActiveWorksheet();
+                // A1:A2 — label and target threshold.
+                sheet.getRange("A1").values = [["Target"]];
+                sheet.getRange("A2").values = [[70]];
+                sheet.getRange("A1:A2").format.font.bold = true;
 
-            // A1 holds the target threshold value.
-            sheet.getRange("A1").values = [[70]];
-            sheet.getRange("A1").format.font.bold = true;
+                // B1:B8 — header and sample scores.
+                sheet.getRange("B1").values = [["Score"]];
+                sheet.getRange("B1").format.font.bold = true;
+                sheet.getRange("B2:B8").values = [[45], [82], [91], [60], [78], [55], [88]];
 
-            // B1:B8 hold a header and sample scores.
-            sheet.getRange("B1").values = [["Score"]];
-            sheet.getRange("B2:B8").values = [[45], [82], [91], [60], [78], [55], [88]];
+                // Apply a conditional format rule on B2:B8.
+                // The formula uses the synchronous custom function GETCELLVALUE to read
+                // the target from A2 during calculation. Scores exceeding the target
+                // are highlighted.
+                // NOTE: Replace SCRIPTLAB.SYNCHRONOUSCUSTOMFUNCTION with the namespace
+                // shown in the Custom Functions dashboard after registering the
+                // prerequisite snippet.
+                const range = sheet.getRange("B2:B8");
+                const cf = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
+                cf.custom.rule.formula =
+                    "=B2>SCRIPTLAB.SYNCHRONOUSCUSTOMFUNCTION.GETCELLVALUE(\"$A$2\")";
+                cf.custom.format.fill.color = "#FFC7CE";
+                cf.custom.format.font.color = "#9C0006";
 
-            await context.sync();
-            console.log("Data ready. A1 = target (70). B2:B8 = sample scores.");
-            console.log("Next: apply a conditional format rule to B2:B8 using the formula shown in step 3.");
-          });
-        }
-
-        async function verify() {
-          await Excel.run(async (context) => {
-            const sheet = context.workbook.worksheets.getActiveWorksheet();
-            const range = sheet.getRange("B2:B8");
-            const formats = range.conditionalFormats.load("items");
-            await context.sync();
-
-            if (formats.items.length === 0) {
-              console.log("No conditional formats found on B2:B8. Complete step 3 first.");
-            } else {
-              console.log(`${formats.items.length} conditional format(s) active on B2:B8.`);
-              console.log("Try changing the value in A1 — the highlights update automatically.");
-            }
-          });
+                await context.sync();
+                console.log("Done. Scores in B2:B8 that exceed the target in A2 are highlighted.");
+                console.log("Change A2 to see the conditional format update live.");
+            });
         }
 
         /** Default helper for invoking an action and handling errors. */
         async function tryCatch(callback) {
-          try {
-            await callback();
-          } catch (error) {
-            console.error(error);
-          }
+            try {
+                await callback();
+            }
+            catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
         }
     language: typescript
 template:
     content: |-
         <section>
             <p>
-                A <strong>synchronous custom function</strong> (<code>@supportSync</code>) evaluates
-                alongside Excel's calculation, unlike async functions which return <code>#CALC!</code>
-                inside conditional format rules.
+                This snippet sets up sample data and applies a conditional format rule that
+                uses the <code>GETCELLVALUE</code> synchronous custom function to highlight
+                scores exceeding a target value.
             </p>
             <p>
-                <code>EXCEEDSTARGET(value, targetAddress)</code> reads a threshold from another cell
-                and returns <code>true</code> if the value exceeds it — perfect for use in a
-                conditional format rule that responds to a live target.
+                <b>Prerequisite:</b> Import and register the
+                <i>Synchronous custom function</i> sample first via the
+                <b>Custom Functions</b> dashboard.
             </p>
         </section>
         <section>
             <h3>Try it out</h3>
-            <ol>
-                <li>Register this snippet in the <strong>Custom Functions</strong> dashboard.</li>
-                <li>Click <strong>Set up data</strong> below.</li>
-                <li>
-                    Select <strong>B2:B8</strong> in the sheet, then go to
-                    <strong>Home &rarr; Conditional Formatting &rarr; New Rule &rarr; Use a formula</strong>.
-                    Enter: <code>=NAMESPACE.EXCEEDSTARGET(B2,"$A$1")</code>
-                    <br/>(Replace <strong>NAMESPACE</strong> with the prefix shown in the dashboard.)
-                </li>
-                <li>Click <strong>Verify</strong> to confirm the rule is active, then change <strong>A1</strong> to see highlights update live.</li>
-            </ol>
-            <button id="setup">Set up data</button>
-            <button id="verify">Verify format</button>
+            <p>Press <b>Set up data and format</b> to populate the sheet and apply the rule.</p>
+            <button id="run">Set up data and format</button>
         </section>
     language: html
 style:
@@ -128,15 +97,6 @@ style:
             margin: 0 0 10px 0;
         }
 
-        ol {
-            margin: 0 0 10px 0;
-            padding-left: 20px;
-        }
-
-        li {
-            margin-bottom: 8px;
-        }
-
         code {
             background: #f4f4f4;
             padding: 1px 4px;
@@ -152,7 +112,7 @@ style:
             font-size: 14px;
             cursor: pointer;
             border-radius: 2px;
-            margin-right: 8px;
+            margin-left: 20px;
             min-width: 80px;
         }
 

@@ -1,0 +1,181 @@
+id: word-document-get-file-as-pdf
+name: Get file as PDF in slices
+description: This sample gets the current document as a PDF in slices and saves it locally.
+host: WORD
+api_set:
+    WordApi: '1.1'
+script:
+    content: |
+        document.getElementById("run").addEventListener("click", run);
+
+        function run() {
+          Office.context.document.getFileAsync(Office.FileType.Pdf, (result) => {
+            if (result.status === Office.AsyncResultStatus.Failed) {
+              console.error("getFileAsync failed:", result.error);
+            } else {
+              const myFile = result.value;
+              const sliceCount = myFile.sliceCount;
+              console.log("File size:" + myFile.size + " #Slices: " + sliceCount);
+
+              // Get the file slices.
+              const docDataSlices = [];
+              let slicesReceived = 0,
+                gotAllSlices = true;
+              getSliceAsync(myFile, 0, sliceCount, gotAllSlices, docDataSlices, slicesReceived);
+
+              myFile.closeAsync();
+            }
+          });
+        }
+
+        function getSliceAsync(file, nextSlice, sliceCount, gotAllSlices, docDataSlices, slicesReceived) {
+          file.getSliceAsync(nextSlice, function (sliceResult) {
+            if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
+              if (!gotAllSlices) {
+                /* Failed to get all slices, no need to continue. */
+                return;
+              }
+
+              // Got one slice, now store it in a temporary array.
+              // (Or you can do something else, such as
+              // send it to a third-party server.)
+              docDataSlices[sliceResult.value.index] = sliceResult.value.data;
+              if (++slicesReceived === sliceCount) {
+                // All slices have been received.
+                file.closeAsync();
+                onGotAllSlices(docDataSlices).catch((err) => console.error("onGetAllSlices error:", err));
+              } else {
+                getSliceAsync(file, ++nextSlice, sliceCount, gotAllSlices, docDataSlices, slicesReceived);
+              }
+            } else {
+              gotAllSlices = false;
+              file.closeAsync();
+              console.error("getSliceAsync Error:", sliceResult.error);
+            }
+          });
+        }
+
+        async function onGotAllSlices(docDataSlices) {
+          let docData = [];
+          for (let i = 0; i < docDataSlices.length; i++) {
+            docData = docData.concat(docDataSlices[i]);
+          }
+
+          // Convert the byte array to a Uint8Array and create a Blob.
+          const uint8Array = new Uint8Array(docData);
+          const blob = new Blob([uint8Array], { type: "application/pdf" });
+
+          // Suggest a file name.
+          const fileName = `document-${getCurrentDate()}.pdf`;
+
+          // Use the File System Access API to prompt the user with a native save dialog.
+          // This is supported in WebView2 (Office on Windows) and modern browsers.
+          if ("showSaveFilePicker" in window) {
+            try {
+              const fileHandle = await (window as any).showSaveFilePicker({
+                suggestedName: fileName,
+                types: [{ description: "PDF file", accept: { "application/pdf": [".pdf"] } }],
+              });
+              const writable = await fileHandle.createWritable();
+              await writable.write(blob);
+              await writable.close();
+              console.log("File saved successfully.");
+            } catch (err) {
+              // User cancelled the dialog or save failed.
+              console.error("Save cancelled or failed:", err);
+            }
+          } else {
+            // Fallback: Trigger a browser download (saves to the Downloads folder).
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+            console.log("created " + fileName);
+          }
+        }
+
+        function getCurrentDate() {
+          const today = new Date();
+          const day = String(today.getDate());
+          const month = String(today.getMonth() + 1);
+          const year = today.getFullYear();
+
+          const currentDate = `${year}-${month}-${day}`;
+          return currentDate;
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            This sample gets the current document as a PDF and saves it locally.
+            <p><b>Important</b>: For Word, this works on Windows only.</p>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="run">Save as PDF</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

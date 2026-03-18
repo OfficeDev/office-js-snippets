@@ -83,6 +83,7 @@ const INCLUDED_GROUPS = [
   '40-tables',
   '45-shapes',
   '50-document',
+  '55-selection',
   '90-scenarios',
 
   // Word - Excluded groups

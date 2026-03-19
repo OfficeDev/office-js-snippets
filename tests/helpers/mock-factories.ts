@@ -295,23 +295,33 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
   const mockShape = {
     id: 'shape-1',
     name: 'Shape 1',
+    fill: { setSolidColor: jest.fn() },
+    lineFormat: { color: '' },
     textFrame: {
       textRange: {
         text: 'Mock text',
+        font: { size: 9, color: '' },
       },
     },
+  };
+
+  const mockThemeColorScheme = {
+    getThemeColor: jest.fn(() => ({ value: '#4472C4' })),
+    setThemeColor: jest.fn(),
   };
 
   const mockShapes = {
     items: Array(shapeCount).fill(mockShape),
     addTextBox: jest.fn(() => mockShape),
     addShape: jest.fn(() => mockShape),
+    addGeometricShape: jest.fn(() => mockShape),
     load: jest.fn(),
   };
 
   const mockSlide = {
     id: 'slide-1',
     shapes: mockShapes,
+    themeColorScheme: mockThemeColorScheme,
     load: jest.fn(),
   };
 
@@ -336,13 +346,40 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
     }),
   };
 
+  const pptMockObject = new OfficeMockObject(mockData, OfficeApp.PowerPoint) as any;
+
+  pptMockObject.ThemeColor = {
+    dark1: 'dark1',
+    dark2: 'dark2',
+    light1: 'light1',
+    light2: 'light2',
+    accent1: 'accent1',
+    accent2: 'accent2',
+    accent3: 'accent3',
+    accent4: 'accent4',
+    accent5: 'accent5',
+    accent6: 'accent6',
+    hyperlink: 'hyperlink',
+    followedHyperlink: 'followedHyperlink',
+  };
+
+  pptMockObject.GeometricShapeType = {
+    rectangle: 'rectangle',
+    ellipse: 'ellipse',
+    triangle: 'triangle',
+    rightTriangle: 'rightTriangle',
+    diamond: 'diamond',
+    roundedRectangle: 'roundedRectangle',
+  };
+
   return {
-    mockObject: new OfficeMockObject(mockData, OfficeApp.PowerPoint),
+    mockObject: pptMockObject,
     mockContext,
     mockSlides,
     mockSlide,
     mockShapes,
     mockShape,
+    mockThemeColorScheme,
   };
 }
 

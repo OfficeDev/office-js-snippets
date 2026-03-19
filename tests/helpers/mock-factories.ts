@@ -66,6 +66,11 @@ export function createOfficeCommonApiMock() {
       Html: 'html',
       Ooxml: 'ooxml',
     },
+    FileType: {
+      Pdf: 'pdf',
+      Text: 'text',
+      Compressed: 'compressed',
+    },
     context: {
       document: {
         getSelectedDataAsync: jest.fn(
@@ -84,6 +89,10 @@ export function createOfficeCommonApiMock() {
             cb({ status: 'succeeded' });
           }
         ),
+        // getFileAsync is a no-op stub; callback is intentionally never invoked so that
+        // browser-only code in the callback (Blob, window, URL.createObjectURL) is not reached
+        // in the Node.js test environment.
+        getFileAsync: jest.fn(),
       },
     },
   };

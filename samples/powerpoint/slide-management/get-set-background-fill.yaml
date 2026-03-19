@@ -1,0 +1,230 @@
+order: 8
+name: Get and set slide background fill
+description: Gets the current background fill type of the selected slide, and sets the background using solid, gradient, pattern, and picture fill types.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.10'
+script:
+    content: |-
+        document.getElementById("getBackgroundFill").addEventListener("click", () => tryCatch(getBackgroundFill));
+        document.getElementById("setSolidFill").addEventListener("click", () => tryCatch(setSolidFill));
+        document.getElementById("setGradientFill").addEventListener("click", () => tryCatch(setGradientFill));
+        document.getElementById("setPatternFill").addEventListener("click", () => tryCatch(setPatternFill));
+        document.getElementById("setPictureFill").addEventListener("click", () => tryCatch(setPictureFill));
+
+        async function getBackgroundFill() {
+          // Gets the background fill type of the first selected slide.
+          await PowerPoint.run(async (context) => {
+            const slides = context.presentation.getSelectedSlides();
+            slides.load("items");
+            await context.sync();
+
+            if (slides.items.length === 0) {
+              console.warn("No slides are selected.");
+              return;
+            }
+
+            const slide = slides.items[0];
+            const fill = slide.background.fill;
+            fill.load("type");
+            await context.sync();
+
+            const outputSpan = document.getElementById("outputSpan");
+            outputSpan.textContent = `Background fill type: ${fill.type}`;
+            console.log("Background fill type:", fill.type);
+          });
+        }
+
+        async function setSolidFill() {
+          // Sets the background of the first selected slide to a solid orange fill at 20% transparency.
+          await PowerPoint.run(async (context) => {
+            const slides = context.presentation.getSelectedSlides();
+            slides.load("items");
+            await context.sync();
+
+            if (slides.items.length === 0) {
+              console.warn("No slides are selected.");
+              return;
+            }
+
+            const slide = slides.items[0];
+            slide.background.fill.setSolidFill({
+              color: "#FF8C00",
+              transparency: 0.2
+            } as PowerPoint.SlideBackgroundSolidFillOptions);
+            await context.sync();
+
+            const outputSpan = document.getElementById("outputSpan");
+            outputSpan.textContent = "Background set to solid orange fill (20% transparent).";
+            console.log("Background set to solid fill.");
+          });
+        }
+
+        async function setGradientFill() {
+          // Sets the background of the first selected slide to a linear gradient fill.
+          await PowerPoint.run(async (context) => {
+            const slides = context.presentation.getSelectedSlides();
+            slides.load("items");
+            await context.sync();
+
+            if (slides.items.length === 0) {
+              console.warn("No slides are selected.");
+              return;
+            }
+
+            const slide = slides.items[0];
+            slide.background.fill.setGradientFill({
+              type: PowerPoint.SlideBackgroundGradientFillType.linear
+            } as PowerPoint.SlideBackgroundGradientFillOptions);
+            await context.sync();
+
+            const outputSpan = document.getElementById("outputSpan");
+            outputSpan.textContent = "Background set to linear gradient fill.";
+            console.log("Background set to gradient fill.");
+          });
+        }
+
+        async function setPatternFill() {
+          // Sets the background of the first selected slide to a diagonal cross pattern fill.
+          await PowerPoint.run(async (context) => {
+            const slides = context.presentation.getSelectedSlides();
+            slides.load("items");
+            await context.sync();
+
+            if (slides.items.length === 0) {
+              console.warn("No slides are selected.");
+              return;
+            }
+
+            const slide = slides.items[0];
+            slide.background.fill.setPatternFill({
+              foregroundColor: "#1F3864",
+              backgroundColor: "#D6E4F7",
+              pattern: PowerPoint.SlideBackgroundPatternFillType.diagonalCross
+            } as PowerPoint.SlideBackgroundPatternFillOptions);
+            await context.sync();
+
+            const outputSpan = document.getElementById("outputSpan");
+            outputSpan.textContent = "Background set to diagonal cross pattern fill.";
+            console.log("Background set to pattern fill.");
+          });
+        }
+
+        async function setPictureFill() {
+          // Sets the background of the first selected slide to a picture fill at 10% transparency.
+          // Uses a small sample image encoded as a base64 string.
+          await PowerPoint.run(async (context) => {
+            const slides = context.presentation.getSelectedSlides();
+            slides.load("items");
+            await context.sync();
+
+            if (slides.items.length === 0) {
+              console.warn("No slides are selected.");
+              return;
+            }
+
+            // A small sample gradient PNG encoded as base64.
+            const sampleImageBase64 =
+              "iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAMUlEQVQoU2NkIAIwEqmGgWoF" +
+              "/0kxhOE/AxT8Z2CkVAEDAwMjJSYYGBgYKNUCACLpAw9sAWkRAAAAAElFTkSuQmCC";
+
+            const slide = slides.items[0];
+            slide.background.fill.setPictureOrTextureFill({
+              imageBase64: sampleImageBase64,
+              transparency: 0.1
+            } as PowerPoint.SlideBackgroundPictureOrTextureFillOptions);
+            await context.sync();
+
+            const outputSpan = document.getElementById("outputSpan");
+            outputSpan.textContent = "Background set to picture fill (10% transparent).";
+            console.log("Background set to picture fill.");
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to get and set the background fill of a slide using solid, gradient, pattern, and picture fill types.</p>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Select a slide in your presentation, then use the buttons below.</p>
+            <button id="getBackgroundFill">Get background fill type</button>
+            <br><button id="setSolidFill">Set solid fill (orange, 20% transparent)</button>
+            <br><button id="setGradientFill">Set gradient fill (linear)</button>
+            <br><button id="setPatternFill">Set pattern fill (diagonal cross)</button>
+            <br><button id="setPictureFill">Set picture fill (10% transparent)</button>
+            <br><span id="outputSpan"></span>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        span {
+            display: block;
+            margin-left: 20px;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

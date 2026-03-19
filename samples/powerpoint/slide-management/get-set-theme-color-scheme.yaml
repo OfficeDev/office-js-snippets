@@ -1,0 +1,227 @@
+order: 7
+id: powerpoint-slide-management-get-set-theme-color-scheme
+name: Get and set theme color scheme
+description: Gets and sets the theme colors of the selected slide.
+host: POWERPOINT
+api_set:
+    PowerPointApi: '1.10'
+script:
+    content: |
+        document.getElementById("get-theme-colors").addEventListener("click", () => tryCatch(getThemeColors));
+        document.getElementById("set-theme-colors").addEventListener("click", () => tryCatch(setThemeColors));
+        document.getElementById("reset-theme-colors").addEventListener("click", () => tryCatch(resetThemeColors));
+        document.getElementById("setup-swatches").addEventListener("click", () => tryCatch(setupSwatches));
+
+        const themeColorNames: PowerPoint.ThemeColor[] = [
+          PowerPoint.ThemeColor.dark1,
+          PowerPoint.ThemeColor.dark2,
+          PowerPoint.ThemeColor.light1,
+          PowerPoint.ThemeColor.light2,
+          PowerPoint.ThemeColor.accent1,
+          PowerPoint.ThemeColor.accent2,
+          PowerPoint.ThemeColor.accent3,
+          PowerPoint.ThemeColor.accent4,
+          PowerPoint.ThemeColor.accent5,
+          PowerPoint.ThemeColor.accent6,
+          PowerPoint.ThemeColor.hyperlink,
+          PowerPoint.ThemeColor.followedHyperlink,
+        ];
+
+        const accentColors: PowerPoint.ThemeColor[] = [
+          PowerPoint.ThemeColor.accent1,
+          PowerPoint.ThemeColor.accent2,
+          PowerPoint.ThemeColor.accent3,
+          PowerPoint.ThemeColor.accent4,
+          PowerPoint.ThemeColor.accent5,
+          PowerPoint.ThemeColor.accent6,
+        ];
+
+        const swatchNames = accentColors.map((_, i) => `accent${i + 1}Swatch`);
+
+        async function setupSwatches() {
+          // Adds 6 colored rectangles to slide 1, one per accent theme color, so that
+          // changes from setThemeColor are immediately visible on the slide.
+          await PowerPoint.run(async (context) => {
+            const slide = context.presentation.slides.getItemAt(0);
+            const colorScheme = slide.themeColorScheme;
+
+            // Read the current accent colors to use as the initial swatch fills.
+            const colorResults = accentColors.map((color) => colorScheme.getThemeColor(color));
+            await context.sync();
+
+            // Lay out 6 squares evenly across the center of the slide.
+            // Standard slide is 720 x 540 pts (10 x 7.5 inches at 72 pts/inch).
+            const swatchSize = 80;
+            const gap = 16;
+            const totalWidth = accentColors.length * swatchSize + (accentColors.length - 1) * gap;
+            const startLeft = (720 - totalWidth) / 2;
+            const top = 200;
+
+            accentColors.forEach((_, i) => {
+              const shape = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle, {
+                left: startLeft + i * (swatchSize + gap),
+                top,
+                width: swatchSize,
+                height: swatchSize,
+              });
+              shape.name = swatchNames[i];
+              shape.fill.setSolidColor(colorResults[i].value);
+              shape.lineFormat.color = colorResults[i].value;
+            });
+            await context.sync();
+            console.log(
+              "Swatches added to slide 1. Choose 'Set custom accent colors' or 'Reset to default Office theme' to see them update.",
+            );
+          });
+        }
+
+        async function getThemeColors() {
+          // Gets the theme color scheme for the first slide and logs all theme color values.
+          await PowerPoint.run(async (context) => {
+            const slide = context.presentation.slides.getItemAt(0);
+            const colorScheme: PowerPoint.ThemeColorScheme = slide.themeColorScheme;
+
+            // Queue up getThemeColor calls for each theme color.
+            const colorResults = themeColorNames.map((colorName) => colorScheme.getThemeColor(colorName));
+            await context.sync();
+
+            // Display the results.
+            console.log("Theme colors for slide 1:");
+            themeColorNames.forEach((colorName, index) => {
+              console.log(`  ${colorName}: ${colorResults[index].value}`);
+            });
+          });
+        }
+
+        async function setThemeColors() {
+          // Sets custom theme colors on the first slide and updates swatches if present.
+          await PowerPoint.run(async (context) => {
+            const slide = context.presentation.slides.getItemAt(0);
+            const colorScheme: PowerPoint.ThemeColorScheme = slide.themeColorScheme;
+
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent1, "#C00000");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent2, "#FF6600");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent3, "#FFCC00");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent4, "#92D050");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent5, "#00B0F0");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent6, "#7030A0");
+            await context.sync();
+
+            await updateSwatches(context, slide);
+            console.log("Custom accent colors applied to slide 1.");
+          });
+        }
+
+        async function resetThemeColors() {
+          // Resets accent colors on the first slide to default Office theme values and updates swatches if present.
+          await PowerPoint.run(async (context) => {
+            const slide = context.presentation.slides.getItemAt(0);
+            const colorScheme: PowerPoint.ThemeColorScheme = slide.themeColorScheme;
+
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent1, "#4472C4");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent2, "#ED7D31");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent3, "#A9D18E");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent4, "#FFC000");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent5, "#5B9BD5");
+            colorScheme.setThemeColor(PowerPoint.ThemeColor.accent6, "#70AD47");
+            await context.sync();
+
+            await updateSwatches(context, slide);
+            console.log("Accent colors reset to default Office theme values on slide 1.");
+          });
+        }
+
+        async function updateSwatches(context: PowerPoint.RequestContext, slide: PowerPoint.Slide) {
+          // Reads the current accent colors and applies them to the named swatches, if they exist on the slide.
+          const colorScheme = slide.themeColorScheme;
+          const colorResults = accentColors.map((color) => colorScheme.getThemeColor(color));
+          slide.shapes.load("items/name");
+          await context.sync();
+
+          accentColors.forEach((_, i) => {
+            const swatch = slide.shapes.items.find((s) => s.name === swatchNames[i]);
+            if (swatch) {
+              swatch.fill.setSolidColor(colorResults[i].value);
+              swatch.lineFormat.color = colorResults[i].value;
+            }
+          });
+          await context.sync();
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample demonstrates how to read and write the theme color scheme of a slide using <b>Slide.themeColorScheme</b>.</p>
+        </section>
+        <section>
+            <h3>Set up</h3>
+            <p>Select <b>Set up swatches</b> to add 6 colored rectangles to slide 1, one per accent color.</p>
+            <button id="setup-swatches">Set up swatches</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Choose <b>Set custom accent colors</b> or <b>Reset to default Office theme</b> to change the colors and see the swatches update.</p>
+            <p>Choose <b>Get theme colors</b> to log all 12 theme color values to the console.</p>
+            <button id="get-theme-colors">Get theme colors</button>
+            <button id="set-theme-colors">Set custom accent colors</button>
+            <button id="reset-theme-colors">Reset to default Office theme</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

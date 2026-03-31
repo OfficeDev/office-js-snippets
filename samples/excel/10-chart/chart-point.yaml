@@ -1,14 +1,15 @@
 order: 9
 id: excel-chart-point
 name: Points
-description: Sets the color of a point on the chart.
+description: Gets and sets the color of a point on the chart.
 host: EXCEL
 api_set:
-    ExcelApi: '1.7'
+    ExcelApi: '1.16'
 script:
     content: |-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("set-chart-point-color").addEventListener("click", () => tryCatch(setChartPointColor));
+        document.getElementById("get-chart-point-color").addEventListener("click", () => tryCatch(getChartPointColor));
 
         async function setChartPointColor() {
             await Excel.run(async (context) => {
@@ -20,7 +21,23 @@ script:
                 // Set color for chart point.
                 point.format.fill.setSolidColor('red');
 
-                await context.sync();        
+                await context.sync();
+            });
+        }
+
+        async function getChartPointColor() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Sample");
+
+                let pointsCollection = sheet.charts.getItemAt(0).series.getItemAt(0).points;
+                let point = pointsCollection.getItemAt(2);
+
+                // Get the solid color of the chart point.
+                const colorResult = point.format.fill.getSolidColor();
+
+                await context.sync();
+
+                console.log(`Chart point color: ${colorResult.value}`);
             });
         }
 
@@ -83,7 +100,7 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample shows how to set chart point color.</p>
+            <p>This sample shows how to get and set chart point color.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -92,6 +109,7 @@ template:
         <section>
             <h3>Try it out</h3>
             <button id="set-chart-point-color">Set chart point color</button>
+            <button id="get-chart-point-color">Get chart point color</button>
         </section>
     language: html
 style:

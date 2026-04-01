@@ -1,0 +1,29 @@
+order: 9
+id: excel-custom-functions-sync
+name: Synchronous custom function
+description: A synchronous custom function that reads a cell value in tandem with Excel's calculation process.
+host: EXCEL
+api_set:
+    CustomFunctionsRuntime: 1.5
+script:
+    content: |
+        /**
+         * Gets the value of a cell, evaluated synchronously with Excel's calculation.
+         * @customfunction
+         * @supportSync
+         * @param {string} address The cell address, e.g. "A1"
+         * @param {CustomFunctions.Invocation} invocation
+         * @returns {Promise<any>} The cell value.
+         */
+        async function getCellValue(address: string, invocation: CustomFunctions.Invocation): Promise<any> {
+          const context = new Excel.RequestContext();
+          context.setInvocation(invocation as any);
+          const range = context.workbook.worksheets.getActiveWorksheet().getRange(address);
+          range.load("values");
+          await context.sync();
+          return range.values[0][0];
+        }
+    language: typescript
+libraries: |
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts

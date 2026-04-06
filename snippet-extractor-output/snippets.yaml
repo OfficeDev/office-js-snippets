@@ -1690,6 +1690,29 @@ Excel.ChartLegendFormat#font:member:
 
         await context.sync();
     });
+Excel.ChartLineStyle:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code changes the format of leader lines. It adjusts color,
+    weight, and line style.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      const dataLabels = series.dataLabels;
+      const lineFormat = dataLabels.leaderLines.format;
+
+      // Set leader line formatting properties.
+      lineFormat.line.color = "blue";
+      lineFormat.line.weight = 2;
+      lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
+      await context.sync();
+    });
 Excel.ChartPoint:class:
   - >-
     // Link to full sample:
@@ -3891,43 +3914,6 @@ Excel.DataPivotHierarchy#name:member:
         dataHierarchies.items[1].name = "Wholesale";
         await context.sync();
     });
-Excel.DataValidationErrorAlert:interface:
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/22-data-validation/data-validation.yaml
-
-
-    await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getItem("Decision");
-        const rankingRange = sheet.tables.getItem("NameOptionsTable").columns.getItem("Ranking").getDataBodyRange();
-
-        // When you are developing, it is a good practice to
-        // clear the dataValidation object with each run of your code.
-        rankingRange.dataValidation.clear();
-
-        let greaterThanZeroRule = {
-            wholeNumber: {
-                formula1: 0,
-                operator: Excel.DataValidationOperator.greaterThan
-            }
-        };
-        rankingRange.dataValidation.rule = greaterThanZeroRule;
-
-        rankingRange.dataValidation.prompt = {
-            message: "Please enter a positive number.",
-            showPrompt: true,
-            title: "Positive numbers only."
-        };
-
-        rankingRange.dataValidation.errorAlert = {
-            message: "Sorry, only positive numbers are allowed",
-            showAlert: true,
-            style: "Stop",
-            title: "Negative Number Entered"
-        };
-
-        await context.sync();
-    });
 Excel.DataValidation#errorAlert:member:
   - >-
     // Link to full sample:
@@ -4022,6 +4008,43 @@ Excel.DataValidation#rule:member:
             }
         };
         nameRange.dataValidation.rule = approvedListRule;
+
+        await context.sync();
+    });
+Excel.DataValidationErrorAlert:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/22-data-validation/data-validation.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Decision");
+        const rankingRange = sheet.tables.getItem("NameOptionsTable").columns.getItem("Ranking").getDataBodyRange();
+
+        // When you are developing, it is a good practice to
+        // clear the dataValidation object with each run of your code.
+        rankingRange.dataValidation.clear();
+
+        let greaterThanZeroRule = {
+            wholeNumber: {
+                formula1: 0,
+                operator: Excel.DataValidationOperator.greaterThan
+            }
+        };
+        rankingRange.dataValidation.rule = greaterThanZeroRule;
+
+        rankingRange.dataValidation.prompt = {
+            message: "Please enter a positive number.",
+            showPrompt: true,
+            title: "Positive numbers only."
+        };
+
+        rankingRange.dataValidation.errorAlert = {
+            message: "Sorry, only positive numbers are allowed",
+            showAlert: true,
+            style: "Stop",
+            title: "Negative Number Entered"
+        };
 
         await context.sync();
     });
@@ -4712,6 +4735,31 @@ Excel.FilterDatetimeSpecificity:enum:
 
       await context.sync();
     });
+Excel.FilterOn:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/filter-data.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        const expensesTable = sheet.tables.getItem("ExpensesTable");
+
+        let filter = expensesTable.columns.getItem("Amount").filter;
+        filter.apply({
+            filterOn: Excel.FilterOn.dynamic,
+            dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
+        });
+
+        filter = expensesTable.columns.getItem("Category").filter;
+        filter.apply({
+                filterOn: Excel.FilterOn.values,
+                values: ["Restaurant", "Groceries"]
+        });
+
+        await context.sync();
+       });
 Excel.Functions:class:
   - >-
     // Link to full sample:
@@ -5659,6 +5707,33 @@ Excel.PivotHierarchy#fields:member:
 
       await context.sync();
     });
+Excel.PivotLabelFilter:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-pivotfilters.yaml
+
+
+    await Excel.run(async (context) => {
+      // Add a PivotFilter to filter based on the strings of item labels.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+      // Get the "Type" field.
+      const field = pivotTable.hierarchies.getItem("Type").fields.getItem("Type");
+
+      // Filter out any types that start with "L" ("Lemons" and "Limes" in this case).
+      const filter: Excel.PivotLabelFilter = {
+        condition: Excel.LabelFilterCondition.beginsWith,
+        substring: "L",
+        exclusive: true
+      };
+
+      // Apply the label filter to the field.
+      field.applyFilter({ labelFilter: filter });
+
+      await context.sync();
+    });
 Excel.PivotLayout#getDataBodyRange:member(1):
   - >-
     // Link to full sample:
@@ -6050,6 +6125,33 @@ Excel.PivotTableCollection#getItem:member(1):
     await Excel.run(async (context) => {
       const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
       pivotTable.refresh();
+      await context.sync();
+    });
+Excel.PivotValueFilter:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-pivotfilters.yaml
+
+
+    await Excel.run(async (context) => {
+      // Add a PivotFilter to filter on the values correlated with a row.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+      // Get the "Farm" field.
+      const field = pivotTable.hierarchies.getItem("Farm").fields.getItem("Farm");
+
+      // Filter to only include rows with more than 500 wholesale crates sold.
+      const filter: Excel.PivotValueFilter = {
+        condition: Excel.ValueFilterCondition.greaterThan,
+        comparator: 500,
+        value: "Sum of Crates Sold Wholesale"
+      };
+
+      // Apply the value filter to the field.
+      field.applyFilter({ valueFilter: filter });
+
       await context.sync();
     });
 Excel.PresetCriteriaConditionalFormat#rule:member:
@@ -9213,34 +9315,6 @@ Excel.WorksheetChangedEventArgs#triggerSource:member:
             }
         });
     }
-Excel.WorksheetMovedEventArgs:interface:
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
-
-
-    async function onWorksheetMoved(event) {
-        await Excel.run(async (context) => {
-            console.log("Handler for worksheet onMoved event has been triggered.");
-            console.log(`    Worksheet ID: ${event.worksheetId}`);
-            console.log(`    Position before move: ${event.positionBefore}`);
-            console.log(`    Position after move: ${event.positionAfter}`);
-            console.log(`    Event source: ${event.source}`);
-        });
-    }
-Excel.WorksheetNameChangedEventArgs:interface:
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
-
-
-    async function onNameChanged(event: Excel.WorksheetNameChangedEventArgs) {
-        await Excel.run(async (context) => {
-            console.log(`Handler for worksheet onNameChanged event has been triggered.`);
-            console.log(`    Name before change: ` + event.nameBefore);
-            console.log(`    Name after change: ` + event.nameAfter);
-        });
-    }  
 Excel.WorksheetCollection#onActivated:member:
   - >-
     // Link to full sample:
@@ -9432,6 +9506,34 @@ Excel.WorksheetFreezePanes#unfreeze:member(1):
 
         await context.sync();
     });
+Excel.WorksheetMovedEventArgs:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
+
+
+    async function onWorksheetMoved(event) {
+        await Excel.run(async (context) => {
+            console.log("Handler for worksheet onMoved event has been triggered.");
+            console.log(`    Worksheet ID: ${event.worksheetId}`);
+            console.log(`    Position before move: ${event.positionBefore}`);
+            console.log(`    Position after move: ${event.positionAfter}`);
+            console.log(`    Event source: ${event.source}`);
+        });
+    }
+Excel.WorksheetNameChangedEventArgs:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    async function onNameChanged(event: Excel.WorksheetNameChangedEventArgs) {
+        await Excel.run(async (context) => {
+            console.log(`Handler for worksheet onNameChanged event has been triggered.`);
+            console.log(`    Name before change: ` + event.nameBefore);
+            console.log(`    Name after change: ` + event.nameAfter);
+        });
+    }  
 Excel.WorksheetPositionType:enum:
   - >-
     // Link to full sample:
@@ -12163,7 +12265,7 @@ Office.DropEventData:interface:
         }
       });
     }
-Office.DroppedItems:interface:
+Office.DroppedItemDetails:interface:
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/80-events/drag-drop-item.yaml
@@ -12191,7 +12293,7 @@ Office.DroppedItems:interface:
         }
       });
     }
-Office.DroppedItemDetails:interface:
+Office.DroppedItems:interface:
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/80-events/drag-drop-item.yaml
@@ -16246,6 +16348,59 @@ Office.SensitivityLabelsCatalog#getIsEnabledAsync:member(2):
         console.log("Action failed with error: " + asyncResult.error.message);
       }
     });
+Office.SeriesTime:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/outlook/50-recurrence/get-set-recurrence-appointment-organizer.yaml
+
+
+    // Important: Can only set the recurrence pattern of an appointment series.
+
+
+    const currentDate = new Date();
+
+    let seriesTimeObject: Office.SeriesTime;
+
+    // Set series start date to tomorrow.
+
+    seriesTimeObject.setStartDate(currentDate.getFullYear(),
+    currentDate.getMonth(), currentDate.getDay() + 1);
+
+    // Set series end date to one year from now.
+
+    seriesTimeObject.setEndDate(currentDate.getFullYear() + 1,
+    currentDate.getMonth() + 1, currentDate.getDay());
+
+    // Set start time to 1:30 PM.
+
+    seriesTimeObject.setStartTime(13, 30);
+
+    // Set duration to 30 minutes.
+
+    seriesTimeObject.setDuration(30);
+
+
+    const pattern = {
+      seriesTime: seriesTimeObject,
+      recurrenceType: Office.MailboxEnums.RecurrenceType.Yearly,
+      recurrenceProperties: {
+        interval: 1,
+        dayOfWeek: Office.MailboxEnums.Days.Tue,
+        weekNumber: Office.MailboxEnums.WeekNumber.Second,
+        month: Office.MailboxEnums.Month.Sep
+      },
+      recurrenceTimeZone: { name: Office.MailboxEnums.RecurrenceTimeZone.PacificStandardTime }
+    };
+
+
+    Office.context.mailbox.item.recurrence.setAsync(pattern as any,
+    (asyncResult) => {
+      if (asyncResult.status !== Office.AsyncResultStatus.Succeeded) {
+        console.error(`Failed to set recurrence. Error: ${asyncResult.error.message}`);
+        return;
+      }
+      console.log(`Succeeded in setting recurrence pattern ${JSON.stringify(pattern)}`);
+    });
 Office.SessionData#clearAsync:member(1):
   - >-
     // Link to full sample:
@@ -16389,6 +16544,57 @@ Office.Time#setAsync:member(1):
         console.log(`Successfully set end date and time to ${end}`);
       });
     });
+Office.SetSelectedDataOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/slide-management/export-import-slide.yaml
+
+
+    async function addImageToCurrentSlide(
+      imageBase64: string,
+      options?: PowerPoint.ShapeAddOptions
+    ): Promise<PowerPoint.Shape> {
+      // Adds an image to the current slide.
+      const setSelectedDataOptions: Office.SetSelectedDataOptions = {
+        coercionType: Office.CoercionType.Image
+      };
+      if (options) {
+        if (options.height) {
+          setSelectedDataOptions.imageHeight = options.height;
+        }
+        if (options.left) {
+          setSelectedDataOptions.imageLeft = options.left;
+        }
+        if (options.top) {
+          setSelectedDataOptions.imageTop = options.top;
+        }
+        if (options.width) {
+          setSelectedDataOptions.imageWidth = options.width;
+        }
+      }
+
+      return new Promise((resolve, reject) => {
+        Office.context.document.setSelectedDataAsync(
+          imageBase64,
+          setSelectedDataOptions,
+          async (result: Office.AsyncResult<void>) => {
+            if (result.error) {
+              console.error(`ERROR in setSelectedDataAsync(): ${result.error}`);
+              reject(result.error);
+            } else {
+              const shape = await PowerPoint.run(async (context) => {
+                const slide = context.presentation.getSelectedSlides().getItemAt(0);
+                slide.shapes.load();
+                await context.sync();
+
+                return slide.shapes.items[slide.shapes.items.length - 1];
+              });
+              resolve(shape);
+            }
+          }
+        );
+      });
+    }
 PowerPoint.AddSlideOptions:interface:
   - >-
     // Link to full sample:
@@ -21653,6 +21859,29 @@ PowerPoint.ThemeColorScheme:class:
 
       await updateSwatches(context, slide);
       console.log("Accent colors reset to default Office theme values on slide 1.");
+    });
+Office.FileType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/get-file-as-pdf.yaml
+
+
+    Office.context.document.getFileAsync(Office.FileType.Pdf, (result) => {
+      if (result.status === Office.AsyncResultStatus.Failed) {
+        console.error("getFileAsync failed:", result.error);
+      } else {
+        const myFile = result.value;
+        const sliceCount = myFile.sliceCount;
+        console.log("File size:" + myFile.size + " #Slices: " + sliceCount);
+
+        // Get the file slices.
+        const docDataSlices = [];
+        let slicesReceived = 0,
+          gotAllSlices = true;
+        getSliceAsync(myFile, 0, sliceCount, gotAllSlices, docDataSlices, slicesReceived);
+
+        myFile.closeAsync();
+      }
     });
 Word.Alignment:enum:
   - >-

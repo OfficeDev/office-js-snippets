@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { isString, isNil, isArray } from 'lodash';
+
 
 interface IStage {
     steps: any[];
@@ -42,7 +42,7 @@ export class Status {
      * @param error Error object.
      */
     complete(success: boolean, stage: string, additionalDetails?: string | Error | Array<string | Error>) {
-        if (!isArray(additionalDetails)) {
+        if (!Array.isArray(additionalDetails)) {
             additionalDetails = [additionalDetails];
         }
 
@@ -66,11 +66,11 @@ export class Status {
         function getDetailsArray() {
             return (additionalDetails as any[])
                 .map(item => {
-                    if (isNil(item)) {
+                    if (item == null) {
                         return null;
                     }
 
-                    if (isString(item)) {
+                    if (typeof item === 'string') {
                         return item;
                     }
 
@@ -85,7 +85,7 @@ export class Status {
                         return stringified;
                     }
                 })
-                .filter(item => !isNil(item));
+                .filter(item => item != null);
         }
     }
 

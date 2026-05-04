@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 
 import * as jsyaml from 'js-yaml';
-import { forIn } from 'lodash';
+
 
 export enum SnippetFieldType {
     /** PUBLIC = Store internally, and also include in copy-to-clipboard */
@@ -90,11 +90,12 @@ function scrubCarriageReturns(snippet: ISnippet) {
 /** Returns a shallow copy of the snippet, filtered to only keep a particular set of fields */
 export function getScrubbedSnippet(snippet: ISnippet, keep: SnippetFieldType): ISnippet {
     let copy = {};
-    forIn(snippetFields, (fieldType, fieldName) => {
+    for (const fieldName of Object.keys(snippetFields)) {
+        const fieldType = snippetFields[fieldName];
         if (fieldType & keep && snippet[fieldName] !== undefined) {
             copy[fieldName] = snippet[fieldName];
         }
-    });
+    }
 
     return copy as ISnippet;
 }

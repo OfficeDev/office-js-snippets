@@ -5,24 +5,53 @@ import { Dictionary } from './helpers';
 
 import { SnippetProcessedData, readDir, writeFile, rmRf, mkDir } from './helpers';
 import { status } from './status';
-const ExcelJS = require('exceljs');
 
 const SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME = 'snippet-extractor-metadata';
 
 interface MappingFileRowData {
     package: string, class: string; member: string; memberId: string, snippetId: string; snippetFunction: string
 }
-const headerNames: (keyof MappingFileRowData)[] =
-   ['package', 'class', 'member', 'memberId', 'snippetId', 'snippetFunction'];
 
+/** Maps CSV column headers to MappingFileRowData property names. */
+const csvHeaderToFieldName: { [csvHeader: string]: keyof MappingFileRowData } = {
+    'Package': 'package',
+    'Class': 'class',
+    'Member Name': 'member',
+    'Member ID or top-level category': 'memberId',
+    'SnippetIdInTheYAMLFile': 'snippetId',
+    'MethodNameInTheSnippet': 'snippetFunction',
+};
+
+function parseCsvLine(line: string): string[] {
+    const fields: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (ch === ',' && !inQuotes) {
+            fields.push(current);
+            current = '';
+        } else {
+            current += ch;
+        }
+    }
+    fields.push(current);
+    return fields;
+}
 
 export async function buildReferenceDocSnippetExtracts(
     snippets: Dictionary<SnippetProcessedData>,
     accumulatedErrors: Array<string | Error>
 ): Promise<void> {
     let files = (await readDir(path.resolve(SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME)))
-        .filter(name => name.endsWith('.xlsx'))
-        .filter(name => !name.startsWith('~$'));
+        .filter(name => name.endsWith('.csv'));
 
     const snippetIdsToFilenames: { [key: string]: string } = {};
     snippets.values().forEach(item => {
@@ -46,39 +75,44 @@ async function buildSnippetExtractsPerHost(
     accumulatedErrors: Array<string | Error>
 ): Promise<{ [key: string]: string[] }> {
 
-    const lines: MappingFileRowData[] =
-        await new Promise(async (resolve: (data: MappingFileRowData[]) => void, reject) => {
-            const fullFilePath = path.join(
-                path.resolve(SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME),
-                filename
-            );
-            const workbook = new ExcelJS.Workbook();
-            await workbook.xlsx.readFile(fullFilePath);
-            const worksheet = workbook.worksheets[0];
-            if (worksheet.rowCount < 2) {
-                reject(new Error('No data rows found'));
-            }
+    const fullFilePath = path.join(
+        path.resolve(SNIPPET_EXTRACTOR_METADATA_FOLDER_NAME),
+        filename
+    );
+    const rawLines = fs.readFileSync(fullFilePath, 'utf8')
+        .replace(/^\uFEFF/, '') // strip UTF-8 BOM if present
+        .split('\n')
+        .map(line => line.replace(/\r$/, ''))
+        .filter(line => line.trim().length > 0);
 
-            if (worksheet.getRow(1).cellCount !== headerNames.length) {
-                reject(
-                    new Error('Unexpected number of columns. Expecting the following ' +
-                        headerNames.length + ' columns: ' +
-                        headerNames.map(name => `"${name}"`).join(', ')
-                    )
-                );
-            }
+    if (rawLines.length < 2) {
+        throw new Error(`No data rows found in ${filename}`);
+    }
 
-            let mappedRowData: MappingFileRowData[] = [];
-            worksheet.eachRow((row, rowNumber) => {
-                if (rowNumber !== 1 && !row.getCell(1).value.startsWith('//')) {
-                    let result: MappingFileRowData = {} as any;
-                    row.eachCell((cell, index) => {
-                        result[headerNames[index - 1]] = cell.value;
-                    });
-                    mappedRowData.push(result);
-                }
+    const csvHeaders = parseCsvLine(rawLines[0]);
+    const columnIndices: { [field in keyof MappingFileRowData]?: number } = {};
+    csvHeaders.forEach((header, index) => {
+        const fieldName = csvHeaderToFieldName[header];
+        if (fieldName) {
+            columnIndices[fieldName] = index;
+        }
+    });
+
+    const expectedFields = Object.keys(csvHeaderToFieldName) as (keyof typeof csvHeaderToFieldName)[];
+    const missingFields = expectedFields.filter(h => csvHeaderToFieldName[h] && columnIndices[csvHeaderToFieldName[h]] === undefined);
+    if (missingFields.length > 0) {
+        throw new Error(`Missing expected columns in ${filename}: ${missingFields.join(', ')}`);
+    }
+
+    const lines: MappingFileRowData[] = rawLines.slice(1)
+        .filter(line => !parseCsvLine(line)[0].startsWith('//'))
+        .map(line => {
+            const cells = parseCsvLine(line);
+            const result: MappingFileRowData = {} as any;
+            (Object.keys(columnIndices) as (keyof MappingFileRowData)[]).forEach(field => {
+                result[field] = cells[columnIndices[field]!] ?? '';
             });
-            resolve(mappedRowData.filter(item => item));
+            return result;
         });
 
     const allSnippetData: { [key: string]: string[] } = {};
@@ -102,7 +136,7 @@ async function buildSnippetExtractsPerHost(
             if (!allSnippetData[fullName]) {
                 allSnippetData[fullName] = [];
             }
-            allSnippetData[fullName].push(text);
+            allSnippetData[fullName].push(text!);
         });
     return allSnippetData;
 }
@@ -111,15 +145,15 @@ function getExtractedDataFromSnippet(
     row: MappingFileRowData,
     snippetIdsToFilenames: { [key: string]: string },
     accumulatedErrors: Array<string | Error>
-): string {
+): string | undefined {
     const updatingStatusText = `${row.class}.${row.member}: function "${row.snippetFunction}" from snippet ID "${row.snippetId}"`;
     status.add(updatingStatusText);
-    let text: string;
+    let text: string | undefined;
 
     const filename = snippetIdsToFilenames[row.snippetId];
     if (filename) {
         try {
-            const script = (jsyaml.load(fs.readFileSync(filename).toString()) as ISnippet).script.content;
+            const script = (jsyaml.load(fs.readFileSync(filename).toString()) as ISnippet).script?.content ?? '';
 
             const fullSnippetTextArray = script.split('\n')
                 .map(line => line.replace(/\r/, ''));
@@ -144,7 +178,7 @@ function getExtractedDataFromSnippet(
             const functionHasNoParams = functionDeclarationLine.indexOf(targetText + ')') >= 0;
 
             const spaceFollowedByWordsRegex = /^(\s*)(.*)$/;
-            const preWhitespaceCount = spaceFollowedByWordsRegex.exec(functionDeclarationLine)[1].length;
+            const preWhitespaceCount = spaceFollowedByWordsRegex.exec(functionDeclarationLine)![1].length;
             const targetClosingText = ' '.repeat(preWhitespaceCount) + '}';
             if (jsDocCommentIndex >= 0) {
                 fullSnippetTextArray.splice(0, jsDocCommentIndex);
@@ -158,7 +192,7 @@ function getExtractedDataFromSnippet(
             }
 
             const indented = fullSnippetTextArray.slice(0, closingIndex + (functionHasNoParams ? 0 : 1));
-            const whitespaceCountOnFirstLine = spaceFollowedByWordsRegex.exec(fullSnippetTextArray[0])[1].length;
+            const whitespaceCountOnFirstLine = spaceFollowedByWordsRegex.exec(fullSnippetTextArray[0])![1].length;
 
             // Place snippet location as comment.
             const editedFilename = filename.substring(filename.lastIndexOf('samples')).replace(/\\/g, '/');
@@ -175,7 +209,7 @@ function getExtractedDataFromSnippet(
                 .join('\n');
         }
         catch (exception) {
-            accumulatedErrors.push(`${row.snippetId}: ${exception.message || exception}`);
+            accumulatedErrors.push(`${row.snippetId}: ${(exception as any).message || exception}`);
         }
     } else {
         accumulatedErrors.push(`Could not find snippet id "${row.snippetId}" in mapping table`);

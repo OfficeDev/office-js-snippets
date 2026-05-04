@@ -117,27 +117,26 @@ async function buildSnippetExtractsPerHost(
 
     const allSnippetData: { [key: string]: string[] } = {};
 
-    lines.map(row => getExtractedDataFromSnippet(row, snippetIdsToFilenames, accumulatedErrors))
-        .filter(item => item)
-        .forEach((text, index) => {
-            const row = lines[index];
-            let hostName = row.package;
+    lines.forEach(row => {
+        const text = getExtractedDataFromSnippet(row, snippetIdsToFilenames, accumulatedErrors);
+        if (!text) { return; }
 
-            let fullName;
-            if (row.member) { /* If the mapping is for a field */
-                fullName = `${hostName}.${row.class.trim()}#${row.member.trim()}:member`;
-                if (row.memberId) {
-                    fullName += `(${row.memberId})`;
-                }
-            } else { /* If the mapping is for a top-level sample (like an enum) */
-                fullName = `${hostName}.${row.class.trim()}:${row.memberId.trim()}`;
+        let hostName = row.package;
+        let fullName;
+        if (row.member) { /* If the mapping is for a field */
+            fullName = `${hostName}.${row.class.trim()}#${row.member.trim()}:member`;
+            if (row.memberId) {
+                fullName += `(${row.memberId})`;
             }
+        } else { /* If the mapping is for a top-level sample (like an enum) */
+            fullName = `${hostName}.${row.class.trim()}:${row.memberId.trim()}`;
+        }
 
-            if (!allSnippetData[fullName]) {
-                allSnippetData[fullName] = [];
-            }
-            allSnippetData[fullName].push(text!);
-        });
+        if (!allSnippetData[fullName]) {
+            allSnippetData[fullName] = [];
+        }
+        allSnippetData[fullName].push(text);
+    });
     return allSnippetData;
 }
 

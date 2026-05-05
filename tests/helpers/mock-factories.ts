@@ -1,6 +1,7 @@
 import { OfficeMockObject } from 'office-addin-mock';
 import { OfficeApp } from 'office-addin-manifest';
 
+
 /**
  * Factory for creating Office API mocks
  *

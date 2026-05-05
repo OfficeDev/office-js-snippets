@@ -1,7 +1,7 @@
 #!/usr/bin/env node --harmony
 
 import * as path from 'path';
-import { isNil, isString, isArray, isEmpty, sortBy, cloneDeep } from 'lodash';
+
 import chalk from 'chalk';
 import { status } from './status';
 import {
@@ -12,9 +12,33 @@ import {
 import { buildReferenceDocSnippetExtracts } from './build.documentation';
 import { getShareableYaml } from './snippet.helpers';
 import { processLibraries } from './libraries.processor';
-import { startCase, groupBy, map } from 'lodash';
 import * as jsyaml from 'js-yaml';
 import * as fsx from 'fs-extra';
+
+function startCase(str: string): string {
+    return str.split(/[\s\-_]+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+function groupByKey<T>(arr: T[], key: keyof T): { [k: string]: T[] } {
+    return arr.reduce((acc, item) => {
+        const groupKey = String(item[key]);
+        (acc[groupKey] = acc[groupKey] || []).push(item);
+        return acc;
+    }, {} as { [k: string]: T[] });
+}
+
+function sortByKeys<T>(arr: T[], keys: (keyof T)[]): T[] {
+    return [...arr].sort((a, b) => {
+        for (const key of keys) {
+            const av = a[key], bv = b[key];
+            if (av < bv) { return -1; }
+            if (av > bv) { return 1; }
+        }
+        return 0;
+    });
+}
 
 
 const PRIVATE_SAMPLES = 'private-samples';
@@ -191,11 +215,11 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
     }
 
     function validateStringFieldNotEmptyOrThrow(snippet: ISnippet, field: string): void {
-        if (isNil(snippet[field])) {
+        if (snippet[field] == null) {
             throw `Snippet ${field} may not be empty`;
         }
 
-        if (!isString(snippet[field])) {
+        if (typeof snippet[field] !== 'string') {
             throw `Snippet ${field} must be a string`;
         }
 
@@ -308,11 +332,11 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
     function validateApiSetNonEmpty(snippet: ISnippet, host: string, localPath: string, messages: any[]): void {
         host = host.toUpperCase();
 
-        if (typeof snippet.api_set === 'undefined') {
+        if (snippet.api_set == null) {
             snippet.api_set = {};
         }
 
-        if (isEmpty(snippet.api_set)) {
+        if (Object.keys(snippet.api_set).length === 0) {
             if (typeof defaultApiSets[host] === 'undefined') {
                 // No API set required (not a host with host-specific APIs), so just exit the function
                 return;
@@ -322,7 +346,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
                 `"${JSON.stringify(defaultApiSets[host])}", but failing the build.`));
             messages.push(new Error('   Please check your pending changes to see the substituted version.'));
 
-            snippet.api_set = cloneDeep(defaultApiSets[host]);
+            snippet.api_set = structuredClone(defaultApiSets[host]);
         }
     }
 
@@ -342,7 +366,7 @@ async function processSnippets(processedSnippets: Dictionary<SnippetProcessedDat
         let originalId = snippet.id;
 
         // Don't want empty IDs -- or GUID-y IDs either, since they're not particularly memorable...
-        if (isNil(snippet.id) || snippet.id.trim().length === 0 || isCUID(snippet.id)) {
+        if (snippet.id == null || snippet.id.trim().length === 0 || isCUID(snippet.id)) {
             snippet.id = localPath;
         }
 
@@ -447,14 +471,14 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
     await mkDir('playlists');
     status.complete(true /*success*/, `Creating \'playlists\' folder`);
 
-    const publicGroups = groupBy(
+    const publicGroups = groupByKey(
         processedPublicSnippets.values()
             .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
         'host');
-    let publicPlaylistPromises = map(publicGroups, async (items, host) => {
+    let publicPlaylistPromises = Object.entries(publicGroups).map(async ([host, items]) => {
         const creatingStatusText = `Creating ${host}.yaml`;
         status.add(creatingStatusText);
-        items = sortBy(items, sortingCriteria) as any;
+        items = sortByKeys(items, sortingCriteria as any) as any;
 
         /*
            Having sorted the items -- which may have included a number in the group name! -- remove the group number if any
@@ -501,14 +525,14 @@ async function generatePlaylists(processedSnippets: Dictionary<SnippetProcessedD
     await mkDir('view');
     status.complete(true /*success*/, `Creating \'view\' folder`);
 
-    const allGroups = groupBy(
+    const allGroups = groupByKey(
         processedSnippets.values()
             .filter((file) => !(file == null) && file.fileName !== 'default.yaml'),
         'host');
-    let allPlaylistPromises = map(allGroups, async (items, host) => {
+    let allPlaylistPromises = Object.entries(allGroups).map(async ([host, items]) => {
         const creatingStatusText = `Creating ${host}.json`;
         status.add(creatingStatusText);
-        items = sortBy(items, sortingCriteria) as any;
+        items = sortByKeys(items, sortingCriteria as any) as any;
 
         let hostMapping = {} as { [id: string]: string };
         items.forEach(item => {
@@ -570,7 +594,7 @@ async function updateCopiedFile(folderPath: string, filePath: string) {
 }
 
 function handleError(error: any | any[]) {
-    if (!isArray(error)) {
+    if (!Array.isArray(error)) {
         error = [error];
     }
 

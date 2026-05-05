@@ -4,7 +4,7 @@ import * as os from 'os';
 import chalk from 'chalk';
 import * as jsyaml from 'js-yaml';
 import { rimraf } from 'rimraf';
-import { isObject, isNil, isString, isEmpty } from 'lodash';
+
 
 export interface SnippetFileInput {
     file_name: string;
@@ -38,7 +38,7 @@ export interface SnippetProcessedData {
  * @param message Message of the banner.
  * @param chalkFunction Chalk color function.
  */
-export const banner = (title: string, message: string = null, chalkFn: any = null) => {
+export const banner = (title: string, message: string | null = null, chalkFn: any = null) => {
     if (!chalkFn) {
         chalkFn = chalk.bold;
     }
@@ -246,7 +246,7 @@ export class Dictionary<T> {
      * @param {object} items Initial seed of items.
      */
     constructor(items?: { [index: string]: T } | Array<[string, T]> | Map<string, T>) {
-        if (isNil(items)) {
+        if (items == null) {
             this._items = new Map();
         }
         else if (items instanceof Set) {
@@ -258,7 +258,7 @@ export class Dictionary<T> {
         else if (Array.isArray(items)) {
             this._items = new Map(items);
         }
-        else if (isObject(items)) {
+        else if (typeof items === 'object') {
             this._items = new Map();
             for (const key of Object.keys(items)) {
                 this._items.set(key, items[key]);
@@ -275,7 +275,7 @@ export class Dictionary<T> {
      * @param {string} key The key of the item.
      * @return {object} Returns an item if found.
      */
-    get(key: string): T {
+    get(key: string): T | undefined {
         return this._items.get(key);
     }
 
@@ -304,7 +304,7 @@ export class Dictionary<T> {
         if (!this.has(key)) {
             throw new ReferenceError(`Key: ${key} not found.`);
         }
-        let value = this._items.get(key);
+        let value = this._items.get(key)!;
         this._items.delete(key);
         return value;
     }
@@ -364,7 +364,7 @@ export class Dictionary<T> {
     }
 
     private _validateKey(key: string): void {
-        if (!isString(key) || isEmpty(key)) {
+        if (typeof key !== 'string' || key.length === 0) {
             throw new TypeError('Key needs to be a string');
         }
     }

@@ -1,13 +1,6 @@
 import { OfficeMockObject } from 'office-addin-mock';
+import { OfficeApp } from 'office-addin-manifest';
 
-const OfficeApp = {
-    Excel: 'excel' as any,
-    Word: 'word' as any,
-    PowerPoint: 'powerpoint' as any,
-    OneNote: 'onenote' as any,
-    Outlook: 'outlook' as any,
-    Project: 'project' as any,
-};
 
 /**
  * Factory for creating Office API mocks

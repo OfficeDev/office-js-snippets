@@ -1,3 +1,10 @@
+// Disable Application Insights statsbeat telemetry before any test worker starts.
+// Without this, the Azure Monitor exporter starts a background timer that fires
+// a dynamic import() inside Node's VM context. Node 24 disallows this without
+// --experimental-vm-modules, crashing the process after test teardown with
+// ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING_FLAG.
+process.env['APPLICATION_INSIGHTS_NO_STATSBEAT'] = '1';
+
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',

@@ -1,0 +1,169 @@
+order: 1
+id: word-coauthoring-manage-coauthors
+name: Manage coauthors
+description: Shows how to get information about the coauthors currently editing a Word document.
+host: WORD
+api_set:
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("get-coauthoring-status").addEventListener("click", () => tryCatch(getCoauthoringStatus));
+        document.getElementById("get-coauthors").addEventListener("click", () => tryCatch(getCoauthors));
+        document.getElementById("get-my-info").addEventListener("click", () => tryCatch(getMyInfo));
+        document.getElementById("get-locks-by-coauthor").addEventListener("click", () => tryCatch(getLocksByCoauthor));
+
+        async function getCoauthoringStatus() {
+          // Gets the coauthoring capabilities and pending-update status of the document.
+          await Word.run(async (context) => {
+            const coauthoring: Word.Coauthoring = context.document.coauthoring;
+            coauthoring.load("canCoauthor,canMerge,pendingUpdates");
+            await context.sync();
+
+            console.log("Can coauthor:", coauthoring.canCoauthor);
+            console.log("Can merge:", coauthoring.canMerge);
+            console.log("Pending updates:", coauthoring.pendingUpdates);
+          });
+        }
+
+        async function getCoauthors() {
+          // Gets all coauthors currently editing the document.
+          await Word.run(async (context) => {
+            const authors: Word.CoauthorCollection = context.document.coauthoring.authors;
+            authors.load("items/name,items/emailAddress,items/isMe");
+            await context.sync();
+
+            if (authors.items.length === 0) {
+              console.log("No other coauthors are currently editing this document.");
+              return;
+            }
+
+            console.log(`${authors.items.length} coauthor(s) editing this document:`);
+            authors.items.forEach((author: Word.Coauthor) => {
+              console.log(`  ${author.name} (${author.emailAddress})${author.isMe ? " — that's you" : ""}`);
+            });
+          });
+        }
+
+        async function getMyInfo() {
+          // Gets the current user's coauthor information.
+          await Word.run(async (context) => {
+            const me: Word.Coauthor = context.document.coauthoring.me;
+            me.load("name,emailAddress,id");
+            await context.sync();
+
+            console.log("Current user:", me.name);
+            console.log("Email:", me.emailAddress);
+            console.log("ID:", me.id);
+          });
+        }
+
+        async function getLocksByCoauthor() {
+          // Gets the locks held by each coauthor in the document.
+          await Word.run(async (context) => {
+            const authors: Word.CoauthorCollection = context.document.coauthoring.authors;
+            authors.load("items/name");
+            await context.sync();
+
+            if (authors.items.length === 0) {
+              console.log("No coauthors are currently editing this document.");
+              return;
+            }
+
+            authors.items.forEach((author: Word.Coauthor) => {
+              author.locks.load("items/type");
+            });
+            await context.sync();
+
+            authors.items.forEach((author: Word.Coauthor) => {
+              const lockCount = author.locks.items.length;
+              if (lockCount === 0) {
+                console.log(`${author.name}: no locks`);
+              } else {
+                const types = author.locks.items.map((l) => l.type).join(", ");
+                console.log(`${author.name}: ${lockCount} lock(s) — ${types}`);
+              }
+            });
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to inspect coauthors and document coauthoring status in Word.</p>
+            <p>Make sure the document is saved to OneDrive or SharePoint to enable coauthoring features.</p>
+            <p><b>Important</b>: This API is only available in Word on Windows (WordApiDesktop 1.4). It is not supported in Word on the web.</p>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>
+                <button id="get-coauthoring-status">Get coauthoring status</button>
+            </p>
+            <p>
+                <button id="get-coauthors">Get coauthors</button>
+            </p>
+            <p>
+                <button id="get-my-info">Get my coauthor info</button>
+            </p>
+            <p>
+                <button id="get-locks-by-coauthor">Get locks by coauthor</button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

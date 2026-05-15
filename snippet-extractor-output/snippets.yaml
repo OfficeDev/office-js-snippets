@@ -24066,6 +24066,324 @@ Word.CloseBehavior:enum:
     await Word.run(async (context) => {
       context.document.close(Word.CloseBehavior.save);
     });
+Word.Coauthor:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthors.yaml
+
+
+    // Gets all coauthors currently editing the document.
+
+    await Word.run(async (context) => {
+      const authors: Word.CoauthorCollection = context.document.coauthoring.authors;
+      authors.load("items/name,items/emailAddress,items/isMe");
+      await context.sync();
+
+      if (authors.items.length === 0) {
+        console.log("No other coauthors are currently editing this document.");
+        return;
+      }
+
+      console.log(`${authors.items.length} coauthor(s) editing this document:`);
+      authors.items.forEach((author: Word.Coauthor) => {
+        console.log(`  ${author.name} (${author.emailAddress})${author.isMe ? " — that's you" : ""}`);
+      });
+    });
+Word.Coauthor#locks:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthors.yaml
+
+
+    // Gets the locks held by each coauthor in the document.
+
+    await Word.run(async (context) => {
+      const authors: Word.CoauthorCollection = context.document.coauthoring.authors;
+      authors.load("items/name");
+      await context.sync();
+
+      if (authors.items.length === 0) {
+        console.log("No coauthors are currently editing this document.");
+        return;
+      }
+
+      authors.items.forEach((author: Word.Coauthor) => {
+        author.locks.load("items/type");
+      });
+      await context.sync();
+
+      authors.items.forEach((author: Word.Coauthor) => {
+        const lockCount = author.locks.items.length;
+        if (lockCount === 0) {
+          console.log(`${author.name}: no locks`);
+        } else {
+          const types = author.locks.items.map((l) => l.type).join(", ");
+          console.log(`${author.name}: ${lockCount} lock(s) — ${types}`);
+        }
+      });
+    });
+Word.CoauthorCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthors.yaml
+
+
+    // Gets all coauthors currently editing the document.
+
+    await Word.run(async (context) => {
+      const authors: Word.CoauthorCollection = context.document.coauthoring.authors;
+      authors.load("items/name,items/emailAddress,items/isMe");
+      await context.sync();
+
+      if (authors.items.length === 0) {
+        console.log("No other coauthors are currently editing this document.");
+        return;
+      }
+
+      console.log(`${authors.items.length} coauthor(s) editing this document:`);
+      authors.items.forEach((author: Word.Coauthor) => {
+        console.log(`  ${author.name} (${author.emailAddress})${author.isMe ? " — that's you" : ""}`);
+      });
+    });
+Word.Coauthoring:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthors.yaml
+
+
+    // Gets the coauthoring capabilities and pending-update status of the
+    document.
+
+    await Word.run(async (context) => {
+      const coauthoring: Word.Coauthoring = context.document.coauthoring;
+      coauthoring.load("canCoauthor,canMerge,pendingUpdates");
+      await context.sync();
+
+      console.log("Can coauthor:", coauthoring.canCoauthor);
+      console.log("Can merge:", coauthoring.canMerge);
+      console.log("Pending updates:", coauthoring.pendingUpdates);
+    });
+Word.Coauthoring#conflicts:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-conflicts.yaml
+
+
+    // Gets all coauthoring conflicts in the document.
+
+    await Word.run(async (context) => {
+      const conflicts: Word.ConflictCollection = context.document.coauthoring.conflicts;
+      conflicts.load("items/type");
+      await context.sync();
+
+      if (conflicts.items.length === 0) {
+        console.log("No conflicts found in the document.");
+        return;
+      }
+
+      console.log(`Found ${conflicts.items.length} conflict(s):`);
+      for (let i = 0; i < conflicts.items.length; i++) {
+        console.log(`  Conflict ${i + 1}: type = ${conflicts.items[i].type}`);
+      }
+    });
+Word.Coauthoring#locks:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-locks.yaml
+
+
+    // Adds a lock to the paragraph at the insertion point.
+
+    // Requires the document to be saved to OneDrive or SharePoint.
+
+    await Word.run(async (context) => {
+      const coauthoring: Word.Coauthoring = context.document.coauthoring;
+      coauthoring.load("canCoauthor");
+      await context.sync();
+
+      if (!coauthoring.canCoauthor) {
+        console.warn("This document doesn't support coauthoring. Save it to OneDrive or SharePoint and try again.");
+        return;
+      }
+
+      const locks: Word.CoauthoringLockCollection = coauthoring.locks;
+      locks.add();
+      await context.sync();
+
+      console.log("Lock added.");
+    });
+Word.Coauthoring#me:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthors.yaml
+
+
+    // Gets the current user's coauthor information.
+
+    await Word.run(async (context) => {
+      const me: Word.Coauthor = context.document.coauthoring.me;
+      me.load("name,emailAddress,id");
+      await context.sync();
+
+      console.log("Current user:", me.name);
+      console.log("Email:", me.emailAddress);
+      console.log("ID:", me.id);
+    });
+Word.Coauthoring#updates:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/get-coauthoring-updates.yaml
+
+
+    // Gets the ranges affected by the most recent coauthoring updates merged
+    into the document.
+
+    await Word.run(async (context) => {
+      const updates: Word.CoauthoringUpdateCollection = context.document.coauthoring.updates;
+      updates.load("items/range");
+      await context.sync();
+
+      if (updates.items.length === 0) {
+        console.log("No recent coauthoring updates found.");
+        return;
+      }
+
+      console.log(`Found ${updates.items.length} recent update(s).`);
+
+      const ranges = updates.items.map((u) => u.range);
+      ranges.forEach((r) => r.load("text"));
+      await context.sync();
+
+      ranges.forEach((range, i) => {
+        console.log(`  Update ${i + 1}: "${range.text}"`);
+      });
+    });
+Word.CoauthoringLock#type:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-locks.yaml
+
+
+    // Gets all coauthoring locks in the document.
+
+    await Word.run(async (context) => {
+      const locks: Word.CoauthoringLockCollection = context.document.coauthoring.locks;
+      locks.load("items/type");
+      await context.sync();
+
+      if (locks.items.length === 0) {
+        console.log("No locks found in the document.");
+        return;
+      }
+
+      console.log(`Found ${locks.items.length} lock(s) in the document:`);
+      for (let i = 0; i < locks.items.length; i++) {
+        const lock: Word.CoauthoringLock = locks.items[i];
+        console.log(`  Lock ${i + 1}: type = ${lock.type}`);
+      }
+    });
+Word.CoauthoringLock#unlock:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-locks.yaml
+
+
+    // Removes the first coauthoring lock found in the document.
+
+    await Word.run(async (context) => {
+      const locks: Word.CoauthoringLockCollection = context.document.coauthoring.locks;
+      locks.load("items");
+      await context.sync();
+
+      if (locks.items.length === 0) {
+        console.log("No locks found to remove.");
+        return;
+      }
+
+      locks.items[0].unlock();
+      await context.sync();
+
+      console.log("First lock removed.");
+    });
+Word.CoauthoringLockCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-locks.yaml
+
+
+    // Gets all coauthoring locks in the document.
+
+    await Word.run(async (context) => {
+      const locks: Word.CoauthoringLockCollection = context.document.coauthoring.locks;
+      locks.load("items/type");
+      await context.sync();
+
+      if (locks.items.length === 0) {
+        console.log("No locks found in the document.");
+        return;
+      }
+
+      console.log(`Found ${locks.items.length} lock(s) in the document:`);
+      for (let i = 0; i < locks.items.length; i++) {
+        const lock: Word.CoauthoringLock = locks.items[i];
+        console.log(`  Lock ${i + 1}: type = ${lock.type}`);
+      }
+    });
+Word.CoauthoringLockCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-locks.yaml
+
+
+    // Adds a lock to the paragraph at the insertion point.
+
+    // Requires the document to be saved to OneDrive or SharePoint.
+
+    await Word.run(async (context) => {
+      const coauthoring: Word.Coauthoring = context.document.coauthoring;
+      coauthoring.load("canCoauthor");
+      await context.sync();
+
+      if (!coauthoring.canCoauthor) {
+        console.warn("This document doesn't support coauthoring. Save it to OneDrive or SharePoint and try again.");
+        return;
+      }
+
+      const locks: Word.CoauthoringLockCollection = coauthoring.locks;
+      locks.add();
+      await context.sync();
+
+      console.log("Lock added.");
+    });
+Word.CoauthoringUpdateCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/get-coauthoring-updates.yaml
+
+
+    // Gets the ranges affected by the most recent coauthoring updates merged
+    into the document.
+
+    await Word.run(async (context) => {
+      const updates: Word.CoauthoringUpdateCollection = context.document.coauthoring.updates;
+      updates.load("items/range");
+      await context.sync();
+
+      if (updates.items.length === 0) {
+        console.log("No recent coauthoring updates found.");
+        return;
+      }
+
+      console.log(`Found ${updates.items.length} recent update(s).`);
+
+      const ranges = updates.items.map((u) => u.range);
+      ranges.forEach((r) => r.load("text"));
+      await context.sync();
+
+      ranges.forEach((range, i) => {
+        console.log(`  Update ${i + 1}: "${range.text}"`);
+      });
+    });
 Word.ComboBoxContentControl:class:
   - >-
     // Link to full sample:
@@ -24653,6 +24971,105 @@ Word.CompareTarget:enum:
       await context.sync();
 
       console.log("Differences shown in the current document.");
+    });
+Word.ConflictCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-conflicts.yaml
+
+
+    // Gets all coauthoring conflicts in the document.
+
+    await Word.run(async (context) => {
+      const conflicts: Word.ConflictCollection = context.document.coauthoring.conflicts;
+      conflicts.load("items/type");
+      await context.sync();
+
+      if (conflicts.items.length === 0) {
+        console.log("No conflicts found in the document.");
+        return;
+      }
+
+      console.log(`Found ${conflicts.items.length} conflict(s):`);
+      for (let i = 0; i < conflicts.items.length; i++) {
+        console.log(`  Conflict ${i + 1}: type = ${conflicts.items[i].type}`);
+      }
+    });
+Word.ConflictCollection#acceptAll:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-conflicts.yaml
+
+
+    // Accepts all user changes, removes all conflicts, and merges into the
+    server copy.
+
+    await Word.run(async (context) => {
+      context.document.coauthoring.conflicts.acceptAll();
+      await context.sync();
+
+      console.log("All conflicts accepted (all your changes kept).");
+    });
+Word.ConflictCollection#rejectAll:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-conflicts.yaml
+
+
+    // Rejects all user changes and retains the server copy for all conflicts.
+
+    await Word.run(async (context) => {
+      context.document.coauthoring.conflicts.rejectAll();
+      await context.sync();
+
+      console.log("All conflicts rejected (server copy kept for all).");
+    });
+Word.Conflict#accept:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-conflicts.yaml
+
+
+    // Accepts the user's change for the first conflict and removes it.
+
+    await Word.run(async (context) => {
+      const conflicts: Word.ConflictCollection = context.document.coauthoring.conflicts;
+      conflicts.load("items");
+      await context.sync();
+
+      if (conflicts.items.length === 0) {
+        console.log("No conflicts to accept.");
+        return;
+      }
+
+      conflicts.items[0].accept();
+      await context.sync();
+
+      console.log("First conflict accepted (your change kept).");
+    });
+Word.Conflict#reject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-conflicts.yaml
+
+
+    // Rejects the user's change for the first conflict and keeps the server
+    copy.
+
+    await Word.run(async (context) => {
+      const conflicts: Word.ConflictCollection = context.document.coauthoring.conflicts;
+      conflicts.load("items");
+      await context.sync();
+
+      if (conflicts.items.length === 0) {
+        console.log("No conflicts to reject.");
+        return;
+      }
+
+      conflicts.items[0].reject();
+      await context.sync();
+
+      console.log("First conflict rejected (server copy kept).");
     });
 Word.ContentControl#delete:member(1):
   - >-
@@ -26973,6 +27390,24 @@ Word.Document#changeTrackingMode:member:
       } else {
         console.log("No changes are being tracked.");
       }
+    });
+Word.Document#coauthoring:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthors.yaml
+
+
+    // Gets the coauthoring capabilities and pending-update status of the
+    document.
+
+    await Word.run(async (context) => {
+      const coauthoring: Word.Coauthoring = context.document.coauthoring;
+      coauthoring.load("canCoauthor,canMerge,pendingUpdates");
+      await context.sync();
+
+      console.log("Can coauthor:", coauthoring.canCoauthor);
+      console.log("Can merge:", coauthoring.canMerge);
+      console.log("Pending updates:", coauthoring.pendingUpdates);
     });
 Word.Document#onAnnotationClicked:member:
   - >-

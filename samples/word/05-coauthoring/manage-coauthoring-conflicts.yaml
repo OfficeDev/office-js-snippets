@@ -1,0 +1,177 @@
+order: 3
+id: word-coauthoring-manage-coauthoring-conflicts
+name: Manage coauthoring conflicts
+description: Shows how to inspect and resolve coauthoring conflicts in a Word document.
+host: WORD
+api_set:
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("get-conflicts").addEventListener("click", () => tryCatch(getConflicts));
+        document.getElementById("accept-first").addEventListener("click", () => tryCatch(acceptFirst));
+        document.getElementById("reject-first").addEventListener("click", () => tryCatch(rejectFirst));
+        document.getElementById("accept-all").addEventListener("click", () => tryCatch(acceptAll));
+        document.getElementById("reject-all").addEventListener("click", () => tryCatch(rejectAll));
+
+        async function getConflicts() {
+          // Gets all coauthoring conflicts in the document.
+          await Word.run(async (context) => {
+            const conflicts: Word.ConflictCollection = context.document.coauthoring.conflicts;
+            conflicts.load("items/type");
+            await context.sync();
+
+            if (conflicts.items.length === 0) {
+              console.log("No conflicts found in the document.");
+              return;
+            }
+
+            console.log(`Found ${conflicts.items.length} conflict(s):`);
+            for (let i = 0; i < conflicts.items.length; i++) {
+              console.log(`  Conflict ${i + 1}: type = ${conflicts.items[i].type}`);
+            }
+          });
+        }
+
+        async function acceptFirst() {
+          // Accepts the user's change for the first conflict and removes it.
+          await Word.run(async (context) => {
+            const conflicts: Word.ConflictCollection = context.document.coauthoring.conflicts;
+            conflicts.load("items");
+            await context.sync();
+
+            if (conflicts.items.length === 0) {
+              console.log("No conflicts to accept.");
+              return;
+            }
+
+            conflicts.items[0].accept();
+            await context.sync();
+
+            console.log("First conflict accepted (your change kept).");
+          });
+        }
+
+        async function rejectFirst() {
+          // Rejects the user's change for the first conflict and keeps the server copy.
+          await Word.run(async (context) => {
+            const conflicts: Word.ConflictCollection = context.document.coauthoring.conflicts;
+            conflicts.load("items");
+            await context.sync();
+
+            if (conflicts.items.length === 0) {
+              console.log("No conflicts to reject.");
+              return;
+            }
+
+            conflicts.items[0].reject();
+            await context.sync();
+
+            console.log("First conflict rejected (server copy kept).");
+          });
+        }
+
+        async function acceptAll() {
+          // Accepts all user changes, removes all conflicts, and merges into the server copy.
+          await Word.run(async (context) => {
+            context.document.coauthoring.conflicts.acceptAll();
+            await context.sync();
+
+            console.log("All conflicts accepted (all your changes kept).");
+          });
+        }
+
+        async function rejectAll() {
+          // Rejects all user changes and retains the server copy for all conflicts.
+          await Word.run(async (context) => {
+            context.document.coauthoring.conflicts.rejectAll();
+            await context.sync();
+
+            console.log("All conflicts rejected (server copy kept for all).");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to inspect and resolve coauthoring conflicts in Word.</p>
+            <p>Make sure the document is saved to OneDrive or SharePoint to enable coauthoring features.</p>
+            <p><b>Important</b>: This API is only available in Word on Windows (WordApiDesktop 1.4). It is not supported in Word on the web.</p>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Note: Coauthoring conflicts can't be simulated by the APIs. You'll have to open a document with existing conflicts to see this in action.</p>
+            <p>
+                <button id="get-conflicts">Get conflicts</button>
+            </p>
+            <p>
+                <button id="accept-first">Accept first conflict</button>
+            </p>
+            <p>
+                <button id="reject-first">Reject first conflict</button>
+            </p>
+            <p>
+                <button id="accept-all">Accept all conflicts</button>
+            </p>
+            <p>
+                <button id="reject-all">Reject all conflicts</button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

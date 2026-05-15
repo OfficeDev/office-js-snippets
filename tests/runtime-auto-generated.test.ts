@@ -22,7 +22,7 @@
  * - load() and sync() are no-ops (data already "loaded")
  * - Mutations don't update state (adding a table doesn't increase tables.items.length)
  *
- * Coverage: ~195 snippets tested (syntax verification only)
+ * Coverage: ~199 snippets tested (syntax verification only)
  * Real testing: All snippets should be manually tested in Script Lab with real Office
  *
  * Maintenance:
@@ -74,6 +74,7 @@ const INCLUDED_GROUPS = [
 
   // Word - Core APIs
   '01-basics',
+  '05-coauthoring',
   '10-content-controls',
   '15-images',
   '20-lists',

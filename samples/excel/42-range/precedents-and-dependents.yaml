@@ -1,0 +1,309 @@
+order: 13
+id: excel-range-precedents-and-dependents
+name: Precedents and dependents
+description: This sample shows how to find and highlight the precedents and dependents of selected cells. Precedents are cells that a formula references; dependents are cells whose formulas reference other cells.
+host: EXCEL
+api_set:
+    ExcelApi: '1.15'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("select-for-precedents-same-sheet").addEventListener("click", () => tryCatch(selectForPrecedentsSameSheet));
+        document.getElementById("select-for-precedents-cross-sheet").addEventListener("click", () => tryCatch(selectForPrecedentsCrossSheet));
+        document.getElementById("get-direct-precedents").addEventListener("click", () => tryCatch(getDirectPrecedents));
+        document.getElementById("get-all-precedents").addEventListener("click", () => tryCatch(getAllPrecedents));
+        document.getElementById("select-for-dependents-same-sheet").addEventListener("click", () => tryCatch(selectForDependentsSameSheet));
+        document.getElementById("select-for-dependents-cross-sheet").addEventListener("click", () => tryCatch(selectForDependentsCrossSheet));
+        document.getElementById("get-direct-dependents").addEventListener("click", () => tryCatch(getDirectDependents));
+        document.getElementById("get-all-dependents").addEventListener("click", () => tryCatch(getAllDependents));
+        document.getElementById("clear-highlighting").addEventListener("click", () => tryCatch(clearFormatting));
+
+        /** Select a cell whose formula references cells on the same worksheet. */
+        async function selectForPrecedentsSameSheet() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample2026Data");
+            sheet.activate();
+
+            // E4 contains "=C4 * D4". Its precedents (C4 and D4) are on the same sheet.
+            const range = sheet.getRange("E4");
+            range.select();
+            await context.sync();
+          });
+        }
+
+        /** Select a cell whose formula references cells across worksheets. */
+        async function selectForPrecedentsCrossSheet() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample2026Data");
+            sheet.activate();
+
+            // F5 contains "=Sample2025Data!E5 + E5 / 2". Its precedents span both worksheets.
+            const range = sheet.getRange("F5");
+            range.select();
+            await context.sync();
+          });
+        }
+
+        /** Highlight the direct precedents of the active cell. */
+        async function getDirectPrecedents() {
+          await Excel.run(async (context) => {
+            // Precedents are cells referenced by the formula in a cell.
+            // A "direct precedent" is a cell directly referenced by the selected formula.
+            let range = context.workbook.getActiveCell();
+            let directPrecedents = range.getDirectPrecedents();
+            range.load("address");
+            directPrecedents.areas.load("address");
+            await context.sync();
+
+            console.log(`Direct precedent cells of ${range.address} (yellow cells):`);
+
+            for (let i = 0; i < directPrecedents.areas.items.length; i++) {
+              // Highlight and print the address of each direct precedent cell.
+              directPrecedents.areas.items[i].format.fill.color = "Yellow";
+              console.log(`  ${directPrecedents.areas.items[i].address}`);
+            }
+            await context.sync();
+          });
+        }
+
+        /** Highlight all precedents (direct and indirect) of the active cell. */
+        async function getAllPrecedents() {
+          await Excel.run(async (context) => {
+            // Precedents are cells referenced by the formula in a cell.
+            let range = context.workbook.getActiveCell();
+            let precedents = range.getPrecedents();
+            range.load("address");
+            precedents.areas.load("address");
+            await context.sync();
+
+            console.log(`All precedent cells of ${range.address} (orange cells):`);
+
+            for (let i = 0; i < precedents.areas.items.length; i++) {
+              // Highlight and print the address of each precedent cell.
+              precedents.areas.items[i].format.fill.color = "Orange";
+              console.log(`  ${precedents.areas.items[i].address}`);
+            }
+            await context.sync();
+          });
+        }
+
+        /** Select a cell that is referenced by formulas on the same worksheet. */
+        async function selectForDependentsSameSheet() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample2025Data");
+            sheet.activate();
+
+            // D3 (Unit Price) is referenced by E3 (=C3 * D3) on the same sheet.
+            const range = sheet.getRange("D3");
+            range.select();
+            await context.sync();
+          });
+        }
+
+        /** Select a cell that is referenced by formulas across worksheets. */
+        async function selectForDependentsCrossSheet() {
+          await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample2025Data");
+            sheet.activate();
+
+            // E4 (Total Price 2025) is referenced by Sample2026Data!F4 (=Sample2025Data!E4 + E4 / 2).
+            const range = sheet.getRange("E4");
+            range.select();
+            await context.sync();
+          });
+        }
+
+        /** Highlight the direct dependents of the active cell. */
+        async function getDirectDependents() {
+          await Excel.run(async (context) => {
+            // Direct dependents are cells that contain formulas that directly refer to the active cell.
+            let range = context.workbook.getActiveCell();
+            let directDependents = range.getDirectDependents();
+            range.load("address");
+            directDependents.areas.load("address");
+            await context.sync();
+
+            console.log(`Direct dependent cells of ${range.address} (yellow cells):`);
+
+            for (let i = 0; i < directDependents.areas.items.length; i++) {
+              // Highlight and print the address of each direct dependent cell.
+              directDependents.areas.items[i].format.fill.color = "Yellow";
+              console.log(`  ${directDependents.areas.items[i].address}`);
+            }
+            await context.sync();
+          });
+        }
+
+        /** Highlight all dependents (direct and indirect) of the active cell. */
+        async function getAllDependents() {
+          await Excel.run(async (context) => {
+            // Get addresses of all dependent cells of the active cell.
+            const range = context.workbook.getActiveCell();
+            const dependents = range.getDependents();
+            range.load("address");
+            dependents.areas.load("address");
+            await context.sync();
+
+            console.log(`All dependent cells of ${range.address} (orange cells):`);
+
+            for (let i = 0; i < dependents.areas.items.length; i++) {
+              // Highlight and print the address of each dependent cell.
+              dependents.areas.items[i].format.fill.color = "Orange";
+              console.log(`  ${dependents.areas.items[i].address}`);
+            }
+            await context.sync();
+          });
+        }
+
+        /** Remove highlighting from all cells. */
+        async function clearFormatting() {
+          await Excel.run(async (context) => {
+            const sheet1 = context.workbook.worksheets.getItem("Sample2025Data");
+            sheet1.getRange("B3:F5").format.fill.clear();
+
+            const sheet2 = context.workbook.worksheets.getItem("Sample2026Data");
+            sheet2.getRange("B3:F5").format.fill.clear();
+
+            await context.sync();
+          });
+        }
+
+        /** Create two sample worksheets with formulas that reference each other. */
+        async function setup() {
+          await Excel.run(async (context) => {
+            context.workbook.worksheets.getItemOrNullObject("Sample2025Data").delete();
+            context.workbook.worksheets.getItemOrNullObject("Sample2026Data").delete();
+
+            // Set up the first sample table.
+            const sheet1 = context.workbook.worksheets.add("Sample2025Data");
+            const data1 = [
+              ["Product", "Qty", "Unit Price", "Total Price 2025"],
+              ["Almonds", 2, 7.5, "=C3 * D3"],
+              ["Coffee", 1, 34.5, "=C4 * D4"],
+              ["Chocolate", 5, 9.56, "=C5 * D5"]
+            ];
+
+            const range1 = sheet1.getRange("B2:E5");
+            range1.values = data1;
+            range1.format.autofitColumns();
+
+            // Set up the second sample table.
+            const sheet2 = context.workbook.worksheets.add("Sample2026Data");
+            const data2 = [
+              ["Product", "Qty", "Unit Price", "Total Price 2026", "Average Annual Price"],
+              ["Almonds", 2, 8.0, "=C3 * D3", "=Sample2025Data!E3 + E3 / 2"],
+              ["Coffee", 1, 36.5, "=C4 * D4", "=Sample2025Data!E4 + E4 / 2"],
+              ["Chocolate", 5, 11.2, "=C5 * D5", "=Sample2025Data!E5 + E5 / 2"]
+            ];
+
+            const range2 = sheet2.getRange("B2:F5");
+            range2.values = data2;
+            range2.format.autofitColumns();
+
+            // Style the headers.
+            const header1 = range1.getRow(0);
+            header1.format.fill.color = "#4472C4";
+            header1.format.font.color = "white";
+
+            const header2 = range2.getRow(0);
+            header2.format.fill.color = "#4472C4";
+            header2.format.font.color = "white";
+
+            sheet2.activate();
+
+            await context.sync();
+          });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+          <p>This sample shows how to find and highlight <b>precedents</b> and <b>dependents</b> of a selected cell.</p>
+          <ul>
+            <li><b>Precedents</b> are cells that a formula references (what the formula <i>depends on</i>).</li>
+            <li><b>Dependents</b> are cells whose formulas reference the selected cell (what <i>depends on</i> the cell).</li>
+          </ul>
+          <p>Direct = immediately referenced; All = the full chain across multiple levels.</p>
+        </section>
+        <section class="setup">
+          <h3>Set up</h3>
+          <button id="setup">Add sample data</button>
+        </section>
+        <section>
+          <h3>Precedents</h3>
+          <p>Select a cell with a formula, then use a "Get" button to highlight what it references.</p>
+          <button id="select-for-precedents-same-sheet">Select E4 (same-sheet precedents)</button>
+          <button id="select-for-precedents-cross-sheet">Select F5 (cross-sheet precedents)</button>
+          <button id="get-direct-precedents">Get direct precedents</button>
+          <button id="get-all-precedents">Get all precedents</button>
+        </section>
+        <section>
+          <h3>Dependents</h3>
+          <p>Select a cell, then use a "Get" button to highlight which formulas reference it.</p>
+          <button id="select-for-dependents-same-sheet">Select D3 (same-sheet dependent)</button>
+          <button id="select-for-dependents-cross-sheet">Select E4 (cross-sheet dependent)</button>
+          <button id="get-direct-dependents">Get direct dependents</button>
+          <button id="get-all-dependents">Get all dependents</button>
+        </section>
+        <section>
+          <button id="clear-highlighting">Clear highlighting</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p, ul {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

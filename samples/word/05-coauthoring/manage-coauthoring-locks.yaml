@@ -1,0 +1,172 @@
+order: 2
+id: word-coauthoring-manage-coauthoring-locks
+name: Manage coauthoring locks
+description: Shows how to add, inspect, and remove coauthoring locks on ranges in a Word document.
+host: WORD
+api_set:
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("add-lock").addEventListener("click", () => tryCatch(addLock));
+        document.getElementById("get-locks").addEventListener("click", () => tryCatch(getLocks));
+        document.getElementById("remove-first-lock").addEventListener("click", () => tryCatch(removeFirstLock));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function addLock() {
+          // Adds a lock to the paragraph at the insertion point.
+          // Requires the document to be saved to OneDrive or SharePoint.
+          await Word.run(async (context) => {
+            const coauthoring: Word.Coauthoring = context.document.coauthoring;
+            coauthoring.load("canCoauthor");
+            await context.sync();
+
+            if (!coauthoring.canCoauthor) {
+              console.warn("This document doesn't support coauthoring. Save it to OneDrive or SharePoint and try again.");
+              return;
+            }
+
+            const locks: Word.CoauthoringLockCollection = coauthoring.locks;
+            locks.add();
+            await context.sync();
+
+            console.log("Lock added.");
+          });
+        }
+
+        async function getLocks() {
+          // Gets all coauthoring locks in the document.
+          await Word.run(async (context) => {
+            const locks: Word.CoauthoringLockCollection = context.document.coauthoring.locks;
+            locks.load("items/type");
+            await context.sync();
+
+            if (locks.items.length === 0) {
+              console.log("No locks found in the document.");
+              return;
+            }
+
+            console.log(`Found ${locks.items.length} lock(s) in the document:`);
+            for (let i = 0; i < locks.items.length; i++) {
+              const lock: Word.CoauthoringLock = locks.items[i];
+              console.log(`  Lock ${i + 1}: type = ${lock.type}`);
+            }
+          });
+        }
+
+        async function removeFirstLock() {
+          // Removes the first coauthoring lock found in the document.
+          await Word.run(async (context) => {
+            const locks: Word.CoauthoringLockCollection = context.document.coauthoring.locks;
+            locks.load("items");
+            await context.sync();
+
+            if (locks.items.length === 0) {
+              console.log("No locks found to remove.");
+              return;
+            }
+
+            locks.items[0].unlock();
+            await context.sync();
+
+            console.log("First lock removed.");
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+            body.insertParagraph(
+              "Coauthoring locks let an add-in reserve or mark a range of text to coordinate editing across coauthors.",
+              "Start"
+            );
+            body.insertParagraph(
+              "Select any text in this document before adding a lock to see it applied to a specific range.",
+              "End"
+            );
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to add, inspect, and remove coauthoring locks on ranges in a Word document.</p>
+            <p>Make sure the document is saved to OneDrive or SharePoint to enable coauthoring features.</p>
+            <p><b>Important</b>: This API is only available in Word on Windows (WordApiDesktop 1.4). It is not supported in Word on the web.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <button id="setup">Add sample text</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Place your cursor in the document, then add a lock to that paragraph.</p>
+            <p>
+                <button id="add-lock">Add lock</button>
+            </p>
+            <p>
+                <button id="get-locks">Get all locks</button>
+            </p>
+            <p>
+                <button id="remove-first-lock">Remove first lock</button>
+            </p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

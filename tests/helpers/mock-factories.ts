@@ -219,11 +219,87 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockBody = {
     text: bodyText,
+    clear: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
     insertText: jest.fn(),
     insertTable: jest.fn(() => mockTable),
     load: jest.fn(),
     tables: mockTables,
+  };
+
+  // Mock coauthoring objects
+  const mockCoauthor = {
+    name: 'Mock Author',
+    emailAddress: 'author@example.com',
+    isMe: false,
+    id: 'author-1',
+    locks: {
+      items: [] as any[],
+      load: jest.fn(),
+    },
+    load: jest.fn(),
+  };
+
+  const mockMe = {
+    name: 'Mock Me',
+    emailAddress: 'me@example.com',
+    id: 'me-1',
+    load: jest.fn(),
+  };
+
+  const mockCoauthoringLock = {
+    type: 'reservation',
+    unlock: jest.fn(),
+    load: jest.fn(),
+  };
+
+  const mockCoauthoringLockCollection = {
+    items: [mockCoauthoringLock],
+    add: jest.fn(() => mockCoauthoringLock),
+    unlockEphemeralLocks: jest.fn(),
+    load: jest.fn(),
+  };
+
+  const mockConflict = {
+    type: 'text',
+    accept: jest.fn(),
+    reject: jest.fn(),
+    load: jest.fn(),
+  };
+
+  const mockConflictCollection = {
+    items: [mockConflict],
+    acceptAll: jest.fn(),
+    rejectAll: jest.fn(),
+    load: jest.fn(),
+  };
+
+  const mockCoauthoringUpdate = {
+    range: {
+      text: 'Mock update text',
+      load: jest.fn(),
+    },
+    load: jest.fn(),
+  };
+
+  const mockUpdateCollection = {
+    items: [mockCoauthoringUpdate],
+    load: jest.fn(),
+  };
+
+  const mockCoauthoring = {
+    canCoauthor: true,
+    canMerge: true,
+    pendingUpdates: false,
+    authors: {
+      items: [mockCoauthor],
+      load: jest.fn(),
+    },
+    me: mockMe,
+    locks: mockCoauthoringLockCollection,
+    conflicts: mockConflictCollection,
+    updates: mockUpdateCollection,
+    load: jest.fn(),
   };
 
   // Mock document properties
@@ -251,6 +327,7 @@ export function createWordMock(options: WordMockOptions = {}) {
       body: mockBody,
       getSelection: jest.fn(() => mockRange),
       properties: mockProperties,
+      coauthoring: mockCoauthoring,
       compare: jest.fn(),
     },
     sync: jest.fn().mockResolvedValue(undefined),
@@ -271,6 +348,11 @@ export function createWordMock(options: WordMockOptions = {}) {
     compareTargetNew: 'New',
   };
 
+  wordMockObject.CoauthoringLockType = {
+    reservation: 'reservation',
+    ephemeral: 'ephemeral',
+  };
+
   return {
     mockObject: wordMockObject,
     mockContext,
@@ -281,6 +363,14 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockTable,
     mockTables,
     mockProperties,
+    mockCoauthoring,
+    mockCoauthor,
+    mockCoauthoringLock,
+    mockCoauthoringLockCollection,
+    mockConflict,
+    mockConflictCollection,
+    mockCoauthoringUpdate,
+    mockUpdateCollection,
   };
 }
 

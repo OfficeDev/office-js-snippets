@@ -53,17 +53,10 @@ script:
 
             const datePicker: Word.DatePickerContentControl = firstControl.datePickerContentControl;
 
-            // Set the display locale first, since calendar type must be compatible with the locale.
-            datePicker.dateDisplayLocale = Word.LanguageId.japanese;
-
-            // Set the calendar type (must be compatible with the locale set above).
-            datePicker.dateCalendarType = Word.CalendarType.japan;
-
-            // Set the display format.
-            datePicker.dateDisplayFormat = "yyyy/MM/dd";
-
-            // Set the storage format to DateTime.
-            datePicker.dateStorageFormat = Word.ContentControlDateStorageFormat.dateTime;
+            changeCalendarLanguage(datePicker);
+            changeCalendarType(datePicker);
+            changeDisplayFormat(datePicker);
+            changeStorageFormat(datePicker);
 
             await context.sync();
 
@@ -73,6 +66,28 @@ script:
             console.log("  Display locale: Japanese");
             console.log("  Storage format: DateTime");
           });
+        }
+
+        function changeCalendarLanguage(datePicker: Word.DatePickerContentControl) {
+            // Set the display locale before changing the calendar type, since calendar type must be compatible with the locale.
+            datePicker.dateDisplayLocale = Word.LanguageId.japanese;
+        }
+
+        function changeCalendarType(datePicker: Word.DatePickerContentControl) {
+            // The calendar type can only be set to a value compatible with the display locale. 
+            // For the Japanese locale, valid calendar types are Gregorian and Japan.
+            datePicker.dateCalendarType = Word.CalendarType.japan;
+        }
+
+        function changeDisplayFormat(datePicker: Word.DatePickerContentControl) {
+            // Set the display format.
+            datePicker.dateDisplayFormat = "yyyy/MM/dd";
+        }
+
+        function changeStorageFormat(datePicker: Word.DatePickerContentControl) {
+            // Set the storage format to DateTime, which means the date and time will be stored in ISO format (e.g., "2024-12-31T23:59:00Z"). 
+            // The time portion will be ignored when getting/setting the value of the content control, since it's a date picker.
+            datePicker.dateStorageFormat = Word.ContentControlDateStorageFormat.dateTime;
         }
 
         async function getDatePickerProperties() {
@@ -111,6 +126,7 @@ script:
         async function deleteDatePickerContentControl() {
           // Deletes the first date picker content control found in the selection.
           await Word.run(async (context) => {
+            // First, look if the selection contains a date picker content control.
             const selectedRange: Word.Range = context.document.getSelection();
             let selectedContentControl = selectedRange
               .getContentControls({
@@ -121,9 +137,9 @@ script:
 
             await context.sync();
 
+            // The selection doesn't contain a date picker, but the cursor might be inside one.
+            // Check if the selection's parent content control is a date picker.
             if (selectedContentControl.isNullObject) {
-              // The selection doesn't contain a date picker, but the cursor might be inside one.
-              // Check if the selection's parent content control is a date picker.
               const parentContentControl: Word.ContentControl = selectedRange.parentContentControlOrNullObject;
               parentContentControl.load("id,type");
               await context.sync();
@@ -186,7 +202,7 @@ template:
                 <span><b>Select</b> the date picker and choose a date.</span>
             </p>
             <p>
-                <span>Change the calendar type, display format, locale, and storage format of the selected date picker.</span>
+                <span>Change the calendar type, display format, locale, and storage format of the first date picker.</span>
                 <button id="change-properties">Change properties</button>
             </p>
             <p>

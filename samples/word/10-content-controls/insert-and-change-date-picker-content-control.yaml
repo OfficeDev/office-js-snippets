@@ -14,18 +14,24 @@ script:
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
         async function insertDatePickerContentControl() {
-          // Inserts a date picker content control on the first paragraph.
+          // Inserts a date picker content control on the paragraph tagged for dates.
           await Word.run(async (context) => {
-            let paragraphs = context.document.body.paragraphs;
-            paragraphs.load("$none");
+            const contentControls = context.document.contentControls.getByTag("date-area");
+            contentControls.load("items");
 
             await context.sync();
 
-            const contentControl = paragraphs.items[0]
-              .insertContentControl(Word.ContentControlType.datePicker);
-            contentControl.title = "Choose a date";
-            contentControl.tag = "date-picker";
-            console.log("Date picker content control inserted on the first paragraph.");
+            if (contentControls.items.length === 0) {
+              console.warn("Run Setup first to insert the date area.");
+              return;
+            }
+
+            const dateArea = contentControls.items[0];
+            const range = dateArea.getRange("Content");
+            const datePicker = range.insertContentControl(Word.ContentControlType.datePicker);
+            datePicker.title = "Choose a date";
+            datePicker.tag = "date-picker";
+            console.log("Date picker content control inserted in the date area.");
 
             await context.sync();
           });
@@ -146,9 +152,17 @@ script:
           await Word.run(async (context) => {
             const body: Word.Body = context.document.body;
             body.clear();
-            body.insertParagraph("Start date: Click to select a date", "Start");
-            body.insertParagraph("End date: Click to select a date", "Start");
             body.insertParagraph("Date Picker Content Control Sample", "Start");
+            const dateParagraph = body.insertParagraph("Select a date: ", "End");
+            const dateArea = dateParagraph.getRange("End").insertContentControl(Word.ContentControlType.richText);
+            dateArea.tag = "date-area";
+            dateArea.title = "Date area";
+            dateArea.insertText("Click Insert to add a date picker here", "Replace");
+            dateArea.appearance = Word.ContentControlAppearance.tags;
+
+            await context.sync();
+
+            console.log("Setup complete. Click Insert to add a date picker.");
           });
         }
 
@@ -174,7 +188,7 @@ template:
         <section>
             <h3>Try it out</h3>
             <p>
-                <span>Insert a date picker content control on the first paragraph.</span>
+                <span>Insert a date picker content control in the date area.</span>
                 <button id="insert-control">Insert</button>
             </p>
             <p>

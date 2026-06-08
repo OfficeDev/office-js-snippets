@@ -1,0 +1,278 @@
+order: 2
+id: excel-data-validation-types
+name: Data validation types
+description: Applies each Excel.DataValidationType validation rule to a cell and reads back the type. Demonstrates the seven settable types (wholeNumber, decimal, list, date, time, textLength, custom) and the three read-only status types (none, mixedCriteria, inconsistent).
+host: EXCEL
+api_set:
+    ExcelApi: '1.8'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("apply-all-types").addEventListener("click", () => tryCatch(applyAllTypes));
+        document.getElementById("get-types").addEventListener("click", () => tryCatch(getType));
+
+        async function applyAllTypes() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("Validation Types");
+
+                // Clear any existing validation on the target rows before reapplying.
+                sheet.getRange("B2:B8").dataValidation.clear();
+
+                applyWholeNumber(sheet);
+                applyDecimal(sheet);
+                applyList(sheet);
+                applyDate(sheet);
+                applyTime(sheet);
+                applyTextLength(sheet);
+                applyCustom(sheet);
+
+                await context.sync();
+                console.log("All validation types applied. Click 'Get validation types' to read them back.");
+            });
+        }
+
+        function applyWholeNumber(sheet: Excel.Worksheet) {
+            // Only integers greater than 0 are allowed.
+            const basicRule: Excel.BasicDataValidation = {
+                formula1: 0,
+                operator: Excel.DataValidationOperator.greaterThan
+            };
+            const rule: Excel.DataValidationRule = { wholeNumber: basicRule };
+            sheet.getRange("B2").dataValidation.rule = rule;
+        }
+
+        function applyDecimal(sheet: Excel.Worksheet) {
+            // Decimal values between 0 and 10 are allowed.
+            const basicRule: Excel.BasicDataValidation = {
+                formula1: 0,
+                formula2: 10,
+                operator: Excel.DataValidationOperator.between
+            };
+            const rule: Excel.DataValidationRule = { decimal: basicRule };
+            sheet.getRange("B3").dataValidation.rule = rule;
+        }
+
+        function applyList(sheet: Excel.Worksheet) {
+            // Value must be chosen from the predefined list.
+            const listRule: Excel.ListDataValidation = {
+                inCellDropDown: true,
+                source: "Apple,Banana,Cherry"
+            };
+            const rule: Excel.DataValidationRule = { list: listRule };
+            sheet.getRange("B4").dataValidation.rule = rule;
+        }
+
+        function applyDate(sheet: Excel.Worksheet) {
+            // Date must be on or after January 1, 2000.
+            const basicRule: Excel.DateTimeDataValidation = {
+                formula1: "1/1/2000",
+                operator: Excel.DataValidationOperator.greaterThanOrEqualTo
+            };
+            const rule: Excel.DataValidationRule = { date: basicRule };
+            sheet.getRange("B5").dataValidation.rule = rule;
+        }
+
+        function applyTime(sheet: Excel.Worksheet) {
+            // Time must be between 9:00 AM and 5:00 PM.
+            const basicRule: Excel.DateTimeDataValidation = {
+                formula1: "9:00 AM",
+                formula2: "5:00 PM",
+                operator: Excel.DataValidationOperator.between
+            };
+            const rule: Excel.DataValidationRule = { time: basicRule };
+            sheet.getRange("B6").dataValidation.rule = rule;
+        }
+
+        function applyTextLength(sheet: Excel.Worksheet) {
+            // Text must be 10 characters or fewer.
+            const basicRule: Excel.BasicDataValidation = {
+                formula1: 10,
+                operator: Excel.DataValidationOperator.lessThanOrEqualTo
+            };
+            const rule: Excel.DataValidationRule = { textLength: basicRule };
+            sheet.getRange("B7").dataValidation.rule = rule;
+        }
+
+        function applyCustom(sheet: Excel.Worksheet) {
+            // Custom formula: value in B8 must not duplicate any value already in B2:B7.
+            const customRule: Excel.CustomDataValidation = {
+                formula: "=COUNTIF($B$2:$B$7,B8)=0"
+            };
+            const rule: Excel.DataValidationRule = { custom: customRule };
+            sheet.getRange("B8").dataValidation.rule = rule;
+        }
+
+        async function getType() {
+            await Excel.run(async (context) => {
+                // Get the data validation type of the currently selected range.
+                const range = context.workbook.getSelectedRange();
+                range.load("address");
+                range.dataValidation.load("type");
+                await context.sync();
+
+                const validationType: Excel.DataValidationType = range.dataValidation.type as Excel.DataValidationType;
+                console.log(`Data validation type for ${range.address}: ${validationType}`);
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Validation Types").delete();
+                const sheet = context.workbook.worksheets.add("Validation Types");
+
+                const headers = sheet.getRange("A1:B1");
+                headers.values = [["Data Validation Type", "Value (try editing)"]];
+                headers.format.font.bold = true;
+
+                sheet.getRange("A2:A9").values = [
+                    ["Whole number (integer > 0)"],
+                    ["Decimal (between 0 and 10)"],
+                    ["List (Apple, Banana, or Cherry)"],
+                    ["Date (on or after 1/1/2000)"],
+                    ["Time (9:00 AM to 5:00 PM)"],
+                    ["Text length (10 characters or fewer)"],
+                    ["Custom (no duplicates in B2:B7)"],
+                    ["None (no validation applied)"]
+                ];
+
+                const mixedHeader = sheet.getRange("A10");
+                mixedHeader.values = [["Mixed criteria: B11:B12 (only B11 has validation)"]];
+                mixedHeader.format.font.bold = true;
+                sheet.getRange("A11:A12").values = [
+                    ["Whole number (> 0)"],
+                    ["No validation"]
+                ];
+
+                const inconsistentHeader = sheet.getRange("A13");
+                inconsistentHeader.values = [["Inconsistent: B14:B15 (cells have different rule types)"]];
+                inconsistentHeader.format.font.bold = true;
+                sheet.getRange("A14:A15").values = [
+                    ["Whole number (> 0)"],
+                    ["Text length (10 chars or fewer)"]
+                ];
+
+                sheet.getUsedRange().format.autofitColumns();
+                sheet.activate();
+
+                // Apply validation only to B11, leaving B12 without validation.
+                // Reading the range B11:B12 returns "mixedCriteria" because only
+                // some cells in the range have validation applied.
+                sheet.getRange("B11").dataValidation.rule = {
+                    wholeNumber: {
+                        formula1: 0,
+                        operator: Excel.DataValidationOperator.greaterThan
+                    }
+                };
+
+                // Apply different rule types to B14 and B15.
+                // Reading the range B14:B15 returns "inconsistent" because the
+                // cells have different data validation types.
+                sheet.getRange("B14").dataValidation.rule = {
+                    wholeNumber: {
+                        formula1: 0,
+                        operator: Excel.DataValidationOperator.greaterThan
+                    }
+                };
+                sheet.getRange("B15").dataValidation.rule = {
+                    textLength: {
+                        formula1: 10,
+                        operator: Excel.DataValidationOperator.lessThanOrEqualTo
+                    }
+                };
+
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample demonstrates all <b>Excel.DataValidationType</b> values by applying each rule type to a cell and reading back the type.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Click <b>Create worksheet</b> to add the worksheet and set up the conditions for the read-only types: 
+                <code>none</code> (B9 has no rule), <code>mixedCriteria</code> (B11:B12 where only B11 has a rule), and <code>inconsistent</code> (B14:B15 where the cells have different rule types).</p>
+            <button id="setup">Create worksheet</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Click <b>Apply all validation types</b> to apply a different validation rule to each labeled row, then try editing those cells in the worksheet to see each rule in action.</p>
+            <button id="apply-all-types">Apply all validation types</button>
+            <p>Select a cell or range in the worksheet, then click <b>Get validation type</b> to read its <code>DataValidationType</code> and log it to the console. 
+                Try selecting a single validated cell (e.g. B2), an unvalidated cell (B9), a mixed range (B11:B12), or an inconsistent range (B14:B15).</p>
+            <button id="get-types">Get validation type</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

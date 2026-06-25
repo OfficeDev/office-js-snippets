@@ -1,0 +1,129 @@
+order: 12
+id: excel-custom-functions-sync-conditional-format
+name: Synchronous custom function - conditional formatting
+description: Sets up sample data and a conditional format rule that uses a synchronous custom function to highlight cells exceeding a target. Import and register the "Synchronous custom function" sample first.
+host: EXCEL
+api_set:
+    ExcelApi: '1.6'
+script:
+    content: |-
+        document.getElementById("run").addEventListener("click", () => tryCatch(run));
+
+        async function run() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                // A1:A2 — label and target threshold.
+                sheet.getRange("A1").values = [["Target"]];
+                sheet.getRange("A2").values = [[70]];
+                sheet.getRange("A1:A2").format.font.bold = true;
+
+                // B1:B8 — header and sample scores.
+                sheet.getRange("B1").values = [["Score"]];
+                sheet.getRange("B1").format.font.bold = true;
+                sheet.getRange("B2:B8").values = [[45], [82], [91], [60], [78], [55], [88]];
+
+                // Apply a conditional format rule on B2:B8.
+                // The formula uses the synchronous custom function GETCELLVALUE to read
+                // the target from A2 during calculation. Scores exceeding the target
+                // are highlighted.
+                // NOTE: Replace SCRIPTLAB.SYNCHRONOUSCUSTOMFUNCTION with the namespace
+                // shown in the Custom Functions dashboard after registering the
+                // prerequisite snippet.
+                const range = sheet.getRange("B2:B8");
+                const cf = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
+                cf.custom.rule.formula =
+                    "=B2>SCRIPTLAB.SYNCHRONOUSCUSTOMFUNCTION.GETCELLVALUE(\"$A$2\")";
+                cf.custom.format.fill.color = "#FFC7CE";
+                cf.custom.format.font.color = "#9C0006";
+
+                await context.sync();
+                console.log("Done. Scores in B2:B8 that exceed the target in A2 are highlighted.");
+                console.log("Change A2 to see the conditional format update live.");
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            }
+            catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>
+                This snippet sets up sample data and applies a conditional format rule that
+                uses the <code>GETCELLVALUE</code> synchronous custom function to highlight
+                scores exceeding a target value.
+            </p>
+            <p>
+                <b>Prerequisite:</b> Import and register the
+                <i>Synchronous custom function</i> sample first via the
+                <b>Custom Functions</b> dashboard.
+            </p>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Press <b>Set up data and format</b> to populate the sheet and apply the rule.</p>
+            <button id="run">Set up data and format</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 1px 4px;
+            border-radius: 2px;
+            font-family: Consolas, monospace;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/beta/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts

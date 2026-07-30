@@ -1,100 +1,201 @@
 order: 8
 id: excel-data-types-basic-types
 name: Basic types with metadata
-description: This sample shows how to work with metadata on basic types.
+description: This sample shows how to create numbers with metadata from a sales-ticket table, where the value is the transaction total and the metadata describes the items that were purchased.
 host: EXCEL
 api_set:
     ExcelApi: '1.19'
 script:
     content: |-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
-        document.getElementById("set-basic-types-with-metadata").addEventListener("click", () => tryCatch(setBasicTypesWithMetadata));
-        document.getElementById("set-referenced-values").addEventListener("click", () => tryCatch(setReferencedValues));
-        document.getElementById("set-circular-reference-values").addEventListener("click", () => tryCatch(setCircularReferenceValues));
+        document.getElementById("create-totals-with-metadata").addEventListener("click", () => tryCatch(createTotalsWithMetadata));
+        document.getElementById("operate-on-totals").addEventListener("click", () => tryCatch(operateOnTotals));
         document.getElementById("print-to-console").addEventListener("click", () => tryCatch(printToConsole));
 
         const sheetName = "Sample";
+        const tableName = "SalesTicketsTable";
 
-        /** Add basic types with metadata to the worksheet. */
-        async function setBasicTypesWithMetadata() {
+        /** Replace each ticket total in the table with a number that carries metadata. */
+        async function createTotalsWithMetadata() {
           await Excel.run(async (context) => {
-            // Get the worksheet and target range.
             const sheet = context.workbook.worksheets.getItem(sheetName);
-            const dataRange = sheet.getRange("A1:A4");
+            const table = sheet.tables.getItem(tableName);
 
-            // Write a variety of basic types with metadata to the range.
-            dataRange.valuesAsJson = [
-              [doubleWithFormatAndMetadata],
-              [doubleWithMetadata],
-              [stringWithMetadata],
-              [booleanWithMetadata]
-            ];
+            // Get the data body range of the "Total" column.
+            const totalColumn = table.columns.getItem("Total").getDataBodyRange();
 
-            dataRange.format.autofitColumns();
+            // For each sales ticket, create a number whose value is the transaction total
+            // and whose metadata describes the items that were purchased. Unlike entity values,
+            // a number with metadata shows its numeric value in the cell (icons are off by
+            // default). That numeric value flows through calculations.
+            totalColumn.valuesAsJson = salesTickets.map((ticket) => [makeTotalWithMetadata(ticket)]);
+
+            totalColumn.format.autofitColumns();
             await context.sync();
           });
         }
 
-        /** Set basic types with metadata that reference other basic types in the worksheet. */
-        async function setReferencedValues() {
+        /** Demonstrate that numbers with metadata flow through calc by operating on the totals. */
+        async function operateOnTotals() {
           await Excel.run(async (context) => {
-            // Get the worksheet and target range.
             const sheet = context.workbook.worksheets.getItem(sheetName);
-            const targetRange = sheet.getRange("A5");
 
-            // Write a string with metadata that references other values.
-            targetRange.valuesAsJson = [
-              [stringWithReferencedValues]
+            // Because a number with metadata behaves like an ordinary number in calculations,
+            // formulas can reference the totals directly. The numeric value flows through the grid
+            // while the item metadata stays attached to each source cell.
+            const summaryRange = sheet.getRange("E1:F3");
+            summaryRange.formulas = [
+              ["Subtotal", "=SUM(SalesTicketsTable[Total])"],
+              ["Sales tax (8%)", "=F1 * 0.08"],
+              ["Grand total", "=F1 + F2"]
             ];
-            targetRange.format.autofitColumns();
 
-            await context.sync();
-          });
-        }
-
-        /** Set basic types with metadata that contain circular references. */
-        async function setCircularReferenceValues() {
-          await Excel.run(async (context) => {
-            // Get the worksheet and target range.
-            const sheet = context.workbook.worksheets.getItem(sheetName);
-            const targetRange = sheet.getRange("A6");
-
-            // Write a string with metadata that contains circular references.
-            targetRange.valuesAsJson = [
-              [stringWithCircularReferences]
-            ];
-            targetRange.format.autofitColumns();
+            sheet.getRange("E1:E3").format.font.bold = true;
+            sheet.getRange("F1:F3").numberFormat = [["$#,##0.00"], ["$#,##0.00"], ["$#,##0.00"]];
+            sheet.getRange("E:F").format.autofitColumns();
 
             await context.sync();
           });
         }
 
-        /** Get and log information about the basic types in the worksheet. */
+        /** Get and log the totals and their metadata. */
         async function printToConsole() {
           await Excel.run(async (context) => {
-            // Get the worksheet and target range.
             const sheet = context.workbook.worksheets.getItem(sheetName);
-            const dataRange = sheet.getRange("A1:A6");
+            const totalColumn = sheet.tables.getItem(tableName).columns.getItem("Total").getDataBodyRange();
 
-            // Load the data type property of the range.
-            dataRange.load("valuesAsJson");
+            // Load the JSON representation of the numbers, including their metadata.
+            totalColumn.load("valuesAsJson");
             await context.sync();
 
-            const dataValues = dataRange.valuesAsJson;
-
-            // Print information about the data types to the console.
-            console.log("Basic types as an array:", dataValues);
+            console.log("Totals as numbers with metadata:", totalColumn.valuesAsJson);
           });
         }
 
-        /** Set up Sample worksheet. */ 
+        /** Create a number with metadata whose value is the ticket total and whose metadata describes the purchased items. */
+        function makeTotalWithMetadata(ticket: SalesTicket): Excel.DoubleCellValue {
+          // The value of the number is the total of the transaction.
+          const total = ticket.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+
+          // The metadata belongs to the value and describes it. Here it captures the ticket
+          // details and each item that was purchased.
+          const properties: { [key: string]: Excel.CellValue } = {
+            "Ticket ID": {
+              type: Excel.CellValueType.string,
+              basicValue: ticket.ticketId
+            },
+            "Date": {
+              type: Excel.CellValueType.string,
+              basicValue: ticket.date
+            }
+          };
+
+          // Add each purchased item as a nested entity and track the property names for the card.
+          const itemPropertyNames: string[] = [];
+          ticket.items.forEach((item, index) => {
+            const propertyName = `Item ${index + 1}`;
+            properties[propertyName] = makeItemEntity(item);
+            itemPropertyNames.push(propertyName);
+          });
+
+          const totalWithMetadata: Excel.DoubleCellValue = {
+            type: Excel.CellValueType.double,
+            basicType: Excel.CellValueType.double,
+            basicValue: total,
+            numberFormat: "$* #,##0.00",
+            properties: properties,
+            // Customize how the metadata is displayed with a data type card. Note that no
+            // compact icon is set. For basic types with metadata, unlike entity values, 
+            // the cell shows the value itself rather than an icon (icons are off by default).
+            layouts: {
+              card: {
+                title: "Sales ticket total",
+                sections: [
+                  {
+                    layout: "List",
+                    title: "Ticket",
+                    properties: ["Ticket ID", "Date"]
+                  },
+                  {
+                    layout: "List",
+                    title: "Items purchased",
+                    collapsible: true,
+                    collapsed: false,
+                    properties: itemPropertyNames
+                  }
+                ]
+              }
+            }
+          };
+
+          return totalWithMetadata;
+        }
+
+        /** Create an entity that describes a single purchased item. */
+        function makeItemEntity(item: TicketItem): Excel.EntityCellValue {
+          const lineTotal = item.quantity * item.unitPrice;
+          return {
+            type: Excel.CellValueType.entity,
+            text: item.name,
+            properties: {
+              "Item": {
+                type: Excel.CellValueType.string,
+                basicValue: item.name
+              },
+              "Quantity": {
+                type: Excel.CellValueType.double,
+                basicValue: item.quantity
+              },
+              "Unit price": {
+                type: Excel.CellValueType.formattedNumber,
+                basicValue: item.unitPrice,
+                numberFormat: "$* #,##0.00"
+              },
+              "Line total": {
+                type: Excel.CellValueType.formattedNumber,
+                basicValue: lineTotal,
+                numberFormat: "$* #,##0.00"
+              }
+            },
+            // Nested items are entity values, so they display an icon in the card.
+            layouts: {
+              compact: {
+                icon: Excel.EntityCompactLayoutIcons.shoppingBag
+              },
+              card: {
+                title: { property: "Item" },
+                sections: [
+                  {
+                    layout: "List",
+                    properties: ["Quantity", "Unit price", "Line total"]
+                  }
+                ]
+              }
+            }
+          };
+        }
+
+        /** Set up the Sample worksheet with a sales-ticket table. */
         async function setup() {
           await Excel.run(async (context) => {
             // Create a new worksheet and activate it.
             context.workbook.worksheets.getItemOrNullObject(sheetName).delete();
             const sheet = context.workbook.worksheets.add(sheetName);
+
+            // Add a table where each row represents a sales ticket. The "Total" column starts
+            // empty and is later filled with numbers that carry metadata.
+            const table = sheet.tables.add("A1:C1", true /*hasHeaders*/);
+            table.name = tableName;
+            table.getHeaderRowRange().values = [["Total", "TicketID", "Date"]];
+
+            table.rows.add(
+              null /*add at the end*/,
+              salesTickets.map((ticket) => [null, ticket.ticketId, ticket.date])
+            );
+
+            sheet.getUsedRange().format.autofitColumns();
             sheet.activate();
-            
+
             await context.sync();
           });
         }
@@ -109,226 +210,75 @@ script:
           }
         }
 
-        /** Basic string value with metadata. */
-        const basicStringValue: Excel.StringCellValue = {
-          type: Excel.CellValueType.string,
-          basicType: Excel.CellValueType.string,
-          basicValue: "This is a basic string value"
-        };
+        /** A single item on a sales ticket. */
+        interface TicketItem {
+          name: string;
+          quantity: number;
+          unitPrice: number;
+        }
 
-        /** Basic double value with metadata. */
-        const basicDoubleValue: Excel.DoubleCellValue = {
-          type: Excel.CellValueType.double,
-          basicType: Excel.CellValueType.double,
-          basicValue: 10
-        };
+        /** A sales ticket made up of one or more purchased items. */
+        interface SalesTicket {
+          ticketId: string;
+          date: string;
+          items: TicketItem[];
+        }
 
-        /** Basic boolean value with metadata. */
-        const basicBooleanValue: Excel.BooleanCellValue = {
-          type: Excel.CellValueType.boolean,
-          basicType: Excel.CellValueType.boolean,
-          basicValue: true
-        };
-
-        /** Web image cell value. */
-        const imageCellValue: Excel.WebImageCellValue = {
-          type: "WebImage",
-          basicType: "Error",
-          basicValue: "#VALUE!",
-          address: "https://github.com/OfficeDev/office-js-snippets/blob/main/.github/images/microsoft-logo.png?raw=true",
-        };
-
-        /** Basic view layout with icon for card and compact views. */
-        const basicViewLayoutWithIcon: Excel.BasicViewLayouts = {
-          card: {
-            title: "This is the title",
-            sections: [
-              {
-                layout: "List",
-                properties: ["stringProperty", "booleanProperty", "doubleProperty"],
-                collapsed: false,
-                collapsible: true
-              }
-            ],
-            subTitle: {
-              property: "stringProperty"
-            },
-            mainImage: {
-              property: "imageProperty"
-            }
+        /** Sample sales-ticket data. */
+        const salesTickets: SalesTicket[] = [
+          {
+            ticketId: "T-1001",
+            date: "2026-07-01",
+            items: [
+              { name: "Coffee beans (1 lb)", quantity: 2, unitPrice: 14.5 },
+              { name: "Ceramic mug", quantity: 4, unitPrice: 9.75 },
+              { name: "Pour-over filter", quantity: 1, unitPrice: 6.25 }
+            ]
           },
-          compact: {
-            icon: Excel.EntityCompactLayoutIcons.animalDog
+          {
+            ticketId: "T-1002",
+            date: "2026-07-02",
+            items: [
+              { name: "Espresso machine", quantity: 1, unitPrice: 249.99 },
+              { name: "Milk frother", quantity: 1, unitPrice: 34.5 }
+            ]
+          },
+          {
+            ticketId: "T-1003",
+            date: "2026-07-03",
+            items: [
+              { name: "Tea sampler", quantity: 3, unitPrice: 18.0 },
+              { name: "Honey jar", quantity: 2, unitPrice: 7.25 },
+              { name: "Travel tumbler", quantity: 1, unitPrice: 21.0 },
+              { name: "Gift box", quantity: 1, unitPrice: 4.5 }
+            ]
           }
-        };
-
-        /** Simple view layout without icon. */
-        const basicViewLayoutSimple: Excel.BasicViewLayouts = {
-          card: {
-            title: "This is the title",
-            subTitle: {
-              property: "stringProperty"
-            }
-          }
-        };
-
-        /** Cell value provider attributes for data source attribution. */
-        const cellValueProvider: Excel.CellValueProviderAttributes = {
-          description: "Microsoft Bing",
-          logoSourceAddress: "https://github.com/OfficeDev/office-js-snippets/blob/main/.github/images/microsoft-logo.png?raw=true",
-          logoTargetAddress: "http://microsoft.com"
-        };
-
-        /** Double value with formatting and metadata. */
-        const doubleWithFormatAndMetadata: Excel.DoubleCellValue = {
-          type: Excel.CellValueType.double,
-          basicType: Excel.CellValueType.double,
-          basicValue: 300,
-          numberFormat: "$0.00",
-          properties: {
-            stringProperty: basicStringValue,
-            booleanProperty: basicBooleanValue,
-            doubleProperty: basicDoubleValue,
-            imageProperty: imageCellValue
-          },
-          layouts: basicViewLayoutWithIcon,
-          provider: cellValueProvider
-        };
-
-        /** Double value with metadata but no special formatting. */
-        const doubleWithMetadata: Excel.DoubleCellValue = {
-          type: Excel.CellValueType.double,
-          basicType: Excel.CellValueType.double,
-          basicValue: 123.45,
-          properties: {
-            stringProperty: basicStringValue,
-            booleanProperty: basicBooleanValue,
-            doubleProperty: basicDoubleValue,
-            imageProperty: imageCellValue
-          },
-          layouts: basicViewLayoutSimple,
-          provider: cellValueProvider
-        };
-
-        /** String value with metadata. */
-        const stringWithMetadata: Excel.StringCellValue = {
-          type: Excel.CellValueType.string,
-          basicType: Excel.CellValueType.string,
-          basicValue: "String with metadata",
-          properties: {
-            stringProperty: basicStringValue,
-            booleanProperty: basicBooleanValue,
-            doubleProperty: basicDoubleValue,
-            imageProperty: imageCellValue
-          },
-          layouts: basicViewLayoutWithIcon,
-          provider: cellValueProvider
-        };
-
-        /** Boolean value with metadata. */
-        const booleanWithMetadata: Excel.BooleanCellValue = {
-          type: Excel.CellValueType.boolean,
-          basicType: Excel.CellValueType.boolean,
-          basicValue: true,
-          properties: {
-            stringProperty: basicStringValue,
-            booleanProperty: basicBooleanValue,
-            doubleProperty: basicDoubleValue,
-            imageProperty: imageCellValue
-          },
-          layouts: basicViewLayoutSimple,
-          provider: cellValueProvider
-        };
-
-        /** String with metadata that references other values. */
-        const stringWithReferencedValues = {
-          type: Excel.CellValueType.string,
-          basicType: Excel.CellValueType.string,
-          basicValue: "String with referenced values",
-          properties: {
-            stringProperty: {
-              type: Excel.CellValueType.reference,
-              reference: 0
-            },
-            booleanProperty: {
-              type: Excel.CellValueType.reference,
-              reference: 1
-            },
-            doubleWithFormatProperty: {
-              type: Excel.CellValueType.reference,
-              reference: 2
-            },
-            doubleProperty: {
-              type: Excel.CellValueType.reference,
-              reference: 3
-            }
-          },
-          referencedValues: [stringWithMetadata, booleanWithMetadata, doubleWithFormatAndMetadata, doubleWithMetadata],
-          layouts: {
-            compact: {
-              icon: Excel.EntityCompactLayoutIcons.apple
-            }
-          }
-        } as Excel.CellValue;
-
-        /** String with metadata that contains circular references. */
-        const stringWithCircularReferences = {
-          type: Excel.CellValueType.string,
-          basicType: Excel.CellValueType.string,
-          basicValue: "String with circular references",
-          properties: {
-            doubleProperty: {
-              type: Excel.CellValueType.double,
-              basicType: Excel.CellValueType.double,
-              basicValue: 10,
-              properties: {
-                stringProperty: basicStringValue,
-                doubleProperty: basicDoubleValue,
-                booleanProperty: basicBooleanValue,
-                rootProperty: {
-                  type: Excel.CellValueType.reference,
-                  reference: 0
-                }
-              },
-              referencedValues: [
-                {
-                  type: Excel.ReferenceValueType.root
-                }
-              ]
-            }
-          },
-          layouts: {
-            compact: {
-              icon: Excel.EntityCompactLayoutIcons.animalTurtle
-            }
-          }
-        } as Excel.CellValue;
+        ];
     language: typescript
 template:
     content: |-
         <section>
-            <p>This sample shows how to create basic types with metadata and then work with those basic types.</p>
+            <p>This sample demonstrates how a sales-ticket table can use <strong>numbers with metadata</strong>. The <strong>value</strong> of each "Total" cell is the ticket total, while the <strong>metadata</strong> describes the items that were purchased. Unlike entity values, numbers with metadata show their value in the cell and flow through calculations.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
-            <button id="setup">Add worksheet</button>
+            <button id="setup">Add sales-ticket table</button>
         </section>
         <section>
             <h3>Try it out</h3>
-            <p>Add basic types to the worksheet. Select the icon in each cell to see a data type card with metadata.</p>
-            <button id="set-basic-types-with-metadata">Create basic types with metadata</button>
+            <p>Add ticket totals that carry metadata. The cell shows the total.</p>
+            <button id="create-totals-with-metadata">Create totals with metadata</button>
         </section>
         <section>
-            <p>Add a basic type with referenced values. Open the data type card to see other values in the worksheet that this basic type references&mdash;it references cells <strong>A1</strong>, <strong>A2</strong>, <strong>A3</strong>, and <strong>A4</strong>.</p>
-            <button id="set-referenced-values">Create basic type with referenced values</button>
+          <p>Open the data type card to reveal the purchased items that make up that total. Right-click on a cell in the "Total" column and select <b>Show Data Type Card</b> to see the details.</p>
         </section>
         <section>
-            <p>Add a basic type with circular references. Open the data type card and select the <strong>doubleProperty</strong> to see the circular references.</p>
-            <button id="set-circular-reference-values">Create basic type with circular references</button>
+            <p>Add a subtotal, sales tax, and grand total that reference the ticket totals. The item metadata stays attached to each ticket.</p>
+            <button id="operate-on-totals">Operate on the totals</button>
         </section>
         <section>
-            <p>Print information about each of your basic types to the console.</p>
-            <button id="print-to-console">Print basic types to console</button>
+            <p>Print the totals and their metadata to the console.</p>
+            <button id="print-to-console">Print totals to console</button>
         </section>
     language: html
 style:

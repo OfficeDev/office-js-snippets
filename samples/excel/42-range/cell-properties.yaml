@@ -1,33 +1,36 @@
 order: 6
 id: excel-range-cell-properties
-name: Get and set cell properties
-description: Sets different properties across a range then retrieves those properties.
+name: Cell properties
+description: Sets cell properties, gets directly applied properties, and gets displayed properties.
 author: OfficeDev
 host: EXCEL
 api_set:
-    ExcelApi: '1.9'
+    ExcelApi: '1.19'
 script:
     content: |-
         document.getElementById("set-cell-properties").addEventListener("click", () => tryCatch(setCellProperties));
+        document.getElementById("set-rich-text-properties").addEventListener("click", () => tryCatch(setRichTextProperties));
+        document.getElementById("set-hyperlink-properties").addEventListener("click", () => tryCatch(setHyperlinkProperties));
+        document.getElementById("set-detailed-format-properties").addEventListener("click", () => tryCatch(setDetailedFormatProperties));
         document.getElementById("get-cell-properties").addEventListener("click", () => tryCatch(getCellProperties));
+        document.getElementById("get-displayed-cell-properties").addEventListener("click", () => tryCatch(getDisplayedCellProperties));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
         async function setCellProperties() {
             await Excel.run(async (context) => {
                 const sheet = context.workbook.worksheets.getActiveWorksheet();
 
-                // Creating the SettableCellProperties objects to use for the range.
-                // In your add-in, these should be created once, outside the function.
+                // Create the SettableCellProperties objects for the range.
+                // Create these objects once, outside the function, in your add-in.
                 const topHeaderProps: Excel.SettableCellProperties = {
-                    // The style property takes a string matching the name of an Excel style.
-                    // Built-in style names are listed in the `BuiltInStyle` enum.
-                    // Note that a style will overwrite any formatting,
-                    // so do not use the format property with the style property.
-                    style: "Heading1"
+                    // Set the style property to the name of an Excel style.
+                    // The `BuiltInStyle` enum lists the built-in style names.
+                    // A style overwrites formatting, so don't use style and format in the same object.
+                    style: Excel.BuiltInStyle.heading1
                 };
 
                 const headerProps: Excel.SettableCellProperties = {
-                    // Any subproperties of format that are not set will not be changed when these cell properties are set.
+                    // Setting these cell properties doesn't change unspecified format subproperties.
                     format: {
                         fill: {
                             color: "Blue"
@@ -66,13 +69,14 @@ script:
                             top: {
                                 style: Excel.BorderLineStyle.continuous
                             }
-                        }
+                        },
+                        horizontalAlignment: Excel.HorizontalAlignment.center
                     }
                 };
 
                 const range = sheet.getRange("A1:E5");
 
-                // You can use empty JSON objects to avoid changing a cell's properties.
+                // Use empty JSON objects to leave a cell's properties unchanged.
                 range.setCellProperties([
                     [topHeaderProps, {}, {}, {}, {}],
                     [{}, {}, headerProps, headerProps, headerProps],
@@ -86,29 +90,151 @@ script:
             });
         }
 
+        async function setRichTextProperties() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                const textRunFormats: Excel.RangeTextRun[] = [
+                    {
+                        text: "Rich ",
+                        font: {
+                            bold: true,
+                            color: "#C00000",
+                            size: 14
+                        }
+                    },
+                    {
+                        text: "text",
+                        font: {
+                            color: "#4472C4",
+                            italic: true,
+                            underline: Excel.RangeUnderlineStyle.single
+                        }
+                    }
+                ]
+                const richTextProps: Excel.SettableCellProperties = {
+                    textRuns: textRunFormats
+                };
+
+                sheet.getRange("A7").setCellProperties([[richTextProps]]);
+                await context.sync();
+            });
+        }
+
+        async function setHyperlinkProperties() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                const hyperlinkDetails: Excel.RangeHyperlink = {
+                    address: "https://learn.microsoft.com/office/dev/add-ins/excel/excel-add-ins-ranges-set-get-values",
+                    screenTip: "Learn about working with ranges.",
+                    textToDisplay: "Range documentation",
+                };
+                const hyperlinkProps: Excel.SettableCellProperties = {
+                    hyperlink: hyperlinkDetails
+                };
+
+                sheet.getRange("B7").setCellProperties([[hyperlinkProps]]);
+                await context.sync();
+            });
+        }
+
+        async function setDetailedFormatProperties() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+                const detailedFormatProps: Excel.SettableCellProperties = {
+                    format: {
+                        borders: {
+                            diagonalDown: {
+                                color: "#C00000",
+                                style: Excel.BorderLineStyle.dash,
+                                weight: Excel.BorderWeight.medium
+                            }
+                        },
+                        fill: {
+                            color: "#D9EAF7",
+                            pattern: Excel.FillPattern.lightDown,
+                            patternColor: "#4472C4"
+                        },
+                        font: {
+                            bold: true,
+                            color: "#1F1F1F",
+                            name: "Arial",
+                            size: 12
+                        },
+                        horizontalAlignment: Excel.HorizontalAlignment.center,
+                        protection: {
+                            formulaHidden: false,
+                            locked: false
+                        },
+                        textOrientation: 15,
+                        verticalAlignment: Excel.VerticalAlignment.center,
+                        wrapText: true
+                    }
+                };
+
+                const cell = sheet.getRange("C7");
+                cell.setCellProperties([[detailedFormatProps]]);
+                cell.format.rowHeight = 45;
+                await context.sync();
+            });
+        }
+
         async function getCellProperties() {
             await Excel.run(async (context) => {
                 const cell = context.workbook.getActiveCell();
 
-                // Define the cell properties to get by setting the matching LoadOptions to true.
-                const propertiesToGet = cell.getCellProperties({
+                // Get only the properties requested in this load-options object.
+                const propertiesToGet: Excel.CellPropertiesLoadOptions = {
                     address: true,
                     format: {
                         fill: {
                             color: true
                         },
                         font: {
+                            bold: true,
                             color: true
                         }
                     },
                     style: true
-                });
+                };
+                const cellProperties = cell.getCellProperties(propertiesToGet);
 
-                // Sync to get the data from the workbook.
                 await context.sync();
-                const cellProperties = propertiesToGet.value[0][0];
-                console.log(
-                    `Address: ${cellProperties.address}\nStyle: ${cellProperties.style}\nFill Color: ${cellProperties.format.fill.color}\nFont Color: ${cellProperties.format.font.color}`);
+                console.log(JSON.stringify(cellProperties.value[0][0], null, 2));
+            });
+        }
+
+        async function getDisplayedCellProperties() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getActiveWorksheet();
+                const cell = sheet.getRange("D3");
+                const propertiesToGet: Excel.CellPropertiesLoadOptions = {
+                    address: true,
+                    format: {
+                        fill: {
+                            color: true
+                        },
+                        font: {
+                            bold: true,
+                            color: true
+                        },
+                    },
+                    style: true
+                };
+
+                // Direct properties exclude formatting inherited from styles or conditional formatting.
+                const directProperties = cell.getCellProperties(propertiesToGet);
+                // Displayed properties include formatting inherited from styles or conditional formatting.
+                const displayedProperties = cell.getDisplayedCellProperties(propertiesToGet);
+
+                await context.sync();
+
+                console.log("Direct properties:");
+                console.log(JSON.stringify(directProperties.value[0][0], null, 2));
+                console.log("Displayed properties (including conditional formatting):");
+                console.log(JSON.stringify(displayedProperties.value[0][0], null, 2));
             });
         }
 
@@ -122,12 +248,27 @@ script:
                     [" ", " ", "SEA", "POR", "VAN"],
                     [" ", "SEA", "N/A", -1, 2],
                     [" ", "POR", 1, "N/A", 4],
-                    [" ", "VAN", -2, -4, "N/A"]
+                    [" ", "VAN", -2, -4, "N/A"],
+                    [" ", " ", " ", " ", " "],
+                    ["Rich text", "Hyperlink", "Detailed formatting", " ", " "]
                 ];
 
-                const range = sheet.getRange("A1:E5");
+                const range = sheet.getRange("A1:E7");
                 range.values = data;
 
+                // Conditional formatting displays negative scores with a red fill and white font.
+                // getDisplayedCellProperties includes this formatting, while getCellProperties doesn't.
+                const scoreRange = sheet.getRange("C3:E5");
+                const negativeScoreFormat = scoreRange.conditionalFormats.add(Excel.ConditionalFormatType.cellValue);
+                negativeScoreFormat.cellValue.rule = {
+                    formula1: "=0",
+                    operator: Excel.ConditionalCellValueOperator.lessThan
+                };
+                negativeScoreFormat.cellValue.format.fill.color = "#C00000";
+                negativeScoreFormat.cellValue.format.font.bold = true;
+                negativeScoreFormat.cellValue.format.font.color = "White";
+
+                range.format.autofitColumns();
                 sheet.activate();
                 await context.sync();
             });
@@ -146,17 +287,25 @@ script:
 template:
     content: |-
         <section>
-          <p>This sample shows how to format a range.</p>
+          <p>This sample sets different properties for each cell in a range and compares directly applied properties with displayed properties.</p>
         </section>
         <section class="setup">
           <h3>Set up</h3>
           <button id="setup">Add sample data</button>
         </section>
         <section>
-          <h3>Try it out</h3>
-          <button id="set-cell-properties">Set cell properties</button><p>
-          <p>Select a cell and press the following button to display some of the cell properties.</p>
+          <h3>Set properties</h3>
+          <button id="set-cell-properties">Set properties across a range</button>
+          <button id="set-rich-text-properties">Set rich text properties</button>
+          <button id="set-hyperlink-properties">Set hyperlink properties</button>
+          <button id="set-detailed-format-properties">Set detailed format properties</button>
+        </section>
+        <section>
+          <h3>Get properties</h3>
+          <p>Select any cell to log its directly applied properties.</p>
           <button id="get-cell-properties">Get selected cell properties</button>
+          <p>Compare the direct and displayed formatting of D3, which has conditional formatting.</p>
+          <button id="get-displayed-cell-properties">Compare direct and displayed properties</button>
         </section>
     language: html
 style:

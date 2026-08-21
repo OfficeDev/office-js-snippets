@@ -190,6 +190,9 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockBorders = {
     items: [mockBorder],
+    load: jest.fn(),
+  };
+
   const mockThreeDimensionalFormat = {
     isVisible: false,
     bevelTopType: 'none',
@@ -205,6 +208,7 @@ export function createWordMock(options: WordMockOptions = {}) {
       bold: false,
       threeDimensionalFormat: mockThreeDimensionalFormat,
     },
+    borders: mockBorders,
     load: jest.fn(),
     getText: jest.fn(() => mockTextValue),
   };

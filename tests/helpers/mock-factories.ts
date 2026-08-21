@@ -73,6 +73,9 @@ export function createOfficeCommonApiMock() {
       Compressed: 'compressed',
     },
     context: {
+      requirements: {
+        isSetSupported: jest.fn(() => true),
+      },
       document: {
         getSelectedDataAsync: jest.fn(
           (coercionType: any, optionsOrCallback?: any, callback?: Function) => {
@@ -177,9 +180,21 @@ export function createWordMock(options: WordMockOptions = {}) {
     value: paragraphText,
   };
 
+  const mockThreeDimensionalFormat = {
+    isVisible: false,
+    bevelTopType: 'none',
+    bevelTopDepth: 0,
+    bevelTopInset: 0,
+    load: jest.fn(),
+  };
+
   const mockParagraph = {
     text: paragraphText,
-    font: { color: '', bold: false },
+    font: {
+      color: '',
+      bold: false,
+      threeDimensionalFormat: mockThreeDimensionalFormat,
+    },
     load: jest.fn(),
     getText: jest.fn(() => mockTextValue),
   };
@@ -351,6 +366,18 @@ export function createWordMock(options: WordMockOptions = {}) {
   wordMockObject.CoauthoringLockType = {
     reservation: 'reservation',
     ephemeral: 'ephemeral',
+  };
+
+  wordMockObject.BevelType = {
+    circle: 'circle',
+  };
+
+  wordMockObject.InsertLocation = {
+    before: 'Before',
+    after: 'After',
+    start: 'Start',
+    end: 'End',
+    replace: 'Replace',
   };
 
   return {

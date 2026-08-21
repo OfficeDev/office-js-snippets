@@ -287,6 +287,7 @@ async function runSnippetTest(snippet: TestSnippet, consoleErrorSpy?: jest.SpyIn
       }
       case 'WORD': {
         const wordMock = createWordMock();
+        (global as any).Office = createOfficeCommonApiMock();
         (global as any).Word = wordMock.mockObject;
         break;
       }

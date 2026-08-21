@@ -274,10 +274,9 @@ function requiresUserInput(snippet: TestSnippet): boolean {
  */
 async function runSnippetTest(snippet: TestSnippet, consoleErrorSpy?: jest.SpyInstance) {
   const buttonHandlers = new Map<string, Function>();
+  (global as any).Office = createOfficeCommonApiMock();
 
-  if (usesCommonApi(snippet)) {
-    (global as any).Office = createOfficeCommonApiMock();
-  } else {
+  if (!usesCommonApi(snippet)) {
     const host = snippet.host?.toUpperCase();
     switch (host) {
       case 'EXCEL': {

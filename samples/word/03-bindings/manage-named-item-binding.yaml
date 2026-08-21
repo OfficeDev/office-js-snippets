@@ -1,26 +1,27 @@
-order: 1
-id: word-document-manage-bindings
-name: Manage a selection binding
-description: Creates and manages a text binding from the current selection in Word using the Common APIs.
+order: 2
+id: word-bindings-manage-named-item-binding
+name: Manage a named item binding
+description: Creates and manages a text binding from a named item in Word using the Common APIs.
 author: OfficeDev
 host: WORD
 api_set:
     WordApi: '1.1'
 script:
     content: |-
-        const bindingId = "word-selection-binding";
+        const bindingId = "word-named-item-binding";
+        const namedItemTitle = "BindingSampleContentControl";
 
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
-        document.getElementById("add-binding").addEventListener("click", addBindingFromSelection);
+        document.getElementById("add-binding").addEventListener("click", addBindingFromNamedItem);
         document.getElementById("read-binding").addEventListener("click", readBinding);
         document.getElementById("write-binding").addEventListener("click", writeBinding);
-        document.getElementById("get-all-bindings").addEventListener("click", getAllBindings);
         document.getElementById("release-binding").addEventListener("click", releaseBinding);
 
-        function addBindingFromSelection() {
-            // Creates a text binding from the current selection.
-            const options: Office.AddBindingFromSelectionOptions = { id: bindingId };
-            Office.context.document.bindings.addFromSelectionAsync(
+        function addBindingFromNamedItem() {
+            // Creates a text binding from the title of a Rich Text content control.
+            const options: Office.AddBindingFromNamedItemOptions = { id: bindingId };
+            Office.context.document.bindings.addFromNamedItemAsync(
+                namedItemTitle,
                 Office.BindingType.Text,
                 options,
                 (asyncResult) => {
@@ -81,26 +82,6 @@ script:
             });
         }
 
-        function getAllBindings() {
-            // Gets all bindings in the document.
-            Office.context.document.bindings.getAllAsync((asyncResult) => {
-                if (asyncResult.status === Office.AsyncResultStatus.Failed) {
-                    console.error(asyncResult.error.message);
-                    return;
-                }
-
-                if (asyncResult.value.length === 0) {
-                    console.log("There are no bindings in this document.");
-                    return;
-                }
-
-                console.log("Bindings in this document:");
-                asyncResult.value.forEach((binding) => {
-                    console.log(`- ID: "${binding.id}", type: "${binding.type}"`);
-                });
-            });
-        }
-
         function releaseBinding() {
             // Removes the binding with the specified ID from the document.
             Office.context.document.bindings.releaseByIdAsync(bindingId, (asyncResult) => {
@@ -114,15 +95,16 @@ script:
         }
 
         async function setup() {
-            // Clears the document, inserts sample text, and selects the text.
+            // Clears the document and inserts a titled Rich Text content control.
             await Word.run(async (context) => {
                 const body: Word.Body = context.document.body;
                 body.clear();
                 const sampleText = body.insertParagraph(
-                    "This sample text can be accessed through a binding.",
+                    "This content control can be accessed through a named item binding.",
                     Word.InsertLocation.start
                 );
-                sampleText.select();
+                const contentControl = sampleText.insertContentControl(Word.ContentControlType.richText);
+                contentControl.title = namedItemTitle;
                 await context.sync();
             });
         }
@@ -140,24 +122,22 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample creates and manages a text binding from the current selection with the common Office JavaScript API.</p>
+            <p>This sample creates and manages a text binding from a named item with the common Office JavaScript API. In Word, a named item is the title of a Rich Text content control.</p>
         </section>
         <section>
             <h3>Set up</h3>
-            <p>Insert sample text into the document and select it.</p>
+            <p>Insert a titled Rich Text content control into the document.</p>
             <button id="setup">Set up</button>
         </section>
         <section>
             <h3>Try it out</h3>
-            <p>Create a binding to the selected text.</p>
-            <button id="add-binding">Create binding from selection</button>
+            <p>Create a binding to the titled Rich Text content control.</p>
+            <button id="add-binding">Create binding from named item</button>
             <p>Read the text in the binding.</p>
             <button id="read-binding">Read bound text</button>
             <p>Replace the text in the binding.</p>
-            <input id="binding-text" type="text" value="Text written through the binding.">
+            <input id="binding-text" type="text" value="Text written through the named item binding.">
             <button id="write-binding">Replace bound text</button>
-            <p>List all bindings created by this add-in in the document.</p>
-            <button id="get-all-bindings">Get all bindings</button>
             <p>Release the binding when you're finished.</p>
             <button id="release-binding">Release binding</button>
         </section>

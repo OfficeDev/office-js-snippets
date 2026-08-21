@@ -84,8 +84,16 @@ script:
                     cell that does not match the other two criteria always gets the low
                     icon.            
                 */
+                
+                const lowIcon: Excel.Icon = {
+                    set: Excel.IconSet.threeFlags,
+                    index: 0
+                };
+
                 iconSetCF.criteria = [
-                    {} as any,
+                    {
+                        customIcon: lowIcon
+                    } as Excel.ConditionalIconCriterion,
                     {
                         type: Excel.ConditionalFormatIconRuleType.number,
                         operator: Excel.ConditionalIconCriterionOperator.greaterThanOrEqual,
@@ -98,6 +106,15 @@ script:
                     }
                 ];
 
+                // Get the set and index of the top icon.
+                iconSetCF.load("criteria");
+
+                await context.sync();
+                const topIcon: Excel.Icon = iconSetCF.criteria[2].icon;
+                console.log(
+                    `Top icon: set=${topIcon.set}, index=${topIcon.index}`
+                );
+                
                 await context.sync();
             });
         }

@@ -1,0 +1,200 @@
+order: 2
+id: word-bindings-manage-named-item-binding
+name: Manage a named item binding
+description: Creates and manages a text binding from a named item in Word using the Common APIs.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.1'
+script:
+    content: |-
+        const bindingId = "word-named-item-binding";
+        const namedItemTitle = "BindingSampleContentControl";
+
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("add-binding").addEventListener("click", addBindingFromNamedItem);
+        document.getElementById("read-binding").addEventListener("click", readBinding);
+        document.getElementById("write-binding").addEventListener("click", writeBinding);
+        document.getElementById("release-binding").addEventListener("click", releaseBinding);
+
+        function addBindingFromNamedItem() {
+            // Creates a text binding from the title of a Rich Text content control.
+            const options: Office.AddBindingFromNamedItemOptions = { id: bindingId };
+            Office.context.document.bindings.addFromNamedItemAsync(
+                namedItemTitle,
+                Office.BindingType.Text,
+                options,
+                (asyncResult) => {
+                    if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+                        console.error(asyncResult.error.message);
+                        return;
+                    }
+
+                    console.log(`Created binding "${asyncResult.value.id}" of type "${asyncResult.value.type}".`);
+                }
+            );
+        }
+
+        function readBinding() {
+            // Gets the binding by ID and reads its text.
+            Office.context.document.bindings.getByIdAsync(bindingId, (bindingResult) => {
+                if (bindingResult.status === Office.AsyncResultStatus.Failed) {
+                    console.error(bindingResult.error.message);
+                    return;
+                }
+
+                bindingResult.value.getDataAsync<string>(
+                    { coercionType: Office.CoercionType.Text },
+                    (dataResult) => {
+                        if (dataResult.status === Office.AsyncResultStatus.Failed) {
+                            console.error(dataResult.error.message);
+                            return;
+                        }
+
+                        console.log(`The bound text is "${dataResult.value}".`);
+                    }
+                );
+            });
+        }
+
+        function writeBinding() {
+            // Gets the binding by ID and replaces its text.
+            const text = (document.getElementById("binding-text") as HTMLInputElement).value;
+
+            Office.context.document.bindings.getByIdAsync(bindingId, (bindingResult) => {
+                if (bindingResult.status === Office.AsyncResultStatus.Failed) {
+                    console.error(bindingResult.error.message);
+                    return;
+                }
+
+                bindingResult.value.setDataAsync(
+                    text,
+                    { coercionType: Office.CoercionType.Text },
+                    (dataResult) => {
+                        if (dataResult.status === Office.AsyncResultStatus.Failed) {
+                            console.error(dataResult.error.message);
+                            return;
+                        }
+
+                        console.log("Replaced the bound text.");
+                    }
+                );
+            });
+        }
+
+        function releaseBinding() {
+            // Removes the binding with the specified ID from the document.
+            Office.context.document.bindings.releaseByIdAsync(bindingId, (asyncResult) => {
+                if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+                    console.error(asyncResult.error.message);
+                    return;
+                }
+
+                console.log(`Released binding "${bindingId}".`);
+            });
+        }
+
+        async function setup() {
+            // Clears the document and inserts a titled Rich Text content control.
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                const sampleText = body.insertParagraph(
+                    "This content control can be accessed through a named item binding.",
+                    Word.InsertLocation.start
+                );
+                const contentControl = sampleText.insertContentControl(Word.ContentControlType.richText);
+                contentControl.title = namedItemTitle;
+                await context.sync();
+            });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample creates and manages a text binding from a named item with the common Office JavaScript API. In Word, a named item is the title of a Rich Text content control.</p>
+        </section>
+        <section>
+            <h3>Set up</h3>
+            <p>Insert a titled Rich Text content control into the document.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Create a binding to the titled Rich Text content control.</p>
+            <button id="add-binding">Create binding from named item</button>
+            <p>Read the text in the binding.</p>
+            <button id="read-binding">Read bound text</button>
+            <p>Replace the text in the binding.</p>
+            <input id="binding-text" type="text" value="Text written through the named item binding.">
+            <button id="write-binding">Replace bound text</button>
+            <p>Release the binding when you're finished.</p>
+            <button id="release-binding">Release binding</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

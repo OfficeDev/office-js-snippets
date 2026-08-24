@@ -1,6 +1,6 @@
 id: word-export
 name: Export document
-description: Shows how to export the current document.
+description: Shows how to export the current document as a PDF, including bookmarks created from headings or named Word bookmarks.
 host: WORD
 api_set:
     WordApiDesktop: '1.6'
@@ -11,19 +11,34 @@ script:
 
         async function exportAsPdf() {
           await Word.run(async (context) => {
-            const document: Word.Document = context.document;
+            // Choose whether the exported PDF uses Word headings, named bookmarks, or neither.
+            const bookmarkMode = (document.getElementById("bookmark-mode") as HTMLSelectElement).value;
+            let createBookmarks: Word.ExportCreateBookmarks;
+
+            switch (bookmarkMode) {
+              case "Headings":
+                createBookmarks = Word.ExportCreateBookmarks.headings;
+                break;
+              case "WordBookmarks":
+                createBookmarks = Word.ExportCreateBookmarks.wordBookmarks;
+                break;
+              default:
+                createBookmarks = Word.ExportCreateBookmarks.none;
+                break;
+            }
 
             // Export the current document as a PDF saved in your default location, usually Documents.
-            const filename = `exported-doc-${getCurrentDate()}.pdf`;
+            const filename = `exported-doc-${bookmarkMode}-${getCurrentDate()}.pdf`;
             console.log(`File name: ${filename}`);
             const options: Word.DocumentExportAsFixedFormatOptions = {
               item: Word.ExportItem.documentContent,
               openAfterExport: true,
               optimizeFor: Word.ExportOptimizeFor.onScreen,
+              createBookmarks: createBookmarks,
             };
 
             // If a file with the same name already exists at the default location, it's silently overwritten.
-            document.exportAsFixedFormat(filename, Word.ExportFormat.pdf, options);
+            context.document.exportAsFixedFormat(filename, Word.ExportFormat.pdf, options);
 
             await context.sync();
           });
@@ -31,28 +46,41 @@ script:
 
         function getCurrentDate() {
           const today = new Date();
-          const day = String(today.getDate());
-          const month = String(today.getMonth() + 1);
+          const day = String(today.getDate()).padStart(2, "0");
+          const month = String(today.getMonth() + 1).padStart(2, "0");
           const year = today.getFullYear();
 
-          const currentDate = `${year}-${month}-${day}`;
-          return currentDate;
+          return `${year}-${month}-${day}`;
         }
 
         async function setup() {
           await Word.run(async (context) => {
             const body: Word.Body = context.document.body;
             body.clear();
-            body.insertParagraph(
+
+            // Apply built-in heading styles so the Headings export mode can create PDF bookmarks.
+            const title: Word.Paragraph = body.insertParagraph("Extend Word with Office Add-ins", Word.InsertLocation.end);
+            title.styleBuiltIn = Word.BuiltInStyleName.heading1;
+
+            const overview: Word.Paragraph = body.insertParagraph(
               "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
-              "Start",
+              Word.InsertLocation.end,
             );
-            body.paragraphs
-              .getLast()
-              .insertText(
-                "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
-                "Replace",
-              );
+            overview.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+            const detailsHeading: Word.Paragraph = body.insertParagraph("How Word add-ins work", Word.InsertLocation.end);
+            detailsHeading.styleBuiltIn = Word.BuiltInStyleName.heading2;
+            const details: Word.Paragraph = body.insertParagraph(
+              "Use add-in commands to extend the Word UI. Launch task panes that run JavaScript to interact with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
+              Word.InsertLocation.end,
+            );
+            details.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+            // Add a named Word bookmark that the WordBookmarks export mode can include in the PDF.
+            details.getRange(Word.RangeLocation.whole).insertBookmark("named_bookmark");
+
+            await context.sync();
+            console.log("Sample document created with headings and bookmark 'named_bookmark'.");
           });
         }
 
@@ -69,15 +97,23 @@ script:
 template:
     content: |-
         <section>
-            This sample shows how to export the document.
+            <p>This sample exports the current document to PDF and demonstrates how to include bookmarks in the PDF's table of contents.</p>
+            <p>Choose <b>None</b> for no bookmarks, <b>Headings</b> for bookmarks from heading paragraphs, or <b>WordBookmarks</b> for bookmarks from named Word bookmarks.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
-            <button id="setup">Add sample text</button>
+            <p>Create sample content with headings and a Word bookmark named <code>named_bookmark</code>.</p>
+            <button id="setup">Create sample document content</button>
         </section>
         <section>
             <h3>Try it out</h3>
-          <button id="export-pdf">Export to PDF</button>
+            <label for="bookmark-mode">Bookmark mode:</label>
+            <select id="bookmark-mode">
+                <option>None</option>
+                <option>Headings</option>
+                <option>Word Bookmarks</option>
+            </select>
+            <button id="export-pdf">Export to PDF</button>
         </section>
     language: html
 style:
@@ -131,6 +167,17 @@ style:
             border: 1px solid #ccc;
             border-radius: 2px;
             font-size: 14px;
+        }
+
+        label,
+        select {
+          display: block;
+          margin-left: 20px;
+        }
+
+        select {
+          margin-bottom: 8px;
+          padding: 4px;
         }
 
         .header {

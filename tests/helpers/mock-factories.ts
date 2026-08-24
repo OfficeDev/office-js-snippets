@@ -180,6 +180,19 @@ export function createWordMock(options: WordMockOptions = {}) {
     value: paragraphText,
   };
 
+  const mockBorder = {
+    isVisible: false,
+    color: '',
+    lineStyle: '',
+    lineWidth: '',
+    load: jest.fn(),
+  };
+
+  const mockBorders = {
+    items: [mockBorder],
+    load: jest.fn(),
+  };
+
   const mockThreeDimensionalFormat = {
     isVisible: false,
     bevelTopType: 'none',
@@ -195,6 +208,7 @@ export function createWordMock(options: WordMockOptions = {}) {
       bold: false,
       threeDimensionalFormat: mockThreeDimensionalFormat,
     },
+    borders: mockBorders,
     load: jest.fn(),
     getText: jest.fn(() => mockTextValue),
   };
@@ -368,6 +382,13 @@ export function createWordMock(options: WordMockOptions = {}) {
     ephemeral: 'ephemeral',
   };
 
+  wordMockObject.BorderLineStyle = {
+    double: 'Double',
+  };
+
+  wordMockObject.LineWidth = {
+    pt150: 'Pt150',
+  };
   wordMockObject.BevelType = {
     circle: 'circle',
   };

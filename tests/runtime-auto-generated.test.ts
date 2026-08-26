@@ -79,6 +79,7 @@ const INCLUDED_GROUPS = [
   '15-images',
   '20-lists',
   '25-paragraph',
+  '28-formatting',
   '30-properties',
   '35-ranges',
   '40-tables',

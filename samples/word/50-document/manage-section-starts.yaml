@@ -1,0 +1,179 @@
+order: 3
+id: word-document-manage-section-starts
+name: Manage section starts
+description: Shows how to control where sections begin in a document designed for print.
+host: WORD
+api_set:
+    WordApiDesktop: '1.3'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("apply-layout").addEventListener("click", () => tryCatch(applyPublishingLayout));
+        document.getElementById("get-page-setup").addEventListener("click", () => tryCatch(getPageSetup));
+
+        async function applyPublishingLayout() {
+          await Word.run(async (context) => {
+
+            // Configure document-wide page settings for a report that will be printed and bound.
+            const pageSetup: Word.PageSetup = context.document.pageSetup;
+            pageSetup.set({
+              paperSize: Word.PaperSize.letter,
+              orientation: Word.PageOrientation.portrait,
+              topMargin: 72,
+              bottomMargin: 72,
+              leftMargin: 90,
+              rightMargin: 72,
+              gutter: 18,
+              gutterPosition: Word.GutterPosition.left,
+              mirrorMargins: true,
+              oddAndEvenPagesHeaderFooter: true
+            });
+
+            const sections: Word.SectionCollection = context.document.sections;
+            sections.load("items");
+            await context.sync();
+
+            // Start the main chapter on an odd-numbered page so it appears on the right in a bound document.
+            const chapterPageSetup: Word.PageSetup = sections.items[1].pageSetup;
+            chapterPageSetup.sectionStart = Word.SectionStart.oddPage;
+            chapterPageSetup.differentFirstPageHeaderFooter = true;
+
+            // Keep the appendix in a separate section, but let it begin on the current page.
+            sections.items[2].pageSetup.sectionStart = Word.SectionStart.continuous;
+
+            await context.sync();
+            console.log("Applied print and binding settings to the report.");
+          });
+        }
+
+        async function getPageSetup() {
+          await Word.run(async (context) => {
+            const pageSetup: Word.PageSetup = context.document.pageSetup;
+            pageSetup.load();
+
+            const sections: Word.SectionCollection = context.document.sections;
+            sections.load("items");
+            await context.sync();
+
+            sections.items.forEach((section) => section.pageSetup.load("sectionStart"));
+            await context.sync();
+
+            console.log("Document page setup:", pageSetup.toJSON());
+            sections.items.forEach((section, index) => {
+              console.log(`Section ${index + 1} starts: ${section.pageSetup.sectionStart}`);
+            });
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+
+            const summaryHeading: Word.Paragraph = body.insertParagraph("Executive summary", Word.InsertLocation.end);
+            summaryHeading.styleBuiltIn = Word.BuiltInStyleName.heading1;
+            const summaryText: Word.Paragraph = body.insertParagraph(
+              "This front matter provides a concise overview of the report for readers.",
+              Word.InsertLocation.end
+            );
+            summaryText.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+            body.insertBreak(Word.BreakType.sectionNext, Word.InsertLocation.end);
+            const chapterHeading: Word.Paragraph = body.insertParagraph("Chapter 1: Market analysis", Word.InsertLocation.end);
+            chapterHeading.styleBuiltIn = Word.BuiltInStyleName.heading1;
+            const chapterText: Word.Paragraph = body.insertParagraph(
+              "In a bound publication, major chapters commonly begin on an odd-numbered, right-hand page.",
+              Word.InsertLocation.end
+            );
+            chapterText.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+            body.insertBreak(Word.BreakType.sectionNext, Word.InsertLocation.end);
+            const appendixHeading: Word.Paragraph = body.insertParagraph("Appendix: Data sources", Word.InsertLocation.end);
+            appendixHeading.styleBuiltIn = Word.BuiltInStyleName.heading1;
+            const appendixText: Word.Paragraph = body.insertParagraph(
+              "An appendix can begin continuously after the preceding content when a new page isn't required.",
+              Word.InsertLocation.end
+            );
+            appendixText.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+            await context.sync();
+            console.log("Created a report with front matter, a chapter, and an appendix.");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample prepares section breaks for a report intended for print or binding.</p>
+            <p><b>Important:</b> The <code>SectionStart</code> API is available in Word on Windows beginning with WordApiDesktop 1.3.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Create a report with separate sections for front matter, a main chapter, and an appendix.</p>
+            <button id="setup">Set up the sample</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Prepare the report for binding with mirrored margins, a gutter, distinct odd and even page headers and footers, and section-specific starts.</p>
+            <button id="apply-layout">Apply publishing layout</button>
+            <button id="get-page-setup">Get page setup</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://appsforoffice.microsoft.com/lib/1/hosted/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

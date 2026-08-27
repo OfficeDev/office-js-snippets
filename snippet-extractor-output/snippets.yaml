@@ -23413,6 +23413,22 @@ Word.Body#getComments:member(1):
 
       console.log("All comments:", comments);
     });
+Word.Body#getContentControls:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/get-change-tracking-states.yaml
+
+
+    // Deletes the first content control found in the document body.
+
+    await Word.run(async (context) => {
+      context.document.body
+        .getContentControls()
+        .getFirst()
+        .delete(false);
+      await context.sync();
+      console.log("Deleted the first content control.");
+    });
 Word.Body#getHtml:member(1):
   - >-
     // Link to full sample:
@@ -23772,6 +23788,32 @@ Word.Body#select:member(1):
       body.select();
 
       console.log("Selected the document body.");
+    });
+Word.Body#contentControls:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/manage-watermark.yaml
+
+
+    // Removes the watermark from the document using OOXML.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      context.load(sections);
+      await context.sync();
+
+      const header: Word.Body = sections.items[0].getHeader("Primary");
+      const contentControls: Word.ContentControlCollection = header.contentControls.getByTitle("myTempCC");
+      context.load(contentControls);
+      await context.sync();
+
+      if (contentControls.items.length > 0) {
+        contentControls.items[0].delete(false);
+        await context.sync();
+        console.log("Watermark removed successfully using OOXML.");
+      } else {
+        console.warn("No watermark found in this document.");
+      }
     });
 Word.Body#fields:member:
   - >-
@@ -24308,7 +24350,8 @@ Word.Border#toJSON:member(1):
 
     await Word.run(async (context) => {
       const style: Word.Style = context.document.getStyles().getByName("Bordered Text");
-      const border: Word.Border = style.borders.getByLocation(Word.BorderLocation.bottom);
+      const borders: Word.BorderCollection = style.borders;
+      const border: Word.Border = borders.getByLocation(Word.BorderLocation.bottom);
       border.load("color, location, type, visible, width");
       await context.sync();
 
@@ -24391,6 +24434,24 @@ Word.BorderCollection:class:
         borders.outsideBorderColor = "green";
         console.log("Updated outside borders.");
       }
+    });
+Word.BorderCollection#getByLocation:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/border-properties.yaml
+
+
+    // Loads all scalar properties and returns them as a plain JavaScript
+    object.
+
+    await Word.run(async (context) => {
+      const style: Word.Style = context.document.getStyles().getByName("Bordered Text");
+      const borders: Word.BorderCollection = style.borders;
+      const border: Word.Border = borders.getByLocation(Word.BorderLocation.bottom);
+      border.load("color, location, type, visible, width");
+      await context.sync();
+
+      console.log("Border properties:", border.toJSON());
     });
 Word.BorderCollection#outsideBorderColor:member:
   - >-
@@ -25248,6 +25309,68 @@ Word.CoauthoringLockCollection#add:member(1):
 
       console.log("Lock added.");
     });
+Word.CoauthoringLockCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthors.yaml
+
+
+    // Gets the locks held by each coauthor in the document.
+
+    await Word.run(async (context) => {
+      const authors: Word.CoauthorCollection = context.document.coauthoring.authors;
+      authors.load("items/name");
+      await context.sync();
+
+      if (authors.items.length === 0) {
+        console.log("No coauthors are currently editing this document.");
+        return;
+      }
+
+      authors.items.forEach((author: Word.Coauthor) => {
+        author.locks.load("items/type");
+      });
+      await context.sync();
+
+      authors.items.forEach((author: Word.Coauthor) => {
+        const lockCount = author.locks.items.length;
+        if (lockCount === 0) {
+          console.log(`${author.name}: no locks`);
+        } else {
+          const types = author.locks.items.map((l) => l.type).join(", ");
+          console.log(`${author.name}: ${lockCount} lock(s) — ${types}`);
+        }
+      });
+    });
+Word.CoauthoringUpdate#range:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/get-coauthoring-updates.yaml
+
+
+    // Gets the ranges affected by the most recent coauthoring updates merged
+    into the document.
+
+    await Word.run(async (context) => {
+      const updates: Word.CoauthoringUpdateCollection = context.document.coauthoring.updates;
+      updates.load("items/range");
+      await context.sync();
+
+      if (updates.items.length === 0) {
+        console.log("No recent coauthoring updates found.");
+        return;
+      }
+
+      console.log(`Found ${updates.items.length} recent update(s).`);
+
+      const ranges = updates.items.map((u) => u.range);
+      ranges.forEach((r) => r.load("text"));
+      await context.sync();
+
+      ranges.forEach((range, i) => {
+        console.log(`  Update ${i + 1}: "${range.text}"`);
+      });
+    });
 Word.CoauthoringUpdateCollection:class:
   - >-
     // Link to full sample:
@@ -26071,6 +26194,30 @@ Word.ContentControl#setState:member(1):
 
       console.log(`Set state of first content control with ID ${firstContentControl.id} to ${state}.`);
     });
+Word.ContentControl#appearance:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/manage-watermark.yaml
+
+
+    // Adds a watermark to the document using OOXML.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      context.load(sections);
+      await context.sync();
+
+      const watermarkText: string = (document.getElementById("watermark-text") as HTMLInputElement).value;
+      const myWatermark: string = getOoxmlWatermark(watermarkText);
+      const myHeader: Word.Body = sections.items[0].getHeader("Primary");
+      const myRange: Word.Range = myHeader.insertOoxml(myWatermark, "Replace");
+      const myCC: Word.ContentControl = myRange.insertContentControl();
+      myCC.title = "myTempCC";
+      myCC.appearance = "Hidden";
+      await context.sync();
+
+      console.log("Watermark added successfully using OOXML.");
+    });
 Word.ContentControl#checkboxContentControl:member:
   - >-
     // Link to full sample:
@@ -26435,6 +26582,40 @@ Word.ContentControl#tag:member:
 
       await context.sync();
     });
+Word.ContentControl#title:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/doc-assembly.yaml
+
+
+    // Simulates creation of a template. First searches the document for
+    instances of the string "Contractor",
+
+    // then changes the format  of each search result,
+
+    // then wraps each search result within a content control,
+
+    // finally sets a tag and title property on each content control.
+
+    await Word.run(async (context) => {
+        const results: Word.RangeCollection = context.document.body.search("Contractor");
+        results.load("font/bold");
+
+        // Check to make sure these content controls haven't been added yet.
+        const customerContentControls: Word.ContentControlCollection = context.document.contentControls.getByTag("customer");
+        customerContentControls.load("text");
+        await context.sync();
+
+      if (customerContentControls.items.length === 0) {
+        for (let i = 0; i < results.items.length; i++) {
+            results.items[i].font.bold = true;
+            let cc: Word.ContentControl = results.items[i].insertContentControl();
+            cc.tag = "customer";  // This value is used in the next step of this sample.
+            cc.title = "Customer Name " + i;
+        }
+      }
+        await context.sync();
+    });
 Word.ContentControlAddedEventArgs:interface:
   - >-
     // Link to full sample:
@@ -26518,6 +26699,34 @@ Word.ContentControlCollection:class:
 
         await context.sync();
     });
+Word.ContentControlCollection#getByChangeTrackingStates:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/get-change-tracking-states.yaml
+
+
+    // Logs the current change tracking states of the content controls.
+
+    await Word.run(async (context) => {
+      let trackAddedArray: Word.ChangeTrackingState[] = [Word.ChangeTrackingState.added];
+      let trackDeletedArray: Word.ChangeTrackingState[] = [Word.ChangeTrackingState.deleted];
+      let trackNormalArray: Word.ChangeTrackingState[] = [Word.ChangeTrackingState.normal];
+
+      let addedContentControls = context.document.body.getContentControls().getByChangeTrackingStates(trackAddedArray);
+      let deletedContentControls = context.document.body
+        .getContentControls()
+        .getByChangeTrackingStates(trackDeletedArray);
+      let normalContentControls = context.document.body.getContentControls().getByChangeTrackingStates(trackNormalArray);
+
+      addedContentControls.load();
+      deletedContentControls.load();
+      normalContentControls.load();
+      await context.sync();
+
+      console.log(`Number of content controls in Added state: ${addedContentControls.items.length}`);
+      console.log(`Number of content controls in Deleted state: ${deletedContentControls.items.length}`);
+      console.log(`Number of content controls in Normal state: ${normalContentControls.items.length}`);
+    });
 Word.ContentControlCollection#getByTag:member(1):
   - >-
     // Link to full sample:
@@ -26579,6 +26788,31 @@ Word.ContentControlCollection#getFirstOrNullObject:member(1):
         "isChecked state after:",
         `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
       );
+    });
+Word.ContentControlCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondatachanged-event.yaml
+
+
+    await Word.run(async (context) => {
+      const contentControls: Word.ContentControlCollection = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      // Register the onDataChanged event handler on each content control.
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onDataChanged.add(contentControlDataChanged);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when data is changed in content controls.");
+      }
     });
 Word.ContentControlDataChangedEventArgs:interface:
   - >-
@@ -26920,6 +27154,55 @@ Word.ContentControlListItemCollection:class:
 
       const currentItems: Word.ContentControlListItemCollection = selectedComboBox.listItems;
       console.log(`The list from the combo box content control with ID ${selectedContentControl.id}:`, currentItems);
+    });
+Word.ContentControlListItemCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-dropdown-list-content-control.yaml
+
+
+    // Deletes the provided list item from the first dropdown list content
+    control in the selection.
+
+    await Word.run(async (context) => {
+      const listItemText = (document.getElementById("item-to-delete") as HTMLInputElement).value.trim();
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.dropDownList]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,dropDownListContentControl");
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,dropDownListContentControl");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.dropDownList) {
+          console.warn("No dropdown list content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      let selectedDropdownList: Word.DropDownListContentControl = selectedContentControl.dropDownListContentControl;
+      selectedDropdownList.listItems.load("items/*");
+      await context.sync();
+
+      let listItems: Word.ContentControlListItemCollection = selectedContentControl.dropDownListContentControl.listItems;
+      let itemToDelete: Word.ContentControlListItem = listItems.items.find((item) => item.displayText === listItemText);
+      if (!itemToDelete) {
+        console.warn(`List item doesn't exist in control with ID ${selectedContentControl.id}: ${listItemText}`)
+        return;
+      }
+      
+      itemToDelete.delete();
+      await context.sync();
+
+      console.log(`List item deleted from control with ID ${selectedContentControl.id}: ${listItemText}`);
     });
 Word.ContentControlOptions:interface:
   - >-
@@ -28405,6 +28688,29 @@ Word.Document#activeWindow:member:
         console.log("First paragraph's text:", pagesFirstParagraphText[i].text);
       }
     });
+Word.Document#body:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-body.yaml
+
+
+    // Inserts the body from the external document at the beginning of this
+    document.
+
+    // Run a batch operation against the Word object model.
+
+    await Word.run(async (context) => {
+      // Create a proxy object for the document body.
+      const body: Word.Body = context.document.body;
+
+      // Queue a command to insert the Base64-encoded string representation of the body of the selected .docx file at the beginning of the current document.
+      body.insertFileFromBase64(externalDocument, Word.InsertLocation.start);
+
+      // Synchronize the document state by executing the queued commands, and return a promise to indicate task completion.
+      await context.sync();
+
+      console.log("Added Base64-encoded text to the beginning of the document body.");
+    });
 Word.Document#changeTrackingMode:member:
   - >-
     // Link to full sample:
@@ -28443,6 +28749,72 @@ Word.Document#coauthoring:member:
       console.log("Can coauthor:", coauthoring.canCoauthor);
       console.log("Can merge:", coauthoring.canMerge);
       console.log("Pending updates:", coauthoring.pendingUpdates);
+    });
+Word.Document#contentControls:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-content-controls.yaml
+
+
+    // Adds title and colors to odd and even content controls and changes their
+    appearance.
+
+    await Word.run(async (context) => {
+      // Get the complete sentence (as range) associated with the insertion point.
+      let evenContentControls = context.document.contentControls.getByTag("even");
+      let oddContentControls = context.document.contentControls.getByTag("odd");
+      evenContentControls.load("length");
+      oddContentControls.load("length");
+
+      await context.sync();
+
+      for (let i = 0; i < evenContentControls.items.length; i++) {
+        // Change a few properties and append a paragraph.
+        evenContentControls.items[i].set({
+          color: "red",
+          title: "Odd ContentControl #" + (i + 1),
+          appearance: Word.ContentControlAppearance.tags
+        });
+        evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
+      }
+
+      for (let j = 0; j < oddContentControls.items.length; j++) {
+        // Change a few properties and append a paragraph.
+        oddContentControls.items[j].set({
+          color: "green",
+          title: "Even ContentControl #" + (j + 1),
+          appearance: "Tags"
+        });
+        oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
+      }
+
+      await context.sync();
+    });
+Word.Document#customXmlParts:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-custom-xml-part.yaml
+
+
+    // Adds a custom XML part.
+
+    await Word.run(async (context) => {
+      const originalXml =
+        "<Reviewers><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
+      const customXmlPart: Word.CustomXmlPart = context.document.customXmlParts.add(originalXml);
+      customXmlPart.load("id");
+      const xmlBlob = customXmlPart.getXml();
+
+      await context.sync();
+
+      const readableXml = addLineBreaksToXML(xmlBlob.value);
+      console.log("Added custom XML part:", readableXml);
+
+      // Store the XML part's ID in a setting so the ID is available to other functions.
+      const settings: Word.SettingCollection = context.document.settings;
+      settings.add("ContosoReviewXmlPartId", customXmlPart.id);
+
+      await context.sync();
     });
 Word.Document#onAnnotationClicked:member:
   - >-
@@ -28810,6 +29182,20 @@ Word.Document#selection:member:
 
       console.log("Inserted formula (auto-determined by Word) with number format.");
     });
+Word.Document#sections:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
+
+
+    await Word.run(async (context) => {
+      context.document.sections
+        .getFirst()
+        .getFooter("EvenPages")
+        .insertParagraph("This is an even-pages footer.", "End");
+
+      await context.sync();
+    });
 Word.Document#settings:member:
   - >-
     // Link to full sample:
@@ -28949,6 +29335,18 @@ Word.DocumentProperties:class:
 
         await context.sync();
         console.log(JSON.stringify(builtInProperties, null, 4));
+    });
+Word.DocumentProperties#customProperties:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/30-properties/read-write-custom-document-properties.yaml
+
+
+    await Word.run(async (context) => {
+        context.document.properties.customProperties.add("Numeric Property", 1234);
+
+        await context.sync();
+        console.log("Property added");
     });
 Word.DocumentPropertyType:enum:
   - >-
@@ -29656,6 +30054,28 @@ Word.FieldType:enum:
       } else {
         console.log("Code of the field: " + field.code, "Result of the field: " + JSON.stringify(field.result));
       }
+    });
+Word.Font#set:member(2):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-formatted-text.yaml
+
+
+    await Word.run(async (context) => {
+      // Second sentence, let's insert it as a paragraph after the previously inserted one.
+      const secondSentence: Word.Paragraph = context.document.body.insertParagraph(
+        "This is the first text with a custom style.",
+        "End"
+      );
+      secondSentence.font.set({
+        bold: false,
+        italic: true,
+        name: "Berlin Sans FB",
+        color: "blue",
+        size: 30
+      });
+
+      await context.sync();
     });
 Word.Font#threeDimensionalFormat:member:
   - >-
@@ -31406,6 +31826,23 @@ Word.Paragraph#getRange:member(1):
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
     });
+Word.Paragraph#getText:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-text.yaml
+
+
+    await Word.run(async (context) => {
+      const paragraph: Word.Paragraph = context.document.getSelection().paragraphs.getFirst();
+
+      const text = paragraph.getText();
+      const textIncludingHidden = paragraph.getText({ IncludeHiddenText: true });
+      const textIncludingDeleted = paragraph.getText({ IncludeTextMarkedAsDeleted: true });
+
+      await context.sync();
+
+      console.log("Text:- " + text.value, "Including hidden text:- " + textIncludingHidden.value, "Including text marked as deleted:- " + textIncludingDeleted.value);
+    });
 Word.Paragraph#insertAnnotations:member(1):
   - >-
     // Link to full sample:
@@ -31538,6 +31975,22 @@ Word.Paragraph#insertGeometricShape:member(1):
         width: 150,
       };
       lastParagraph.insertPictureFromBase64(getPictureBase64(), pictureOptions);
+
+      await context.sync();
+    });
+Word.Paragraph#insertParagraph:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/15-images/insert-and-get-pictures.yaml
+
+
+    // Inserts an image anchored to the last paragraph.
+
+    await Word.run(async (context) => {
+      context.document.body.paragraphs
+        .getLast()
+        .insertParagraph("", "After")
+        .insertInlinePictureFromBase64(base64Image, "End");
 
       await context.sync();
     });
@@ -31702,6 +32155,80 @@ Word.Paragraph#alignment:member:
 
       await context.sync();
     });
+Word.Paragraph#borders:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/add-border-to-paragraph.yaml
+
+
+    if (!Office.context.requirements.isSetSupported("WordApiDesktop", "1.3")) {
+      console.error("This sample requires WordApiDesktop 1.3 or later.");
+      return;
+    }
+
+
+    await Word.run(async (context) => {
+      // Insert a paragraph at the beginning of the document.
+      const paragraph: Word.Paragraph =
+        context.document.body.insertParagraph(
+          "Note: Added a border to this paragraph.",
+          Word.InsertLocation.start
+        );
+
+      // Load the paragraph borders so they can be formatted.
+      const borders: Word.BorderUniversalCollection = paragraph.borders;
+      borders.load("items");
+      await context.sync();
+
+      // Apply a visible double blue line to every side of the paragraph.
+      borders.items.forEach((border: Word.BorderUniversal) => {
+        border.isVisible = true;
+        border.color = "#4472C4";
+        border.lineStyle = Word.BorderLineStyle.double;
+        border.lineWidth = Word.LineWidth.pt150;
+      });
+
+      await context.sync();
+
+      console.log(
+        `Applied the ${Word.BorderLineStyle.double} line style to ${borders.items.length} paragraph borders.`
+      );
+    });
+Word.Paragraph#font:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/apply-bevel-to-text.yaml
+
+
+    if (!Office.context.requirements.isSetSupported("WordApiDesktop", "1.3")) {
+      console.error("This sample requires WordApiDesktop 1.3 or later.");
+      return;
+    }
+
+
+    await Word.run(async (context) => {
+      const paragraph: Word.Paragraph = context.document.body.insertParagraph(
+        "Beveled text",
+        Word.InsertLocation.start,
+      );
+      paragraph.font.size = 48;
+      paragraph.font.bold = true;
+
+      const threeDimensionalFormat: Word.ThreeDimensionalFormat = paragraph.font.threeDimensionalFormat;
+      threeDimensionalFormat.isVisible = true;
+      threeDimensionalFormat.bevelTopType = Word.BevelType.circle;
+      threeDimensionalFormat.bevelTopDepth = 6;
+      threeDimensionalFormat.bevelTopInset = 6;
+      threeDimensionalFormat.load("bevelTopType,bevelTopDepth,bevelTopInset");
+
+      await context.sync();
+
+      console.log("Applied bevel formatting:", {
+        type: threeDimensionalFormat.bevelTopType,
+        depth: threeDimensionalFormat.bevelTopDepth,
+        inset: threeDimensionalFormat.bevelTopInset,
+      });
+    });
 Word.Paragraph#leftIndent:member:
   - >-
     // Link to full sample:
@@ -31747,6 +32274,44 @@ Word.Paragraph#lineUnitBefore:member:
     await Word.run(async (context) => {
       // Set the space (in line units) before the first paragraph.
       context.document.body.paragraphs.getFirst().lineUnitBefore = 1;
+
+      await context.sync();
+    });
+Word.Paragraph#listItem:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/organize-list.yaml
+
+
+    // Inserts a list starting with the first paragraph then set numbering and
+    bullet types of the list items.
+
+    await Word.run(async (context) => {
+      const paragraphs: Word.ParagraphCollection = context.document.body.paragraphs;
+      paragraphs.load("$none");
+
+      await context.sync();
+
+      // Use the first paragraph to start a new list.
+      const list: Word.List = paragraphs.items[0].startNewList();
+      list.load("$none");
+
+      await context.sync();
+
+      // To add new items to the list, use Start or End on the insertLocation parameter.
+      list.insertParagraph("New list item at the start of the list", "Start");
+      const paragraph: Word.Paragraph = list.insertParagraph("New list item at the end of the list (set to list level 5)", "End");
+
+      // Set numbering for list level 1.
+      list.setLevelNumbering(0, Word.ListNumbering.arabic);
+
+      // Set bullet type for list level 5.
+      list.setLevelBullet(4, Word.ListBullet.arrow);
+
+      // Set list level for the last item in this list.
+      paragraph.listItem.level = 4;
+
+      list.load("levelTypes");
 
       await context.sync();
     });
@@ -31936,6 +32501,29 @@ Word.ParagraphChangedEventArgs:interface:
     async function paragraphChanged(event: Word.ParagraphChangedEventArgs) {
       await Word.run(async (context) => {
         console.log(`${event.type} event detected. IDs of paragraphs where content was changed:`, event.uniqueLocalIds);
+      });
+    }
+Word.ParagraphChangedEventArgs#uniqueLocalIds:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-annotations.yaml
+
+
+    async function paragraphChanged(args: Word.ParagraphChangedEventArgs) {
+      await Word.run(async (context) => {
+        const results = [];
+        for (let id of args.uniqueLocalIds) {
+          let para = context.document.getParagraphByUniqueLocalId(id);
+          para.load("uniqueLocalId");
+
+          results.push({ para: para, text: para.getText() });
+        }
+
+        await context.sync();
+
+        for (let result of results) {
+          console.log(`${args.type}: ID ${result.para.uniqueLocalId}:-`, result.text.value);
+        }
       });
     }
 Word.ParagraphCollection:class:
@@ -32330,6 +32918,61 @@ Word.Range#getTextRanges:member(1):
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
     });
+Word.Range#insertBookmark:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/export.yaml
+
+
+    await Word.run(async (context) => {
+      const body: Word.Body = context.document.body;
+      body.clear();
+
+      // Apply built-in heading styles so the Headings export mode can create PDF bookmarks.
+      const title: Word.Paragraph = body.insertParagraph("Extend Word with Office Add-ins", Word.InsertLocation.end);
+      title.styleBuiltIn = Word.BuiltInStyleName.heading1;
+
+      const overview: Word.Paragraph = body.insertParagraph(
+        "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
+        Word.InsertLocation.end,
+      );
+      overview.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+      const detailsHeading: Word.Paragraph = body.insertParagraph("How Word add-ins work", Word.InsertLocation.end);
+      detailsHeading.styleBuiltIn = Word.BuiltInStyleName.heading2;
+      const details: Word.Paragraph = body.insertParagraph(
+        "Use add-in commands to extend the Word UI. Launch task panes that run JavaScript to interact with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
+        Word.InsertLocation.end,
+      );
+      details.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+      // Add a named Word bookmark that the WordBookmarks export mode can include in the PDF.
+      details.getRange(Word.RangeLocation.whole).insertBookmark("named_bookmark");
+
+      await context.sync();
+      console.log("Sample document created with headings and bookmark 'named_bookmark'.");
+    });
+Word.Range#insertCanvas:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-canvases.yaml
+
+
+    await Word.run(async (context) => {
+      // Inserts a canvas in the document.
+      const canvasShape: Word.Shape = context.document.getSelection().insertCanvas();
+      canvasShape.load();
+      await context.sync();
+
+      canvasShape.select();
+      console.log("Inserted canvas:", canvasShape);
+
+      const canvas: Word.Canvas = canvasShape.canvas;
+      canvas.load("shape,shapes");
+      await context.sync();
+
+      console.log("Canvas object:", canvas);
+    });
 Word.Range#insertComment:member(1):
   - >-
     // Link to full sample:
@@ -32493,6 +33136,28 @@ Word.Range#insertTextBox:member(1):
 
       console.log("Inserted a text box at the beginning of the current selection.");
     });
+Word.Range#font:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-formatted-text.yaml
+
+
+    await Word.run(async (context) => {
+      // Insert the sentence, then adjust the formatting.
+      // Note that replace affects the calling object, in this case the entire document body.
+      // A similar method can also be used at the range level.
+      const sentence: Word.Range = context.document.body.insertText(
+        "This is some formatted text!",
+        "Replace"
+      );
+      sentence.font.set({
+        name: "Courier New",
+        bold: true,
+        size: 18
+      });
+
+      await context.sync();
+    });
 Word.Range#footnotes:member:
   - >-
     // Link to full sample:
@@ -32529,6 +33194,66 @@ Word.Range#listFormat:member:
       console.log(`- List level number (first paragraph): ${listFormat.listLevelNumber}`);
       console.log(`- List string (first paragraph): "${listFormat.listString}"`);
       console.log(`- List value (first paragraph): ${listFormat.listValue}`);
+    });
+Word.Range#pages:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+
+
+    await Word.run(async (context) => {
+      // Gets pages of the selection.
+      const pages: Word.PageCollection = context.document.getSelection().pages;
+      pages.load();
+      await context.sync();
+
+      // Log info for pages included in selection.
+      console.log(pages);
+      const pagesIndexes = [];
+      const pagesText = [];
+      for (let i = 0; i < pages.items.length; i++) {
+        const page = pages.items[i];
+        page.load("index");
+        pagesIndexes.push(page);
+
+        const range = page.getRange();
+        range.load("text");
+        pagesText.push(range);
+      }
+
+      await context.sync();
+
+      for (let i = 0; i < pagesIndexes.length; i++) {
+        console.log(`Index info for page ${i + 1} in the selection: ${pagesIndexes[i].index}`);
+        console.log("Text of that page in the selection:", pagesText[i].text);
+      }
+    });
+Word.Range#paragraphs:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-annotations.yaml
+
+
+    // Accepts the first annotation found in the selected paragraph.
+
+    await Word.run(async (context) => {
+      const paragraph: Word.Paragraph = context.document.getSelection().paragraphs.getFirst();
+      const annotations: Word.AnnotationCollection = paragraph.getAnnotations();
+      annotations.load("id,state,critiqueAnnotation");
+
+      await context.sync();
+
+      for (let i = 0; i < annotations.items.length; i++) {
+        const annotation: Word.Annotation = annotations.items[i];
+
+        if (annotation.state === Word.AnnotationState.created) {
+          console.log(`Accepting ID ${annotation.id}...`);
+          annotation.critiqueAnnotation.accept();
+
+          await context.sync();
+          break;
+        }
+      }
     });
 Word.Range#parentContentControl:member:
   - >-
@@ -32574,6 +33299,47 @@ Word.Range#parentContentControl:member:
         `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
       );
     });
+Word.Range#parentContentControlOrNullObject:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-date-picker-content-control.yaml
+
+
+    // Deletes the first date picker content control found in the selection.
+
+    await Word.run(async (context) => {
+      // First, look if the selection contains a date picker content control.
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.datePicker]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id");
+
+      await context.sync();
+
+      // The selection doesn't contain a date picker, but the cursor might be inside one.
+      // Check if the selection's parent content control is a date picker.
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControlOrNullObject;
+        parentContentControl.load("id,type");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.datePicker) {
+          console.warn("Please select a date picker content control before selecting Delete.");
+          return;
+        }
+        
+        selectedContentControl = parentContentControl;
+      }
+
+      console.log(`About to delete date picker content control with ID: ${selectedContentControl.id}`);
+      selectedContentControl.delete(false);
+      await context.sync();
+
+      console.log("Deleted date picker content control.");
+    });
 Word.Range#styleBuiltIn:member:
   - >-
     // Link to full sample:
@@ -32586,6 +33352,35 @@ Word.Range#styleBuiltIn:member:
         header.styleBuiltIn = Word.BuiltInStyleName.heading1;
 
         await context.sync();
+    });
+Word.Range#text:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/get-coauthoring-updates.yaml
+
+
+    // Gets the ranges affected by the most recent coauthoring updates merged
+    into the document.
+
+    await Word.run(async (context) => {
+      const updates: Word.CoauthoringUpdateCollection = context.document.coauthoring.updates;
+      updates.load("items/range");
+      await context.sync();
+
+      if (updates.items.length === 0) {
+        console.log("No recent coauthoring updates found.");
+        return;
+      }
+
+      console.log(`Found ${updates.items.length} recent update(s).`);
+
+      const ranges = updates.items.map((u) => u.range);
+      ranges.forEach((r) => r.load("text"));
+      await context.sync();
+
+      ranges.forEach((range, i) => {
+        console.log(`  Update ${i + 1}: "${range.text}"`);
+      });
     });
 Word.RangeCollection:class:
   - >-
@@ -32607,6 +33402,64 @@ Word.RangeCollection:class:
       }
 
       await context.sync();
+    });
+Word.RangeCollection#getFirst:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Updates the text and sets the font color to red.
+
+    await Word.run(async (context) => {
+      context.document.changeTrackingMode = Word.ChangeTrackingMode.off;
+
+      context.document.body.insertText("AAA BBB CCC DDD EEE FFF", "Replace");
+
+      context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+      context.document.body
+        .search("BBB")
+        .getFirst()
+        .insertText("WWW", "Replace");
+      context.document.body
+        .search("DDD ")
+        .getFirst()
+        .delete();
+      context.document.body
+        .search("FFF")
+        .getFirst()
+        .insertText("XXX ", "Start");
+    });
+Word.RangeCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the complete sentence (as range) associated with the insertion point.
+      const sentences: Word.RangeCollection = context.document
+        .getSelection()
+        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+      sentences.load("$none");
+      await context.sync();
+
+      // Expand the range to the end of the paragraph to get all the complete sentences.
+      const sentencesToTheEndOfParagraph: Word.RangeCollection = sentences.items[0]
+        .getRange()
+        .expandTo(
+          context.document
+            .getSelection()
+            .paragraphs.getFirst()
+            .getRange(Word.RangeLocation.end)
+        )
+        .getTextRanges(["."], false /* Don't trim spaces*/);
+      sentencesToTheEndOfParagraph.load("text");
+      await context.sync();
+
+      for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
+        console.log(sentencesToTheEndOfParagraph.items[i].text);
+      }
     });
 Word.RangeLocation:enum:
   - >-
@@ -32748,6 +33601,49 @@ Word.SaveConfiguration:enum:
       console.log("About to close the document window...");
       window.close(closeOptions);
     });
+Word.SearchOptions#newObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/correlated-objects-pattern.yaml
+
+
+    Word.run(async (context) => {
+      const startTime = Date.now();
+      let count = 0;
+
+      // Find the locations of all the placeholder strings.
+      const allSearchResults = [];
+      for (let i = 0; i < jobMapping.length; i++) {
+        let options = Word.SearchOptions.newObject(context);
+        options.matchWildcards = false;
+        let searchResults = context.document.body.search(jobMapping[i].job, options);
+        searchResults.load('items');
+        let correlatedSearchResult = {
+          rangesMatchingJob: searchResults,
+          personAssignedToJob: jobMapping[i].person
+        }
+        allSearchResults.push(correlatedSearchResult);
+      }
+
+      // Sync to load those locations in the add-in.
+      await context.sync()
+
+      // Replace the placeholder text at the known locations.
+      for (let i = 0; i < allSearchResults.length; i++) {
+        let correlatedObject = allSearchResults[i];
+
+        for (let j = 0; j < correlatedObject.rangesMatchingJob.items.length; j++) {
+          let targetRange = correlatedObject.rangesMatchingJob.items[j];
+          let name = correlatedObject.personAssignedToJob;
+          targetRange.insertText(name, Word.InsertLocation.replace);
+          count++;
+        }
+      }
+
+      await context.sync();
+      console.log(`Replacing ${count} placeholders with the correlated objects pattern took ${Date.now() - startTime} milliseconds.`);
+      console.log()
+    });
 Word.Section#getFooter:member(2):
   - >-
     // Link to full sample:
@@ -32845,6 +33741,58 @@ Word.SectionCollection:class:
       await context.sync();
 
       console.log("Inserted section break on next even page.");
+    });
+Word.SectionCollection#getFirst:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
+
+
+    await Word.run(async (context) => {
+      context.document.sections
+        .getFirst()
+        .getFooter("EvenPages")
+        .insertParagraph("This is an even-pages footer.", "End");
+
+      await context.sync();
+    });
+Word.SectionCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-section-starts.yaml
+
+
+    await Word.run(async (context) => {
+
+      // Configure document-wide page settings for a report that will be printed and bound.
+      const pageSetup: Word.PageSetup = context.document.pageSetup;
+      pageSetup.set({
+        paperSize: Word.PaperSize.letter,
+        orientation: Word.PageOrientation.portrait,
+        topMargin: 72,
+        bottomMargin: 72,
+        leftMargin: 90,
+        rightMargin: 72,
+        gutter: 18,
+        gutterPosition: Word.GutterPosition.left,
+        mirrorMargins: true,
+        oddAndEvenPagesHeaderFooter: true
+      });
+
+      const sections: Word.SectionCollection = context.document.sections;
+      sections.load("items");
+      await context.sync();
+
+      // Start the main chapter on an odd-numbered page so it appears on the right in a bound document.
+      const chapterPageSetup: Word.PageSetup = sections.items[1].pageSetup;
+      chapterPageSetup.sectionStart = Word.SectionStart.oddPage;
+      chapterPageSetup.differentFirstPageHeaderFooter = true;
+
+      // Keep the appendix in a separate section, but let it begin on the current page.
+      sections.items[2].pageSetup.sectionStart = Word.SectionStart.continuous;
+
+      await context.sync();
+      console.log("Applied print and binding settings to the report.");
     });
 Word.SectionStart:enum:
   - >-
@@ -34633,6 +35581,42 @@ Word.Style#shading:member:
         console.log("Updated shading.");
       }
     });
+Word.Style#tableStyle:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-custom-style.yaml
+
+
+    // Gets the table style properties and displays them in the form.
+
+    const styleName = (document.getElementById("style-name") as
+    HTMLInputElement).value;
+
+    if (styleName == "") {
+      console.warn("Please input a table style name.");
+      return;
+    }
+
+
+    await Word.run(async (context) => {
+      const tableStyle: Word.TableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+      tableStyle.load();
+      await context.sync();
+
+      if (tableStyle.isNullObject) {
+        console.warn(`There's no existing table style with the name '${styleName}'.`);
+        return;
+      }
+
+      console.log(tableStyle);
+      (document.getElementById("alignment") as HTMLInputElement).value = tableStyle.alignment;
+      (document.getElementById("allow-break-across-page") as HTMLInputElement).value = tableStyle.allowBreakAcrossPage.toString();
+      (document.getElementById("top-cell-margin") as HTMLInputElement).value = `${tableStyle.topCellMargin}`;
+      (document.getElementById("bottom-cell-margin") as HTMLInputElement).value = `${tableStyle.bottomCellMargin}`;
+      (document.getElementById("left-cell-margin") as HTMLInputElement).value = `${tableStyle.leftCellMargin}`;
+      (document.getElementById("right-cell-margin") as HTMLInputElement).value = `${tableStyle.rightCellMargin}`;
+      (document.getElementById("cell-spacing") as HTMLInputElement).value = `${tableStyle.cellSpacing}`;
+    });
 Word.StyleCollection:class:
   - >-
     // Link to full sample:
@@ -34647,6 +35631,24 @@ Word.StyleCollection:class:
       await context.sync();
 
       console.log(`Number of styles: ${count.value}`);
+    });
+Word.StyleCollection#getByName:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/border-properties.yaml
+
+
+    // Loads all scalar properties and returns them as a plain JavaScript
+    object.
+
+    await Word.run(async (context) => {
+      const style: Word.Style = context.document.getStyles().getByName("Bordered Text");
+      const borders: Word.BorderCollection = style.borders;
+      const border: Word.Border = borders.getByLocation(Word.BorderLocation.bottom);
+      border.load("color, location, type, visible, width");
+      await context.sync();
+
+      console.log("Border properties:", border.toJSON());
     });
 Word.StyleCollection#getByNameOrNullObject:member(1):
   - >-
@@ -34694,6 +35696,28 @@ Word.StyleCollection#getCount:member(1):
       await context.sync();
 
       console.log(`Number of styles: ${count.value}`);
+    });
+Word.StyleCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/manage-list-styles.yaml
+
+
+    // Gets the available list styles stored with the document.
+
+    await Word.run(async (context) => {
+      const styles: Word.StyleCollection = context.document.getStyles();
+      const count = styles.getCount();
+
+      // Load object to log properties and their values in the console.
+      styles.load();
+      await context.sync();
+
+      for (let i = 0; i <= count.value; i++) {
+        if (styles.items[i] && styles.items[i].type == "List") {
+          console.log(`List style name: ${styles.items[i].nameLocal}`, styles.items[i]);
+        }
+      }
     });
 Word.StyleType:enum:
   - >-
@@ -34844,6 +35868,75 @@ Word.Table#rows:member:
         `Details about the alignment of the first table's first row:`,
         `- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`,
         `- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`,
+      );
+    });
+Word.Table#style:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-custom-style.yaml
+
+
+    // Applies the specified style to a new table.
+
+    const styleName = (document.getElementById("style-name") as
+    HTMLInputElement).value;
+
+    if (styleName == "") {
+      console.warn("Enter a style name to apply.");
+      return;
+    }
+
+
+    await Word.run(async (context) => {
+      const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else if (style.type != Word.StyleType.table) {
+        console.warn(`The '${styleName}' style isn't a table style.`);
+      } else {
+        const body: Word.Body = context.document.body;
+        body.clear();
+        const data = [
+          ["Tokyo", "Beijing", "Seattle"],
+          ["Apple", "Orange", "Pineapple"]
+        ];
+        const table: Word.Table = body.insertTable(2, 3, "Start", data);
+        table.style = style.nameLocal;
+        table.styleFirstColumn = false;
+        await context.sync();
+
+        console.log(`'${styleName}' style applied to first table.`, style);
+      }
+    });
+Word.Table#styleBuiltIn:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/55-selection/insert-formula.yaml
+
+
+    await Word.run(async (context) => {
+      const body: Word.Body = context.document.body;
+      body.clear();
+
+      body.insertParagraph("Sales data", Word.InsertLocation.start);
+
+      // Create a table with numeric values and an empty total row.
+      const table: Word.Table = body.insertTable(5, 2, Word.InsertLocation.end, [
+        ["Item", "Amount"],
+        ["Product A", "1200"],
+        ["Product B", "3450"],
+        ["Product C", "870"],
+        ["Total", ""],
+      ]);
+      table.styleBuiltIn = Word.BuiltInStyleName.tableGrid;
+
+      await context.sync();
+
+      console.log(
+        "Setup complete. Place your cursor in the empty 'Total' cell (last row, second column), then try inserting a formula.",
       );
     });
 Word.Table#verticalAlignment:member:
@@ -35036,6 +36129,21 @@ Word.TableCell#getCellPadding:member(2):
       console.log(
         `Cell padding details about the ${cellPaddingLocation} border of the first table's first cell: ${cellPadding.value} points`,
       );
+    });
+Word.TableCell#body:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/table-cell-access.yaml
+
+
+    // Gets the content of the first cell in the first table.
+
+    await Word.run(async (context) => {
+      const firstCell: Word.Body = context.document.body.tables.getFirst().getCell(0, 0).body;
+      firstCell.load("text");
+
+      await context.sync();
+      console.log("First cell's text is: " + firstCell.text);
     });
 Word.TableCell#horizontalAlignment:member:
   - >-

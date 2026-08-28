@@ -8446,19 +8446,12 @@ Excel.SheetVisibility:enum:
 
 
     await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("VisibilitySample");
 
-        const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.visible);
+        // Set the worksheet visibility to hidden.
+        sheet.visibility = Excel.SheetVisibility.hidden;
 
-        if (visibleSheets.length > 1) {
-            console.log(`Hiding worksheet named "${visibleSheets[0].name}"...`);
-
-            visibleSheets[0].visibility = Excel.SheetVisibility.hidden;
-
-            await context.sync();
-
-        } else {
-            console.log("Cannot hide the only visible worksheet");
-        }
+        await context.sync();
     });
 Excel.ShowAsCalculation:enum:
   - >-
@@ -9644,6 +9637,30 @@ Excel.Worksheet#onProtectionChanged:member:
             console.log("    Source of change event: " + source + ".");
         });
     }
+Excel.Worksheet#onVisibilityChanged:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("VisibilitySample");
+
+        // Register an event handler for visibility changes to this worksheet.
+        sheet.onVisibilityChanged.add(onWorksheetVisibilityChanged);
+
+        await context.sync();
+        console.log("Registered the worksheet visibility changed event handler.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    async function onWorksheetVisibilityChanged(args:
+    Excel.WorksheetVisibilityChangedEventArgs) {
+        console.log(`Worksheet event: Visibility changed from ${args.visibilityBefore} to ${args.visibilityAfter}.`);
+    }
 Excel.Worksheet#showOutlineLevels:member(1):
   - >-
     // Link to full sample:
@@ -9847,6 +9864,22 @@ Excel.Worksheet#tabColor:member:
 
         await context.sync();
     });
+Excel.Worksheet#visibility:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("VisibilitySample");
+
+        // Load the visibility property so it can be read after context.sync().
+        sheet.load("name, visibility");
+
+        await context.sync();
+
+        console.log(`The visibility of worksheet "${sheet.name}" is ${sheet.visibility}.`);
+    });
 Excel.WorksheetAddedEventArgs#worksheetId:member:
   - >-
     // Link to full sample:
@@ -9975,6 +10008,28 @@ Excel.WorksheetCollection#onDeactivated:member:
         await context.sync();
         console.log("A handler has been registered for the OnDeactivate event.");
     });
+Excel.WorksheetCollection#onVisibilityChanged:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    await Excel.run(async (context) => {
+        // Register an event handler for visibility changes to any worksheet in the collection.
+        context.workbook.worksheets.onVisibilityChanged.add(onWorksheetCollectionVisibilityChanged);
+
+        await context.sync();
+        console.log("Registered the worksheet collection visibility changed event handler.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    async function onWorksheetCollectionVisibilityChanged(args:
+    Excel.WorksheetVisibilityChangedEventArgs) {
+        console.log(`Worksheet collection event: Worksheet ${args.worksheetId} visibility changed from ${args.visibilityBefore} to ${args.visibilityAfter}.`);
+    }
 Excel.WorksheetCollection#getFirst:member(1):
   - >-
     // Link to full sample:
@@ -10286,6 +10341,16 @@ Excel.WorksheetSingleClickedEventArgs#address:member:
 
         await context.sync();
     });
+Excel.WorksheetVisibilityChangedEventArgs:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    async function onWorksheetVisibilityChanged(args:
+    Excel.WorksheetVisibilityChangedEventArgs) {
+        console.log(`Worksheet event: Visibility changed from ${args.visibilityBefore} to ${args.visibilityAfter}.`);
+    }
 Office.AppointmentCompose:interface:
   - >-
     // Link to full sample:

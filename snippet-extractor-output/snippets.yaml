@@ -16,6 +16,52 @@ Excel.AggregationFunction:enum:
             await context.sync();
         });
     }
+Excel.Application#calculationMode:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-calculation.yaml
+
+
+    await Excel.run(async (context) => {
+      context.application.calculationMode = Excel.CalculationMode.manual;
+      context.application.load("calculationMode");
+      await context.sync();
+
+      console.log("Current calculation mode: " + context.application.calculationMode);
+    });
+Excel.Application#cultureInfo:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/culture-info-date-time.yaml
+
+
+    await Excel.run(async (context) => {
+      context.application.cultureInfo.datetimeFormat.load([
+        "longDatePattern",
+        "shortDatePattern",
+        "dateSeparator",
+        "longTimePattern",
+        "timeSeparator"
+      ]);
+      await context.sync();
+
+      // Use the cultural settings API to retrieve the user's system date and time settings.
+      const systemLongDatePattern = context.application.cultureInfo.datetimeFormat.longDatePattern;
+      const systemShortDatePattern = context.application.cultureInfo.datetimeFormat.shortDatePattern;
+      const systemDateSeparator = context.application.cultureInfo.datetimeFormat.dateSeparator;
+      const systemLongTimePattern = context.application.cultureInfo.datetimeFormat.longTimePattern;
+      const systemTimeSeparator = context.application.cultureInfo.datetimeFormat.timeSeparator;
+
+      // Display the date and time settings in your console.
+      console.log("System date/time settings: ");
+      console.log(`  System long date format: ${systemLongDatePattern}`);
+      console.log(`  System short date format: ${systemShortDatePattern}`);
+      console.log(`  System date separator: ${systemDateSeparator}`);
+      console.log(`  System long time format: ${systemLongTimePattern}`);
+      console.log(`  System time separator: ${systemTimeSeparator}`);
+
+      await context.sync();
+    });
 Excel.Application#decimalSeparator:member:
   - >-
     // Link to full sample:
@@ -250,6 +296,22 @@ Excel.BasicDataValidation:interface:
         sheet.getRange("B3").dataValidation.rule = rule;
     }
 Excel.Binding#onDataChanged:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/data-changed.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");    
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const salesByQuarterBinding = context.workbook.bindings.add(salesTable.getRange(), "Table", "SalesByQuarter");
+        salesByQuarterBinding.onDataChanged.add(onSalesDataChanged);
+
+        console.log("The data changed handler is registered.");
+
+        await context.sync();
+    });
+Excel.BindingCollection#add:member(1):
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/data-changed.yaml
@@ -1127,7 +1189,10 @@ Excel.CellValueConditionalFormat#format:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -1143,7 +1208,10 @@ Excel.CellValueConditionalFormat#rule:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -1256,6 +1324,39 @@ Excel.Chart#onDeactivated:member:
             console.log("The pie chart is NOT active.");
         });
     }
+Excel.Chart#series:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-series.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+
+      const chart: Excel.Chart = sheet.charts.getItemAt(0);
+      let rangeSelection = sheet.getRange("C2:C7");
+      let xRangeSelection = sheet.getRange("A1:A7");
+
+      // Add a series.
+      const newSeries: Excel.ChartSeries = chart.series.add("Qtr2");
+      newSeries.setValues(rangeSelection);
+      newSeries.setXAxisValues(xRangeSelection);
+
+      await context.sync();
+    });
+Excel.Chart#title:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-title-format.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const title = sheet.charts.getItemAt(0).title;
+        title.textOrientation = -45;
+
+        await context.sync();
+    });
 Excel.ChartAxis#displayUnit:member:
   - >-
     // Link to full sample:
@@ -1276,6 +1377,29 @@ Excel.ChartAxis#displayUnit:member:
 
         console.log("The vertical axis display unit is: " + valueAxis.displayUnit);
     });
+Excel.ChartAxis#setPositionAt:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-axis-formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        let chart = sheet.charts.getItem("SalesChart");
+        const axis: Excel.ChartAxis = chart.axes.valueAxis;
+
+        axis.displayUnit = "None";
+        axis.scaleType = "Logarithmic";
+        axis.logBase = 100;
+        axis.majorTickMark = "Cross";
+        
+        // Set the product name label location.
+        // In this case, the location is at 100 units.
+        axis.setPositionAt(100);
+
+        await context.sync();
+    });
 Excel.ChartAxis#showDisplayUnitLabel:member:
   - >-
     // Link to full sample:
@@ -1289,6 +1413,43 @@ Excel.ChartAxis#showDisplayUnitLabel:member:
 
         // Remove display unit.
         axis.showDisplayUnitLabel = false;
+
+        await context.sync();
+    });
+Excel.ChartBorder#lineStyle:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-title-format.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const title = sheet.charts.getItemAt(0).title;
+        title.format.fill.setSolidColor("SkyBlue");
+        title.format.border.lineStyle = "Dash";
+
+        await context.sync();
+    });
+Excel.ChartCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-chartcollection-added-activated.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const dataRange = salesTable.getDataBodyRange();
+
+        let chart = sheet.charts.add("Pie", dataRange, "Auto");
+
+        chart.name = "Pie";
+        chart.setPosition("A10", "F25");
+        chart.title.text = "1st Quarter sales chart";
+        chart.legend.position = "Bottom"
+        chart.legend.format.fill.setSolidColor("white");
+        chart.dataLabels.format.font.size = 15;
+        chart.dataLabels.format.font.color = "black";
 
         await context.sync();
     });
@@ -1399,6 +1560,29 @@ Excel.ChartDataLabel:class:
       subLabel.font.size = 13;
       subLabel.font.italic = true;
       subLabel.font.color = "blue";
+      await context.sync();
+    });
+Excel.ChartDataLabels#leaderLines:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code changes the format of leader lines. It adjusts color,
+    weight, and line style.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
+
+      // Set leader line formatting properties.
+      lineFormat.line.color = "blue";
+      lineFormat.line.weight = 2;
+      lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
       await context.sync();
     });
 Excel.ChartDataTable#format:member:
@@ -1666,6 +1850,43 @@ Excel.ChartFill#setSolidColor:member(1):
 
         await context.sync();
     });
+Excel.ChartFont#bold:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-legend.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let chart = sheet.charts.getItemAt(0);
+        chart.legend.visible = true;
+
+        // Format the legend font.
+        const font: Excel.ChartFont = chart.legend.format.font;
+        font.bold = true;
+        font.color = "red";
+        font.italic = true;
+        font.size = 15;
+        font.name = "Calibri";
+        font.underline = "Single";
+
+        await context.sync();
+    });
+Excel.ChartFont#size:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-title-format.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const title = sheet.charts.getItemAt(0).title;
+        title.format.font.size = 16;
+        title.showShadow = true;
+
+        await context.sync();
+    });
 Excel.ChartLeaderLines:class:
   - >-
     // Link to full sample:
@@ -1679,8 +1900,8 @@ Excel.ChartLeaderLines:class:
       const sheet = context.workbook.worksheets.getItem(sheetName);
       const chart = sheet.charts.getItemAt(0);
       const series = chart.series.getItemAt(0);
-      const dataLabels = series.dataLabels;
-      const lineFormat = dataLabels.leaderLines.format;
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
 
       // Set leader line formatting properties.
       lineFormat.line.color = "blue";
@@ -1702,13 +1923,80 @@ Excel.ChartLeaderLinesFormat:class:
       const sheet = context.workbook.worksheets.getItem(sheetName);
       const chart = sheet.charts.getItemAt(0);
       const series = chart.series.getItemAt(0);
-      const dataLabels = series.dataLabels;
-      const lineFormat = dataLabels.leaderLines.format;
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
 
       // Set leader line formatting properties.
       lineFormat.line.color = "blue";
       lineFormat.line.weight = 2;
       lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
+      await context.sync();
+    });
+Excel.ChartLegend#position:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-title-format.yaml
+
+
+    function createChart(context: Excel.RequestContext) {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+
+        let dataRange = sheet.getRange("A3:E7");
+        let chart = sheet.charts.add("ColumnStacked", dataRange, "Auto");
+        chart.title.text = "Bicycle Parts Sales";
+        chart.setPosition("A10", "H33");
+        chart.legend.position = "Right";
+        chart.legend.format.fill.setSolidColor("white");
+        chart.dataLabels.format.font.size = 15;
+        chart.dataLabels.format.font.color = "black";
+    }
+Excel.ChartLegend#visible:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-legend.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let chart = sheet.charts.getItemAt(0);
+        chart.legend.visible = true;
+
+        // Format the legend font.
+        const font: Excel.ChartFont = chart.legend.format.font;
+        font.bold = true;
+        font.color = "red";
+        font.italic = true;
+        font.size = 15;
+        font.name = "Calibri";
+        font.underline = "Single";
+
+        await context.sync();
+    });
+Excel.ChartLegendFormat#fill:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-create-several-charts.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const salesTable = sheet.tables.getItem("SalesTable");
+      const dataRange = salesTable.getDataBodyRange();
+
+      let chart = sheet.charts.add(Excel.ChartType.radarFilled, dataRange, "Auto");
+
+      chart.setPosition("H17", "M35");
+      chart.title.text = "Quarterly sales chart";
+      chart.legend.position = "Bottom";
+      chart.legend.format.fill.setSolidColor("white");
+      chart.dataLabels.format.font.size = 15;
+      chart.dataLabels.format.font.color = "black";
+      chart.series.getItemAt(0).name = "Q1";
+      chart.series.getItemAt(1).name = "Q2";
+      chart.series.getItemAt(2).name = "Q3";
+      chart.series.getItemAt(3).name = "Q4";
 
       await context.sync();
     });
@@ -1725,7 +2013,7 @@ Excel.ChartLegendFormat#font:member:
         chart.legend.visible = true;
 
         // Format the legend font.
-        let font = chart.legend.format.font;
+        const font: Excel.ChartFont = chart.legend.format.font;
         font.bold = true;
         font.color = "red";
         font.italic = true;
@@ -1734,6 +2022,49 @@ Excel.ChartLegendFormat#font:member:
         font.underline = "Single";
 
         await context.sync();
+    });
+Excel.ChartLineFormat#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-trendlines.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series; 
+        let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
+
+        // Set format of the trendline to a solid, red line.
+        let line = trendline.format.line;
+        line.color = '#FF0000';
+
+        await context.sync();
+
+        console.log("The trendline color has been set to:" + line.color);
+    });
+Excel.ChartLineFormat#lineStyle:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code changes the format of leader lines. It adjusts color,
+    weight, and line style.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
+
+      // Set leader line formatting properties.
+      lineFormat.line.color = "blue";
+      lineFormat.line.weight = 2;
+      lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
+      await context.sync();
     });
 Excel.ChartLineStyle:enum:
   - >-
@@ -1748,8 +2079,8 @@ Excel.ChartLineStyle:enum:
       const sheet = context.workbook.worksheets.getItem(sheetName);
       const chart = sheet.charts.getItemAt(0);
       const series = chart.series.getItemAt(0);
-      const dataLabels = series.dataLabels;
-      const lineFormat = dataLabels.leaderLines.format;
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
 
       // Set leader line formatting properties.
       lineFormat.line.color = "blue";
@@ -1798,6 +2129,42 @@ Excel.ChartPoint:class:
         dataLabel.text = dataLabelInfo[i].news;
         dataLabel.set(labelProperties[i]);
       }
+      await context.sync();
+    });
+Excel.ChartPoint#dataLabel:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code adds data labels to the chart and positions them to
+    demonstrate leader lines.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      
+      // Enable data labels for the series. Leader lines are enabled by default.
+      series.hasDataLabels = true;
+      series.points.load("items");
+      await context.sync();
+      
+      // Load the top position for each data label.
+      series.points.items.forEach((point) => point.dataLabel.load("top"));
+      await context.sync();
+
+      // Move some data labels to create distance from their chart points.
+      const point1 = series.points.items[1]; 
+      const point2 = series.points.items[2]; 
+      point1.dataLabel.top -= 50; 
+      point2.dataLabel.top += 50;
+      
+      // Format the data labels.
+      series.dataLabels.geometricShapeType = Excel.GeometricShapeType.rectangle;
+      series.dataLabels.showCategoryName = true;
+      series.dataLabels.format.border.weight = 1;
+      
       await context.sync();
     });
 Excel.ChartPointsCollection:class:
@@ -2008,6 +2375,33 @@ Excel.ChartSeries:class:
       
       await context.sync();
     });
+Excel.ChartSeries#format:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        const worksheet = context.workbook.worksheets.getActiveWorksheet();
+        const chart = worksheet.charts.getItem("SlopeChart");
+        chart.series.load("count");
+        await context.sync();
+
+        // Color everything gray before highlighting spokes.
+        for (let i = 0; i < chart.series.count; i++) {
+            chart.series.getItemAt(i).format.line.color = "#636363";
+            chart.series.getItemAt(i).dataLabels.format.font.color = "#636363";
+        }
+
+        const highlight: Excel.ChartSeries = chart.series.getItemAt(5);
+        highlight.format.line.color = "#4472C4";
+        highlight.dataLabels.format.font.color = "#D9D9D9";
+
+        highlight.load("name");
+        await context.sync();
+        highlight.name += " (Focus)";
+        await context.sync();
+    });
 Excel.ChartSeries#hasDataLabels:member:
   - >-
     // Link to full sample:
@@ -2129,16 +2523,56 @@ Excel.ChartSeries#setValues:member(1):
     await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getItem("Sample");
 
-      let seriesCollection = sheet.charts.getItemAt(0);
+      const chart: Excel.Chart = sheet.charts.getItemAt(0);
       let rangeSelection = sheet.getRange("C2:C7");
       let xRangeSelection = sheet.getRange("A1:A7");
 
       // Add a series.
-      let newSeries = seriesCollection.series.add("Qtr2");
+      const newSeries: Excel.ChartSeries = chart.series.add("Qtr2");
       newSeries.setValues(rangeSelection);
       newSeries.setXAxisValues(xRangeSelection);
 
       await context.sync();
+    });
+Excel.ChartSeries#setXAxisValues:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/create-doughnut-chart.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0);
+        let rangeSelection = sheet.getRange("C2:C7");
+        let xRangeSelection = sheet.getRange("A1:A7");
+
+        // Add a series.
+        const newSeries: Excel.ChartSeries = seriesCollection.series.add("Qtr2");
+        newSeries.setValues(rangeSelection);
+        newSeries.setXAxisValues(xRangeSelection);
+
+        // Set the size of the doughnut hole.
+        // The hole size is expressed as a percentage of the chart size.
+        newSeries.doughnutHoleSize = 80;
+
+        await context.sync();
+    });
+Excel.ChartSeries#trendlines:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-trendlines.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series;
+
+         // Add a trendline.  
+        seriesCollection.getItemAt(0).trendlines.add("Linear");
+
+        await context.sync();
     });
 Excel.ChartSeries#markerBackgroundColor:member:
   - >-
@@ -2338,6 +2772,26 @@ Excel.ChartSeriesDimension:enum:
       // Log the information.
       console.log(`Series ${category.value} - X: ${xValues.value}, Y: ${yValues.value}, Bubble: ${bubbleSize.value}`);
     });
+Excel.ChartSeriesCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-series.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+
+      const chart: Excel.Chart = sheet.charts.getItemAt(0);
+      let rangeSelection = sheet.getRange("C2:C7");
+      let xRangeSelection = sheet.getRange("A1:A7");
+
+      // Add a series.
+      const newSeries: Excel.ChartSeries = chart.series.add("Qtr2");
+      newSeries.setValues(rangeSelection);
+      newSeries.setXAxisValues(xRangeSelection);
+
+      await context.sync();
+    });
 Excel.ChartTitle#getSubstring:member(1):
   - >-
     // Link to full sample:
@@ -2351,6 +2805,25 @@ Excel.ChartTitle#getSubstring:member(1):
         // Get first seven characters of the title and color them green.
         chart.title.getSubstring(0, 7).font.color = "Yellow";
         await context.sync();
+    });
+Excel.ChartTitle#text:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-create-several-charts.yaml
+
+
+    await Excel.run(async (context) => {
+      let sheet = context.workbook.worksheets.getItem("Sample");
+      let salesTable = sheet.tables.getItem("SalesTable");
+
+      let dataRange = sheet.getRange("A1:E7");
+
+      // Create an XY scatter chart.
+      let chart = sheet.charts.add(Excel.ChartType.xyscatter, dataRange, "Auto");
+      chart.title.text = "Bicycle Parts Quarterly Sales";
+      chart.setPosition("A36", "F48");
+
+      await context.sync();
     });
 Excel.ChartTitle#textOrientation:member:
   - >-
@@ -2556,6 +3029,19 @@ Excel.Comment#load:member(2):
         console.log(`${comment.creationDate.toDateString()}: ${comment.authorName} (${comment.authorEmail})`);
         await context.sync();
     });
+Excel.Comment#replies:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/12-comments-and-notes/comment-replies.yaml
+
+
+    await Excel.run(async (context) => {
+        // Adds a reply to the first comment in this worksheet.
+        const sheet = context.workbook.worksheets.getItem("Comments");
+        const comment: Excel.Comment = sheet.comments.getItemAt(0);
+        comment.replies.add("Add content to this worksheet.");
+        await context.sync();
+    });
 Excel.Comment#resolved:member:
   - >-
     // Link to full sample:
@@ -2578,6 +3064,38 @@ Excel.CommentCollection#add:member(1):
 
         // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
         sheet.comments.add("A2", "TODO: add data.");
+        await context.sync();
+    });
+Excel.CommentCollection#getItemAt:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/12-comments-and-notes/comment-resolution.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Comments");
+        sheet.comments.getItemAt(0).resolved = false;
+        await context.sync();
+    });
+Excel.CommentCollection#getItemByCell:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/12-comments-and-notes/comment-replies.yaml
+
+
+    await Excel.run(async (context) => {
+        const comment = context.workbook.comments.getItemByCell("Comments!A1");
+        const replyCount = comment.replies.getCount();
+        // Sync to get the current number of comment replies.
+        await context.sync();
+
+        // Get the last comment reply in the comment thread.
+        const reply = comment.replies.getItemAt(replyCount.value - 1);
+        reply.load(["authorEmail", "authorName", "creationDate"]);
+        // Sync to load the reply metadata.
+        await context.sync();
+
+        console.log(`Latest reply: ${reply.creationDate.toDateString()}: ${reply.authorName} ${reply.authorEmail})`);
         await context.sync();
     });
 Excel.CommentCollection#onAdded:member:
@@ -2735,7 +3253,7 @@ Excel.CommentReplyCollection#add:member(1):
     await Excel.run(async (context) => {
         // Adds a reply to the first comment in this worksheet.
         const sheet = context.workbook.worksheets.getItem("Comments");
-        const comment = sheet.comments.getItemAt(0);
+        const comment: Excel.Comment = sheet.comments.getItemAt(0);
         comment.replies.add("Add content to this worksheet.");
         await context.sync();
     });
@@ -2764,6 +3282,25 @@ Excel.CommentRichContent#mentions:member:
         sheet.comments.add("A1", commentBody, Excel.ContentType.mention);
         await context.sync();
     });
+Excel.ConditionalCellValueOperator:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.cellValue);
+        conditionalFormat.cellValue.format.font.color = "red";
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
+
+        await context.sync();
+    });
 Excel.ConditionalCellValueRule#formula1:member:
   - >-
     // Link to full sample:
@@ -2776,7 +3313,10 @@ Excel.ConditionalCellValueRule#formula1:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -2792,7 +3332,10 @@ Excel.ConditionalCellValueRule#operator:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -2863,7 +3406,10 @@ Excel.ConditionalFormat#cellValue:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -2914,6 +3460,19 @@ Excel.ConditionalFormat#dataBar:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.dataBar);
         conditionalFormat.dataBar.barDirection = Excel.ConditionalDataBarDirection.leftToRight;
+
+        await context.sync();
+    });
+Excel.ConditionalFormat#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-advanced.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const temperatureDataRange = sheet.tables.getItem("TemperatureTable").getDataBodyRange();
+        temperatureDataRange.conditionalFormats.getItemAt(0).delete();
 
         await context.sync();
     });
@@ -3220,11 +3779,12 @@ Excel.ConditionalFormatPresetCriterion:enum:
 
         // Set low numbers to bold, dark red font. This format will
         // get priority 0.
-        const presetFormat = temperatureDataRange.conditionalFormats
+        const presetFormat: Excel.ConditionalFormat = temperatureDataRange.conditionalFormats
             .add(Excel.ConditionalFormatType.presetCriteria);
-        presetFormat.preset.format.font.color = "red";
-        presetFormat.preset.format.font.bold = true;
-        presetFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
+        const presetCriteriaFormat: Excel.PresetCriteriaConditionalFormat = presetFormat.preset;
+        presetCriteriaFormat.format.font.color = "red";
+        presetCriteriaFormat.format.font.bold = true;
+        presetCriteriaFormat.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
 
          // Set negative numbers to blue font with green background. 
          // This format will get priority 1.
@@ -3274,11 +3834,12 @@ Excel.ConditionalFormatType:enum:
 
         // Set low numbers to bold, dark red font. This format will
         // get priority 0.
-        const presetFormat = temperatureDataRange.conditionalFormats
+        const presetFormat: Excel.ConditionalFormat = temperatureDataRange.conditionalFormats
             .add(Excel.ConditionalFormatType.presetCriteria);
-        presetFormat.preset.format.font.color = "red";
-        presetFormat.preset.format.font.bold = true;
-        presetFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
+        const presetCriteriaFormat: Excel.PresetCriteriaConditionalFormat = presetFormat.preset;
+        presetCriteriaFormat.format.font.color = "red";
+        presetCriteriaFormat.format.font.bold = true;
+        presetCriteriaFormat.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
 
          // Set negative numbers to blue font with green background. 
          // This format will get priority 1.
@@ -3510,6 +4071,40 @@ Excel.ConditionalPresetCriteriaRule#criterion:member:
 
         await context.sync();
     });
+Excel.ConditionalRangeFill#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.topBottom);
+        conditionalFormat.topBottom.format.fill.color = "green"
+        conditionalFormat.topBottom.rule = { 
+            rank: 1, 
+            type: Excel.ConditionalTopBottomCriterionType.topItems
+        };
+
+        await context.sync();
+    });
+Excel.ConditionalRangeFont#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B8:E13");
+        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
+        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
+        conditionalFormat.custom.format.font.color = "green";
+
+        await context.sync();
+    });
 Excel.ConditionalTextComparisonRule#text:member:
   - >-
     // Link to full sample:
@@ -3539,6 +4134,25 @@ Excel.ConditionalTextOperator:enum:
             .add(Excel.ConditionalFormatType.containsText);
         conditionalFormat.textComparison.format.font.color = "red";
         conditionalFormat.textComparison.rule = { operator: Excel.ConditionalTextOperator.contains, text: "Delayed" };
+
+        await context.sync();
+    });
+Excel.ConditionalTopBottomCriterionType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.topBottom);
+        conditionalFormat.topBottom.format.fill.color = "green"
+        conditionalFormat.topBottom.rule = { 
+            rank: 1, 
+            type: Excel.ConditionalTopBottomCriterionType.topItems
+        };
 
         await context.sync();
     });
@@ -3667,6 +4281,19 @@ Excel.CustomPropertyCollection#add:member(1):
       await context.sync();
 
       console.log(`Successfully set custom document property ${userKey}: ${userValue}.`);
+    });
+Excel.CustomPropertyCollection#getCount:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/26-document/properties.yaml
+
+
+    await Excel.run(async (context) => {
+        let customDocProperties = context.workbook.properties.custom;
+        let count = customDocProperties.getCount();
+        await context.sync();
+
+        console.log("Count of custom document properties :" + count.value);
     });
 Excel.CustomXmlPart#delete:member(1):
   - >-
@@ -4013,6 +4640,37 @@ Excel.DataPivotHierarchy#name:member:
 
         dataHierarchies.items[0].name = "Farm Sales";
         dataHierarchies.items[1].name = "Wholesale";
+        await context.sync();
+    });
+Excel.DataPivotHierarchy#summarizeBy:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-filters-and-summaries.yaml
+
+
+    async function genericFunctionSwitch(functionType:
+    Excel.AggregationFunction) {
+        await Excel.run(async (context) => {
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+            pivotTable.dataHierarchies.load("no-properties-needed");
+            await context.sync();
+
+            pivotTable.dataHierarchies.items[0].summarizeBy = functionType;
+            pivotTable.dataHierarchies.items[1].summarizeBy = functionType;
+            await context.sync();
+        });
+    }
+Excel.DataPivotHierarchyCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
+
+
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
         await context.sync();
     });
 Excel.DataValidation:class:
@@ -4398,7 +5056,7 @@ Excel.DeleteShiftDirection:enum:
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("A5:F5");
+        const range: Excel.Range = sheet.getRange("A5:F5");
         range.delete(Excel.DeleteShiftDirection.up);
     });
 Excel.DocumentProperties#custom:member:
@@ -4482,9 +5140,7 @@ Excel.DynamicFilterCriteria:enum:
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-
         const expensesTable = sheet.tables.getItem("ExpensesTable");
-
         let filter = expensesTable.columns.getItem("Amount").filter;
         filter.apply({
             filterOn: Excel.FilterOn.dynamic,
@@ -4884,6 +5540,27 @@ Excel.FillPattern:enum:
         sheet.getUsedRange().format.autofitColumns();
         await context.sync();
     });
+Excel.Filter#apply:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/get-visible-range-of-a-filtered-table.yaml
+
+
+    /** Filter the table*/
+
+    async function filterTable() {
+        await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const expensesTable = sheet.tables.getItem("ExpensesTable");
+            const filter: Excel.Filter = expensesTable.columns.getItem("Amount").filter;
+
+            filter.apply({
+                filterOn: Excel.FilterOn.dynamic,
+                dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
+            });
+
+            await context.sync();
+        });
 Excel.FilterCriteria#filterOn:member:
   - >-
     // Link to full sample:
@@ -4948,9 +5625,7 @@ Excel.FilterOn:enum:
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-
         const expensesTable = sheet.tables.getItem("ExpensesTable");
-
         let filter = expensesTable.columns.getItem("Amount").filter;
         filter.apply({
             filterOn: Excel.FilterOn.dynamic,
@@ -4981,6 +5656,23 @@ Excel.Functions:class:
 
       await context.sync();
       console.log(" Number of wrenches sold in November = " + unitSoldInNov.value);
+    });
+Excel.Functions#randBetween:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let randomResult = context.workbook.functions.randBetween(1, 3000).load("value");
+        await context.sync();
+
+        const row: Excel.TableRow = sheet.tables.getItem("SalesTable").rows.getItemAt(0);
+        let newValue = [["Frames", 5000, 7000, 6544, randomResult.value, "=SUM(B2:E2)"]];
+        row.values = newValue;
+        row.load("values");
+        await context.sync();
     });
 Excel.Functions#vlookup:member(1):
   - >-
@@ -5858,6 +6550,39 @@ Excel.PivotField#clearAllFilters:member(1):
       });
       await context.sync();
     });
+Excel.PivotFieldCollection#getItem:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-pivotfilters.yaml
+
+
+    await Excel.run(async (context) => {
+      // Clear all the PivotFilters.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+      pivotTable.hierarchies.load("name");
+      await context.sync();
+
+      // Clear the filters on each PivotField.
+      pivotTable.hierarchies.items.forEach((hierarchy) => {
+        hierarchy.fields.getItem(hierarchy.name).clearAllFilters();
+      });
+      await context.sync();
+    });
+Excel.PivotHierarchyCollection#getItem:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
+
+
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
+        await context.sync();
+    });
 Excel.PivotFilters#dateFilter:member:
   - >-
     // Link to full sample:
@@ -5999,6 +6724,27 @@ Excel.PivotHierarchy#fields:member:
 
       await context.sync();
     });
+Excel.FilterPivotHierarchyCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-filters-and-summaries.yaml
+
+
+    async function filter(functionType: Excel.AggregationFunction) {
+        await Excel.run(async (context) => {
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+            const filters: Excel.FilterPivotHierarchyCollection = pivotTable.filterHierarchies;
+            const filter = filters.getItemOrNullObject("Classification");
+            filter.load();
+            await context.sync();
+
+            // Add the Classification hierarchy to the filter, if it's not already there.
+            if (filter.isNullObject) {
+                filters.add(pivotTable.hierarchies.getItem("Classification"));
+                await context.sync();
+            }
+        });
+    }
 Excel.PivotLabelFilter:interface:
   - >-
     // Link to full sample:
@@ -6364,7 +7110,7 @@ Excel.PivotTable#filterHierarchies:member:
     async function filter(functionType: Excel.AggregationFunction) {
         await Excel.run(async (context) => {
             const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
-            const filters = pivotTable.filterHierarchies;
+            const filters: Excel.FilterPivotHierarchyCollection = pivotTable.filterHierarchies;
             const filter = filters.getItemOrNullObject("Classification");
             filter.load();
             await context.sync();
@@ -6446,6 +7192,43 @@ Excel.PivotValueFilter:interface:
 
       await context.sync();
     });
+Excel.PresetCriteriaConditionalFormat#format:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-advanced.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        queueCommandsToClearAllConditionalFormats(sheet);
+
+        const temperatureDataRange = sheet.tables.getItem("TemperatureTable").getDataBodyRange();
+
+        /* Contradictions are resolved in favor of the format with
+           the lower priority number. In the example below, negative
+           numbers will get a bold font, but NOT a red font, because
+           priority goes to the format that gives them a blue font.
+        */
+
+        // Set low numbers to bold, dark red font and assign priority 1.
+        const presetFormat = temperatureDataRange.conditionalFormats
+            .add(Excel.ConditionalFormatType.presetCriteria);
+        presetFormat.preset.format.font.color = "red";
+        presetFormat.preset.format.font.bold = true;
+        presetFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
+        presetFormat.priority = 1;
+
+        // Set negative numbers to blue font with green background and 
+        // set priority 0.
+        const cellValueFormat = temperatureDataRange.conditionalFormats
+            .add(Excel.ConditionalFormatType.cellValue);
+        cellValueFormat.cellValue.format.font.color = "blue";
+        cellValueFormat.cellValue.format.fill.color = "lightgreen";
+        cellValueFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        cellValueFormat.priority = 0;
+
+        await context.sync();
+    });
 Excel.PresetCriteriaConditionalFormat#rule:member:
   - >-
     // Link to full sample:
@@ -6459,6 +7242,20 @@ Excel.PresetCriteriaConditionalFormat#rule:member:
             .add(Excel.ConditionalFormatType.presetCriteria);
         conditionalFormat.preset.format.font.color = "white";
         conditionalFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevAboveAverage };
+
+        await context.sync();
+    });
+Excel.Range#clear:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/insert-delete-clear-range.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range: Excel.Range = sheet.getRange("E2:E5");
+
+        range.clear();
 
         await context.sync();
     });
@@ -6480,6 +7277,16 @@ Excel.Range#clearOrResetContents:member(1):
       range.clearOrResetContents();
       await context.sync();
     });
+Excel.Range#conditionalFormats:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-advanced.yaml
+
+
+    function queueCommandsToClearAllConditionalFormats(sheet: Excel.Worksheet) {
+            const range = sheet.getRange();
+            range.conditionalFormats.clearAll();
+    }
 Excel.Range#control:member:
   - >-
     // Link to full sample:
@@ -6499,6 +7306,74 @@ Excel.Range#control:member:
         type: Excel.CellControlType.checkbox
       };
       await context.sync();
+    });
+Excel.Range#dataValidation:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/22-data-validation/data-validation-types.yaml
+
+
+    function applyCustom(sheet: Excel.Worksheet) {
+        // Custom formula: Value in B8 must not duplicate any value already in B2:B7.
+        const customRule: Excel.CustomDataValidation = {
+            formula: "=COUNTIF($B$2:$B$7,B8)=0"
+        };
+        const rule: Excel.DataValidationRule = { custom: customRule };
+        sheet.getRange("B8").dataValidation.rule = rule;
+    }
+Excel.Range#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    // This function deletes data from a range and sets the delete shift
+    direction to "up".
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range: Excel.Range = sheet.getRange("A5:F5");
+        range.delete(Excel.DeleteShiftDirection.up);
+    });
+Excel.Range#format:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable = sheet.tables.getItem("ExpensesTable");
+
+        expensesTable.getHeaderRowRange().format.fill.color = "#C70039";
+        expensesTable.getDataBodyRange().format.fill.color = "#DAF7A6";
+        expensesTable.rows.getItemAt(1).getRange().format.fill.color = "#FFC300";
+        expensesTable.columns.getItemAt(0).getDataBodyRange().format.fill.color = "#FFA07A";
+        
+      await context.sync();
+    });
+Excel.Range#formulas:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/set-get-values.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        const data = [
+            ["Total Price"],
+            ["=C3 * D3"],
+            ["=C4 * D4"],
+            ["=C5 * D5"],
+            ["=SUM(E3:E5)"]
+        ];
+        
+        const range = sheet.getRange("E2:E6");
+        range.formulas = data;
+        range.format.autofitColumns();
+
+        await context.sync();
     });
 Excel.Range#values:member:
   - >-
@@ -7118,6 +7993,22 @@ Excel.Range#getRangeEdge:member(1):
 
       await context.sync();
     });
+Excel.Range#getVisibleView:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/get-visible-range-of-a-filtered-table.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable = sheet.tables.getItem("ExpensesTable");                    
+        const visibleRange = expensesTable.getDataBodyRange().getVisibleView().load("values");
+        await sheet.context.sync();
+
+        const visibleValues = visibleRange.values;
+        console.log(visibleValues);
+        await context.sync();
+    });
 Excel.Range#hyperlink:member:
   - >-
     // Link to full sample:
@@ -7360,6 +8251,22 @@ Excel.Range#set:member(2):
         targetRange.format.autofitColumns();
         await context.sync();
     });
+Excel.RangeAreas#copyFrom:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-auto-fill.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getActiveWorksheet();
+      const sumRange = sheet.getRange("F4");
+      sumRange.formulas = [["=SUM(B4:E4)"]];
+      sumRange.format.fill.color = "LightBlue";
+      sumRange.format.font.bold = true;
+      sheet.getRanges("K4,P4").copyFrom("F4", Excel.RangeCopyType.all);
+      sheet.getRanges("F4,K4,P4").format.autofitColumns();
+      await context.sync();
+    });
 Excel.RangeAreas#format:member:
   - >-
     // Link to full sample:
@@ -7393,6 +8300,116 @@ Excel.RangeCopyType:enum:
         sheet.getRange("G2").copyFrom("A1:E1", Excel.RangeCopyType.formulas);
         await context.sync();
     });
+Excel.RangeFill#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-areas.yaml
+
+
+    await Excel.run(async (context) => {
+
+        const selectedRanges = context.workbook.getSelectedRanges();
+        selectedRanges.format.fill.color = "lightblue";
+
+        await context.sync();
+    })
+Excel.RangeFont#bold:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-auto-fill.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getActiveWorksheet();
+      const sumRange = sheet.getRange("F4");
+      sumRange.formulas = [["=SUM(B4:E4)"]];
+      sumRange.format.fill.color = "LightBlue";
+      sumRange.format.font.bold = true;
+      sheet.getRanges("K4,P4").copyFrom("F4", Excel.RangeCopyType.all);
+      sheet.getRanges("F4,K4,P4").format.autofitColumns();
+      await context.sync();
+    });
+Excel.RangeFont#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        const range = sheet.getRange("B2:E2");
+        range.format.fill.color = "#4472C4";;
+        range.format.font.color = "white";
+
+        await context.sync();
+    });
+Excel.RangeFormat#autofitColumns:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-table-changed.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let range = sheet.getRange("B7");
+        range.values = [[900]];
+        range.format.autofitColumns();
+
+        await context.sync();
+        console.log("B7 value has been changed.");
+    });
+Excel.RangeFormat#autofitRows:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-advanced.yaml
+
+
+    function queueCommandsToCreateTemperatureTable(sheet: Excel.Worksheet) {
+        let temperatureTable = sheet.tables.add('A1:M1', true);
+        temperatureTable.name = "TemperatureTable";
+        temperatureTable.getHeaderRowRange().values = [["Category", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]];
+        temperatureTable.rows.add(null, [
+            ["Avg High", 40, 38, 44, 45, 51, 56, 67, 72, 79, 59, 45, 41],
+            ["Avg Low", 34, 33, 38, 41, 45, 48, 51, 55, 54, 45, 41, 38],
+            ["Record High", 61, 69, 79, 83, 95, 97, 100, 101, 94, 87, 72, 66],
+            ["Record Low", -1, 2, 9, 24, 28, 32, 36, 39, 35, 21, 12, 4]
+        ]);
+        temperatureTable.getRange().format.autofitColumns();
+        temperatureTable.getRange().format.autofitRows();
+    }
+Excel.RangeFormat#fill:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        const range = sheet.getRange("B2:E2");
+        range.format.fill.color = "#4472C4";;
+        range.format.font.color = "white";
+
+        await context.sync();
+    });
+Excel.RangeFormat#horizontalAlignment:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-pivotlayout.yaml
+
+
+    await Excel.run(async (context) => {
+      // Set a default value for an empty cell in the PivotTable. This doesn't include cells left blank by the layout.
+      const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+      const pivotLayout = pivotTable.layout;
+
+      pivotLayout.emptyCellText = "--";
+
+      // Set the text alignment to match the rest of the PivotTable.
+      pivotLayout.getDataBodyRange().format.horizontalAlignment = Excel.HorizontalAlignment.right;
+      await context.sync();
+    });
 Excel.RangeFormat#textOrientation:member:
   - >-
     // Link to full sample:
@@ -7406,6 +8423,21 @@ Excel.RangeFormat#textOrientation:member:
         // Set textOrientation to either an integer between -90 and 90
         // or to 180 for vertically-oriented text.
         range.format.textOrientation = 90;
+
+        await context.sync();
+    });
+Excel.RangeFormat#verticalAlignment:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/style.yaml
+
+
+    await Excel.run(async (context) => {
+        let worksheet = context.workbook.worksheets.getItem("Sample");
+        let range = worksheet.getRange("A1:E1");
+        // Apply new style.
+        range.style = ("Diagonal Orientation Style");
+        range.format.verticalAlignment = "Justify";
 
         await context.sync();
     });
@@ -7712,6 +8744,52 @@ Excel.Runtime#enableEvents:member:
 
         await context.sync();
     });
+Excel.RowColumnPivotHierarchyCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-slicer.yaml
+
+
+    await Excel.run(async (context) => {
+        const rangeToAnalyze = context.workbook.worksheets.getItem("Data").getRange("A1:E21");
+        const rangeToPlacePivot = context.workbook.worksheets.getItem("Pivot").getRange("A2");
+
+        const pivotTable = context.workbook.worksheets
+            .getItem("Pivot")
+            .pivotTables.add("Farm Sales", rangeToAnalyze, rangeToPlacePivot);
+
+        pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+        await context.sync();
+    });
+Excel.RowColumnPivotHierarchyCollection#remove:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
+
+
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+        // Check if the PivotTable already has rows.
+        const farmRow = pivotTable.rowHierarchies.getItemOrNullObject("Farm");
+        const typeRow = pivotTable.rowHierarchies.getItemOrNullObject("Type");
+        const classificationRow = pivotTable.rowHierarchies.getItemOrNullObject("Classification");
+        pivotTable.rowHierarchies.load();
+        await context.sync();
+
+        if (!classificationRow.isNullObject) {
+            pivotTable.rowHierarchies.remove(classificationRow);
+        } else if (!typeRow.isNullObject) {
+            pivotTable.rowHierarchies.remove(typeRow);
+        } else if (!farmRow.isNullObject) {
+            pivotTable.rowHierarchies.remove(farmRow);
+        }
+
+        await context.sync();
+    });
 Excel.SaveBehavior:enum:
   - >-
     // Link to full sample:
@@ -7927,7 +9005,7 @@ Excel.SettingCollection#add:member(1):
 
 
     await Excel.run(async (context) => {
-        const settings = context.workbook.settings; 
+        const settings: Excel.SettingCollection = context.workbook.settings;
         settings.onSettingsChanged.add(onChangedSetting);
 
         await context.sync();
@@ -7940,7 +9018,7 @@ Excel.SettingCollection#onSettingsChanged:member:
 
 
     await Excel.run(async (context) => {
-        const settings = context.workbook.settings; 
+        const settings: Excel.SettingCollection = context.workbook.settings;
         settings.onSettingsChanged.add(onChangedSetting);
 
         await context.sync();
@@ -8001,6 +9079,44 @@ Excel.Shape#fill:member:
         shapeFill.setSolidColor("#FFE08A");
 
         await context.sync();
+    });
+Excel.Shape#height:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-textboxes.yaml
+
+
+    await Excel.run(async (context) => {
+        const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+        const textbox: Excel.Shape = shapes.addTextBox("A box with text");
+        textbox.left = 100;
+        textbox.top = 100;
+        textbox.height = 20;
+        textbox.width = 175;
+        textbox.name = "Textbox";
+        await context.sync();
+    });
+Excel.Shape#name:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-get-active.yaml
+
+
+    // This method groups the new chart title shape together with the existing
+    chart.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      
+      // Get the shapes to group.
+      const titleShape = sheet.shapes.getItem("ChartTitle");
+      const chartShape = sheet.shapes.getItem("SalesChart");
+      
+      // Create a group from the two shapes.
+      const shapeGroup = sheet.shapes.addGroup([titleShape, chartShape]);
+      shapeGroup.name = "GroupChart";
+      
+      await context.sync();
     });
 Excel.Shape#rotation:member:
   - >-
@@ -8252,12 +9368,24 @@ Excel.ShapeCollection#addTextBox:member(1):
 
     await Excel.run(async (context) => {
         const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
-        const textbox = shapes.addTextBox("A box with text");
+        const textbox: Excel.Shape = shapes.addTextBox("A box with text");
         textbox.left = 100;
         textbox.top = 100;
         textbox.height = 20;
         textbox.width = 175;
         textbox.name = "Textbox";
+        await context.sync();
+    });
+Excel.ShapeCollection#getItem:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-move-and-order.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Shapes");
+        const shape = sheet.shapes.getItem("Octagon")
+        shape.setZOrder(Excel.ShapeZOrder.sendBackward);
         await context.sync();
     });
 Excel.ShapeFill:class:
@@ -8304,6 +9432,22 @@ Excel.ShapeFill#clear:member(1):
         const shapeFill: Excel.ShapeFill = badge.fill;
         shapeFill.clear();
 
+        await context.sync();
+    });
+Excel.ShapeFill#foregroundColor:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-create-and-delete.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Shapes");
+        const shape: Excel.Shape = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.smileyFace);
+        shape.left = 300;
+        shape.top = 100;
+        shape.height = 100;
+        shape.width = 100;
+        shape.fill.foregroundColor = "yellow"
         await context.sync();
     });
 Excel.ShapeGroup#ungroup:member(1):
@@ -8797,6 +9941,31 @@ Excel.StyleCollection#getItem:member(1):
 
         console.log("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
     });
+Excel.Table#clearFilters:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/filter-data.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable = sheet.tables.getItem("ExpensesTable");
+        expensesTable.clearFilters();
+        await context.sync();
+       });
+Excel.Table#name:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/convert-range-to-table.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable: Excel.Table = sheet.tables.add('A1:E7', true);
+        expensesTable.name = "ExpensesTable";
+
+        await context.sync();
+    });
 Excel.Table#onChanged:member:
   - >-
     // Link to full sample:
@@ -8838,6 +10007,48 @@ Excel.Table#resize:member(1):
       expensesTable.resize("A1:D20");
       
       await context.sync();
+    });
+Excel.Table#rows:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/add-rows-and-columns-to-a-table.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable: Excel.Table = sheet.tables.getItem("ExpensesTable");
+
+        expensesTable.rows.add(null, [
+        ["1/16/2017", "THE PHONE COMPANY", "Communications", "$120"],
+        ["1/20/2017", "NORTHWIND ELECTRIC CARS", "Transportation", "$142"],
+        ["1/20/2017", "BEST FOR YOU ORGANICS COMPANY", "Groceries", "$27"]
+        ]);
+
+        sheet.getUsedRange().format.autofitColumns();
+        sheet.getUsedRange().format.autofitRows();
+
+        await context.sync();
+    });
+Excel.Table#sort:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/sort-data.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable: Excel.Table = sheet.tables.getItem("ExpensesTable");
+
+        // Sort the table by the "Amount" column.
+        const sortFields = [
+            {
+            key: 3,
+            ascending: false
+            }
+        ];
+        expensesTable.sort.apply(sortFields);
+
+        await context.sync();
     });
 Excel.TableChangedEventArgs#details:member:
   - >-
@@ -8945,6 +10156,27 @@ Excel.TableCollection#onChanged:member:
         await context.sync();
         console.log("A handler has been registered for the table collection onChanged event");
     });
+Excel.TableColumn#filter:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/get-visible-range-of-a-filtered-table.yaml
+
+
+    /** Filter the table*/
+
+    async function filterTable() {
+        await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const expensesTable = sheet.tables.getItem("ExpensesTable");
+            const filter: Excel.Filter = expensesTable.columns.getItem("Amount").filter;
+
+            filter.apply({
+                filterOn: Excel.FilterOn.dynamic,
+                dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
+            });
+
+            await context.sync();
+        });
 Excel.TableColumn#getDataBodyRange:member(1):
   - >-
     // Link to full sample:
@@ -9003,6 +10235,44 @@ Excel.TableColumnCollection#getItem:member(1):
       range.clearOrResetContents();
       await context.sync();
     });
+Excel.TableRow#values:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let randomResult = context.workbook.functions.randBetween(1, 3000).load("value");
+        await context.sync();
+
+        const row: Excel.TableRow = sheet.tables.getItem("SalesTable").rows.getItemAt(0);
+        let newValue = [["Frames", 5000, 7000, 6544, randomResult.value, "=SUM(B2:E2)"]];
+        row.values = newValue;
+        row.load("values");
+        await context.sync();
+    });
+Excel.TableSort#apply:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/sort-data.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable: Excel.Table = sheet.tables.getItem("ExpensesTable");
+
+        // Sort the table by the "Amount" column.
+        const sortFields = [
+            {
+            key: 3,
+            ascending: false
+            }
+        ];
+        expensesTable.sort.apply(sortFields);
+
+        await context.sync();
+    });
 Excel.TableSelectionChangedEventArgs#address:member:
   - >-
     // Link to full sample:
@@ -9056,6 +10326,43 @@ Excel.TextFrame#deleteText:member(1):
         const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
         const textbox = shapes.getItem("Textbox");
         textbox.textFrame.deleteText();
+        await context.sync();
+    });
+Excel.TextRange#text:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-textboxes.yaml
+
+
+    await Excel.run(async (context) => {
+        const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+        const wave = shapes.addGeometricShape(Excel.GeometricShapeType.wave);
+        wave.left = 100;
+        wave.top = 400;
+        wave.height = 50;
+        wave.width = 150;
+        wave.name = "Wave";
+        wave.fill.setSolidColor("lightblue");
+        wave.textFrame.textRange.text = "A geometric shape";
+        await context.sync();
+    });
+Excel.TopBottomConditionalFormat#format:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.topBottom);
+        conditionalFormat.topBottom.format.fill.color = "green"
+        conditionalFormat.topBottom.rule = { 
+            rank: 1, 
+            type: Excel.ConditionalTopBottomCriterionType.topItems
+        };
+
         await context.sync();
     });
 Excel.ValueFilterCondition:enum:
@@ -9180,6 +10487,58 @@ Excel.Workbook:class:
         
         console.log("The active cell is " + activeCell.address);
     });
+Excel.Workbook#comments:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-comment-event-handler.yaml
+
+
+    await Excel.run(async (context) => {
+        context.workbook.comments.getItemByCell("Comments!A1").delete();
+        await context.sync();
+    });
+Excel.Workbook#customXmlParts:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/18-custom-xml-parts/test-xml-for-unique-namespace.yaml
+
+
+    await Excel.run(async (context) => {
+        document.getElementById("display-xml").textContent = "";
+        const customXmlParts = context.workbook.customXmlParts;
+        customXmlParts.load("items");
+
+        await context.sync();
+
+        for (let i = 0; i < customXmlParts.items.length; i++) {
+            customXmlParts.items[i].delete();
+        }
+
+        await context.sync();
+    });
+Excel.Workbook#functions:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-built-in-functions.yaml
+
+
+    await Excel.run(async (context) => {
+      // This function uses VLOOKUP to find data in the "Wrench" row
+      // on the worksheet, and then it uses SUM to combine the values.
+      let range = context.workbook.worksheets.getItem("Sample").getRange("A1:D4");
+
+      // Get the values in the second, third, and fourth columns in the "Wrench" row,
+      // and combine those values with SUM.
+      let sumOfTwoLookups = context.workbook.functions.sum(
+        context.workbook.functions.vlookup("Wrench", range, 2, false),
+        context.workbook.functions.vlookup("Wrench", range, 3, false),
+        context.workbook.functions.vlookup("Wrench", range, 4, false)
+      );
+      sumOfTwoLookups.load("value");
+
+      await context.sync();
+      console.log(" Number of wrenches sold in November, December, and January = " + sumOfTwoLookups.value);
+    });
 Excel.Workbook#properties:member:
   - >-
     // Link to full sample:
@@ -9254,6 +10613,29 @@ Excel.Workbook#pivotTables:member:
         console.log(`\t${pivotTable.name}`);
       });
     });
+Excel.Workbook#protection:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/data-protection.yaml
+
+
+    await Excel.run(async (context) => {
+        const workbook: Excel.Workbook = context.workbook;
+        workbook.protection.unprotect();
+    });
+Excel.Workbook#settings:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
+
+
+    await Excel.run(async (context) => {
+        const settings: Excel.SettingCollection = context.workbook.settings;
+        settings.onSettingsChanged.add(onChangedSetting);
+
+        await context.sync();
+        console.log("Settings changed handler registered.");
+    });
 Excel.Workbook#getSelectedRanges:member(1):
   - >-
     // Link to full sample:
@@ -9292,6 +10674,27 @@ Excel.Workbook#styles:member:
         await context.sync();
 
         console.log("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
+    });
+Excel.Workbook#worksheets:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/list-worksheets.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheets: Excel.WorksheetCollection = context.workbook.worksheets;
+        sheets.load("items/name");
+        
+        await context.sync();
+
+        if (sheets.items.length > 1) {
+            console.log(`There are ${sheets.items.length} worksheets in the workbook:`);
+        } else {
+            console.log(`There is one worksheet in the workbook:`);
+        }
+        for (let i in sheets.items) {
+            console.log(sheets.items[i].name);
+        } 
     });
 Excel.Workbook#getActiveShapeOrNullObject:member(1):
   - >-
@@ -9460,6 +10863,37 @@ Excel.WorkbookRangeAreas#areas:member:
         }
         await context.sync();
       });
+Excel.Worksheet#charts:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-create-several-charts.yaml
+
+
+    await Excel.run(async (context) => {
+      let sheet = context.workbook.worksheets.getItem("Sample");
+      let salesTable = sheet.tables.getItem("SalesTable");
+
+      let dataRange = sheet.getRange("A1:E7");
+
+      // Create an XY scatter chart.
+      let chart = sheet.charts.add(Excel.ChartType.xyscatter, dataRange, "Auto");
+      chart.title.text = "Bicycle Parts Quarterly Sales";
+      chart.setPosition("A36", "F48");
+
+      await context.sync();
+    });
+Excel.Worksheet#comments:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-comment-event-handler.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Comments");
+        const comment = sheet.comments.getItemAt(0);
+        comment.content = "Please add headers here.";
+        await context.sync();
+    });
 Excel.Worksheet#customProperties:member:
   - >-
     // Link to full sample:
@@ -9477,6 +10911,47 @@ Excel.Worksheet#customProperties:member:
       customWorksheetProperties.items.forEach((property) => {
         console.log(`${property.key}: ${property.value}`);
       });
+    });
+Excel.Worksheet#freezePanes:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-freeze-panes.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        sheet.freezePanes.unfreeze();
+
+        await context.sync();
+    });
+Excel.Worksheet#name:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/add-delete-rename-move-worksheet.yaml
+
+
+    await Excel.run(async (context) => {
+        const currentSheet = context.workbook.worksheets.getActiveWorksheet();
+
+        currentSheet.name = await uniqueWorksheetName(context);
+
+        await context.sync();
+        console.log(`Renamed worksheet to "${currentSheet.name}"`);
+    });
+Excel.Worksheet#notes:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/12-comments-and-notes/excel-note-basics.yaml
+
+
+    // This function changes the height and width of the first note.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Notes");
+      const note = sheet.notes.getItemAt(0);
+      note.height = 200;
+      note.width = 400;
+      await context.sync();
     });
 Excel.Worksheet#onColumnSorted:member:
   - >-
@@ -9637,6 +11112,32 @@ Excel.Worksheet#onProtectionChanged:member:
             console.log("    Source of change event: " + source + ".");
         });
     }
+Excel.Worksheet#pageLayout:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-page-layout.yaml
+
+
+    await Excel.run(async (context) => {
+        const farmSheet = context.workbook.worksheets.getItem("Print");
+        farmSheet.pageLayout.blackAndWhite = true;
+        await context.sync();
+    });
+Excel.Worksheet#shapes:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-groups.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Shapes");
+
+        const shapeGroup = sheet.shapes.getItem("Group").group;
+        shapeGroup.ungroup();
+        console.log("Shapes ungrouped");
+
+        await context.sync();
+    });
 Excel.Worksheet#onVisibilityChanged:member:
   - >-
     // Link to full sample:
@@ -9935,7 +11436,7 @@ Excel.WorksheetChangedEventArgs#changeDirectionState:member:
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("A5:F5");
+        const range: Excel.Range = sheet.getRange("A5:F5");
         range.delete(Excel.DeleteShiftDirection.up);
     });
 Excel.WorksheetChangedEventArgs#triggerSource:member:
@@ -10060,6 +11561,32 @@ Excel.WorksheetCollection#getFirst:member(1):
 
         await context.sync();
     });
+Excel.WorksheetCollection#getItem:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-axis-formatting.yaml
+
+
+    function displayUnit(context: Excel.RequestContext) {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let chart = sheet.charts.getItem("SalesChart");
+        let axis = chart.axes.valueAxis;
+        axis.displayUnit = "Thousands";
+    }
+Excel.WorksheetCollection#getItemOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/90-scenarios/performance-optimization.yaml
+
+
+    /** Helper to create or recreate a worksheet. */
+
+    async function forceCreateSheet(workbook: Excel.Workbook, sheetName:
+    string): Promise<Excel.Worksheet> {
+      workbook.worksheets.getItemOrNullObject(sheetName).delete();
+      await workbook.context.sync();
+      return workbook.worksheets.add(sheetName);
+    }
 Excel.WorksheetCollection#getLast:member(1):
   - >-
     // Link to full sample:

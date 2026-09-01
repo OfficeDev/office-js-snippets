@@ -16,6 +16,52 @@ Excel.AggregationFunction:enum:
             await context.sync();
         });
     }
+Excel.Application#calculationMode:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-calculation.yaml
+
+
+    await Excel.run(async (context) => {
+      context.application.calculationMode = Excel.CalculationMode.manual;
+      context.application.load("calculationMode");
+      await context.sync();
+
+      console.log("Current calculation mode: " + context.application.calculationMode);
+    });
+Excel.Application#cultureInfo:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/culture-info-date-time.yaml
+
+
+    await Excel.run(async (context) => {
+      context.application.cultureInfo.datetimeFormat.load([
+        "longDatePattern",
+        "shortDatePattern",
+        "dateSeparator",
+        "longTimePattern",
+        "timeSeparator"
+      ]);
+      await context.sync();
+
+      // Use the cultural settings API to retrieve the user's system date and time settings.
+      const systemLongDatePattern = context.application.cultureInfo.datetimeFormat.longDatePattern;
+      const systemShortDatePattern = context.application.cultureInfo.datetimeFormat.shortDatePattern;
+      const systemDateSeparator = context.application.cultureInfo.datetimeFormat.dateSeparator;
+      const systemLongTimePattern = context.application.cultureInfo.datetimeFormat.longTimePattern;
+      const systemTimeSeparator = context.application.cultureInfo.datetimeFormat.timeSeparator;
+
+      // Display the date and time settings in your console.
+      console.log("System date/time settings: ");
+      console.log(`  System long date format: ${systemLongDatePattern}`);
+      console.log(`  System short date format: ${systemShortDatePattern}`);
+      console.log(`  System date separator: ${systemDateSeparator}`);
+      console.log(`  System long time format: ${systemLongTimePattern}`);
+      console.log(`  System time separator: ${systemTimeSeparator}`);
+
+      await context.sync();
+    });
 Excel.Application#decimalSeparator:member:
   - >-
     // Link to full sample:
@@ -250,6 +296,22 @@ Excel.BasicDataValidation:interface:
         sheet.getRange("B3").dataValidation.rule = rule;
     }
 Excel.Binding#onDataChanged:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/data-changed.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");    
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const salesByQuarterBinding = context.workbook.bindings.add(salesTable.getRange(), "Table", "SalesByQuarter");
+        salesByQuarterBinding.onDataChanged.add(onSalesDataChanged);
+
+        console.log("The data changed handler is registered.");
+
+        await context.sync();
+    });
+Excel.BindingCollection#add:member(1):
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/data-changed.yaml
@@ -1127,7 +1189,10 @@ Excel.CellValueConditionalFormat#format:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -1143,7 +1208,10 @@ Excel.CellValueConditionalFormat#rule:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -1256,6 +1324,39 @@ Excel.Chart#onDeactivated:member:
             console.log("The pie chart is NOT active.");
         });
     }
+Excel.Chart#series:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-series.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+
+      const chart: Excel.Chart = sheet.charts.getItemAt(0);
+      let rangeSelection = sheet.getRange("C2:C7");
+      let xRangeSelection = sheet.getRange("A1:A7");
+
+      // Add a series.
+      const newSeries: Excel.ChartSeries = chart.series.add("Qtr2");
+      newSeries.setValues(rangeSelection);
+      newSeries.setXAxisValues(xRangeSelection);
+
+      await context.sync();
+    });
+Excel.Chart#title:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-title-format.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const title = sheet.charts.getItemAt(0).title;
+        title.textOrientation = -45;
+
+        await context.sync();
+    });
 Excel.ChartAxis#displayUnit:member:
   - >-
     // Link to full sample:
@@ -1276,6 +1377,29 @@ Excel.ChartAxis#displayUnit:member:
 
         console.log("The vertical axis display unit is: " + valueAxis.displayUnit);
     });
+Excel.ChartAxis#setPositionAt:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-axis-formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getActiveWorksheet();
+
+        let chart = sheet.charts.getItem("SalesChart");
+        const axis: Excel.ChartAxis = chart.axes.valueAxis;
+
+        axis.displayUnit = "None";
+        axis.scaleType = "Logarithmic";
+        axis.logBase = 100;
+        axis.majorTickMark = "Cross";
+        
+        // Set the product name label location.
+        // In this case, the location is at 100 units.
+        axis.setPositionAt(100);
+
+        await context.sync();
+    });
 Excel.ChartAxis#showDisplayUnitLabel:member:
   - >-
     // Link to full sample:
@@ -1289,6 +1413,43 @@ Excel.ChartAxis#showDisplayUnitLabel:member:
 
         // Remove display unit.
         axis.showDisplayUnitLabel = false;
+
+        await context.sync();
+    });
+Excel.ChartBorder#lineStyle:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-title-format.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const title = sheet.charts.getItemAt(0).title;
+        title.format.fill.setSolidColor("SkyBlue");
+        title.format.border.lineStyle = "Dash";
+
+        await context.sync();
+    });
+Excel.ChartCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-chartcollection-added-activated.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const salesTable = sheet.tables.getItem("SalesTable");
+        const dataRange = salesTable.getDataBodyRange();
+
+        let chart = sheet.charts.add("Pie", dataRange, "Auto");
+
+        chart.name = "Pie";
+        chart.setPosition("A10", "F25");
+        chart.title.text = "1st Quarter sales chart";
+        chart.legend.position = "Bottom"
+        chart.legend.format.fill.setSolidColor("white");
+        chart.dataLabels.format.font.size = 15;
+        chart.dataLabels.format.font.color = "black";
 
         await context.sync();
     });
@@ -1399,6 +1560,29 @@ Excel.ChartDataLabel:class:
       subLabel.font.size = 13;
       subLabel.font.italic = true;
       subLabel.font.color = "blue";
+      await context.sync();
+    });
+Excel.ChartDataLabels#leaderLines:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code changes the format of leader lines. It adjusts color,
+    weight, and line style.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
+
+      // Set leader line formatting properties.
+      lineFormat.line.color = "blue";
+      lineFormat.line.weight = 2;
+      lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
       await context.sync();
     });
 Excel.ChartDataTable#format:member:
@@ -1666,6 +1850,43 @@ Excel.ChartFill#setSolidColor:member(1):
 
         await context.sync();
     });
+Excel.ChartFont#bold:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-legend.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let chart = sheet.charts.getItemAt(0);
+        chart.legend.visible = true;
+
+        // Format the legend font.
+        const font: Excel.ChartFont = chart.legend.format.font;
+        font.bold = true;
+        font.color = "red";
+        font.italic = true;
+        font.size = 15;
+        font.name = "Calibri";
+        font.underline = "Single";
+
+        await context.sync();
+    });
+Excel.ChartFont#size:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-title-format.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const title = sheet.charts.getItemAt(0).title;
+        title.format.font.size = 16;
+        title.showShadow = true;
+
+        await context.sync();
+    });
 Excel.ChartLeaderLines:class:
   - >-
     // Link to full sample:
@@ -1679,8 +1900,8 @@ Excel.ChartLeaderLines:class:
       const sheet = context.workbook.worksheets.getItem(sheetName);
       const chart = sheet.charts.getItemAt(0);
       const series = chart.series.getItemAt(0);
-      const dataLabels = series.dataLabels;
-      const lineFormat = dataLabels.leaderLines.format;
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
 
       // Set leader line formatting properties.
       lineFormat.line.color = "blue";
@@ -1702,13 +1923,80 @@ Excel.ChartLeaderLinesFormat:class:
       const sheet = context.workbook.worksheets.getItem(sheetName);
       const chart = sheet.charts.getItemAt(0);
       const series = chart.series.getItemAt(0);
-      const dataLabels = series.dataLabels;
-      const lineFormat = dataLabels.leaderLines.format;
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
 
       // Set leader line formatting properties.
       lineFormat.line.color = "blue";
       lineFormat.line.weight = 2;
       lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
+      await context.sync();
+    });
+Excel.ChartLegend#position:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-title-format.yaml
+
+
+    function createChart(context: Excel.RequestContext) {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+
+        let dataRange = sheet.getRange("A3:E7");
+        let chart = sheet.charts.add("ColumnStacked", dataRange, "Auto");
+        chart.title.text = "Bicycle Parts Sales";
+        chart.setPosition("A10", "H33");
+        chart.legend.position = "Right";
+        chart.legend.format.fill.setSolidColor("white");
+        chart.dataLabels.format.font.size = 15;
+        chart.dataLabels.format.font.color = "black";
+    }
+Excel.ChartLegend#visible:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-legend.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let chart = sheet.charts.getItemAt(0);
+        chart.legend.visible = true;
+
+        // Format the legend font.
+        const font: Excel.ChartFont = chart.legend.format.font;
+        font.bold = true;
+        font.color = "red";
+        font.italic = true;
+        font.size = 15;
+        font.name = "Calibri";
+        font.underline = "Single";
+
+        await context.sync();
+    });
+Excel.ChartLegendFormat#fill:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-create-several-charts.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+      const salesTable = sheet.tables.getItem("SalesTable");
+      const dataRange = salesTable.getDataBodyRange();
+
+      let chart = sheet.charts.add(Excel.ChartType.radarFilled, dataRange, "Auto");
+
+      chart.setPosition("H17", "M35");
+      chart.title.text = "Quarterly sales chart";
+      chart.legend.position = "Bottom";
+      chart.legend.format.fill.setSolidColor("white");
+      chart.dataLabels.format.font.size = 15;
+      chart.dataLabels.format.font.color = "black";
+      chart.series.getItemAt(0).name = "Q1";
+      chart.series.getItemAt(1).name = "Q2";
+      chart.series.getItemAt(2).name = "Q3";
+      chart.series.getItemAt(3).name = "Q4";
 
       await context.sync();
     });
@@ -1725,7 +2013,7 @@ Excel.ChartLegendFormat#font:member:
         chart.legend.visible = true;
 
         // Format the legend font.
-        let font = chart.legend.format.font;
+        const font: Excel.ChartFont = chart.legend.format.font;
         font.bold = true;
         font.color = "red";
         font.italic = true;
@@ -1734,6 +2022,49 @@ Excel.ChartLegendFormat#font:member:
         font.underline = "Single";
 
         await context.sync();
+    });
+Excel.ChartLineFormat#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-trendlines.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series; 
+        let trendline = seriesCollection.getItemAt(0).trendlines.getItem(0);
+
+        // Set format of the trendline to a solid, red line.
+        let line = trendline.format.line;
+        line.color = '#FF0000';
+
+        await context.sync();
+
+        console.log("The trendline color has been set to:" + line.color);
+    });
+Excel.ChartLineFormat#lineStyle:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code changes the format of leader lines. It adjusts color,
+    weight, and line style.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
+
+      // Set leader line formatting properties.
+      lineFormat.line.color = "blue";
+      lineFormat.line.weight = 2;
+      lineFormat.line.lineStyle = Excel.ChartLineStyle.dot;
+
+      await context.sync();
     });
 Excel.ChartLineStyle:enum:
   - >-
@@ -1748,8 +2079,8 @@ Excel.ChartLineStyle:enum:
       const sheet = context.workbook.worksheets.getItem(sheetName);
       const chart = sheet.charts.getItemAt(0);
       const series = chart.series.getItemAt(0);
-      const dataLabels = series.dataLabels;
-      const lineFormat = dataLabels.leaderLines.format;
+      const dataLabels: Excel.ChartDataLabels = series.dataLabels;
+      const lineFormat: Excel.ChartLeaderLinesFormat = dataLabels.leaderLines.format;
 
       // Set leader line formatting properties.
       lineFormat.line.color = "blue";
@@ -1798,6 +2129,42 @@ Excel.ChartPoint:class:
         dataLabel.text = dataLabelInfo[i].news;
         dataLabel.set(labelProperties[i]);
       }
+      await context.sync();
+    });
+Excel.ChartPoint#dataLabel:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-leader-lines.yaml
+
+
+    // The following code adds data labels to the chart and positions them to
+    demonstrate leader lines.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      const chart = sheet.charts.getItemAt(0);
+      const series = chart.series.getItemAt(0);
+      
+      // Enable data labels for the series. Leader lines are enabled by default.
+      series.hasDataLabels = true;
+      series.points.load("items");
+      await context.sync();
+      
+      // Load the top position for each data label.
+      series.points.items.forEach((point) => point.dataLabel.load("top"));
+      await context.sync();
+
+      // Move some data labels to create distance from their chart points.
+      const point1 = series.points.items[1]; 
+      const point2 = series.points.items[2]; 
+      point1.dataLabel.top -= 50; 
+      point2.dataLabel.top += 50;
+      
+      // Format the data labels.
+      series.dataLabels.geometricShapeType = Excel.GeometricShapeType.rectangle;
+      series.dataLabels.showCategoryName = true;
+      series.dataLabels.format.border.weight = 1;
+      
       await context.sync();
     });
 Excel.ChartPointsCollection:class:
@@ -2008,6 +2375,33 @@ Excel.ChartSeries:class:
       
       await context.sync();
     });
+Excel.ChartSeries#format:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        const worksheet = context.workbook.worksheets.getActiveWorksheet();
+        const chart = worksheet.charts.getItem("SlopeChart");
+        chart.series.load("count");
+        await context.sync();
+
+        // Color everything gray before highlighting spokes.
+        for (let i = 0; i < chart.series.count; i++) {
+            chart.series.getItemAt(i).format.line.color = "#636363";
+            chart.series.getItemAt(i).dataLabels.format.font.color = "#636363";
+        }
+
+        const highlight: Excel.ChartSeries = chart.series.getItemAt(5);
+        highlight.format.line.color = "#4472C4";
+        highlight.dataLabels.format.font.color = "#D9D9D9";
+
+        highlight.load("name");
+        await context.sync();
+        highlight.name += " (Focus)";
+        await context.sync();
+    });
 Excel.ChartSeries#hasDataLabels:member:
   - >-
     // Link to full sample:
@@ -2129,16 +2523,56 @@ Excel.ChartSeries#setValues:member(1):
     await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getItem("Sample");
 
-      let seriesCollection = sheet.charts.getItemAt(0);
+      const chart: Excel.Chart = sheet.charts.getItemAt(0);
       let rangeSelection = sheet.getRange("C2:C7");
       let xRangeSelection = sheet.getRange("A1:A7");
 
       // Add a series.
-      let newSeries = seriesCollection.series.add("Qtr2");
+      const newSeries: Excel.ChartSeries = chart.series.add("Qtr2");
       newSeries.setValues(rangeSelection);
       newSeries.setXAxisValues(xRangeSelection);
 
       await context.sync();
+    });
+Excel.ChartSeries#setXAxisValues:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/create-doughnut-chart.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0);
+        let rangeSelection = sheet.getRange("C2:C7");
+        let xRangeSelection = sheet.getRange("A1:A7");
+
+        // Add a series.
+        const newSeries: Excel.ChartSeries = seriesCollection.series.add("Qtr2");
+        newSeries.setValues(rangeSelection);
+        newSeries.setXAxisValues(xRangeSelection);
+
+        // Set the size of the doughnut hole.
+        // The hole size is expressed as a percentage of the chart size.
+        newSeries.doughnutHoleSize = 80;
+
+        await context.sync();
+    });
+Excel.ChartSeries#trendlines:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-trendlines.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        let seriesCollection = sheet.charts.getItemAt(0).series;
+
+         // Add a trendline.  
+        seriesCollection.getItemAt(0).trendlines.add("Linear");
+
+        await context.sync();
     });
 Excel.ChartSeries#markerBackgroundColor:member:
   - >-
@@ -2338,6 +2772,26 @@ Excel.ChartSeriesDimension:enum:
       // Log the information.
       console.log(`Series ${category.value} - X: ${xValues.value}, Y: ${yValues.value}, Bubble: ${bubbleSize.value}`);
     });
+Excel.ChartSeriesCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-series.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Sample");
+
+      const chart: Excel.Chart = sheet.charts.getItemAt(0);
+      let rangeSelection = sheet.getRange("C2:C7");
+      let xRangeSelection = sheet.getRange("A1:A7");
+
+      // Add a series.
+      const newSeries: Excel.ChartSeries = chart.series.add("Qtr2");
+      newSeries.setValues(rangeSelection);
+      newSeries.setXAxisValues(xRangeSelection);
+
+      await context.sync();
+    });
 Excel.ChartTitle#getSubstring:member(1):
   - >-
     // Link to full sample:
@@ -2351,6 +2805,25 @@ Excel.ChartTitle#getSubstring:member(1):
         // Get first seven characters of the title and color them green.
         chart.title.getSubstring(0, 7).font.color = "Yellow";
         await context.sync();
+    });
+Excel.ChartTitle#text:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-create-several-charts.yaml
+
+
+    await Excel.run(async (context) => {
+      let sheet = context.workbook.worksheets.getItem("Sample");
+      let salesTable = sheet.tables.getItem("SalesTable");
+
+      let dataRange = sheet.getRange("A1:E7");
+
+      // Create an XY scatter chart.
+      let chart = sheet.charts.add(Excel.ChartType.xyscatter, dataRange, "Auto");
+      chart.title.text = "Bicycle Parts Quarterly Sales";
+      chart.setPosition("A36", "F48");
+
+      await context.sync();
     });
 Excel.ChartTitle#textOrientation:member:
   - >-
@@ -2556,6 +3029,19 @@ Excel.Comment#load:member(2):
         console.log(`${comment.creationDate.toDateString()}: ${comment.authorName} (${comment.authorEmail})`);
         await context.sync();
     });
+Excel.Comment#replies:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/12-comments-and-notes/comment-replies.yaml
+
+
+    await Excel.run(async (context) => {
+        // Adds a reply to the first comment in this worksheet.
+        const sheet = context.workbook.worksheets.getItem("Comments");
+        const comment: Excel.Comment = sheet.comments.getItemAt(0);
+        comment.replies.add("Add content to this worksheet.");
+        await context.sync();
+    });
 Excel.Comment#resolved:member:
   - >-
     // Link to full sample:
@@ -2578,6 +3064,38 @@ Excel.CommentCollection#add:member(1):
 
         // Note that an InvalidArgument error will be thrown if multiple cells passed to `comment.add`.
         sheet.comments.add("A2", "TODO: add data.");
+        await context.sync();
+    });
+Excel.CommentCollection#getItemAt:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/12-comments-and-notes/comment-resolution.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Comments");
+        sheet.comments.getItemAt(0).resolved = false;
+        await context.sync();
+    });
+Excel.CommentCollection#getItemByCell:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/12-comments-and-notes/comment-replies.yaml
+
+
+    await Excel.run(async (context) => {
+        const comment = context.workbook.comments.getItemByCell("Comments!A1");
+        const replyCount = comment.replies.getCount();
+        // Sync to get the current number of comment replies.
+        await context.sync();
+
+        // Get the last comment reply in the comment thread.
+        const reply = comment.replies.getItemAt(replyCount.value - 1);
+        reply.load(["authorEmail", "authorName", "creationDate"]);
+        // Sync to load the reply metadata.
+        await context.sync();
+
+        console.log(`Latest reply: ${reply.creationDate.toDateString()}: ${reply.authorName} ${reply.authorEmail})`);
         await context.sync();
     });
 Excel.CommentCollection#onAdded:member:
@@ -2735,7 +3253,7 @@ Excel.CommentReplyCollection#add:member(1):
     await Excel.run(async (context) => {
         // Adds a reply to the first comment in this worksheet.
         const sheet = context.workbook.worksheets.getItem("Comments");
-        const comment = sheet.comments.getItemAt(0);
+        const comment: Excel.Comment = sheet.comments.getItemAt(0);
         comment.replies.add("Add content to this worksheet.");
         await context.sync();
     });
@@ -2764,6 +3282,25 @@ Excel.CommentRichContent#mentions:member:
         sheet.comments.add("A1", commentBody, Excel.ContentType.mention);
         await context.sync();
     });
+Excel.ConditionalCellValueOperator:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.cellValue);
+        conditionalFormat.cellValue.format.font.color = "red";
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
+
+        await context.sync();
+    });
 Excel.ConditionalCellValueRule#formula1:member:
   - >-
     // Link to full sample:
@@ -2776,7 +3313,10 @@ Excel.ConditionalCellValueRule#formula1:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -2792,7 +3332,10 @@ Excel.ConditionalCellValueRule#operator:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -2863,7 +3406,10 @@ Excel.ConditionalFormat#cellValue:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.cellValue);
         conditionalFormat.cellValue.format.font.color = "red";
-        conditionalFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        conditionalFormat.cellValue.rule = { 
+            formula1: "=0",
+            operator: Excel.ConditionalCellValueOperator.lessThan
+        };
 
         await context.sync();
     });
@@ -2914,6 +3460,19 @@ Excel.ConditionalFormat#dataBar:member:
         const conditionalFormat = range.conditionalFormats
             .add(Excel.ConditionalFormatType.dataBar);
         conditionalFormat.dataBar.barDirection = Excel.ConditionalDataBarDirection.leftToRight;
+
+        await context.sync();
+    });
+Excel.ConditionalFormat#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-advanced.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const temperatureDataRange = sheet.tables.getItem("TemperatureTable").getDataBodyRange();
+        temperatureDataRange.conditionalFormats.getItemAt(0).delete();
 
         await context.sync();
     });
@@ -3220,11 +3779,12 @@ Excel.ConditionalFormatPresetCriterion:enum:
 
         // Set low numbers to bold, dark red font. This format will
         // get priority 0.
-        const presetFormat = temperatureDataRange.conditionalFormats
+        const presetFormat: Excel.ConditionalFormat = temperatureDataRange.conditionalFormats
             .add(Excel.ConditionalFormatType.presetCriteria);
-        presetFormat.preset.format.font.color = "red";
-        presetFormat.preset.format.font.bold = true;
-        presetFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
+        const presetCriteriaFormat: Excel.PresetCriteriaConditionalFormat = presetFormat.preset;
+        presetCriteriaFormat.format.font.color = "red";
+        presetCriteriaFormat.format.font.bold = true;
+        presetCriteriaFormat.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
 
          // Set negative numbers to blue font with green background. 
          // This format will get priority 1.
@@ -3274,11 +3834,12 @@ Excel.ConditionalFormatType:enum:
 
         // Set low numbers to bold, dark red font. This format will
         // get priority 0.
-        const presetFormat = temperatureDataRange.conditionalFormats
+        const presetFormat: Excel.ConditionalFormat = temperatureDataRange.conditionalFormats
             .add(Excel.ConditionalFormatType.presetCriteria);
-        presetFormat.preset.format.font.color = "red";
-        presetFormat.preset.format.font.bold = true;
-        presetFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
+        const presetCriteriaFormat: Excel.PresetCriteriaConditionalFormat = presetFormat.preset;
+        presetCriteriaFormat.format.font.color = "red";
+        presetCriteriaFormat.format.font.bold = true;
+        presetCriteriaFormat.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
 
          // Set negative numbers to blue font with green background. 
          // This format will get priority 1.
@@ -3510,6 +4071,40 @@ Excel.ConditionalPresetCriteriaRule#criterion:member:
 
         await context.sync();
     });
+Excel.ConditionalRangeFill#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.topBottom);
+        conditionalFormat.topBottom.format.fill.color = "green"
+        conditionalFormat.topBottom.rule = { 
+            rank: 1, 
+            type: Excel.ConditionalTopBottomCriterionType.topItems
+        };
+
+        await context.sync();
+    });
+Excel.ConditionalRangeFont#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B8:E13");
+        const conditionalFormat = range.conditionalFormats.add(Excel.ConditionalFormatType.custom);
+        conditionalFormat.custom.rule.formula = '=IF(B8>INDIRECT("RC[-1]",0),TRUE)';
+        conditionalFormat.custom.format.font.color = "green";
+
+        await context.sync();
+    });
 Excel.ConditionalTextComparisonRule#text:member:
   - >-
     // Link to full sample:
@@ -3539,6 +4134,25 @@ Excel.ConditionalTextOperator:enum:
             .add(Excel.ConditionalFormatType.containsText);
         conditionalFormat.textComparison.format.font.color = "red";
         conditionalFormat.textComparison.rule = { operator: Excel.ConditionalTextOperator.contains, text: "Delayed" };
+
+        await context.sync();
+    });
+Excel.ConditionalTopBottomCriterionType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.topBottom);
+        conditionalFormat.topBottom.format.fill.color = "green"
+        conditionalFormat.topBottom.rule = { 
+            rank: 1, 
+            type: Excel.ConditionalTopBottomCriterionType.topItems
+        };
 
         await context.sync();
     });
@@ -3667,6 +4281,19 @@ Excel.CustomPropertyCollection#add:member(1):
       await context.sync();
 
       console.log(`Successfully set custom document property ${userKey}: ${userValue}.`);
+    });
+Excel.CustomPropertyCollection#getCount:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/26-document/properties.yaml
+
+
+    await Excel.run(async (context) => {
+        let customDocProperties = context.workbook.properties.custom;
+        let count = customDocProperties.getCount();
+        await context.sync();
+
+        console.log("Count of custom document properties :" + count.value);
     });
 Excel.CustomXmlPart#delete:member(1):
   - >-
@@ -4013,6 +4640,37 @@ Excel.DataPivotHierarchy#name:member:
 
         dataHierarchies.items[0].name = "Farm Sales";
         dataHierarchies.items[1].name = "Wholesale";
+        await context.sync();
+    });
+Excel.DataPivotHierarchy#summarizeBy:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-filters-and-summaries.yaml
+
+
+    async function genericFunctionSwitch(functionType:
+    Excel.AggregationFunction) {
+        await Excel.run(async (context) => {
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+            pivotTable.dataHierarchies.load("no-properties-needed");
+            await context.sync();
+
+            pivotTable.dataHierarchies.items[0].summarizeBy = functionType;
+            pivotTable.dataHierarchies.items[1].summarizeBy = functionType;
+            await context.sync();
+        });
+    }
+Excel.DataPivotHierarchyCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
+
+
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
         await context.sync();
     });
 Excel.DataValidation:class:
@@ -4398,7 +5056,7 @@ Excel.DeleteShiftDirection:enum:
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("A5:F5");
+        const range: Excel.Range = sheet.getRange("A5:F5");
         range.delete(Excel.DeleteShiftDirection.up);
     });
 Excel.DocumentProperties#custom:member:
@@ -4482,9 +5140,7 @@ Excel.DynamicFilterCriteria:enum:
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-
         const expensesTable = sheet.tables.getItem("ExpensesTable");
-
         let filter = expensesTable.columns.getItem("Amount").filter;
         filter.apply({
             filterOn: Excel.FilterOn.dynamic,
@@ -4884,6 +5540,27 @@ Excel.FillPattern:enum:
         sheet.getUsedRange().format.autofitColumns();
         await context.sync();
     });
+Excel.Filter#apply:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/get-visible-range-of-a-filtered-table.yaml
+
+
+    /** Filter the table*/
+
+    async function filterTable() {
+        await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const expensesTable = sheet.tables.getItem("ExpensesTable");
+            const filter: Excel.Filter = expensesTable.columns.getItem("Amount").filter;
+
+            filter.apply({
+                filterOn: Excel.FilterOn.dynamic,
+                dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
+            });
+
+            await context.sync();
+        });
 Excel.FilterCriteria#filterOn:member:
   - >-
     // Link to full sample:
@@ -4948,9 +5625,7 @@ Excel.FilterOn:enum:
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-
         const expensesTable = sheet.tables.getItem("ExpensesTable");
-
         let filter = expensesTable.columns.getItem("Amount").filter;
         filter.apply({
             filterOn: Excel.FilterOn.dynamic,
@@ -4981,6 +5656,23 @@ Excel.Functions:class:
 
       await context.sync();
       console.log(" Number of wrenches sold in November = " + unitSoldInNov.value);
+    });
+Excel.Functions#randBetween:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let randomResult = context.workbook.functions.randBetween(1, 3000).load("value");
+        await context.sync();
+
+        const row: Excel.TableRow = sheet.tables.getItem("SalesTable").rows.getItemAt(0);
+        let newValue = [["Frames", 5000, 7000, 6544, randomResult.value, "=SUM(B2:E2)"]];
+        row.values = newValue;
+        row.load("values");
+        await context.sync();
     });
 Excel.Functions#vlookup:member(1):
   - >-
@@ -5858,6 +6550,39 @@ Excel.PivotField#clearAllFilters:member(1):
       });
       await context.sync();
     });
+Excel.PivotFieldCollection#getItem:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-pivotfilters.yaml
+
+
+    await Excel.run(async (context) => {
+      // Clear all the PivotFilters.
+
+      // Get the PivotTable.
+      const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+      pivotTable.hierarchies.load("name");
+      await context.sync();
+
+      // Clear the filters on each PivotField.
+      pivotTable.hierarchies.items.forEach((hierarchy) => {
+        hierarchy.fields.getItem(hierarchy.name).clearAllFilters();
+      });
+      await context.sync();
+    });
+Excel.PivotHierarchyCollection#getItem:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
+
+
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+
+        await context.sync();
+    });
 Excel.PivotFilters#dateFilter:member:
   - >-
     // Link to full sample:
@@ -5999,6 +6724,27 @@ Excel.PivotHierarchy#fields:member:
 
       await context.sync();
     });
+Excel.FilterPivotHierarchyCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-filters-and-summaries.yaml
+
+
+    async function filter(functionType: Excel.AggregationFunction) {
+        await Excel.run(async (context) => {
+            const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+            const filters: Excel.FilterPivotHierarchyCollection = pivotTable.filterHierarchies;
+            const filter = filters.getItemOrNullObject("Classification");
+            filter.load();
+            await context.sync();
+
+            // Add the Classification hierarchy to the filter, if it's not already there.
+            if (filter.isNullObject) {
+                filters.add(pivotTable.hierarchies.getItem("Classification"));
+                await context.sync();
+            }
+        });
+    }
 Excel.PivotLabelFilter:interface:
   - >-
     // Link to full sample:
@@ -6364,7 +7110,7 @@ Excel.PivotTable#filterHierarchies:member:
     async function filter(functionType: Excel.AggregationFunction) {
         await Excel.run(async (context) => {
             const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
-            const filters = pivotTable.filterHierarchies;
+            const filters: Excel.FilterPivotHierarchyCollection = pivotTable.filterHierarchies;
             const filter = filters.getItemOrNullObject("Classification");
             filter.load();
             await context.sync();
@@ -6446,6 +7192,43 @@ Excel.PivotValueFilter:interface:
 
       await context.sync();
     });
+Excel.PresetCriteriaConditionalFormat#format:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-advanced.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        queueCommandsToClearAllConditionalFormats(sheet);
+
+        const temperatureDataRange = sheet.tables.getItem("TemperatureTable").getDataBodyRange();
+
+        /* Contradictions are resolved in favor of the format with
+           the lower priority number. In the example below, negative
+           numbers will get a bold font, but NOT a red font, because
+           priority goes to the format that gives them a blue font.
+        */
+
+        // Set low numbers to bold, dark red font and assign priority 1.
+        const presetFormat = temperatureDataRange.conditionalFormats
+            .add(Excel.ConditionalFormatType.presetCriteria);
+        presetFormat.preset.format.font.color = "red";
+        presetFormat.preset.format.font.bold = true;
+        presetFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevBelowAverage };
+        presetFormat.priority = 1;
+
+        // Set negative numbers to blue font with green background and 
+        // set priority 0.
+        const cellValueFormat = temperatureDataRange.conditionalFormats
+            .add(Excel.ConditionalFormatType.cellValue);
+        cellValueFormat.cellValue.format.font.color = "blue";
+        cellValueFormat.cellValue.format.fill.color = "lightgreen";
+        cellValueFormat.cellValue.rule = { formula1: "=0", operator: "LessThan" };
+        cellValueFormat.priority = 0;
+
+        await context.sync();
+    });
 Excel.PresetCriteriaConditionalFormat#rule:member:
   - >-
     // Link to full sample:
@@ -6459,6 +7242,20 @@ Excel.PresetCriteriaConditionalFormat#rule:member:
             .add(Excel.ConditionalFormatType.presetCriteria);
         conditionalFormat.preset.format.font.color = "white";
         conditionalFormat.preset.rule = { criterion: Excel.ConditionalFormatPresetCriterion.oneStdDevAboveAverage };
+
+        await context.sync();
+    });
+Excel.Range#clear:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/insert-delete-clear-range.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range: Excel.Range = sheet.getRange("E2:E5");
+
+        range.clear();
 
         await context.sync();
     });
@@ -6480,6 +7277,16 @@ Excel.Range#clearOrResetContents:member(1):
       range.clearOrResetContents();
       await context.sync();
     });
+Excel.Range#conditionalFormats:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-advanced.yaml
+
+
+    function queueCommandsToClearAllConditionalFormats(sheet: Excel.Worksheet) {
+            const range = sheet.getRange();
+            range.conditionalFormats.clearAll();
+    }
 Excel.Range#control:member:
   - >-
     // Link to full sample:
@@ -6499,6 +7306,74 @@ Excel.Range#control:member:
         type: Excel.CellControlType.checkbox
       };
       await context.sync();
+    });
+Excel.Range#dataValidation:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/22-data-validation/data-validation-types.yaml
+
+
+    function applyCustom(sheet: Excel.Worksheet) {
+        // Custom formula: Value in B8 must not duplicate any value already in B2:B7.
+        const customRule: Excel.CustomDataValidation = {
+            formula: "=COUNTIF($B$2:$B$7,B8)=0"
+        };
+        const rule: Excel.DataValidationRule = { custom: customRule };
+        sheet.getRange("B8").dataValidation.rule = rule;
+    }
+Excel.Range#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    // This function deletes data from a range and sets the delete shift
+    direction to "up".
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range: Excel.Range = sheet.getRange("A5:F5");
+        range.delete(Excel.DeleteShiftDirection.up);
+    });
+Excel.Range#format:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable = sheet.tables.getItem("ExpensesTable");
+
+        expensesTable.getHeaderRowRange().format.fill.color = "#C70039";
+        expensesTable.getDataBodyRange().format.fill.color = "#DAF7A6";
+        expensesTable.rows.getItemAt(1).getRange().format.fill.color = "#FFC300";
+        expensesTable.columns.getItemAt(0).getDataBodyRange().format.fill.color = "#FFA07A";
+        
+      await context.sync();
+    });
+Excel.Range#formulas:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/set-get-values.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        const data = [
+            ["Total Price"],
+            ["=C3 * D3"],
+            ["=C4 * D4"],
+            ["=C5 * D5"],
+            ["=SUM(E3:E5)"]
+        ];
+        
+        const range = sheet.getRange("E2:E6");
+        range.formulas = data;
+        range.format.autofitColumns();
+
+        await context.sync();
     });
 Excel.Range#values:member:
   - >-
@@ -7118,6 +7993,22 @@ Excel.Range#getRangeEdge:member(1):
 
       await context.sync();
     });
+Excel.Range#getVisibleView:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/get-visible-range-of-a-filtered-table.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable = sheet.tables.getItem("ExpensesTable");                    
+        const visibleRange = expensesTable.getDataBodyRange().getVisibleView().load("values");
+        await sheet.context.sync();
+
+        const visibleValues = visibleRange.values;
+        console.log(visibleValues);
+        await context.sync();
+    });
 Excel.Range#hyperlink:member:
   - >-
     // Link to full sample:
@@ -7360,6 +8251,22 @@ Excel.Range#set:member(2):
         targetRange.format.autofitColumns();
         await context.sync();
     });
+Excel.RangeAreas#copyFrom:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-auto-fill.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getActiveWorksheet();
+      const sumRange = sheet.getRange("F4");
+      sumRange.formulas = [["=SUM(B4:E4)"]];
+      sumRange.format.fill.color = "LightBlue";
+      sumRange.format.font.bold = true;
+      sheet.getRanges("K4,P4").copyFrom("F4", Excel.RangeCopyType.all);
+      sheet.getRanges("F4,K4,P4").format.autofitColumns();
+      await context.sync();
+    });
 Excel.RangeAreas#format:member:
   - >-
     // Link to full sample:
@@ -7393,6 +8300,116 @@ Excel.RangeCopyType:enum:
         sheet.getRange("G2").copyFrom("A1:E1", Excel.RangeCopyType.formulas);
         await context.sync();
     });
+Excel.RangeFill#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-areas.yaml
+
+
+    await Excel.run(async (context) => {
+
+        const selectedRanges = context.workbook.getSelectedRanges();
+        selectedRanges.format.fill.color = "lightblue";
+
+        await context.sync();
+    })
+Excel.RangeFont#bold:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/range-auto-fill.yaml
+
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getActiveWorksheet();
+      const sumRange = sheet.getRange("F4");
+      sumRange.formulas = [["=SUM(B4:E4)"]];
+      sumRange.format.fill.color = "LightBlue";
+      sumRange.format.font.bold = true;
+      sheet.getRanges("K4,P4").copyFrom("F4", Excel.RangeCopyType.all);
+      sheet.getRanges("F4,K4,P4").format.autofitColumns();
+      await context.sync();
+    });
+Excel.RangeFont#color:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        const range = sheet.getRange("B2:E2");
+        range.format.fill.color = "#4472C4";;
+        range.format.font.color = "white";
+
+        await context.sync();
+    });
+Excel.RangeFormat#autofitColumns:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-table-changed.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let range = sheet.getRange("B7");
+        range.values = [[900]];
+        range.format.autofitColumns();
+
+        await context.sync();
+        console.log("B7 value has been changed.");
+    });
+Excel.RangeFormat#autofitRows:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-advanced.yaml
+
+
+    function queueCommandsToCreateTemperatureTable(sheet: Excel.Worksheet) {
+        let temperatureTable = sheet.tables.add('A1:M1', true);
+        temperatureTable.name = "TemperatureTable";
+        temperatureTable.getHeaderRowRange().values = [["Category", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]];
+        temperatureTable.rows.add(null, [
+            ["Avg High", 40, 38, 44, 45, 51, 56, 67, 72, 79, 59, 45, 41],
+            ["Avg Low", 34, 33, 38, 41, 45, 48, 51, 55, 54, 45, 41, 38],
+            ["Record High", 61, 69, 79, 83, 95, 97, 100, 101, 94, 87, 72, 66],
+            ["Record Low", -1, 2, 9, 24, 28, 32, 36, 39, 35, 21, 12, 4]
+        ]);
+        temperatureTable.getRange().format.autofitColumns();
+        temperatureTable.getRange().format.autofitRows();
+    }
+Excel.RangeFormat#fill:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/formatting.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+
+        const range = sheet.getRange("B2:E2");
+        range.format.fill.color = "#4472C4";;
+        range.format.font.color = "white";
+
+        await context.sync();
+    });
+Excel.RangeFormat#horizontalAlignment:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-pivotlayout.yaml
+
+
+    await Excel.run(async (context) => {
+      // Set a default value for an empty cell in the PivotTable. This doesn't include cells left blank by the layout.
+      const pivotTable = context.workbook.pivotTables.getItem("Farm Sales");
+      const pivotLayout = pivotTable.layout;
+
+      pivotLayout.emptyCellText = "--";
+
+      // Set the text alignment to match the rest of the PivotTable.
+      pivotLayout.getDataBodyRange().format.horizontalAlignment = Excel.HorizontalAlignment.right;
+      await context.sync();
+    });
 Excel.RangeFormat#textOrientation:member:
   - >-
     // Link to full sample:
@@ -7406,6 +8423,21 @@ Excel.RangeFormat#textOrientation:member:
         // Set textOrientation to either an integer between -90 and 90
         // or to 180 for vertically-oriented text.
         range.format.textOrientation = 90;
+
+        await context.sync();
+    });
+Excel.RangeFormat#verticalAlignment:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/42-range/style.yaml
+
+
+    await Excel.run(async (context) => {
+        let worksheet = context.workbook.worksheets.getItem("Sample");
+        let range = worksheet.getRange("A1:E1");
+        // Apply new style.
+        range.style = ("Diagonal Orientation Style");
+        range.format.verticalAlignment = "Justify";
 
         await context.sync();
     });
@@ -7712,6 +8744,52 @@ Excel.Runtime#enableEvents:member:
 
         await context.sync();
     });
+Excel.RowColumnPivotHierarchyCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-slicer.yaml
+
+
+    await Excel.run(async (context) => {
+        const rangeToAnalyze = context.workbook.worksheets.getItem("Data").getRange("A1:E21");
+        const rangeToPlacePivot = context.workbook.worksheets.getItem("Pivot").getRange("A2");
+
+        const pivotTable = context.workbook.worksheets
+            .getItem("Pivot")
+            .pivotTables.add("Farm Sales", rangeToAnalyze, rangeToPlacePivot);
+
+        pivotTable.rowHierarchies.add(pivotTable.hierarchies.getItem("Farm"));
+
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold at Farm"));
+        pivotTable.dataHierarchies.add(pivotTable.hierarchies.getItem("Crates Sold Wholesale"));
+        await context.sync();
+    });
+Excel.RowColumnPivotHierarchyCollection#remove:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/38-pivottable/pivottable-create-and-modify.yaml
+
+
+    await Excel.run(async (context) => {
+        const pivotTable = context.workbook.worksheets.getActiveWorksheet().pivotTables.getItem("Farm Sales");
+
+        // Check if the PivotTable already has rows.
+        const farmRow = pivotTable.rowHierarchies.getItemOrNullObject("Farm");
+        const typeRow = pivotTable.rowHierarchies.getItemOrNullObject("Type");
+        const classificationRow = pivotTable.rowHierarchies.getItemOrNullObject("Classification");
+        pivotTable.rowHierarchies.load();
+        await context.sync();
+
+        if (!classificationRow.isNullObject) {
+            pivotTable.rowHierarchies.remove(classificationRow);
+        } else if (!typeRow.isNullObject) {
+            pivotTable.rowHierarchies.remove(typeRow);
+        } else if (!farmRow.isNullObject) {
+            pivotTable.rowHierarchies.remove(farmRow);
+        }
+
+        await context.sync();
+    });
 Excel.SaveBehavior:enum:
   - >-
     // Link to full sample:
@@ -7927,7 +9005,7 @@ Excel.SettingCollection#add:member(1):
 
 
     await Excel.run(async (context) => {
-        const settings = context.workbook.settings; 
+        const settings: Excel.SettingCollection = context.workbook.settings;
         settings.onSettingsChanged.add(onChangedSetting);
 
         await context.sync();
@@ -7940,7 +9018,7 @@ Excel.SettingCollection#onSettingsChanged:member:
 
 
     await Excel.run(async (context) => {
-        const settings = context.workbook.settings; 
+        const settings: Excel.SettingCollection = context.workbook.settings;
         settings.onSettingsChanged.add(onChangedSetting);
 
         await context.sync();
@@ -8001,6 +9079,44 @@ Excel.Shape#fill:member:
         shapeFill.setSolidColor("#FFE08A");
 
         await context.sync();
+    });
+Excel.Shape#height:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-textboxes.yaml
+
+
+    await Excel.run(async (context) => {
+        const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+        const textbox: Excel.Shape = shapes.addTextBox("A box with text");
+        textbox.left = 100;
+        textbox.top = 100;
+        textbox.height = 20;
+        textbox.width = 175;
+        textbox.name = "Textbox";
+        await context.sync();
+    });
+Excel.Shape#name:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-get-active.yaml
+
+
+    // This method groups the new chart title shape together with the existing
+    chart.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem(sheetName);
+      
+      // Get the shapes to group.
+      const titleShape = sheet.shapes.getItem("ChartTitle");
+      const chartShape = sheet.shapes.getItem("SalesChart");
+      
+      // Create a group from the two shapes.
+      const shapeGroup = sheet.shapes.addGroup([titleShape, chartShape]);
+      shapeGroup.name = "GroupChart";
+      
+      await context.sync();
     });
 Excel.Shape#rotation:member:
   - >-
@@ -8252,12 +9368,24 @@ Excel.ShapeCollection#addTextBox:member(1):
 
     await Excel.run(async (context) => {
         const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
-        const textbox = shapes.addTextBox("A box with text");
+        const textbox: Excel.Shape = shapes.addTextBox("A box with text");
         textbox.left = 100;
         textbox.top = 100;
         textbox.height = 20;
         textbox.width = 175;
         textbox.name = "Textbox";
+        await context.sync();
+    });
+Excel.ShapeCollection#getItem:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-move-and-order.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Shapes");
+        const shape = sheet.shapes.getItem("Octagon")
+        shape.setZOrder(Excel.ShapeZOrder.sendBackward);
         await context.sync();
     });
 Excel.ShapeFill:class:
@@ -8304,6 +9432,22 @@ Excel.ShapeFill#clear:member(1):
         const shapeFill: Excel.ShapeFill = badge.fill;
         shapeFill.clear();
 
+        await context.sync();
+    });
+Excel.ShapeFill#foregroundColor:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-create-and-delete.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Shapes");
+        const shape: Excel.Shape = sheet.shapes.addGeometricShape(Excel.GeometricShapeType.smileyFace);
+        shape.left = 300;
+        shape.top = 100;
+        shape.height = 100;
+        shape.width = 100;
+        shape.fill.foregroundColor = "yellow"
         await context.sync();
     });
 Excel.ShapeGroup#ungroup:member(1):
@@ -8446,19 +9590,12 @@ Excel.SheetVisibility:enum:
 
 
     await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("VisibilitySample");
 
-        const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.visible);
+        // Set the worksheet visibility to hidden.
+        sheet.visibility = Excel.SheetVisibility.hidden;
 
-        if (visibleSheets.length > 1) {
-            console.log(`Hiding worksheet named "${visibleSheets[0].name}"...`);
-
-            visibleSheets[0].visibility = Excel.SheetVisibility.hidden;
-
-            await context.sync();
-
-        } else {
-            console.log("Cannot hide the only visible worksheet");
-        }
+        await context.sync();
     });
 Excel.ShowAsCalculation:enum:
   - >-
@@ -8804,6 +9941,31 @@ Excel.StyleCollection#getItem:member(1):
 
         console.log("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
     });
+Excel.Table#clearFilters:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/filter-data.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable = sheet.tables.getItem("ExpensesTable");
+        expensesTable.clearFilters();
+        await context.sync();
+       });
+Excel.Table#name:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/convert-range-to-table.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable: Excel.Table = sheet.tables.add('A1:E7', true);
+        expensesTable.name = "ExpensesTable";
+
+        await context.sync();
+    });
 Excel.Table#onChanged:member:
   - >-
     // Link to full sample:
@@ -8845,6 +10007,48 @@ Excel.Table#resize:member(1):
       expensesTable.resize("A1:D20");
       
       await context.sync();
+    });
+Excel.Table#rows:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/add-rows-and-columns-to-a-table.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable: Excel.Table = sheet.tables.getItem("ExpensesTable");
+
+        expensesTable.rows.add(null, [
+        ["1/16/2017", "THE PHONE COMPANY", "Communications", "$120"],
+        ["1/20/2017", "NORTHWIND ELECTRIC CARS", "Transportation", "$142"],
+        ["1/20/2017", "BEST FOR YOU ORGANICS COMPANY", "Groceries", "$27"]
+        ]);
+
+        sheet.getUsedRange().format.autofitColumns();
+        sheet.getUsedRange().format.autofitRows();
+
+        await context.sync();
+    });
+Excel.Table#sort:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/sort-data.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable: Excel.Table = sheet.tables.getItem("ExpensesTable");
+
+        // Sort the table by the "Amount" column.
+        const sortFields = [
+            {
+            key: 3,
+            ascending: false
+            }
+        ];
+        expensesTable.sort.apply(sortFields);
+
+        await context.sync();
     });
 Excel.TableChangedEventArgs#details:member:
   - >-
@@ -8952,6 +10156,27 @@ Excel.TableCollection#onChanged:member:
         await context.sync();
         console.log("A handler has been registered for the table collection onChanged event");
     });
+Excel.TableColumn#filter:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/get-visible-range-of-a-filtered-table.yaml
+
+
+    /** Filter the table*/
+
+    async function filterTable() {
+        await Excel.run(async (context) => {
+            const sheet = context.workbook.worksheets.getItem("Sample");
+            const expensesTable = sheet.tables.getItem("ExpensesTable");
+            const filter: Excel.Filter = expensesTable.columns.getItem("Amount").filter;
+
+            filter.apply({
+                filterOn: Excel.FilterOn.dynamic,
+                dynamicCriteria: Excel.DynamicFilterCriteria.belowAverage
+            });
+
+            await context.sync();
+        });
 Excel.TableColumn#getDataBodyRange:member(1):
   - >-
     // Link to full sample:
@@ -9010,6 +10235,44 @@ Excel.TableColumnCollection#getItem:member(1):
       range.clearOrResetContents();
       await context.sync();
     });
+Excel.TableRow#values:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-worksheet.yaml
+
+
+    await Excel.run(async (context) => {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let randomResult = context.workbook.functions.randBetween(1, 3000).load("value");
+        await context.sync();
+
+        const row: Excel.TableRow = sheet.tables.getItem("SalesTable").rows.getItemAt(0);
+        let newValue = [["Frames", 5000, 7000, 6544, randomResult.value, "=SUM(B2:E2)"]];
+        row.values = newValue;
+        row.load("values");
+        await context.sync();
+    });
+Excel.TableSort#apply:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/46-table/sort-data.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const expensesTable: Excel.Table = sheet.tables.getItem("ExpensesTable");
+
+        // Sort the table by the "Amount" column.
+        const sortFields = [
+            {
+            key: 3,
+            ascending: false
+            }
+        ];
+        expensesTable.sort.apply(sortFields);
+
+        await context.sync();
+    });
 Excel.TableSelectionChangedEventArgs#address:member:
   - >-
     // Link to full sample:
@@ -9063,6 +10326,43 @@ Excel.TextFrame#deleteText:member(1):
         const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
         const textbox = shapes.getItem("Textbox");
         textbox.textFrame.deleteText();
+        await context.sync();
+    });
+Excel.TextRange#text:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-textboxes.yaml
+
+
+    await Excel.run(async (context) => {
+        const shapes = context.workbook.worksheets.getItem("Shapes").shapes;
+        const wave = shapes.addGeometricShape(Excel.GeometricShapeType.wave);
+        wave.left = 100;
+        wave.top = 400;
+        wave.height = 50;
+        wave.width = 150;
+        wave.name = "Wave";
+        wave.fill.setSolidColor("lightblue");
+        wave.textFrame.textRange.text = "A geometric shape";
+        await context.sync();
+    });
+Excel.TopBottomConditionalFormat#format:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/14-conditional-formatting/conditional-formatting-basic.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        const range = sheet.getRange("B21:E23");
+        const conditionalFormat = range.conditionalFormats
+            .add(Excel.ConditionalFormatType.topBottom);
+        conditionalFormat.topBottom.format.fill.color = "green"
+        conditionalFormat.topBottom.rule = { 
+            rank: 1, 
+            type: Excel.ConditionalTopBottomCriterionType.topItems
+        };
+
         await context.sync();
     });
 Excel.ValueFilterCondition:enum:
@@ -9187,6 +10487,58 @@ Excel.Workbook:class:
         
         console.log("The active cell is " + activeCell.address);
     });
+Excel.Workbook#comments:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-comment-event-handler.yaml
+
+
+    await Excel.run(async (context) => {
+        context.workbook.comments.getItemByCell("Comments!A1").delete();
+        await context.sync();
+    });
+Excel.Workbook#customXmlParts:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/18-custom-xml-parts/test-xml-for-unique-namespace.yaml
+
+
+    await Excel.run(async (context) => {
+        document.getElementById("display-xml").textContent = "";
+        const customXmlParts = context.workbook.customXmlParts;
+        customXmlParts.load("items");
+
+        await context.sync();
+
+        for (let i = 0; i < customXmlParts.items.length; i++) {
+            customXmlParts.items[i].delete();
+        }
+
+        await context.sync();
+    });
+Excel.Workbook#functions:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/workbook-built-in-functions.yaml
+
+
+    await Excel.run(async (context) => {
+      // This function uses VLOOKUP to find data in the "Wrench" row
+      // on the worksheet, and then it uses SUM to combine the values.
+      let range = context.workbook.worksheets.getItem("Sample").getRange("A1:D4");
+
+      // Get the values in the second, third, and fourth columns in the "Wrench" row,
+      // and combine those values with SUM.
+      let sumOfTwoLookups = context.workbook.functions.sum(
+        context.workbook.functions.vlookup("Wrench", range, 2, false),
+        context.workbook.functions.vlookup("Wrench", range, 3, false),
+        context.workbook.functions.vlookup("Wrench", range, 4, false)
+      );
+      sumOfTwoLookups.load("value");
+
+      await context.sync();
+      console.log(" Number of wrenches sold in November, December, and January = " + sumOfTwoLookups.value);
+    });
 Excel.Workbook#properties:member:
   - >-
     // Link to full sample:
@@ -9261,6 +10613,29 @@ Excel.Workbook#pivotTables:member:
         console.log(`\t${pivotTable.name}`);
       });
     });
+Excel.Workbook#protection:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/50-workbook/data-protection.yaml
+
+
+    await Excel.run(async (context) => {
+        const workbook: Excel.Workbook = context.workbook;
+        workbook.protection.unprotect();
+    });
+Excel.Workbook#settings:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-workbook-and-worksheet-collection.yaml
+
+
+    await Excel.run(async (context) => {
+        const settings: Excel.SettingCollection = context.workbook.settings;
+        settings.onSettingsChanged.add(onChangedSetting);
+
+        await context.sync();
+        console.log("Settings changed handler registered.");
+    });
 Excel.Workbook#getSelectedRanges:member(1):
   - >-
     // Link to full sample:
@@ -9299,6 +10674,27 @@ Excel.Workbook#styles:member:
         await context.sync();
 
         console.log("Successfully added a new style with diagonal orientation to the Home tab ribbon.");
+    });
+Excel.Workbook#worksheets:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/list-worksheets.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheets: Excel.WorksheetCollection = context.workbook.worksheets;
+        sheets.load("items/name");
+        
+        await context.sync();
+
+        if (sheets.items.length > 1) {
+            console.log(`There are ${sheets.items.length} worksheets in the workbook:`);
+        } else {
+            console.log(`There is one worksheet in the workbook:`);
+        }
+        for (let i in sheets.items) {
+            console.log(sheets.items[i].name);
+        } 
     });
 Excel.Workbook#getActiveShapeOrNullObject:member(1):
   - >-
@@ -9467,6 +10863,37 @@ Excel.WorkbookRangeAreas#areas:member:
         }
         await context.sync();
       });
+Excel.Worksheet#charts:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-create-several-charts.yaml
+
+
+    await Excel.run(async (context) => {
+      let sheet = context.workbook.worksheets.getItem("Sample");
+      let salesTable = sheet.tables.getItem("SalesTable");
+
+      let dataRange = sheet.getRange("A1:E7");
+
+      // Create an XY scatter chart.
+      let chart = sheet.charts.add(Excel.ChartType.xyscatter, dataRange, "Auto");
+      chart.title.text = "Bicycle Parts Quarterly Sales";
+      chart.setPosition("A36", "F48");
+
+      await context.sync();
+    });
+Excel.Worksheet#comments:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/events-comment-event-handler.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Comments");
+        const comment = sheet.comments.getItemAt(0);
+        comment.content = "Please add headers here.";
+        await context.sync();
+    });
 Excel.Worksheet#customProperties:member:
   - >-
     // Link to full sample:
@@ -9484,6 +10911,47 @@ Excel.Worksheet#customProperties:member:
       customWorksheetProperties.items.forEach((property) => {
         console.log(`${property.key}: ${property.value}`);
       });
+    });
+Excel.Worksheet#freezePanes:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-freeze-panes.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Sample");
+        sheet.freezePanes.unfreeze();
+
+        await context.sync();
+    });
+Excel.Worksheet#name:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/add-delete-rename-move-worksheet.yaml
+
+
+    await Excel.run(async (context) => {
+        const currentSheet = context.workbook.worksheets.getActiveWorksheet();
+
+        currentSheet.name = await uniqueWorksheetName(context);
+
+        await context.sync();
+        console.log(`Renamed worksheet to "${currentSheet.name}"`);
+    });
+Excel.Worksheet#notes:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/12-comments-and-notes/excel-note-basics.yaml
+
+
+    // This function changes the height and width of the first note.
+
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getItem("Notes");
+      const note = sheet.notes.getItemAt(0);
+      note.height = 200;
+      note.width = 400;
+      await context.sync();
     });
 Excel.Worksheet#onColumnSorted:member:
   - >-
@@ -9643,6 +11111,56 @@ Excel.Worksheet#onProtectionChanged:member:
             console.log("    ID of changed worksheet: " + worksheetId + ".");
             console.log("    Source of change event: " + source + ".");
         });
+    }
+Excel.Worksheet#pageLayout:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-page-layout.yaml
+
+
+    await Excel.run(async (context) => {
+        const farmSheet = context.workbook.worksheets.getItem("Print");
+        farmSheet.pageLayout.blackAndWhite = true;
+        await context.sync();
+    });
+Excel.Worksheet#shapes:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/44-shape/shape-groups.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("Shapes");
+
+        const shapeGroup = sheet.shapes.getItem("Group").group;
+        shapeGroup.ungroup();
+        console.log("Shapes ungrouped");
+
+        await context.sync();
+    });
+Excel.Worksheet#onVisibilityChanged:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("VisibilitySample");
+
+        // Register an event handler for visibility changes to this worksheet.
+        sheet.onVisibilityChanged.add(onWorksheetVisibilityChanged);
+
+        await context.sync();
+        console.log("Registered the worksheet visibility changed event handler.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    async function onWorksheetVisibilityChanged(args:
+    Excel.WorksheetVisibilityChangedEventArgs) {
+        console.log(`Worksheet event: Visibility changed from ${args.visibilityBefore} to ${args.visibilityAfter}.`);
     }
 Excel.Worksheet#showOutlineLevels:member(1):
   - >-
@@ -9847,6 +11365,22 @@ Excel.Worksheet#tabColor:member:
 
         await context.sync();
     });
+Excel.Worksheet#visibility:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem("VisibilitySample");
+
+        // Load the visibility property so it can be read after context.sync().
+        sheet.load("name, visibility");
+
+        await context.sync();
+
+        console.log(`The visibility of worksheet "${sheet.name}" is ${sheet.visibility}.`);
+    });
 Excel.WorksheetAddedEventArgs#worksheetId:member:
   - >-
     // Link to full sample:
@@ -9902,7 +11436,7 @@ Excel.WorksheetChangedEventArgs#changeDirectionState:member:
 
     await Excel.run(async (context) => {
         const sheet = context.workbook.worksheets.getItem("Sample");
-        const range = sheet.getRange("A5:F5");
+        const range: Excel.Range = sheet.getRange("A5:F5");
         range.delete(Excel.DeleteShiftDirection.up);
     });
 Excel.WorksheetChangedEventArgs#triggerSource:member:
@@ -9975,6 +11509,28 @@ Excel.WorksheetCollection#onDeactivated:member:
         await context.sync();
         console.log("A handler has been registered for the OnDeactivate event.");
     });
+Excel.WorksheetCollection#onVisibilityChanged:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    await Excel.run(async (context) => {
+        // Register an event handler for visibility changes to any worksheet in the collection.
+        context.workbook.worksheets.onVisibilityChanged.add(onWorksheetCollectionVisibilityChanged);
+
+        await context.sync();
+        console.log("Registered the worksheet collection visibility changed event handler.");
+    });
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    async function onWorksheetCollectionVisibilityChanged(args:
+    Excel.WorksheetVisibilityChangedEventArgs) {
+        console.log(`Worksheet collection event: Worksheet ${args.worksheetId} visibility changed from ${args.visibilityBefore} to ${args.visibilityAfter}.`);
+    }
 Excel.WorksheetCollection#getFirst:member(1):
   - >-
     // Link to full sample:
@@ -10005,6 +11561,32 @@ Excel.WorksheetCollection#getFirst:member(1):
 
         await context.sync();
     });
+Excel.WorksheetCollection#getItem:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/10-chart/chart-axis-formatting.yaml
+
+
+    function displayUnit(context: Excel.RequestContext) {
+        let sheet = context.workbook.worksheets.getItem("Sample");
+        let chart = sheet.charts.getItem("SalesChart");
+        let axis = chart.axes.valueAxis;
+        axis.displayUnit = "Thousands";
+    }
+Excel.WorksheetCollection#getItemOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/90-scenarios/performance-optimization.yaml
+
+
+    /** Helper to create or recreate a worksheet. */
+
+    async function forceCreateSheet(workbook: Excel.Workbook, sheetName:
+    string): Promise<Excel.Worksheet> {
+      workbook.worksheets.getItemOrNullObject(sheetName).delete();
+      await workbook.context.sync();
+      return workbook.worksheets.add(sheetName);
+    }
 Excel.WorksheetCollection#getLast:member(1):
   - >-
     // Link to full sample:
@@ -10286,6 +11868,16 @@ Excel.WorksheetSingleClickedEventArgs#address:member:
 
         await context.sync();
     });
+Excel.WorksheetVisibilityChangedEventArgs:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-visibility.yaml
+
+
+    async function onWorksheetVisibilityChanged(args:
+    Excel.WorksheetVisibilityChangedEventArgs) {
+        console.log(`Worksheet event: Visibility changed from ${args.visibilityBefore} to ${args.visibilityAfter}.`);
+    }
 Office.AppointmentCompose:interface:
   - >-
     // Link to full sample:
@@ -23413,6 +25005,22 @@ Word.Body#getComments:member(1):
 
       console.log("All comments:", comments);
     });
+Word.Body#getContentControls:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/get-change-tracking-states.yaml
+
+
+    // Deletes the first content control found in the document body.
+
+    await Word.run(async (context) => {
+      context.document.body
+        .getContentControls()
+        .getFirst()
+        .delete(false);
+      await context.sync();
+      console.log("Deleted the first content control.");
+    });
 Word.Body#getHtml:member(1):
   - >-
     // Link to full sample:
@@ -23772,6 +25380,32 @@ Word.Body#select:member(1):
       body.select();
 
       console.log("Selected the document body.");
+    });
+Word.Body#contentControls:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/manage-watermark.yaml
+
+
+    // Removes the watermark from the document using OOXML.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      context.load(sections);
+      await context.sync();
+
+      const header: Word.Body = sections.items[0].getHeader("Primary");
+      const contentControls: Word.ContentControlCollection = header.contentControls.getByTitle("myTempCC");
+      context.load(contentControls);
+      await context.sync();
+
+      if (contentControls.items.length > 0) {
+        contentControls.items[0].delete(false);
+        await context.sync();
+        console.log("Watermark removed successfully using OOXML.");
+      } else {
+        console.warn("No watermark found in this document.");
+      }
     });
 Word.Body#fields:member:
   - >-
@@ -24308,7 +25942,8 @@ Word.Border#toJSON:member(1):
 
     await Word.run(async (context) => {
       const style: Word.Style = context.document.getStyles().getByName("Bordered Text");
-      const border: Word.Border = style.borders.getByLocation(Word.BorderLocation.bottom);
+      const borders: Word.BorderCollection = style.borders;
+      const border: Word.Border = borders.getByLocation(Word.BorderLocation.bottom);
       border.load("color, location, type, visible, width");
       await context.sync();
 
@@ -24391,6 +26026,24 @@ Word.BorderCollection:class:
         borders.outsideBorderColor = "green";
         console.log("Updated outside borders.");
       }
+    });
+Word.BorderCollection#getByLocation:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/border-properties.yaml
+
+
+    // Loads all scalar properties and returns them as a plain JavaScript
+    object.
+
+    await Word.run(async (context) => {
+      const style: Word.Style = context.document.getStyles().getByName("Bordered Text");
+      const borders: Word.BorderCollection = style.borders;
+      const border: Word.Border = borders.getByLocation(Word.BorderLocation.bottom);
+      border.load("color, location, type, visible, width");
+      await context.sync();
+
+      console.log("Border properties:", border.toJSON());
     });
 Word.BorderCollection#outsideBorderColor:member:
   - >-
@@ -25248,6 +26901,68 @@ Word.CoauthoringLockCollection#add:member(1):
 
       console.log("Lock added.");
     });
+Word.CoauthoringLockCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthors.yaml
+
+
+    // Gets the locks held by each coauthor in the document.
+
+    await Word.run(async (context) => {
+      const authors: Word.CoauthorCollection = context.document.coauthoring.authors;
+      authors.load("items/name");
+      await context.sync();
+
+      if (authors.items.length === 0) {
+        console.log("No coauthors are currently editing this document.");
+        return;
+      }
+
+      authors.items.forEach((author: Word.Coauthor) => {
+        author.locks.load("items/type");
+      });
+      await context.sync();
+
+      authors.items.forEach((author: Word.Coauthor) => {
+        const lockCount = author.locks.items.length;
+        if (lockCount === 0) {
+          console.log(`${author.name}: no locks`);
+        } else {
+          const types = author.locks.items.map((l) => l.type).join(", ");
+          console.log(`${author.name}: ${lockCount} lock(s) — ${types}`);
+        }
+      });
+    });
+Word.CoauthoringUpdate#range:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/get-coauthoring-updates.yaml
+
+
+    // Gets the ranges affected by the most recent coauthoring updates merged
+    into the document.
+
+    await Word.run(async (context) => {
+      const updates: Word.CoauthoringUpdateCollection = context.document.coauthoring.updates;
+      updates.load("items/range");
+      await context.sync();
+
+      if (updates.items.length === 0) {
+        console.log("No recent coauthoring updates found.");
+        return;
+      }
+
+      console.log(`Found ${updates.items.length} recent update(s).`);
+
+      const ranges = updates.items.map((u) => u.range);
+      ranges.forEach((r) => r.load("text"));
+      await context.sync();
+
+      ranges.forEach((range, i) => {
+        console.log(`  Update ${i + 1}: "${range.text}"`);
+      });
+    });
 Word.CoauthoringUpdateCollection:class:
   - >-
     // Link to full sample:
@@ -26071,6 +27786,30 @@ Word.ContentControl#setState:member(1):
 
       console.log(`Set state of first content control with ID ${firstContentControl.id} to ${state}.`);
     });
+Word.ContentControl#appearance:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/manage-watermark.yaml
+
+
+    // Adds a watermark to the document using OOXML.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      context.load(sections);
+      await context.sync();
+
+      const watermarkText: string = (document.getElementById("watermark-text") as HTMLInputElement).value;
+      const myWatermark: string = getOoxmlWatermark(watermarkText);
+      const myHeader: Word.Body = sections.items[0].getHeader("Primary");
+      const myRange: Word.Range = myHeader.insertOoxml(myWatermark, "Replace");
+      const myCC: Word.ContentControl = myRange.insertContentControl();
+      myCC.title = "myTempCC";
+      myCC.appearance = "Hidden";
+      await context.sync();
+
+      console.log("Watermark added successfully using OOXML.");
+    });
 Word.ContentControl#checkboxContentControl:member:
   - >-
     // Link to full sample:
@@ -26435,6 +28174,40 @@ Word.ContentControl#tag:member:
 
       await context.sync();
     });
+Word.ContentControl#title:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/doc-assembly.yaml
+
+
+    // Simulates creation of a template. First searches the document for
+    instances of the string "Contractor",
+
+    // then changes the format  of each search result,
+
+    // then wraps each search result within a content control,
+
+    // finally sets a tag and title property on each content control.
+
+    await Word.run(async (context) => {
+        const results: Word.RangeCollection = context.document.body.search("Contractor");
+        results.load("font/bold");
+
+        // Check to make sure these content controls haven't been added yet.
+        const customerContentControls: Word.ContentControlCollection = context.document.contentControls.getByTag("customer");
+        customerContentControls.load("text");
+        await context.sync();
+
+      if (customerContentControls.items.length === 0) {
+        for (let i = 0; i < results.items.length; i++) {
+            results.items[i].font.bold = true;
+            let cc: Word.ContentControl = results.items[i].insertContentControl();
+            cc.tag = "customer";  // This value is used in the next step of this sample.
+            cc.title = "Customer Name " + i;
+        }
+      }
+        await context.sync();
+    });
 Word.ContentControlAddedEventArgs:interface:
   - >-
     // Link to full sample:
@@ -26518,6 +28291,34 @@ Word.ContentControlCollection:class:
 
         await context.sync();
     });
+Word.ContentControlCollection#getByChangeTrackingStates:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/get-change-tracking-states.yaml
+
+
+    // Logs the current change tracking states of the content controls.
+
+    await Word.run(async (context) => {
+      let trackAddedArray: Word.ChangeTrackingState[] = [Word.ChangeTrackingState.added];
+      let trackDeletedArray: Word.ChangeTrackingState[] = [Word.ChangeTrackingState.deleted];
+      let trackNormalArray: Word.ChangeTrackingState[] = [Word.ChangeTrackingState.normal];
+
+      let addedContentControls = context.document.body.getContentControls().getByChangeTrackingStates(trackAddedArray);
+      let deletedContentControls = context.document.body
+        .getContentControls()
+        .getByChangeTrackingStates(trackDeletedArray);
+      let normalContentControls = context.document.body.getContentControls().getByChangeTrackingStates(trackNormalArray);
+
+      addedContentControls.load();
+      deletedContentControls.load();
+      normalContentControls.load();
+      await context.sync();
+
+      console.log(`Number of content controls in Added state: ${addedContentControls.items.length}`);
+      console.log(`Number of content controls in Deleted state: ${deletedContentControls.items.length}`);
+      console.log(`Number of content controls in Normal state: ${normalContentControls.items.length}`);
+    });
 Word.ContentControlCollection#getByTag:member(1):
   - >-
     // Link to full sample:
@@ -26579,6 +28380,31 @@ Word.ContentControlCollection#getFirstOrNullObject:member(1):
         "isChecked state after:",
         `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
       );
+    });
+Word.ContentControlCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/content-control-ondatachanged-event.yaml
+
+
+    await Word.run(async (context) => {
+      const contentControls: Word.ContentControlCollection = context.document.contentControls;
+      contentControls.load("items");
+      await context.sync();
+
+      // Register the onDataChanged event handler on each content control.
+      if (contentControls.items.length === 0) {
+        console.log("There aren't any content controls in this document so can't register event handlers.");
+      } else {
+        for (let i = 0; i < contentControls.items.length; i++) {
+          eventContexts[i] = contentControls.items[i].onDataChanged.add(contentControlDataChanged);
+          contentControls.items[i].track();
+        }
+
+        await context.sync();
+
+        console.log("Added event handlers for when data is changed in content controls.");
+      }
     });
 Word.ContentControlDataChangedEventArgs:interface:
   - >-
@@ -26920,6 +28746,55 @@ Word.ContentControlListItemCollection:class:
 
       const currentItems: Word.ContentControlListItemCollection = selectedComboBox.listItems;
       console.log(`The list from the combo box content control with ID ${selectedContentControl.id}:`, currentItems);
+    });
+Word.ContentControlListItemCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-dropdown-list-content-control.yaml
+
+
+    // Deletes the provided list item from the first dropdown list content
+    control in the selection.
+
+    await Word.run(async (context) => {
+      const listItemText = (document.getElementById("item-to-delete") as HTMLInputElement).value.trim();
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.dropDownList]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id,dropDownListContentControl");
+      await context.sync();
+
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControl;
+        parentContentControl.load("id,type,dropDownListContentControl");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.dropDownList) {
+          console.warn("No dropdown list content control is currently selected.");
+          return;
+        } else {
+          selectedContentControl = parentContentControl;
+        }
+      }
+
+      let selectedDropdownList: Word.DropDownListContentControl = selectedContentControl.dropDownListContentControl;
+      selectedDropdownList.listItems.load("items/*");
+      await context.sync();
+
+      let listItems: Word.ContentControlListItemCollection = selectedContentControl.dropDownListContentControl.listItems;
+      let itemToDelete: Word.ContentControlListItem = listItems.items.find((item) => item.displayText === listItemText);
+      if (!itemToDelete) {
+        console.warn(`List item doesn't exist in control with ID ${selectedContentControl.id}: ${listItemText}`)
+        return;
+      }
+      
+      itemToDelete.delete();
+      await context.sync();
+
+      console.log(`List item deleted from control with ID ${selectedContentControl.id}: ${listItemText}`);
     });
 Word.ContentControlOptions:interface:
   - >-
@@ -28405,6 +30280,29 @@ Word.Document#activeWindow:member:
         console.log("First paragraph's text:", pagesFirstParagraphText[i].text);
       }
     });
+Word.Document#body:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-body.yaml
+
+
+    // Inserts the body from the external document at the beginning of this
+    document.
+
+    // Run a batch operation against the Word object model.
+
+    await Word.run(async (context) => {
+      // Create a proxy object for the document body.
+      const body: Word.Body = context.document.body;
+
+      // Queue a command to insert the Base64-encoded string representation of the body of the selected .docx file at the beginning of the current document.
+      body.insertFileFromBase64(externalDocument, Word.InsertLocation.start);
+
+      // Synchronize the document state by executing the queued commands, and return a promise to indicate task completion.
+      await context.sync();
+
+      console.log("Added Base64-encoded text to the beginning of the document body.");
+    });
 Word.Document#changeTrackingMode:member:
   - >-
     // Link to full sample:
@@ -28443,6 +30341,72 @@ Word.Document#coauthoring:member:
       console.log("Can coauthor:", coauthoring.canCoauthor);
       console.log("Can merge:", coauthoring.canMerge);
       console.log("Pending updates:", coauthoring.pendingUpdates);
+    });
+Word.Document#contentControls:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-content-controls.yaml
+
+
+    // Adds title and colors to odd and even content controls and changes their
+    appearance.
+
+    await Word.run(async (context) => {
+      // Get the complete sentence (as range) associated with the insertion point.
+      let evenContentControls = context.document.contentControls.getByTag("even");
+      let oddContentControls = context.document.contentControls.getByTag("odd");
+      evenContentControls.load("length");
+      oddContentControls.load("length");
+
+      await context.sync();
+
+      for (let i = 0; i < evenContentControls.items.length; i++) {
+        // Change a few properties and append a paragraph.
+        evenContentControls.items[i].set({
+          color: "red",
+          title: "Odd ContentControl #" + (i + 1),
+          appearance: Word.ContentControlAppearance.tags
+        });
+        evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
+      }
+
+      for (let j = 0; j < oddContentControls.items.length; j++) {
+        // Change a few properties and append a paragraph.
+        oddContentControls.items[j].set({
+          color: "green",
+          title: "Even ContentControl #" + (j + 1),
+          appearance: "Tags"
+        });
+        oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
+      }
+
+      await context.sync();
+    });
+Word.Document#customXmlParts:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-custom-xml-part.yaml
+
+
+    // Adds a custom XML part.
+
+    await Word.run(async (context) => {
+      const originalXml =
+        "<Reviewers><Reviewer>Juan</Reviewer><Reviewer>Hong</Reviewer><Reviewer>Sally</Reviewer></Reviewers>";
+      const customXmlPart: Word.CustomXmlPart = context.document.customXmlParts.add(originalXml);
+      customXmlPart.load("id");
+      const xmlBlob = customXmlPart.getXml();
+
+      await context.sync();
+
+      const readableXml = addLineBreaksToXML(xmlBlob.value);
+      console.log("Added custom XML part:", readableXml);
+
+      // Store the XML part's ID in a setting so the ID is available to other functions.
+      const settings: Word.SettingCollection = context.document.settings;
+      settings.add("ContosoReviewXmlPartId", customXmlPart.id);
+
+      await context.sync();
     });
 Word.Document#onAnnotationClicked:member:
   - >-
@@ -28810,6 +30774,20 @@ Word.Document#selection:member:
 
       console.log("Inserted formula (auto-determined by Word) with number format.");
     });
+Word.Document#sections:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
+
+
+    await Word.run(async (context) => {
+      context.document.sections
+        .getFirst()
+        .getFooter("EvenPages")
+        .insertParagraph("This is an even-pages footer.", "End");
+
+      await context.sync();
+    });
 Word.Document#settings:member:
   - >-
     // Link to full sample:
@@ -28949,6 +30927,18 @@ Word.DocumentProperties:class:
 
         await context.sync();
         console.log(JSON.stringify(builtInProperties, null, 4));
+    });
+Word.DocumentProperties#customProperties:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/30-properties/read-write-custom-document-properties.yaml
+
+
+    await Word.run(async (context) => {
+        context.document.properties.customProperties.add("Numeric Property", 1234);
+
+        await context.sync();
+        console.log("Property added");
     });
 Word.DocumentPropertyType:enum:
   - >-
@@ -29656,6 +31646,28 @@ Word.FieldType:enum:
       } else {
         console.log("Code of the field: " + field.code, "Result of the field: " + JSON.stringify(field.result));
       }
+    });
+Word.Font#set:member(2):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-formatted-text.yaml
+
+
+    await Word.run(async (context) => {
+      // Second sentence, let's insert it as a paragraph after the previously inserted one.
+      const secondSentence: Word.Paragraph = context.document.body.insertParagraph(
+        "This is the first text with a custom style.",
+        "End"
+      );
+      secondSentence.font.set({
+        bold: false,
+        italic: true,
+        name: "Berlin Sans FB",
+        color: "blue",
+        size: 30
+      });
+
+      await context.sync();
     });
 Word.Font#threeDimensionalFormat:member:
   - >-
@@ -31406,6 +33418,23 @@ Word.Paragraph#getRange:member(1):
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
     });
+Word.Paragraph#getText:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-text.yaml
+
+
+    await Word.run(async (context) => {
+      const paragraph: Word.Paragraph = context.document.getSelection().paragraphs.getFirst();
+
+      const text = paragraph.getText();
+      const textIncludingHidden = paragraph.getText({ IncludeHiddenText: true });
+      const textIncludingDeleted = paragraph.getText({ IncludeTextMarkedAsDeleted: true });
+
+      await context.sync();
+
+      console.log("Text:- " + text.value, "Including hidden text:- " + textIncludingHidden.value, "Including text marked as deleted:- " + textIncludingDeleted.value);
+    });
 Word.Paragraph#insertAnnotations:member(1):
   - >-
     // Link to full sample:
@@ -31538,6 +33567,22 @@ Word.Paragraph#insertGeometricShape:member(1):
         width: 150,
       };
       lastParagraph.insertPictureFromBase64(getPictureBase64(), pictureOptions);
+
+      await context.sync();
+    });
+Word.Paragraph#insertParagraph:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/15-images/insert-and-get-pictures.yaml
+
+
+    // Inserts an image anchored to the last paragraph.
+
+    await Word.run(async (context) => {
+      context.document.body.paragraphs
+        .getLast()
+        .insertParagraph("", "After")
+        .insertInlinePictureFromBase64(base64Image, "End");
 
       await context.sync();
     });
@@ -31702,6 +33747,80 @@ Word.Paragraph#alignment:member:
 
       await context.sync();
     });
+Word.Paragraph#borders:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/add-border-to-paragraph.yaml
+
+
+    if (!Office.context.requirements.isSetSupported("WordApiDesktop", "1.3")) {
+      console.error("This sample requires WordApiDesktop 1.3 or later.");
+      return;
+    }
+
+
+    await Word.run(async (context) => {
+      // Insert a paragraph at the beginning of the document.
+      const paragraph: Word.Paragraph =
+        context.document.body.insertParagraph(
+          "Note: Added a border to this paragraph.",
+          Word.InsertLocation.start
+        );
+
+      // Load the paragraph borders so they can be formatted.
+      const borders: Word.BorderUniversalCollection = paragraph.borders;
+      borders.load("items");
+      await context.sync();
+
+      // Apply a visible double blue line to every side of the paragraph.
+      borders.items.forEach((border: Word.BorderUniversal) => {
+        border.isVisible = true;
+        border.color = "#4472C4";
+        border.lineStyle = Word.BorderLineStyle.double;
+        border.lineWidth = Word.LineWidth.pt150;
+      });
+
+      await context.sync();
+
+      console.log(
+        `Applied the ${Word.BorderLineStyle.double} line style to ${borders.items.length} paragraph borders.`
+      );
+    });
+Word.Paragraph#font:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/apply-bevel-to-text.yaml
+
+
+    if (!Office.context.requirements.isSetSupported("WordApiDesktop", "1.3")) {
+      console.error("This sample requires WordApiDesktop 1.3 or later.");
+      return;
+    }
+
+
+    await Word.run(async (context) => {
+      const paragraph: Word.Paragraph = context.document.body.insertParagraph(
+        "Beveled text",
+        Word.InsertLocation.start,
+      );
+      paragraph.font.size = 48;
+      paragraph.font.bold = true;
+
+      const threeDimensionalFormat: Word.ThreeDimensionalFormat = paragraph.font.threeDimensionalFormat;
+      threeDimensionalFormat.isVisible = true;
+      threeDimensionalFormat.bevelTopType = Word.BevelType.circle;
+      threeDimensionalFormat.bevelTopDepth = 6;
+      threeDimensionalFormat.bevelTopInset = 6;
+      threeDimensionalFormat.load("bevelTopType,bevelTopDepth,bevelTopInset");
+
+      await context.sync();
+
+      console.log("Applied bevel formatting:", {
+        type: threeDimensionalFormat.bevelTopType,
+        depth: threeDimensionalFormat.bevelTopDepth,
+        inset: threeDimensionalFormat.bevelTopInset,
+      });
+    });
 Word.Paragraph#leftIndent:member:
   - >-
     // Link to full sample:
@@ -31747,6 +33866,44 @@ Word.Paragraph#lineUnitBefore:member:
     await Word.run(async (context) => {
       // Set the space (in line units) before the first paragraph.
       context.document.body.paragraphs.getFirst().lineUnitBefore = 1;
+
+      await context.sync();
+    });
+Word.Paragraph#listItem:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/organize-list.yaml
+
+
+    // Inserts a list starting with the first paragraph then set numbering and
+    bullet types of the list items.
+
+    await Word.run(async (context) => {
+      const paragraphs: Word.ParagraphCollection = context.document.body.paragraphs;
+      paragraphs.load("$none");
+
+      await context.sync();
+
+      // Use the first paragraph to start a new list.
+      const list: Word.List = paragraphs.items[0].startNewList();
+      list.load("$none");
+
+      await context.sync();
+
+      // To add new items to the list, use Start or End on the insertLocation parameter.
+      list.insertParagraph("New list item at the start of the list", "Start");
+      const paragraph: Word.Paragraph = list.insertParagraph("New list item at the end of the list (set to list level 5)", "End");
+
+      // Set numbering for list level 1.
+      list.setLevelNumbering(0, Word.ListNumbering.arabic);
+
+      // Set bullet type for list level 5.
+      list.setLevelBullet(4, Word.ListBullet.arrow);
+
+      // Set list level for the last item in this list.
+      paragraph.listItem.level = 4;
+
+      list.load("levelTypes");
 
       await context.sync();
     });
@@ -31936,6 +34093,29 @@ Word.ParagraphChangedEventArgs:interface:
     async function paragraphChanged(event: Word.ParagraphChangedEventArgs) {
       await Word.run(async (context) => {
         console.log(`${event.type} event detected. IDs of paragraphs where content was changed:`, event.uniqueLocalIds);
+      });
+    }
+Word.ParagraphChangedEventArgs#uniqueLocalIds:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-annotations.yaml
+
+
+    async function paragraphChanged(args: Word.ParagraphChangedEventArgs) {
+      await Word.run(async (context) => {
+        const results = [];
+        for (let id of args.uniqueLocalIds) {
+          let para = context.document.getParagraphByUniqueLocalId(id);
+          para.load("uniqueLocalId");
+
+          results.push({ para: para, text: para.getText() });
+        }
+
+        await context.sync();
+
+        for (let result of results) {
+          console.log(`${args.type}: ID ${result.para.uniqueLocalId}:-`, result.text.value);
+        }
       });
     }
 Word.ParagraphCollection:class:
@@ -32330,6 +34510,61 @@ Word.Range#getTextRanges:member(1):
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
     });
+Word.Range#insertBookmark:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/export.yaml
+
+
+    await Word.run(async (context) => {
+      const body: Word.Body = context.document.body;
+      body.clear();
+
+      // Apply built-in heading styles so the Headings export mode can create PDF bookmarks.
+      const title: Word.Paragraph = body.insertParagraph("Extend Word with Office Add-ins", Word.InsertLocation.end);
+      title.styleBuiltIn = Word.BuiltInStyleName.heading1;
+
+      const overview: Word.Paragraph = body.insertParagraph(
+        "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
+        Word.InsertLocation.end,
+      );
+      overview.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+      const detailsHeading: Word.Paragraph = body.insertParagraph("How Word add-ins work", Word.InsertLocation.end);
+      detailsHeading.styleBuiltIn = Word.BuiltInStyleName.heading2;
+      const details: Word.Paragraph = body.insertParagraph(
+        "Use add-in commands to extend the Word UI. Launch task panes that run JavaScript to interact with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
+        Word.InsertLocation.end,
+      );
+      details.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+      // Add a named Word bookmark that the WordBookmarks export mode can include in the PDF.
+      details.getRange(Word.RangeLocation.whole).insertBookmark("named_bookmark");
+
+      await context.sync();
+      console.log("Sample document created with headings and bookmark 'named_bookmark'.");
+    });
+Word.Range#insertCanvas:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-canvases.yaml
+
+
+    await Word.run(async (context) => {
+      // Inserts a canvas in the document.
+      const canvasShape: Word.Shape = context.document.getSelection().insertCanvas();
+      canvasShape.load();
+      await context.sync();
+
+      canvasShape.select();
+      console.log("Inserted canvas:", canvasShape);
+
+      const canvas: Word.Canvas = canvasShape.canvas;
+      canvas.load("shape,shapes");
+      await context.sync();
+
+      console.log("Canvas object:", canvas);
+    });
 Word.Range#insertComment:member(1):
   - >-
     // Link to full sample:
@@ -32493,6 +34728,28 @@ Word.Range#insertTextBox:member(1):
 
       console.log("Inserted a text box at the beginning of the current selection.");
     });
+Word.Range#font:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-formatted-text.yaml
+
+
+    await Word.run(async (context) => {
+      // Insert the sentence, then adjust the formatting.
+      // Note that replace affects the calling object, in this case the entire document body.
+      // A similar method can also be used at the range level.
+      const sentence: Word.Range = context.document.body.insertText(
+        "This is some formatted text!",
+        "Replace"
+      );
+      sentence.font.set({
+        name: "Courier New",
+        bold: true,
+        size: 18
+      });
+
+      await context.sync();
+    });
 Word.Range#footnotes:member:
   - >-
     // Link to full sample:
@@ -32529,6 +34786,66 @@ Word.Range#listFormat:member:
       console.log(`- List level number (first paragraph): ${listFormat.listLevelNumber}`);
       console.log(`- List string (first paragraph): "${listFormat.listString}"`);
       console.log(`- List value (first paragraph): ${listFormat.listValue}`);
+    });
+Word.Range#pages:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+
+
+    await Word.run(async (context) => {
+      // Gets pages of the selection.
+      const pages: Word.PageCollection = context.document.getSelection().pages;
+      pages.load();
+      await context.sync();
+
+      // Log info for pages included in selection.
+      console.log(pages);
+      const pagesIndexes = [];
+      const pagesText = [];
+      for (let i = 0; i < pages.items.length; i++) {
+        const page = pages.items[i];
+        page.load("index");
+        pagesIndexes.push(page);
+
+        const range = page.getRange();
+        range.load("text");
+        pagesText.push(range);
+      }
+
+      await context.sync();
+
+      for (let i = 0; i < pagesIndexes.length; i++) {
+        console.log(`Index info for page ${i + 1} in the selection: ${pagesIndexes[i].index}`);
+        console.log("Text of that page in the selection:", pagesText[i].text);
+      }
+    });
+Word.Range#paragraphs:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-annotations.yaml
+
+
+    // Accepts the first annotation found in the selected paragraph.
+
+    await Word.run(async (context) => {
+      const paragraph: Word.Paragraph = context.document.getSelection().paragraphs.getFirst();
+      const annotations: Word.AnnotationCollection = paragraph.getAnnotations();
+      annotations.load("id,state,critiqueAnnotation");
+
+      await context.sync();
+
+      for (let i = 0; i < annotations.items.length; i++) {
+        const annotation: Word.Annotation = annotations.items[i];
+
+        if (annotation.state === Word.AnnotationState.created) {
+          console.log(`Accepting ID ${annotation.id}...`);
+          annotation.critiqueAnnotation.accept();
+
+          await context.sync();
+          break;
+        }
+      }
     });
 Word.Range#parentContentControl:member:
   - >-
@@ -32574,6 +34891,47 @@ Word.Range#parentContentControl:member:
         `id: ${selectedContentControl.id} ... isChecked: ${selectedContentControl.checkboxContentControl.isChecked}`
       );
     });
+Word.Range#parentContentControlOrNullObject:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/10-content-controls/insert-and-change-date-picker-content-control.yaml
+
+
+    // Deletes the first date picker content control found in the selection.
+
+    await Word.run(async (context) => {
+      // First, look if the selection contains a date picker content control.
+      const selectedRange: Word.Range = context.document.getSelection();
+      let selectedContentControl = selectedRange
+        .getContentControls({
+          types: [Word.ContentControlType.datePicker]
+        })
+        .getFirstOrNullObject();
+      selectedContentControl.load("id");
+
+      await context.sync();
+
+      // The selection doesn't contain a date picker, but the cursor might be inside one.
+      // Check if the selection's parent content control is a date picker.
+      if (selectedContentControl.isNullObject) {
+        const parentContentControl: Word.ContentControl = selectedRange.parentContentControlOrNullObject;
+        parentContentControl.load("id,type");
+        await context.sync();
+
+        if (parentContentControl.isNullObject || parentContentControl.type !== Word.ContentControlType.datePicker) {
+          console.warn("Please select a date picker content control before selecting Delete.");
+          return;
+        }
+        
+        selectedContentControl = parentContentControl;
+      }
+
+      console.log(`About to delete date picker content control with ID: ${selectedContentControl.id}`);
+      selectedContentControl.delete(false);
+      await context.sync();
+
+      console.log("Deleted date picker content control.");
+    });
 Word.Range#styleBuiltIn:member:
   - >-
     // Link to full sample:
@@ -32586,6 +34944,35 @@ Word.Range#styleBuiltIn:member:
         header.styleBuiltIn = Word.BuiltInStyleName.heading1;
 
         await context.sync();
+    });
+Word.Range#text:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/get-coauthoring-updates.yaml
+
+
+    // Gets the ranges affected by the most recent coauthoring updates merged
+    into the document.
+
+    await Word.run(async (context) => {
+      const updates: Word.CoauthoringUpdateCollection = context.document.coauthoring.updates;
+      updates.load("items/range");
+      await context.sync();
+
+      if (updates.items.length === 0) {
+        console.log("No recent coauthoring updates found.");
+        return;
+      }
+
+      console.log(`Found ${updates.items.length} recent update(s).`);
+
+      const ranges = updates.items.map((u) => u.range);
+      ranges.forEach((r) => r.load("text"));
+      await context.sync();
+
+      ranges.forEach((range, i) => {
+        console.log(`  Update ${i + 1}: "${range.text}"`);
+      });
     });
 Word.RangeCollection:class:
   - >-
@@ -32607,6 +34994,64 @@ Word.RangeCollection:class:
       }
 
       await context.sync();
+    });
+Word.RangeCollection#getFirst:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Updates the text and sets the font color to red.
+
+    await Word.run(async (context) => {
+      context.document.changeTrackingMode = Word.ChangeTrackingMode.off;
+
+      context.document.body.insertText("AAA BBB CCC DDD EEE FFF", "Replace");
+
+      context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+      context.document.body
+        .search("BBB")
+        .getFirst()
+        .insertText("WWW", "Replace");
+      context.document.body
+        .search("DDD ")
+        .getFirst()
+        .delete();
+      context.document.body
+        .search("FFF")
+        .getFirst()
+        .insertText("XXX ", "Start");
+    });
+Word.RangeCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the complete sentence (as range) associated with the insertion point.
+      const sentences: Word.RangeCollection = context.document
+        .getSelection()
+        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+      sentences.load("$none");
+      await context.sync();
+
+      // Expand the range to the end of the paragraph to get all the complete sentences.
+      const sentencesToTheEndOfParagraph: Word.RangeCollection = sentences.items[0]
+        .getRange()
+        .expandTo(
+          context.document
+            .getSelection()
+            .paragraphs.getFirst()
+            .getRange(Word.RangeLocation.end)
+        )
+        .getTextRanges(["."], false /* Don't trim spaces*/);
+      sentencesToTheEndOfParagraph.load("text");
+      await context.sync();
+
+      for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
+        console.log(sentencesToTheEndOfParagraph.items[i].text);
+      }
     });
 Word.RangeLocation:enum:
   - >-
@@ -32748,6 +35193,49 @@ Word.SaveConfiguration:enum:
       console.log("About to close the document window...");
       window.close(closeOptions);
     });
+Word.SearchOptions#newObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/90-scenarios/correlated-objects-pattern.yaml
+
+
+    Word.run(async (context) => {
+      const startTime = Date.now();
+      let count = 0;
+
+      // Find the locations of all the placeholder strings.
+      const allSearchResults = [];
+      for (let i = 0; i < jobMapping.length; i++) {
+        let options = Word.SearchOptions.newObject(context);
+        options.matchWildcards = false;
+        let searchResults = context.document.body.search(jobMapping[i].job, options);
+        searchResults.load('items');
+        let correlatedSearchResult = {
+          rangesMatchingJob: searchResults,
+          personAssignedToJob: jobMapping[i].person
+        }
+        allSearchResults.push(correlatedSearchResult);
+      }
+
+      // Sync to load those locations in the add-in.
+      await context.sync()
+
+      // Replace the placeholder text at the known locations.
+      for (let i = 0; i < allSearchResults.length; i++) {
+        let correlatedObject = allSearchResults[i];
+
+        for (let j = 0; j < correlatedObject.rangesMatchingJob.items.length; j++) {
+          let targetRange = correlatedObject.rangesMatchingJob.items[j];
+          let name = correlatedObject.personAssignedToJob;
+          targetRange.insertText(name, Word.InsertLocation.replace);
+          count++;
+        }
+      }
+
+      await context.sync();
+      console.log(`Replacing ${count} placeholders with the correlated objects pattern took ${Date.now() - startTime} milliseconds.`);
+      console.log()
+    });
 Word.Section#getFooter:member(2):
   - >-
     // Link to full sample:
@@ -32845,6 +35333,58 @@ Word.SectionCollection:class:
       await context.sync();
 
       console.log("Inserted section break on next even page.");
+    });
+Word.SectionCollection#getFirst:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
+
+
+    await Word.run(async (context) => {
+      context.document.sections
+        .getFirst()
+        .getFooter("EvenPages")
+        .insertParagraph("This is an even-pages footer.", "End");
+
+      await context.sync();
+    });
+Word.SectionCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-section-starts.yaml
+
+
+    await Word.run(async (context) => {
+
+      // Configure document-wide page settings for a report that will be printed and bound.
+      const pageSetup: Word.PageSetup = context.document.pageSetup;
+      pageSetup.set({
+        paperSize: Word.PaperSize.letter,
+        orientation: Word.PageOrientation.portrait,
+        topMargin: 72,
+        bottomMargin: 72,
+        leftMargin: 90,
+        rightMargin: 72,
+        gutter: 18,
+        gutterPosition: Word.GutterPosition.left,
+        mirrorMargins: true,
+        oddAndEvenPagesHeaderFooter: true
+      });
+
+      const sections: Word.SectionCollection = context.document.sections;
+      sections.load("items");
+      await context.sync();
+
+      // Start the main chapter on an odd-numbered page so it appears on the right in a bound document.
+      const chapterPageSetup: Word.PageSetup = sections.items[1].pageSetup;
+      chapterPageSetup.sectionStart = Word.SectionStart.oddPage;
+      chapterPageSetup.differentFirstPageHeaderFooter = true;
+
+      // Keep the appendix in a separate section, but let it begin on the current page.
+      sections.items[2].pageSetup.sectionStart = Word.SectionStart.continuous;
+
+      await context.sync();
+      console.log("Applied print and binding settings to the report.");
     });
 Word.SectionStart:enum:
   - >-
@@ -34633,6 +37173,42 @@ Word.Style#shading:member:
         console.log("Updated shading.");
       }
     });
+Word.Style#tableStyle:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-custom-style.yaml
+
+
+    // Gets the table style properties and displays them in the form.
+
+    const styleName = (document.getElementById("style-name") as
+    HTMLInputElement).value;
+
+    if (styleName == "") {
+      console.warn("Please input a table style name.");
+      return;
+    }
+
+
+    await Word.run(async (context) => {
+      const tableStyle: Word.TableStyle = context.document.getStyles().getByName(styleName).tableStyle;
+      tableStyle.load();
+      await context.sync();
+
+      if (tableStyle.isNullObject) {
+        console.warn(`There's no existing table style with the name '${styleName}'.`);
+        return;
+      }
+
+      console.log(tableStyle);
+      (document.getElementById("alignment") as HTMLInputElement).value = tableStyle.alignment;
+      (document.getElementById("allow-break-across-page") as HTMLInputElement).value = tableStyle.allowBreakAcrossPage.toString();
+      (document.getElementById("top-cell-margin") as HTMLInputElement).value = `${tableStyle.topCellMargin}`;
+      (document.getElementById("bottom-cell-margin") as HTMLInputElement).value = `${tableStyle.bottomCellMargin}`;
+      (document.getElementById("left-cell-margin") as HTMLInputElement).value = `${tableStyle.leftCellMargin}`;
+      (document.getElementById("right-cell-margin") as HTMLInputElement).value = `${tableStyle.rightCellMargin}`;
+      (document.getElementById("cell-spacing") as HTMLInputElement).value = `${tableStyle.cellSpacing}`;
+    });
 Word.StyleCollection:class:
   - >-
     // Link to full sample:
@@ -34647,6 +37223,24 @@ Word.StyleCollection:class:
       await context.sync();
 
       console.log(`Number of styles: ${count.value}`);
+    });
+Word.StyleCollection#getByName:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/border-properties.yaml
+
+
+    // Loads all scalar properties and returns them as a plain JavaScript
+    object.
+
+    await Word.run(async (context) => {
+      const style: Word.Style = context.document.getStyles().getByName("Bordered Text");
+      const borders: Word.BorderCollection = style.borders;
+      const border: Word.Border = borders.getByLocation(Word.BorderLocation.bottom);
+      border.load("color, location, type, visible, width");
+      await context.sync();
+
+      console.log("Border properties:", border.toJSON());
     });
 Word.StyleCollection#getByNameOrNullObject:member(1):
   - >-
@@ -34694,6 +37288,28 @@ Word.StyleCollection#getCount:member(1):
       await context.sync();
 
       console.log(`Number of styles: ${count.value}`);
+    });
+Word.StyleCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/manage-list-styles.yaml
+
+
+    // Gets the available list styles stored with the document.
+
+    await Word.run(async (context) => {
+      const styles: Word.StyleCollection = context.document.getStyles();
+      const count = styles.getCount();
+
+      // Load object to log properties and their values in the console.
+      styles.load();
+      await context.sync();
+
+      for (let i = 0; i <= count.value; i++) {
+        if (styles.items[i] && styles.items[i].type == "List") {
+          console.log(`List style name: ${styles.items[i].nameLocal}`, styles.items[i]);
+        }
+      }
     });
 Word.StyleType:enum:
   - >-
@@ -34844,6 +37460,75 @@ Word.Table#rows:member:
         `Details about the alignment of the first table's first row:`,
         `- Horizontal alignment of every cell in the row: ${firstTableRow.horizontalAlignment}`,
         `- Vertical alignment of every cell in the row: ${firstTableRow.verticalAlignment}`,
+      );
+    });
+Word.Table#style:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-custom-style.yaml
+
+
+    // Applies the specified style to a new table.
+
+    const styleName = (document.getElementById("style-name") as
+    HTMLInputElement).value;
+
+    if (styleName == "") {
+      console.warn("Enter a style name to apply.");
+      return;
+    }
+
+
+    await Word.run(async (context) => {
+      const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
+      style.load();
+      await context.sync();
+
+      if (style.isNullObject) {
+        console.warn(`There's no existing style with the name '${styleName}'.`);
+      } else if (style.type != Word.StyleType.table) {
+        console.warn(`The '${styleName}' style isn't a table style.`);
+      } else {
+        const body: Word.Body = context.document.body;
+        body.clear();
+        const data = [
+          ["Tokyo", "Beijing", "Seattle"],
+          ["Apple", "Orange", "Pineapple"]
+        ];
+        const table: Word.Table = body.insertTable(2, 3, "Start", data);
+        table.style = style.nameLocal;
+        table.styleFirstColumn = false;
+        await context.sync();
+
+        console.log(`'${styleName}' style applied to first table.`, style);
+      }
+    });
+Word.Table#styleBuiltIn:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/55-selection/insert-formula.yaml
+
+
+    await Word.run(async (context) => {
+      const body: Word.Body = context.document.body;
+      body.clear();
+
+      body.insertParagraph("Sales data", Word.InsertLocation.start);
+
+      // Create a table with numeric values and an empty total row.
+      const table: Word.Table = body.insertTable(5, 2, Word.InsertLocation.end, [
+        ["Item", "Amount"],
+        ["Product A", "1200"],
+        ["Product B", "3450"],
+        ["Product C", "870"],
+        ["Total", ""],
+      ]);
+      table.styleBuiltIn = Word.BuiltInStyleName.tableGrid;
+
+      await context.sync();
+
+      console.log(
+        "Setup complete. Place your cursor in the empty 'Total' cell (last row, second column), then try inserting a formula.",
       );
     });
 Word.Table#verticalAlignment:member:
@@ -35036,6 +37721,21 @@ Word.TableCell#getCellPadding:member(2):
       console.log(
         `Cell padding details about the ${cellPaddingLocation} border of the first table's first cell: ${cellPadding.value} points`,
       );
+    });
+Word.TableCell#body:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/table-cell-access.yaml
+
+
+    // Gets the content of the first cell in the first table.
+
+    await Word.run(async (context) => {
+      const firstCell: Word.Body = context.document.body.tables.getFirst().getCell(0, 0).body;
+      firstCell.load("text");
+
+      await context.sync();
+      console.log("First cell's text is: " + firstCell.text);
     });
 Word.TableCell#horizontalAlignment:member:
   - >-

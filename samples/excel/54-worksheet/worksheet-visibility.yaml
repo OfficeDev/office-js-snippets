@@ -1,72 +1,102 @@
 order: 13
 id: excel-worksheet-visibility
 name: Visibility
-description: Hides and unhides a worksheet.
+description: Gets and sets worksheet visibility and registers handlers for worksheet visibility changes.
 author: OfficeDev
 host: EXCEL
 api_set:
-    ExcelApi: '1.1'
+    ExcelApi: '1.17'
 script:
     content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        document.getElementById("get-visibility").addEventListener("click", () => tryCatch(getVisibility));
         document.getElementById("hide-worksheet").addEventListener("click", () => tryCatch(hideWorksheet));
         document.getElementById("unhide-worksheet").addEventListener("click", () => tryCatch(unhideWorksheet));
+        document.getElementById("register-worksheet-event").addEventListener("click", () => tryCatch(registerWorksheetEvent));
+        document.getElementById("register-worksheet-collection-event").addEventListener("click", () => tryCatch(registerWorksheetCollectionEvent));
+
+        async function getVisibility() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("VisibilitySample");
+
+                // Load the visibility property so it can be read after context.sync().
+                sheet.load("name, visibility");
+
+                await context.sync();
+
+                console.log(`The visibility of worksheet "${sheet.name}" is ${sheet.visibility}.`);
+            });
+        }
 
         async function hideWorksheet() {
             await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("VisibilitySample");
 
-                const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.visible);
+                // Set the worksheet visibility to hidden.
+                sheet.visibility = Excel.SheetVisibility.hidden;
 
-                if (visibleSheets.length > 1) {
-                    console.log(`Hiding worksheet named "${visibleSheets[0].name}"...`);
-
-                    visibleSheets[0].visibility = Excel.SheetVisibility.hidden;
-
-                    await context.sync();
-
-                } else {
-                    console.log("Cannot hide the only visible worksheet");
-                }
+                await context.sync();
             });
         }
 
         async function unhideWorksheet() {
             await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("VisibilitySample");
 
-                const visibleSheets = await filterWorksheetsByVisibility(context, Excel.SheetVisibility.hidden);
+                // Set the worksheet visibility to visible.
+                sheet.visibility = Excel.SheetVisibility.visible;
 
-                if (visibleSheets.length > 0) {
-                    console.log(`Unhiding worksheet named "${visibleSheets[0].name}"...`);
-
-                    visibleSheets[0].visibility = Excel.SheetVisibility.visible;
-
-                    await context.sync();
-                    
-                } else {
-                    console.log("No hidden worksheets in the workbook");
-                }
+                await context.sync();
             });
         }
 
-        async function filterWorksheetsByVisibility(context: Excel.RequestContext, visibility: string): Promise<Excel.Worksheet[]> {
-            const sheets = context.workbook.worksheets;
-            sheets.load("items/name, items/visibility");
-            await context.sync();
+        async function registerWorksheetEvent() {
+            await Excel.run(async (context) => {
+                const sheet = context.workbook.worksheets.getItem("VisibilitySample");
 
-            return sheets.items.filter((s) => (s.visibility === visibility));
+                // Register an event handler for visibility changes to this worksheet.
+                sheet.onVisibilityChanged.add(onWorksheetVisibilityChanged);
+
+                await context.sync();
+                console.log("Registered the worksheet visibility changed event handler.");
+            });
+        }
+
+        async function registerWorksheetCollectionEvent() {
+            await Excel.run(async (context) => {
+                // Register an event handler for visibility changes to any worksheet in the collection.
+                context.workbook.worksheets.onVisibilityChanged.add(onWorksheetCollectionVisibilityChanged);
+
+                await context.sync();
+                console.log("Registered the worksheet collection visibility changed event handler.");
+            });
+        }
+
+        async function onWorksheetVisibilityChanged(args: Excel.WorksheetVisibilityChangedEventArgs) {
+            console.log(`Worksheet event: Visibility changed from ${args.visibilityBefore} to ${args.visibilityAfter}.`);
+        }
+
+        async function onWorksheetCollectionVisibilityChanged(args: Excel.WorksheetVisibilityChangedEventArgs) {
+            console.log(`Worksheet collection event: Worksheet ${args.worksheetId} visibility changed from ${args.visibilityBefore} to ${args.visibilityAfter}.`);
         }
 
         async function setup() {
             await Excel.run(async (context) => {
-                const sheets = context.workbook.worksheets;
-                sheets.load("items");
-
+                const oldSampleSheet = context.workbook.worksheets.getItemOrNullObject("VisibilitySample");
+                oldSampleSheet.load("isNullObject");
                 await context.sync();
 
-                if (sheets.items.length < 2) {
-                    sheets.add();
-
-                    await context.sync();
+                // Delete the sample worksheet if it already exists.
+                if (!oldSampleSheet.isNullObject) {
+                    oldSampleSheet.delete();
                 }
+
+                // Create and activate a new, blank worksheet.
+                const sheet = context.workbook.worksheets.add("VisibilitySample");
+                sheet.activate();
+
+                await context.sync();
             });
         }
 
@@ -84,16 +114,20 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample shows how to change the visbility of a worksheet.</p>
+            <p>This sample shows how to get and set worksheet visibility and how to use worksheet visibility changed events.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
-            <button id="setup">Ensure two worksheets</button>
+            <button id="setup">Create a blank worksheet</button>
         </section>
         <section>
             <h3>Try it out</h3>
+            <button id="get-visibility">Get visibility</button>
             <button id="hide-worksheet">Hide worksheet</button>
             <button id="unhide-worksheet">Unhide worksheet</button>
+            <p>Register one or both event handlers, and then hide or unhide the sample worksheet. Event details are logged to the console.</p>
+            <button id="register-worksheet-event">Register worksheet event</button>
+            <button id="register-worksheet-collection-event">Register worksheet collection event</button>
         </section>
     language: html
 style:

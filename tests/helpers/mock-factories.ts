@@ -211,12 +211,14 @@ export function createWordMock(options: WordMockOptions = {}) {
     borders: mockBorders,
     load: jest.fn(),
     getText: jest.fn(() => mockTextValue),
+    getRange: jest.fn(),
   };
 
   // Mock paragraph collection
   const mockParagraphs = {
     getFirst: jest.fn(() => mockParagraph),
     items: [mockParagraph],
+    load: jest.fn(),
   };
 
   // Mock table cell body
@@ -245,6 +247,63 @@ export function createWordMock(options: WordMockOptions = {}) {
     insertParagraph: jest.fn(() => mockParagraph),
     paragraphs: mockParagraphs,
   };
+  mockParagraph.getRange.mockReturnValue(mockRange);
+
+  const mockTableOfAuthorities = {
+    category: 1,
+    entrySeparator: ' ',
+    isCategoryHeaderIncluded: true,
+    isPassimUsed: false,
+    range: mockRange,
+    delete: jest.fn(),
+    load: jest.fn(),
+  };
+
+  const mockTableOfContents = {
+    areBuiltInHeadingStylesUsed: true,
+    arePageNumbersIncluded: true,
+    arePageNumbersRightAligned: true,
+    lowerHeadingLevel: 2,
+    range: mockRange,
+    tabLeader: 'Dots',
+    upperHeadingLevel: 1,
+    delete: jest.fn(),
+    load: jest.fn(),
+    updatePageNumbers: jest.fn(),
+  };
+
+  const mockTableOfFigures = {
+    areFieldsUsed: true,
+    arePageNumbersIncluded: true,
+    arePageNumbersRightAligned: true,
+    captionLabel: 'Figure',
+    isLabelIncluded: true,
+    range: mockRange,
+    tabLeader: 'Dots',
+    delete: jest.fn(),
+    load: jest.fn(),
+    updatePageNumbers: jest.fn(),
+  };
+
+  const mockTablesOfAuthorities = {
+    items: [mockTableOfAuthorities],
+    add: jest.fn(() => mockTableOfAuthorities),
+    markAllCitations: jest.fn(),
+    load: jest.fn(),
+  };
+
+  const mockTablesOfContents = {
+    items: [mockTableOfContents],
+    add: jest.fn(() => mockTableOfContents),
+    load: jest.fn(),
+  };
+
+  const mockTablesOfFigures = {
+    items: [mockTableOfFigures],
+    add: jest.fn(() => mockTableOfFigures),
+    markTocEntry: jest.fn(),
+    load: jest.fn(),
+  };
 
   const mockBody = {
     text: bodyText,
@@ -252,6 +311,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     insertParagraph: jest.fn(() => mockParagraph),
     insertText: jest.fn(),
     insertTable: jest.fn(() => mockTable),
+    getRange: jest.fn(() => mockRange),
     load: jest.fn(),
     tables: mockTables,
   };
@@ -358,6 +418,9 @@ export function createWordMock(options: WordMockOptions = {}) {
       properties: mockProperties,
       coauthoring: mockCoauthoring,
       compare: jest.fn(),
+      tablesOfAuthorities: mockTablesOfAuthorities,
+      tablesOfContents: mockTablesOfContents,
+      tablesOfFigures: mockTablesOfFigures,
     },
     sync: jest.fn().mockResolvedValue(undefined),
   };
@@ -401,6 +464,22 @@ export function createWordMock(options: WordMockOptions = {}) {
     replace: 'Replace',
   };
 
+  wordMockObject.RangeLocation = {
+    start: 'Start',
+    end: 'End',
+    whole: 'Whole',
+  };
+
+  wordMockObject.BuiltInStyleName = {
+    heading1: 'Heading 1',
+    heading2: 'Heading 2',
+    title: 'Title',
+  };
+
+  wordMockObject.TabLeader = {
+    dashes: 'Dashes',
+  };
+
   return {
     mockObject: wordMockObject,
     mockContext,
@@ -419,6 +498,12 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockConflictCollection,
     mockCoauthoringUpdate,
     mockUpdateCollection,
+    mockTableOfAuthorities,
+    mockTableOfContents,
+    mockTableOfFigures,
+    mockTablesOfAuthorities,
+    mockTablesOfContents,
+    mockTablesOfFigures,
   };
 }
 

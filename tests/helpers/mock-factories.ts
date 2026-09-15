@@ -415,6 +415,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     document: {
       body: mockBody,
       getSelection: jest.fn(() => mockRange),
+      applyQuickStyleSet: jest.fn(),
       properties: mockProperties,
       coauthoring: mockCoauthoring,
       compare: jest.fn(),
@@ -473,7 +474,13 @@ export function createWordMock(options: WordMockOptions = {}) {
   wordMockObject.BuiltInStyleName = {
     heading1: 'Heading 1',
     heading2: 'Heading 2',
+    normal: 'Normal',
     title: 'Title',
+  };
+
+  wordMockObject.ApplyQuickStyleSet = {
+    sessionStart: 'SessionStart',
+    template: 'Template',
   };
 
   wordMockObject.TabLeader = {

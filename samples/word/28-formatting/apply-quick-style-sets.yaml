@@ -1,0 +1,133 @@
+order: 1
+id: word-formatting-apply-quick-style-sets
+name: Apply Quick Style sets
+description: Apply the Quick Style set from the document template or restore the set used when the document was opened.
+host: WORD
+api_set:
+    WordApiDesktop: '1.4'
+script:
+    content: |
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("apply-original").addEventListener("click", () => tryCatch(applySessionStartStyleSet));
+        document.getElementById("apply-template").addEventListener("click", () => tryCatch(applyTemplateStyleSet));
+
+        async function setup() {
+          // Creates sample content that uses styles from the document's Quick Style set.
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+
+            const title: Word.Paragraph = body.insertParagraph("Quarterly project update", Word.InsertLocation.start);
+            title.styleBuiltIn = Word.BuiltInStyleName.title;
+
+            const heading: Word.Paragraph = body.insertParagraph("Highlights", Word.InsertLocation.end);
+            heading.styleBuiltIn = Word.BuiltInStyleName.heading1;
+
+            const summary: Word.Paragraph = body.insertParagraph(
+              "The team completed the design review and started implementation.",
+              Word.InsertLocation.end,
+            );
+            summary.styleBuiltIn = Word.BuiltInStyleName.normal;
+
+            await context.sync();
+          });
+        }
+
+        async function applySessionStartStyleSet() {
+          // Restores the Quick Style set that was active when the document was opened.
+          await Word.run(async (context) => {
+            const document: Word.Document = context.document;
+            const styleSet: Word.ApplyQuickStyleSet = Word.ApplyQuickStyleSet.sessionStart;
+
+            document.applyQuickStyleSet(styleSet);
+            await context.sync();
+
+            console.log("Restored the Quick Style set from the start of the session.");
+          });
+        }
+
+        async function applyTemplateStyleSet() {
+          // Applies the Quick Style set from the document's template, if one is available.
+          await Word.run(async (context) => {
+            const document: Word.Document = context.document;
+            const styleSet: Word.ApplyQuickStyleSet = Word.ApplyQuickStyleSet.template;
+
+            document.applyQuickStyleSet(styleSet);
+            await context.sync();
+
+            console.log("Applied the Quick Style set from the document template.");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            This sample applies a Quick Style set to the document. Quick Style sets control the appearance of built-in styles
+            such as Title and Heading 1.
+        </section>
+        <section>
+            <h3>Set up</h3>
+            <button id="setup">1. Create styled content</button>
+            <p>2. Change to a different style set</p>
+            <ol><li>Select the <b>Design</b> tab on the ribbon.</li>
+            <li>Select a style set from the <b>Document Formatting</b> gallery.</li></ol>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="apply-original">Restore session-start style set</button>
+            <button id="apply-template">Apply template style set</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-bottom: 10px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

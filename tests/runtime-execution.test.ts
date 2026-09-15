@@ -116,15 +116,15 @@ describe('Runtime Execution Tests - Word', () => {
   test.each([
     {
       snippetPath: path.join('samples', 'word', '42-reference-tables', 'table-of-authorities.yaml'),
-      buttonIds: ['setup', 'mark-citations', 'run', 'get-properties', 'set-properties', 'delete-table'],
+      buttonIds: ['setup', 'mark-citations', 'create-table-of-authorities', 'get-properties', 'set-properties', 'delete-table'],
     },
     {
       snippetPath: path.join('samples', 'word', '42-reference-tables', 'table-of-contents.yaml'),
-      buttonIds: ['setup', 'run', 'get-properties', 'set-properties', 'update-page-numbers', 'delete-table'],
+      buttonIds: ['setup', 'create-table-of-contents', 'get-properties', 'set-properties', 'update-page-numbers', 'delete-table'],
     },
     {
       snippetPath: path.join('samples', 'word', '42-reference-tables', 'table-of-figures.yaml'),
-      buttonIds: ['setup', 'mark-entries', 'run', 'get-properties', 'set-properties', 'update-page-numbers', 'delete-table'],
+      buttonIds: ['setup', 'mark-entries', 'create-table-of-figures', 'get-properties', 'set-properties', 'update-page-numbers', 'delete-table'],
       mockOptions: { paragraphText: 'Figure 1: Quarterly revenue' },
     },
   ])('Word: $snippetPath actions execute without runtime errors', async ({ snippetPath, buttonIds, mockOptions }) => {

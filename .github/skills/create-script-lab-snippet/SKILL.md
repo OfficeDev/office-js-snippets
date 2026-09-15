@@ -1,11 +1,11 @@
 ---
 name: create-script-lab-snippet
-description: 'Create or expand an Office.js Script Lab snippet from an API name. Use when adding sample coverage for an Excel, Word, PowerPoint, or Outlook API and its reference-documentation CSV mapping.'
+description: 'Create or expand an Office.js Script Lab snippet from an API name or Microsoft Learn API reference URL. Use when adding sample coverage for an Excel, Word, PowerPoint, or Outlook API and its reference-documentation CSV mapping.'
 ---
 
 # Create a Script Lab snippet
 
-Create complete sample coverage for the Office.js API named by the user. The input is one API name, preferably in canonical form such as `Excel.Range.values`, `Word.Paragraph.insertText`, `PowerPoint.Shape`, or `Office.MessageCompose.subject`.
+Create complete sample coverage for the Office.js API identified by the user. The input is one API name, preferably in canonical form such as `Excel.Range.values`, `Word.Paragraph.insertText`, `PowerPoint.Shape`, or `Office.MessageCompose.subject`, or a direct Microsoft Learn Office.js API reference URL.
 
 Do not assume that every API needs a new YAML file. First determine whether the clearest, smallest coverage is a new sample or an expansion of an existing sample.
 
@@ -33,9 +33,16 @@ Normalize the input into:
 - overload number or top-level category (`class`, `interface`, `enum`, or `type`);
 - API requirement set and whether the API is stable or preview.
 
-Use authoritative Office.js API documentation when repository evidence is insufficient. If the user gives an unqualified name, resolve it from the repository and documentation. Ask only when multiple valid APIs remain genuinely indistinguishable.
+Use the [Office JavaScript API reference on Microsoft Learn](https://learn.microsoft.com/javascript/api/overview) as the canonical documentation. The reference is generated from these script inputs:
 
-Use the stable Office.js library unless the requested API is preview-only. Set `api_set` to the highest requirement set used anywhere in the sample.
+- [`office.d.ts`](https://raw.githubusercontent.com/OfficeDev/office-js-docs-reference/refs/heads/main/generate-docs/script-inputs/office.d.ts) for released APIs.
+- [`office_preview.d.ts`](https://raw.githubusercontent.com/OfficeDev/office-js-docs-reference/refs/heads/main/generate-docs/script-inputs/office_preview.d.ts) for the preview API surface.
+
+Consult these source definitions to confirm exact Office.js declarations, overloads, and option types. Treat an API found in `office.d.ts` as released, even if it also appears in `office_preview.d.ts`. Treat an API found only in `office_preview.d.ts` as preview. Continue to use Microsoft Learn to verify requirement sets, host and client support, and documented limitations.
+
+When the user provides a Microsoft Learn URL, use that page to identify the API and ensure it belongs to the Office JavaScript API reference under `/javascript/api/`. Do not substitute a similarly named VBA, Microsoft Graph, Office Scripts, or other API. If the user gives an unqualified name, resolve it from the repository and these authoritative sources. Ask only when multiple valid Office.js APIs remain genuinely indistinguishable.
+
+Use the stable Office.js library unless the requested API is preview-only. Verify availability in the Learn reference and the applicable [Office Add-in requirement-set documentation](https://learn.microsoft.com/javascript/api/requirement-sets/common/office-add-in-requirement-sets), then set `api_set` to the highest requirement set used anywhere in the sample.
 
 For Outlook, also resolve the required activation context:
 
@@ -148,7 +155,7 @@ Before writing code, inspect the closest samples in the same host and group and 
 - Use TypeScript, four-space indentation after YAML block indentation, double quotes in snippet code, and semicolons.
 - For Excel, Word, and PowerPoint, register buttons with `document.getElementById(...).addEventListener("click", () => tryCatch(...))` and include the repository's standard `tryCatch` helper.
 - For Outlook, follow neighboring samples by registering callback-based actions directly, such as `document.getElementById("get").addEventListener("click", get)`. Use `Office.onReady` for initialization and event registration when required.
-- Use lowercase hyphenated HTML IDs. For document hosts, include a separate **Set up** section followed by **Try it out** actions. For Outlook, include **Set up** only when the sample can safely prepare its current item.
+- Use lowercase hyphenated HTML IDs. Give every new action button a meaningful ID that describes its operation, such as `create-table-of-contents`, `mark-citations`, or `update-page-numbers`; do not use a generic ID such as `run`. When expanding an existing sample, preserve an established `run` ID unless renaming it is necessary to keep the updated workflow clear and all references are updated. For document hosts, include a separate **Set up** section followed by **Try it out** actions. For Outlook, include **Set up** only when the sample can safely prepare its current item.
 - Do not add visible step numbers to task-pane instructions or action labels when button order already makes the workflow clear. Use a numbered procedure only when the user must perform a strict sequence outside the task pane.
 - Keep the name and description concise and specific to the demonstrated behavior.
 - Use the canonical stable or beta Office.js URL and matching type definitions already used by neighboring snippets.

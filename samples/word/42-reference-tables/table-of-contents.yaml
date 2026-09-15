@@ -1,0 +1,239 @@
+order: 2
+id: word-reference-tables-table-of-contents
+name: Basic table of contents
+description: Creates a table of contents from headings in a sample document.
+host: WORD
+api_set:
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("create-table-of-contents").addEventListener("click", () => tryCatch(createTableOfContents));
+        document.getElementById("get-properties").addEventListener("click", () => tryCatch(getTableOfContentsProperties));
+        document.getElementById("set-properties").addEventListener("click", () => tryCatch(setTableOfContentsProperties));
+        document.getElementById("update-page-numbers").addEventListener("click", () => tryCatch(updateTableOfContentsPageNumbers));
+        document.getElementById("delete-table").addEventListener("click", () => tryCatch(deleteTableOfContents));
+
+        async function createTableOfContents() {
+            // Adds a table of contents at the start of the document.
+            await Word.run(async (context) => {
+                const documentBody: Word.Body = context.document.body;
+                const tablesOfContents: Word.TableOfContentsCollection = context.document.tablesOfContents;
+                const insertionRange: Word.Range = documentBody.getRange(Word.RangeLocation.start);
+                const tableOptions: Word.TableOfContentsAddOptions = {
+                    includePageNumbers: true,
+                    lowerHeadingLevel: 2,
+                    rightAlignPageNumbers: true,
+                    upperHeadingLevel: 1,
+                    useBuiltInHeadingStyles: true,
+                };
+                const tableOfContents: Word.TableOfContents = tablesOfContents.add(insertionRange, tableOptions);
+                await context.sync();
+
+                console.log("Created a table of contents.");
+            });
+        }
+
+        async function getTableOfContentsProperties() {
+            // Gets and logs properties from the first table of contents.
+            await Word.run(async (context) => {
+                const tablesOfContents: Word.TableOfContentsCollection = context.document.tablesOfContents;
+                tablesOfContents.load("items");
+                await context.sync();
+
+                if (tablesOfContents.items.length === 0) {
+                    console.log("No table of contents found. Create one first.");
+                    return;
+                }
+
+                const tableOfContents: Word.TableOfContents = tablesOfContents.items[0];
+                tableOfContents.load(
+                    "areBuiltInHeadingStylesUsed,arePageNumbersIncluded,arePageNumbersRightAligned,lowerHeadingLevel,range/text,tabLeader,upperHeadingLevel"
+                );
+                await context.sync();
+
+                console.log("Table of contents:", tableOfContents.range.text);
+                console.log(
+                    `Heading levels: ${tableOfContents.upperHeadingLevel}-${tableOfContents.lowerHeadingLevel}`
+                );
+                console.log(`Uses built-in heading styles: ${tableOfContents.areBuiltInHeadingStylesUsed}`);
+                console.log(`Includes page numbers: ${tableOfContents.arePageNumbersIncluded}`);
+                console.log(`Right-aligned page numbers: ${tableOfContents.arePageNumbersRightAligned}`);
+                console.log(`Tab leader: ${tableOfContents.tabLeader}`);
+            });
+        }
+
+        async function setTableOfContentsProperties() {
+            // Changes the page number alignment and tab leader in the first table of contents.
+            await Word.run(async (context) => {
+                const tablesOfContents: Word.TableOfContentsCollection = context.document.tablesOfContents;
+                tablesOfContents.load("items");
+                await context.sync();
+
+                if (tablesOfContents.items.length === 0) {
+                    console.log("No table of contents found. Create one first.");
+                    return;
+                }
+
+                const tableOfContents: Word.TableOfContents = tablesOfContents.items[0];
+                tableOfContents.arePageNumbersRightAligned = false;
+                tableOfContents.tabLeader = Word.TabLeader.dashes;
+                await context.sync();
+
+                console.log("Updated the table of contents properties.");
+            });
+        }
+
+        async function updateTableOfContentsPageNumbers() {
+            // Updates the page numbers in the first table of contents.
+            await Word.run(async (context) => {
+                const tablesOfContents: Word.TableOfContentsCollection = context.document.tablesOfContents;
+                tablesOfContents.load("items");
+                await context.sync();
+
+                if (tablesOfContents.items.length === 0) {
+                    console.log("No table of contents found. Create one first.");
+                    return;
+                }
+
+                const tableOfContents: Word.TableOfContents = tablesOfContents.items[0];
+                tableOfContents.updatePageNumbers();
+                await context.sync();
+
+                console.log("Updated the table of contents page numbers.");
+            });
+        }
+
+        async function deleteTableOfContents() {
+            // Deletes the first table of contents.
+            await Word.run(async (context) => {
+                const tablesOfContents: Word.TableOfContentsCollection = context.document.tablesOfContents;
+                tablesOfContents.load("items");
+                await context.sync();
+
+                if (tablesOfContents.items.length === 0) {
+                    console.log("No table of contents found.");
+                    return;
+                }
+
+                const tableOfContents: Word.TableOfContents = tablesOfContents.items[0];
+                tableOfContents.delete();
+                await context.sync();
+
+                console.log("Deleted the table of contents.");
+            });
+        }
+
+        async function setup() {
+            // Creates a project plan with two heading levels.
+            await Word.run(async (context) => {
+                const documentBody: Word.Body = context.document.body;
+                documentBody.clear();
+
+                const title: Word.Paragraph = documentBody.insertParagraph(
+                    "Sample project plan",
+                    Word.InsertLocation.end
+                );
+                title.styleBuiltIn = Word.BuiltInStyleName.title;
+
+                const overviewHeading: Word.Paragraph = documentBody.insertParagraph(
+                    "Overview",
+                    Word.InsertLocation.end
+                );
+                overviewHeading.styleBuiltIn = Word.BuiltInStyleName.heading1;
+                documentBody.insertParagraph(
+                    "This project plan describes the goals, schedule, and expected results.",
+                    Word.InsertLocation.end
+                );
+
+                const scheduleHeading: Word.Paragraph = documentBody.insertParagraph(
+                    "Schedule",
+                    Word.InsertLocation.end
+                );
+                scheduleHeading.styleBuiltIn = Word.BuiltInStyleName.heading1;
+                const firstPhaseHeading: Word.Paragraph = documentBody.insertParagraph(
+                    "Phase one",
+                    Word.InsertLocation.end
+                );
+                firstPhaseHeading.styleBuiltIn = Word.BuiltInStyleName.heading2;
+                documentBody.insertParagraph(
+                    "The first phase covers research and planning.",
+                    Word.InsertLocation.end
+                );
+
+                const resultsHeading: Word.Paragraph = documentBody.insertParagraph(
+                    "Expected results",
+                    Word.InsertLocation.end
+                );
+                resultsHeading.styleBuiltIn = Word.BuiltInStyleName.heading1;
+                documentBody.insertParagraph(
+                    "The project will deliver a tested solution and supporting documentation.",
+                    Word.InsertLocation.end
+                );
+                await context.sync();
+
+                console.log("Created a sample project plan with heading styles.");
+            });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to create a table of contents from built-in heading styles.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <button id="setup">Create sample project plan</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="create-table-of-contents">Create table of contents</button>
+            <button id="get-properties">Get table properties</button>
+            <button id="set-properties">Set table properties</button>
+            <button id="update-page-numbers">Update page numbers</button>
+            <button id="delete-table">Delete table</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            border: 1px solid #8a8a8a;
+            border-radius: 2px;
+            color: #333333;
+            cursor: pointer;
+            display: block;
+            font-size: 14px;
+            margin: 5px 0 5px 20px;
+            min-width: 80px;
+            padding: 8px 16px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

@@ -83,6 +83,7 @@ const INCLUDED_GROUPS = [
   '30-properties',
   '35-ranges',
   '40-tables',
+  '42-reference-tables',
   '45-shapes',
   '50-document',
   '55-selection',

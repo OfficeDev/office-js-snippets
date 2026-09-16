@@ -1,0 +1,208 @@
+order: 1
+id: word-reference-tables-table-of-authorities
+name: Basic table of authorities
+description: Creates a table of authorities from citations in a sample document.
+host: WORD
+api_set:
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("mark-citations").addEventListener("click", () => tryCatch(markCitations));
+        document.getElementById("create-table-of-authorities").addEventListener("click", () => tryCatch(createTableOfAuthorities));
+        document.getElementById("get-properties").addEventListener("click", () => tryCatch(getTableOfAuthoritiesProperties));
+        document.getElementById("set-properties").addEventListener("click", () => tryCatch(setTableOfAuthoritiesProperties));
+        document.getElementById("delete-table").addEventListener("click", () => tryCatch(deleteTableOfAuthorities));
+
+        async function markCitations() {
+            // Marks each matching case name as a citation.
+            await Word.run(async (context) => {
+                const tablesOfAuthorities: Word.TableOfAuthoritiesCollection = context.document.tablesOfAuthorities;
+                const citationOptions: Word.TableOfAuthoritiesMarkCitationOptions = {
+                    category: 1,
+                    longCitation: "Contoso v. Fabrikam, 2026",
+                };
+                tablesOfAuthorities.markAllCitations("Contoso v. Fabrikam", citationOptions);
+                await context.sync();
+
+                console.log("Marked every occurrence of Contoso v. Fabrikam as a citation.");
+            });
+        }
+
+        async function createTableOfAuthorities() {
+            // Adds a table of authorities at the start of the document.
+            await Word.run(async (context) => {
+                const documentBody: Word.Body = context.document.body;
+                const tablesOfAuthorities: Word.TableOfAuthoritiesCollection = context.document.tablesOfAuthorities;
+                const insertionRange: Word.Range = documentBody.getRange(Word.RangeLocation.start);
+                const tableOptions: Word.TableOfAuthoritiesAddOptions = {
+                    category: 1,
+                    entrySeparator: " ",
+                    includeCategoryHeader: true,
+                    keepEntryFormatting: true,
+                };
+                const tableOfAuthorities: Word.TableOfAuthorities = tablesOfAuthorities.add(insertionRange, tableOptions);
+                await context.sync();
+
+                console.log("Created a table of authorities.");
+            });
+        }
+
+        async function getTableOfAuthoritiesProperties() {
+            // Gets and logs properties from the first table of authorities.
+            await Word.run(async (context) => {
+                const tablesOfAuthorities: Word.TableOfAuthoritiesCollection = context.document.tablesOfAuthorities;
+                tablesOfAuthorities.load("items");
+                await context.sync();
+
+                if (tablesOfAuthorities.items.length === 0) {
+                    console.log("No table of authorities found. Create one first.");
+                    return;
+                }
+
+                const tableOfAuthorities: Word.TableOfAuthorities = tablesOfAuthorities.items[0];
+                tableOfAuthorities.load("category,entrySeparator,isCategoryHeaderIncluded,isPassimUsed,range/text");
+                await context.sync();
+
+                console.log("Table of authorities:", tableOfAuthorities.range.text);
+                console.log(`Category: ${tableOfAuthorities.category}`);
+                console.log(`Entry separator: "${tableOfAuthorities.entrySeparator}"`);
+                console.log(`Includes category header: ${tableOfAuthorities.isCategoryHeaderIncluded}`);
+                console.log(`Uses Passim: ${tableOfAuthorities.isPassimUsed}`);
+            });
+        }
+
+        async function setTableOfAuthoritiesProperties() {
+            // Changes the separators and display options in the first table of authorities.
+            await Word.run(async (context) => {
+                const tablesOfAuthorities: Word.TableOfAuthoritiesCollection = context.document.tablesOfAuthorities;
+                tablesOfAuthorities.load("items");
+                await context.sync();
+
+                if (tablesOfAuthorities.items.length === 0) {
+                    console.log("No table of authorities found. Create one first.");
+                    return;
+                }
+
+                const tableOfAuthorities: Word.TableOfAuthorities = tablesOfAuthorities.items[0];
+                tableOfAuthorities.entrySeparator = " - ";
+                tableOfAuthorities.isCategoryHeaderIncluded = false;
+                tableOfAuthorities.isPassimUsed = true;
+                await context.sync();
+
+                console.log("Updated the table of authorities properties.");
+            });
+        }
+
+        async function deleteTableOfAuthorities() {
+            // Deletes the first table of authorities.
+            await Word.run(async (context) => {
+                const tablesOfAuthorities: Word.TableOfAuthoritiesCollection = context.document.tablesOfAuthorities;
+                tablesOfAuthorities.load("items");
+                await context.sync();
+
+                if (tablesOfAuthorities.items.length === 0) {
+                    console.log("No table of authorities found.");
+                    return;
+                }
+
+                const tableOfAuthorities: Word.TableOfAuthorities = tablesOfAuthorities.items[0];
+                tableOfAuthorities.delete();
+                await context.sync();
+
+                console.log("Deleted the table of authorities.");
+            });
+        }
+
+        async function setup() {
+            // Creates a legal brief with repeated case citations.
+            await Word.run(async (context) => {
+                const documentBody: Word.Body = context.document.body;
+                documentBody.clear();
+
+                const title: Word.Paragraph = documentBody.insertParagraph(
+                    "Sample legal brief",
+                    Word.InsertLocation.end
+                );
+                title.styleBuiltIn = Word.BuiltInStyleName.title;
+
+                documentBody.insertParagraph(
+                    "Contoso v. Fabrikam established the standard used in this matter.",
+                    Word.InsertLocation.end
+                );
+                documentBody.insertParagraph(
+                    "The court later applied Contoso v. Fabrikam to a similar dispute.",
+                    Word.InsertLocation.end
+                );
+                documentBody.insertParagraph(
+                    "This brief therefore relies on Contoso v. Fabrikam.",
+                    Word.InsertLocation.end
+                );
+                await context.sync();
+
+                console.log("Created a sample legal brief with citations.");
+            });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to mark citations and create a table of authorities.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <button id="setup">Create sample legal brief</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Word stores marked citations in hidden fields. Create the table to verify that the citations are marked.</p>
+            <button id="mark-citations">Mark citations</button>
+            <button id="create-table-of-authorities">Create table of authorities</button>
+            <button id="get-properties">Get table properties</button>
+            <button id="set-properties">Set table properties</button>
+            <button id="delete-table">Delete table</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            border: 1px solid #8a8a8a;
+            border-radius: 2px;
+            color: #333333;
+            cursor: pointer;
+            display: block;
+            font-size: 14px;
+            margin: 5px 0 5px 20px;
+            min-width: 80px;
+            padding: 8px 16px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

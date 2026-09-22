@@ -19819,6 +19819,41 @@ PowerPoint.InsertSlideOptions:interface:
         presentation.insertSlidesFromBase64(chosenFileBase64, insertOptions);
         await context.sync();
     });
+PowerPoint.LabelingCapability:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Check whether sensitivity labeling is available for the current user.
+      const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      labelCatalog.load("getLabelingCapability");
+      await context.sync();
+
+      switch (labelCatalog.getLabelingCapability) {
+        case PowerPoint.LabelingCapability.labelingEnabled:
+          console.log("Sensitivity labeling is enabled.");
+          break;
+        case PowerPoint.LabelingCapability.labelingDisabled:
+          console.log("Sensitivity labeling is disabled.");
+          break;
+        case PowerPoint.LabelingCapability.labelingPolicyNotFound:
+          console.log("No sensitivity labeling policy was found.");
+          break;
+        case PowerPoint.LabelingCapability.noLicense:
+          console.log("The current user doesn't have a valid sensitivity labeling license.");
+          break;
+        default:
+          console.log(`Unknown labeling capability: ${labelCatalog.getLabelingCapability}`);
+          break;
+      }
+    });
 PowerPoint.ParagraphFormat:class:
   - >-
     // Link to full sample:
@@ -20328,6 +20363,875 @@ PowerPoint.Presentation#bindings:member:
       });
 
       populateBindingsDropdown(bindings.items);
+    });
+PowerPoint.Presentation#sensitivityLabel:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity label currently applied to the presentation.
+      const presentation: PowerPoint.Presentation = context.presentation;
+      const presentationLabel: PowerPoint.SensitivityLabel = presentation.sensitivityLabel;
+      if (!presentationLabel) {
+        console.warn("The presentation sensitivity label preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const currentLabel: PowerPoint.SensitivityLabelDetails = presentationLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the presentation.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+      await context.sync();
+
+      if (currentLabel.isNullObject) {
+        console.log("The presentation doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: PowerPoint.SensitivityLabelAbacAttributeValue[] = [];
+      if (currentLabel.isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+
+      let protectionDescription: string;
+      switch (currentLabel.protectionType) {
+        case PowerPoint.SensitivityLabelProtectionType.adminDefined:
+          protectionDescription = "Defined by an administrator";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.userDefined:
+          protectionDescription = "Defined by the user";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.noProtection:
+          protectionDescription = "No protection";
+          break;
+        default:
+          protectionDescription = `Unknown (${currentLabel.protectionType})`;
+          break;
+      }
+
+      console.log(
+        `Current presentation sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${protectionDescription}`
+      );
+    });
+PowerPoint.SensitivityLabel#getCurrentOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity label currently applied to the presentation.
+      const presentation: PowerPoint.Presentation = context.presentation;
+      const presentationLabel: PowerPoint.SensitivityLabel = presentation.sensitivityLabel;
+      if (!presentationLabel) {
+        console.warn("The presentation sensitivity label preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const currentLabel: PowerPoint.SensitivityLabelDetails = presentationLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the presentation.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+      await context.sync();
+
+      if (currentLabel.isNullObject) {
+        console.log("The presentation doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: PowerPoint.SensitivityLabelAbacAttributeValue[] = [];
+      if (currentLabel.isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+
+      let protectionDescription: string;
+      switch (currentLabel.protectionType) {
+        case PowerPoint.SensitivityLabelProtectionType.adminDefined:
+          protectionDescription = "Defined by an administrator";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.userDefined:
+          protectionDescription = "Defined by the user";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.noProtection:
+          protectionDescription = "No protection";
+          break;
+        default:
+          protectionDescription = `Unknown (${currentLabel.protectionType})`;
+          break;
+      }
+
+      console.log(
+        `Current presentation sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${protectionDescription}`
+      );
+    });
+PowerPoint.SensitivityLabel#tryToUpdate:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Apply the selected sensitivity label to the presentation.
+      const labelId = (document.getElementById("label-id") as HTMLSelectElement).value;
+      if (!labelId) {
+        console.warn("Get the available labels, and then select a label to apply.");
+        return;
+      }
+
+      const presentation: PowerPoint.Presentation = context.presentation;
+      const presentationLabel: PowerPoint.SensitivityLabel = presentation.sensitivityLabel;
+      if (!presentationLabel) {
+        console.warn("The presentation sensitivity label preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const updateResult: OfficeExtension.ClientResult<PowerPoint.SensitivityLabelUpdateResult> =
+        presentationLabel.tryToUpdate(labelId);
+      await context.sync();
+
+      if (updateResult.value === PowerPoint.SensitivityLabelUpdateResult.success) {
+        console.log("Applied the sensitivity label to the presentation.");
+      } else {
+        console.error(`The sensitivity label wasn't applied. Result: ${updateResult.value}`);
+      }
+    });
+PowerPoint.SensitivityLabelAbacAttributeValue:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity label currently applied to the presentation.
+      const presentation: PowerPoint.Presentation = context.presentation;
+      const presentationLabel: PowerPoint.SensitivityLabel = presentation.sensitivityLabel;
+      if (!presentationLabel) {
+        console.warn("The presentation sensitivity label preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const currentLabel: PowerPoint.SensitivityLabelDetails = presentationLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the presentation.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+      await context.sync();
+
+      if (currentLabel.isNullObject) {
+        console.log("The presentation doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: PowerPoint.SensitivityLabelAbacAttributeValue[] = [];
+      if (currentLabel.isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+
+      let protectionDescription: string;
+      switch (currentLabel.protectionType) {
+        case PowerPoint.SensitivityLabelProtectionType.adminDefined:
+          protectionDescription = "Defined by an administrator";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.userDefined:
+          protectionDescription = "Defined by the user";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.noProtection:
+          protectionDescription = "No protection";
+          break;
+        default:
+          protectionDescription = `Unknown (${currentLabel.protectionType})`;
+          break;
+      }
+
+      console.log(
+        `Current presentation sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${protectionDescription}`
+      );
+    });
+PowerPoint.SensitivityLabelDetails:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity label currently applied to the presentation.
+      const presentation: PowerPoint.Presentation = context.presentation;
+      const presentationLabel: PowerPoint.SensitivityLabel = presentation.sensitivityLabel;
+      if (!presentationLabel) {
+        console.warn("The presentation sensitivity label preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const currentLabel: PowerPoint.SensitivityLabelDetails = presentationLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the presentation.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+      await context.sync();
+
+      if (currentLabel.isNullObject) {
+        console.log("The presentation doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: PowerPoint.SensitivityLabelAbacAttributeValue[] = [];
+      if (currentLabel.isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+
+      let protectionDescription: string;
+      switch (currentLabel.protectionType) {
+        case PowerPoint.SensitivityLabelProtectionType.adminDefined:
+          protectionDescription = "Defined by an administrator";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.userDefined:
+          protectionDescription = "Defined by the user";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.noProtection:
+          protectionDescription = "No protection";
+          break;
+        default:
+          protectionDescription = `Unknown (${currentLabel.protectionType})`;
+          break;
+      }
+
+      console.log(
+        `Current presentation sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${protectionDescription}`
+      );
+    });
+PowerPoint.SensitivityLabelDetailsCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity labels that the organization published for the current user.
+      const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const availableLabels: PowerPoint.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+      // Load the properties and sublabels for every label in the catalog.
+      availableLabels.load(
+        "items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled," +
+        "items/name,items/order,items/protectionType,items/siteId,items/tooltip," +
+        "items/children/items/id,items/children/items/name,items/children/items/isEnabled"
+      );
+      await context.sync();
+
+      if (availableLabels.items.length === 0) {
+        console.log("No sensitivity labels are available for the current user.");
+        return;
+      }
+
+      // Display the loaded properties for each available label.
+      console.log("Available sensitivity labels:");
+      availableLabels.items.forEach((labelDetails: PowerPoint.SensitivityLabelDetails) => {
+        const childLabels = labelDetails.children && labelDetails.children.items.length
+          ? labelDetails.children.items
+              .map((childLabel: PowerPoint.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+              .join(", ")
+          : "None";
+
+        console.log(
+          `\n${labelDetails.name}\n` +
+            `  ID: ${labelDetails.id}\n` +
+            `  Site ID: ${labelDetails.siteId}\n` +
+            `  Tooltip: ${labelDetails.tooltip}\n` +
+            `  Color: ${labelDetails.color}\n` +
+            `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${labelDetails.order}\n` +
+            `  ABAC enabled: ${labelDetails.isAbacEnabled ? "Yes" : "No"}\n` +
+            `  ABAC attributes required: ${labelDetails.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+            `  Sublabels: ${childLabels}\n` +
+            `  Protection type: ${labelDetails.protectionType}`
+        );
+      });
+
+      addLabelOptions(availableLabels);
+    });
+PowerPoint.SensitivityLabelDetailsCollection#load:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity labels that the organization published for the current user.
+      const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const availableLabels: PowerPoint.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+      // Load the properties and sublabels for every label in the catalog.
+      availableLabels.load(
+        "items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled," +
+        "items/name,items/order,items/protectionType,items/siteId,items/tooltip," +
+        "items/children/items/id,items/children/items/name,items/children/items/isEnabled"
+      );
+      await context.sync();
+
+      if (availableLabels.items.length === 0) {
+        console.log("No sensitivity labels are available for the current user.");
+        return;
+      }
+
+      // Display the loaded properties for each available label.
+      console.log("Available sensitivity labels:");
+      availableLabels.items.forEach((labelDetails: PowerPoint.SensitivityLabelDetails) => {
+        const childLabels = labelDetails.children && labelDetails.children.items.length
+          ? labelDetails.children.items
+              .map((childLabel: PowerPoint.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+              .join(", ")
+          : "None";
+
+        console.log(
+          `\n${labelDetails.name}\n` +
+            `  ID: ${labelDetails.id}\n` +
+            `  Site ID: ${labelDetails.siteId}\n` +
+            `  Tooltip: ${labelDetails.tooltip}\n` +
+            `  Color: ${labelDetails.color}\n` +
+            `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${labelDetails.order}\n` +
+            `  ABAC enabled: ${labelDetails.isAbacEnabled ? "Yes" : "No"}\n` +
+            `  ABAC attributes required: ${labelDetails.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+            `  Sublabels: ${childLabels}\n` +
+            `  Protection type: ${labelDetails.protectionType}`
+        );
+      });
+
+      addLabelOptions(availableLabels);
+    });
+PowerPoint.SensitivityLabelDetailsCollectionLoadOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity labels that the organization published for the current user.
+      const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const availableLabels: PowerPoint.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+      // Load the properties and sublabels for every label in the catalog.
+      availableLabels.load(
+        "items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled," +
+        "items/name,items/order,items/protectionType,items/siteId,items/tooltip," +
+        "items/children/items/id,items/children/items/name,items/children/items/isEnabled"
+      );
+      await context.sync();
+
+      if (availableLabels.items.length === 0) {
+        console.log("No sensitivity labels are available for the current user.");
+        return;
+      }
+
+      // Display the loaded properties for each available label.
+      console.log("Available sensitivity labels:");
+      availableLabels.items.forEach((labelDetails: PowerPoint.SensitivityLabelDetails) => {
+        const childLabels = labelDetails.children && labelDetails.children.items.length
+          ? labelDetails.children.items
+              .map((childLabel: PowerPoint.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+              .join(", ")
+          : "None";
+
+        console.log(
+          `\n${labelDetails.name}\n` +
+            `  ID: ${labelDetails.id}\n` +
+            `  Site ID: ${labelDetails.siteId}\n` +
+            `  Tooltip: ${labelDetails.tooltip}\n` +
+            `  Color: ${labelDetails.color}\n` +
+            `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${labelDetails.order}\n` +
+            `  ABAC enabled: ${labelDetails.isAbacEnabled ? "Yes" : "No"}\n` +
+            `  ABAC attributes required: ${labelDetails.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+            `  Sublabels: ${childLabels}\n` +
+            `  Protection type: ${labelDetails.protectionType}`
+        );
+      });
+
+      addLabelOptions(availableLabels);
+    });
+PowerPoint.SensitivityLabelDetailsLoadOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity label currently applied to the presentation.
+      const presentation: PowerPoint.Presentation = context.presentation;
+      const presentationLabel: PowerPoint.SensitivityLabel = presentation.sensitivityLabel;
+      if (!presentationLabel) {
+        console.warn("The presentation sensitivity label preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const currentLabel: PowerPoint.SensitivityLabelDetails = presentationLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the presentation.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+      await context.sync();
+
+      if (currentLabel.isNullObject) {
+        console.log("The presentation doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: PowerPoint.SensitivityLabelAbacAttributeValue[] = [];
+      if (currentLabel.isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+
+      let protectionDescription: string;
+      switch (currentLabel.protectionType) {
+        case PowerPoint.SensitivityLabelProtectionType.adminDefined:
+          protectionDescription = "Defined by an administrator";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.userDefined:
+          protectionDescription = "Defined by the user";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.noProtection:
+          protectionDescription = "No protection";
+          break;
+        default:
+          protectionDescription = `Unknown (${currentLabel.protectionType})`;
+          break;
+      }
+
+      console.log(
+        `Current presentation sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${protectionDescription}`
+      );
+    });
+PowerPoint.SensitivityLabelProtectionType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity label currently applied to the presentation.
+      const presentation: PowerPoint.Presentation = context.presentation;
+      const presentationLabel: PowerPoint.SensitivityLabel = presentation.sensitivityLabel;
+      if (!presentationLabel) {
+        console.warn("The presentation sensitivity label preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const currentLabel: PowerPoint.SensitivityLabelDetails = presentationLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the presentation.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+      await context.sync();
+
+      if (currentLabel.isNullObject) {
+        console.log("The presentation doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: PowerPoint.SensitivityLabelAbacAttributeValue[] = [];
+      if (currentLabel.isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+
+      let protectionDescription: string;
+      switch (currentLabel.protectionType) {
+        case PowerPoint.SensitivityLabelProtectionType.adminDefined:
+          protectionDescription = "Defined by an administrator";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.userDefined:
+          protectionDescription = "Defined by the user";
+          break;
+        case PowerPoint.SensitivityLabelProtectionType.noProtection:
+          protectionDescription = "No protection";
+          break;
+        default:
+          protectionDescription = `Unknown (${currentLabel.protectionType})`;
+          break;
+      }
+
+      console.log(
+        `Current presentation sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${protectionDescription}`
+      );
+    });
+PowerPoint.SensitivityLabelsCatalog#getLabelingCapability:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Check whether sensitivity labeling is available for the current user.
+      const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      labelCatalog.load("getLabelingCapability");
+      await context.sync();
+
+      switch (labelCatalog.getLabelingCapability) {
+        case PowerPoint.LabelingCapability.labelingEnabled:
+          console.log("Sensitivity labeling is enabled.");
+          break;
+        case PowerPoint.LabelingCapability.labelingDisabled:
+          console.log("Sensitivity labeling is disabled.");
+          break;
+        case PowerPoint.LabelingCapability.labelingPolicyNotFound:
+          console.log("No sensitivity labeling policy was found.");
+          break;
+        case PowerPoint.LabelingCapability.noLicense:
+          console.log("The current user doesn't have a valid sensitivity labeling license.");
+          break;
+        default:
+          console.log(`Unknown labeling capability: ${labelCatalog.getLabelingCapability}`);
+          break;
+      }
+    });
+PowerPoint.SensitivityLabelsCatalog#getLabels:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Get the sensitivity labels that the organization published for the current user.
+      const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const availableLabels: PowerPoint.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+      // Load the properties and sublabels for every label in the catalog.
+      availableLabels.load(
+        "items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled," +
+        "items/name,items/order,items/protectionType,items/siteId,items/tooltip," +
+        "items/children/items/id,items/children/items/name,items/children/items/isEnabled"
+      );
+      await context.sync();
+
+      if (availableLabels.items.length === 0) {
+        console.log("No sensitivity labels are available for the current user.");
+        return;
+      }
+
+      // Display the loaded properties for each available label.
+      console.log("Available sensitivity labels:");
+      availableLabels.items.forEach((labelDetails: PowerPoint.SensitivityLabelDetails) => {
+        const childLabels = labelDetails.children && labelDetails.children.items.length
+          ? labelDetails.children.items
+              .map((childLabel: PowerPoint.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+              .join(", ")
+          : "None";
+
+        console.log(
+          `\n${labelDetails.name}\n` +
+            `  ID: ${labelDetails.id}\n` +
+            `  Site ID: ${labelDetails.siteId}\n` +
+            `  Tooltip: ${labelDetails.tooltip}\n` +
+            `  Color: ${labelDetails.color}\n` +
+            `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${labelDetails.order}\n` +
+            `  ABAC enabled: ${labelDetails.isAbacEnabled ? "Yes" : "No"}\n` +
+            `  ABAC attributes required: ${labelDetails.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+            `  Sublabels: ${childLabels}\n` +
+            `  Protection type: ${labelDetails.protectionType}`
+        );
+      });
+
+      addLabelOptions(availableLabels);
+    });
+PowerPoint.SensitivityLabelsCatalog#load:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Check whether sensitivity labeling is available for the current user.
+      const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      labelCatalog.load("getLabelingCapability");
+      await context.sync();
+
+      switch (labelCatalog.getLabelingCapability) {
+        case PowerPoint.LabelingCapability.labelingEnabled:
+          console.log("Sensitivity labeling is enabled.");
+          break;
+        case PowerPoint.LabelingCapability.labelingDisabled:
+          console.log("Sensitivity labeling is disabled.");
+          break;
+        case PowerPoint.LabelingCapability.labelingPolicyNotFound:
+          console.log("No sensitivity labeling policy was found.");
+          break;
+        case PowerPoint.LabelingCapability.noLicense:
+          console.log("The current user doesn't have a valid sensitivity labeling license.");
+          break;
+        default:
+          console.log(`Unknown labeling capability: ${labelCatalog.getLabelingCapability}`);
+          break;
+      }
+    });
+PowerPoint.SensitivityLabelsCatalogLoadOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Check whether sensitivity labeling is available for the current user.
+      const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      labelCatalog.load("getLabelingCapability");
+      await context.sync();
+
+      switch (labelCatalog.getLabelingCapability) {
+        case PowerPoint.LabelingCapability.labelingEnabled:
+          console.log("Sensitivity labeling is enabled.");
+          break;
+        case PowerPoint.LabelingCapability.labelingDisabled:
+          console.log("Sensitivity labeling is disabled.");
+          break;
+        case PowerPoint.LabelingCapability.labelingPolicyNotFound:
+          console.log("No sensitivity labeling policy was found.");
+          break;
+        case PowerPoint.LabelingCapability.noLicense:
+          console.log("The current user doesn't have a valid sensitivity labeling license.");
+          break;
+        default:
+          console.log(`Unknown labeling capability: ${labelCatalog.getLabelingCapability}`);
+          break;
+      }
+    });
+PowerPoint.SensitivityLabelUpdateResult:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/powerpoint/preview-apis/manage-sensitivity-labels.yaml
+
+
+    await PowerPoint.run(async (context) => {
+      // Apply the selected sensitivity label to the presentation.
+      const labelId = (document.getElementById("label-id") as HTMLSelectElement).value;
+      if (!labelId) {
+        console.warn("Get the available labels, and then select a label to apply.");
+        return;
+      }
+
+      const presentation: PowerPoint.Presentation = context.presentation;
+      const presentationLabel: PowerPoint.SensitivityLabel = presentation.sensitivityLabel;
+      if (!presentationLabel) {
+        console.warn("The presentation sensitivity label preview API isn't available in this version of PowerPoint.");
+        return;
+      }
+
+      const updateResult: OfficeExtension.ClientResult<PowerPoint.SensitivityLabelUpdateResult> =
+        presentationLabel.tryToUpdate(labelId);
+      await context.sync();
+
+      if (updateResult.value === PowerPoint.SensitivityLabelUpdateResult.success) {
+        console.log("Applied the sensitivity label to the presentation.");
+      } else {
+        console.error(`The sensitivity label wasn't applied. Result: ${updateResult.value}`);
+      }
     });
 PowerPoint.Shape:class:
   - >-
@@ -30824,6 +31728,71 @@ Word.Document#sections:member:
 
       await context.sync();
     });
+Word.Document#sensitivityLabel:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity label currently applied to the document.
+      const wordDocument: Word.Document = context.document;
+      const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+      if (!documentLabel) {
+        console.warn("The document sensitivity label preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const currentLabel: Word.SensitivityLabelDetails = documentLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the document.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+
+      await context.sync();
+      if (currentLabel.isNullObject) {
+        console.log("The document doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: Word.SensitivityLabelAbacAttributeValue[] = [];
+      const isAbacEnabled = currentLabel.isAbacEnabled;
+      if (isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: Word.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: Word.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+      console.log(
+        `Current document sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${currentLabel.protectionType}`
+      );
+    });
 Word.Document#settings:member:
   - >-
     // Link to full sample:
@@ -35728,6 +36697,666 @@ Word.SelectionPreviousOptions:interface:
       await context.sync();
 
       console.log(`Previous word: "${previousRange.text}"`);
+    });
+Word.SensitivityLabel#getCurrentOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity label currently applied to the document.
+      const wordDocument: Word.Document = context.document;
+      const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+      if (!documentLabel) {
+        console.warn("The document sensitivity label preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const currentLabel: Word.SensitivityLabelDetails = documentLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the document.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+
+      await context.sync();
+      if (currentLabel.isNullObject) {
+        console.log("The document doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: Word.SensitivityLabelAbacAttributeValue[] = [];
+      const isAbacEnabled = currentLabel.isAbacEnabled;
+      if (isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: Word.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: Word.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+      console.log(
+        `Current document sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${currentLabel.protectionType}`
+      );
+    });
+Word.SensitivityLabel#load:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity label currently applied to the document.
+      const wordDocument: Word.Document = context.document;
+      const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+      if (!documentLabel) {
+        console.warn("The document sensitivity label preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const currentLabel: Word.SensitivityLabelDetails = documentLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the document.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+
+      await context.sync();
+      if (currentLabel.isNullObject) {
+        console.log("The document doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: Word.SensitivityLabelAbacAttributeValue[] = [];
+      const isAbacEnabled = currentLabel.isAbacEnabled;
+      if (isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: Word.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: Word.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+      console.log(
+        `Current document sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${currentLabel.protectionType}`
+      );
+    });
+Word.SensitivityLabel#tryToUpdate:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Apply the selected sensitivity label to the document.
+      const labelId = (document.getElementById("label-id") as HTMLSelectElement).value;
+      if (!labelId) {
+        console.warn("Get the available labels, and then select a label to apply.");
+        return;
+      }
+
+      const wordDocument: Word.Document = context.document;
+      const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+      if (!documentLabel) {
+        console.warn("The document sensitivity label preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const updateResult: OfficeExtension.ClientResult<Word.SensitivityLabelUpdateResult> =
+        documentLabel.tryToUpdate(labelId);
+      await context.sync();
+
+      if (updateResult.value === Word.SensitivityLabelUpdateResult.success) {
+        console.log("Applied the sensitivity label to the document.");
+      } else {
+        console.error(`The sensitivity label wasn't applied. Result: ${updateResult.value}`);
+      }
+    });
+Word.SensitivityLabelAbacAttributeValue:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity label currently applied to the document.
+      const wordDocument: Word.Document = context.document;
+      const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+      if (!documentLabel) {
+        console.warn("The document sensitivity label preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const currentLabel: Word.SensitivityLabelDetails = documentLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the document.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+
+      await context.sync();
+      if (currentLabel.isNullObject) {
+        console.log("The document doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: Word.SensitivityLabelAbacAttributeValue[] = [];
+      const isAbacEnabled = currentLabel.isAbacEnabled;
+      if (isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: Word.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: Word.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+      console.log(
+        `Current document sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${currentLabel.protectionType}`
+      );
+    });
+Word.SensitivityLabelDetails:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity label currently applied to the document.
+      const wordDocument: Word.Document = context.document;
+      const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+      if (!documentLabel) {
+        console.warn("The document sensitivity label preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const currentLabel: Word.SensitivityLabelDetails = documentLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the document.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+
+      await context.sync();
+      if (currentLabel.isNullObject) {
+        console.log("The document doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: Word.SensitivityLabelAbacAttributeValue[] = [];
+      const isAbacEnabled = currentLabel.isAbacEnabled;
+      if (isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: Word.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: Word.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+      console.log(
+        `Current document sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${currentLabel.protectionType}`
+      );
+    });
+Word.SensitivityLabelDetailsCollection#items:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity labels that the organization published for the current user.
+      const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const availableLabels: Word.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+      // Load the properties for every label in the catalog.
+      availableLabels.load(
+        "items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled," +
+        "items/name,items/order,items/protectionType,items/siteId,items/tooltip," +
+        "items/children/items/id,items/children/items/name,items/children/items/isEnabled,"
+      );
+      await context.sync();
+
+      if (availableLabels.items.length === 0) {
+        console.log("No sensitivity labels are available for the current user.");
+        return;
+      }
+
+      // Display the loaded properties for each available label.
+      console.log("Available sensitivity labels:");
+      availableLabels.items.forEach((labelDetails: Word.SensitivityLabelDetails) => {
+        const childLabels = labelDetails.children && labelDetails.children.items.length
+          ? labelDetails.children.items
+              .map((childLabel: Word.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+              .join(", ")
+          : "None";
+
+        console.log(
+          `\n${labelDetails.name}\n` +
+            `  ID: ${labelDetails.id}\n` +
+            `  Site ID: ${labelDetails.siteId}\n` +
+            `  Tooltip: ${labelDetails.tooltip}\n` +
+            `  Color: ${labelDetails.color}\n` +
+            `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${labelDetails.order}\n` +
+            `  ABAC enabled: ${labelDetails.isAbacEnabled ? "Yes" : "No"}\n` +
+            `  ABAC attributes required: ${labelDetails.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+            `  Sublabels: ${childLabels}\n` +
+            `  Protection type: ${labelDetails.protectionType}`
+        );
+      });
+
+      addLabelOptions(availableLabels);
+    });
+Word.SensitivityLabelDetailsCollection#load:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity labels that the organization published for the current user.
+      const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const availableLabels: Word.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+      // Load the properties for every label in the catalog.
+      availableLabels.load(
+        "items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled," +
+        "items/name,items/order,items/protectionType,items/siteId,items/tooltip," +
+        "items/children/items/id,items/children/items/name,items/children/items/isEnabled,"
+      );
+      await context.sync();
+
+      if (availableLabels.items.length === 0) {
+        console.log("No sensitivity labels are available for the current user.");
+        return;
+      }
+
+      // Display the loaded properties for each available label.
+      console.log("Available sensitivity labels:");
+      availableLabels.items.forEach((labelDetails: Word.SensitivityLabelDetails) => {
+        const childLabels = labelDetails.children && labelDetails.children.items.length
+          ? labelDetails.children.items
+              .map((childLabel: Word.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+              .join(", ")
+          : "None";
+
+        console.log(
+          `\n${labelDetails.name}\n` +
+            `  ID: ${labelDetails.id}\n` +
+            `  Site ID: ${labelDetails.siteId}\n` +
+            `  Tooltip: ${labelDetails.tooltip}\n` +
+            `  Color: ${labelDetails.color}\n` +
+            `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${labelDetails.order}\n` +
+            `  ABAC enabled: ${labelDetails.isAbacEnabled ? "Yes" : "No"}\n` +
+            `  ABAC attributes required: ${labelDetails.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+            `  Sublabels: ${childLabels}\n` +
+            `  Protection type: ${labelDetails.protectionType}`
+        );
+      });
+
+      addLabelOptions(availableLabels);
+    });
+Word.SensitivityLabelDetailsCollectionLoadOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity labels that the organization published for the current user.
+      const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const availableLabels: Word.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+      // Load the properties for every label in the catalog.
+      availableLabels.load(
+        "items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled," +
+        "items/name,items/order,items/protectionType,items/siteId,items/tooltip," +
+        "items/children/items/id,items/children/items/name,items/children/items/isEnabled,"
+      );
+      await context.sync();
+
+      if (availableLabels.items.length === 0) {
+        console.log("No sensitivity labels are available for the current user.");
+        return;
+      }
+
+      // Display the loaded properties for each available label.
+      console.log("Available sensitivity labels:");
+      availableLabels.items.forEach((labelDetails: Word.SensitivityLabelDetails) => {
+        const childLabels = labelDetails.children && labelDetails.children.items.length
+          ? labelDetails.children.items
+              .map((childLabel: Word.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+              .join(", ")
+          : "None";
+
+        console.log(
+          `\n${labelDetails.name}\n` +
+            `  ID: ${labelDetails.id}\n` +
+            `  Site ID: ${labelDetails.siteId}\n` +
+            `  Tooltip: ${labelDetails.tooltip}\n` +
+            `  Color: ${labelDetails.color}\n` +
+            `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${labelDetails.order}\n` +
+            `  ABAC enabled: ${labelDetails.isAbacEnabled ? "Yes" : "No"}\n` +
+            `  ABAC attributes required: ${labelDetails.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+            `  Sublabels: ${childLabels}\n` +
+            `  Protection type: ${labelDetails.protectionType}`
+        );
+      });
+
+      addLabelOptions(availableLabels);
+    });
+Word.SensitivityLabelDetailsLoadOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity label currently applied to the document.
+      const wordDocument: Word.Document = context.document;
+      const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+      if (!documentLabel) {
+        console.warn("The document sensitivity label preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const currentLabel: Word.SensitivityLabelDetails = documentLabel.getCurrentOrNullObject();
+      // Load the properties of the label currently applied to the document.
+      currentLabel.load(
+        "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+      );
+
+      await context.sync();
+      if (currentLabel.isNullObject) {
+        console.log("The document doesn't have a sensitivity label.");
+        return;
+      }
+
+      // Load ABAC values when supported.
+      let abacAttributeValues: Word.SensitivityLabelAbacAttributeValue[] = [];
+      const isAbacEnabled = currentLabel.isAbacEnabled;
+      if (isAbacEnabled) {
+        currentLabel.load("abacAttributeValues");
+        await context.sync();
+
+        abacAttributeValues = currentLabel.abacAttributeValues;
+        // Load the properties of each ABAC attribute value returned by the label.
+        abacAttributeValues.forEach((attributeValue: Word.SensitivityLabelAbacAttributeValue) => {
+          attributeValue.load("displayName,displayOrder,id,isActive");
+        });
+      }
+      await context.sync();
+
+      // Display the loaded properties of the current label.
+      const attributeValues = abacAttributeValues.length
+        ? abacAttributeValues
+            .map(
+              (attributeValue: Word.SensitivityLabelAbacAttributeValue) =>
+                `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+            )
+            .join(", ")
+        : "None";
+      console.log(
+        `Current document sensitivity label:\n\n${currentLabel.name}\n` +
+        `  ID: ${currentLabel.id}\n` +
+        `  Site ID: ${currentLabel.siteId}\n` +
+        `  Tooltip: ${currentLabel.tooltip}\n` +
+        `  Color: ${currentLabel.color}\n` +
+        `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+        `  Display order: ${currentLabel.order}\n` +
+        `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+        `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+        `  ABAC attribute values: ${attributeValues}\n` +
+        `  Protection type: ${currentLabel.protectionType}`
+      );
+    });
+Word.SensitivityLabelsCatalog#getLabelingCapability:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Check whether sensitivity labeling is available for the current user.
+      const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of Word.");
+        return;
+      }
+
+      labelCatalog.load("getLabelingCapability");
+      await context.sync();
+
+      console.log(`Sensitivity label catalog status: ${labelCatalog.getLabelingCapability}`);
+    });
+Word.SensitivityLabelsCatalog#getLabels:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Get the sensitivity labels that the organization published for the current user.
+      const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const availableLabels: Word.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+      // Load the properties for every label in the catalog.
+      availableLabels.load(
+        "items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled," +
+        "items/name,items/order,items/protectionType,items/siteId,items/tooltip," +
+        "items/children/items/id,items/children/items/name,items/children/items/isEnabled,"
+      );
+      await context.sync();
+
+      if (availableLabels.items.length === 0) {
+        console.log("No sensitivity labels are available for the current user.");
+        return;
+      }
+
+      // Display the loaded properties for each available label.
+      console.log("Available sensitivity labels:");
+      availableLabels.items.forEach((labelDetails: Word.SensitivityLabelDetails) => {
+        const childLabels = labelDetails.children && labelDetails.children.items.length
+          ? labelDetails.children.items
+              .map((childLabel: Word.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+              .join(", ")
+          : "None";
+
+        console.log(
+          `\n${labelDetails.name}\n` +
+            `  ID: ${labelDetails.id}\n` +
+            `  Site ID: ${labelDetails.siteId}\n` +
+            `  Tooltip: ${labelDetails.tooltip}\n` +
+            `  Color: ${labelDetails.color}\n` +
+            `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${labelDetails.order}\n` +
+            `  ABAC enabled: ${labelDetails.isAbacEnabled ? "Yes" : "No"}\n` +
+            `  ABAC attributes required: ${labelDetails.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+            `  Sublabels: ${childLabels}\n` +
+            `  Protection type: ${labelDetails.protectionType}`
+        );
+      });
+
+      addLabelOptions(availableLabels);
+    });
+Word.SensitivityLabelsCatalog#load:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Check whether sensitivity labeling is available for the current user.
+      const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of Word.");
+        return;
+      }
+
+      labelCatalog.load("getLabelingCapability");
+      await context.sync();
+
+      console.log(`Sensitivity label catalog status: ${labelCatalog.getLabelingCapability}`);
+    });
+Word.SensitivityLabelsCatalogLoadOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Check whether sensitivity labeling is available for the current user.
+      const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+      if (!labelCatalog) {
+        console.warn("The sensitivity label catalog preview API isn't available in this version of Word.");
+        return;
+      }
+
+      labelCatalog.load("getLabelingCapability");
+      await context.sync();
+
+      console.log(`Sensitivity label catalog status: ${labelCatalog.getLabelingCapability}`);
+    });
+Word.SensitivityLabelUpdateResult:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-sensitivity-labels.yaml
+
+
+    await Word.run(async (context) => {
+      // Apply the selected sensitivity label to the document.
+      const labelId = (document.getElementById("label-id") as HTMLSelectElement).value;
+      if (!labelId) {
+        console.warn("Get the available labels, and then select a label to apply.");
+        return;
+      }
+
+      const wordDocument: Word.Document = context.document;
+      const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+      if (!documentLabel) {
+        console.warn("The document sensitivity label preview API isn't available in this version of Word.");
+        return;
+      }
+
+      const updateResult: OfficeExtension.ClientResult<Word.SensitivityLabelUpdateResult> =
+        documentLabel.tryToUpdate(labelId);
+      await context.sync();
+
+      if (updateResult.value === Word.SensitivityLabelUpdateResult.success) {
+        console.log("Applied the sensitivity label to the document.");
+      } else {
+        console.error(`The sensitivity label wasn't applied. Result: ${updateResult.value}`);
+      }
     });
 Word.Setting:class:
   - >-

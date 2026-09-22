@@ -58,6 +58,23 @@ describe('Runtime Execution Tests - Excel', () => {
       },
     });
   });
+
+  test.each([
+    'setup',
+    'set-range-font',
+    'get-range-font',
+    'set-fill-color',
+    'set-number-format',
+  ])('Excel: range formatting %s action executes without runtime errors', async (buttonId) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '42-range', 'formatting.yaml'),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
 });
 
 describe('Runtime Execution Tests - Word', () => {

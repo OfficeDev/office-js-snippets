@@ -1,7 +1,7 @@
 order: 5
 id: excel-range-formatting
 name: Formatting
-description: Formats a range.
+description: Formats a range's font, fill, and numbers.
 author: OfficeDev
 host: EXCEL
 api_set:
@@ -10,43 +10,95 @@ script:
     content: |-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
-        document.getElementById("set-font-and-fill-color").addEventListener("click", () => tryCatch(setFontAndFillColor));
+        document.getElementById("set-range-font").addEventListener("click", () => tryCatch(setRangeFont));
+        document.getElementById("get-range-font").addEventListener("click", () => tryCatch(getRangeFont));
+        document.getElementById("set-fill-color").addEventListener("click", () => tryCatch(setFillColor));
         document.getElementById("set-number-format").addEventListener("click", () => tryCatch(setNumberFormat));
 
-        async function setFontAndFillColor() {
+        async function setRangeFont() {
+            // Set several font properties for the header range.
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Sample");
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                const headerRange: Excel.Range = sheet.getRange("B2:E2");
+                const headerFont: Excel.RangeFont = headerRange.format.font;
 
-                const range = sheet.getRange("B2:E2");
-                range.format.fill.color = "#4472C4";;
-                range.format.font.color = "white";
+                headerFont.set({
+                    bold: true,
+                    color: "#1F4E78",
+                    italic: false,
+                    name: "Aptos Display",
+                    size: 14,
+                    underline: Excel.RangeUnderlineStyle.single
+                });
 
                 await context.sync();
+                console.log("The header font formatting was updated.");
+            });
+        }
+
+        async function getRangeFont() {
+            // Get the font properties for the header range.
+            await Excel.run(async (context) => {
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                const headerRange: Excel.Range = sheet.getRange("B2:E2");
+                const headerFont: Excel.RangeFont = headerRange.format.font;
+
+                headerFont.load("bold, color, italic, name, size, underline");
+                await context.sync();
+
+                console.log(`Bold: ${headerFont.bold}`);
+                console.log(`Color: ${headerFont.color}`);
+                console.log(`Italic: ${headerFont.italic}`);
+                console.log(`Name: ${headerFont.name}`);
+                console.log(`Size: ${headerFont.size}`);
+                console.log(`Underline: ${headerFont.underline}`);
+            });
+        }
+
+        async function setFillColor() {
+            // Set the fill color for the header range.
+            await Excel.run(async (context) => {
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                const headerRange: Excel.Range = sheet.getRange("B2:E2");
+
+                headerRange.format.fill.color = "#D9EAF7";
+
+                await context.sync();
+                console.log("The header fill color was updated.");
             });
         }
 
         async function setNumberFormat() {
+            // Set the number formats for the quantity and price data.
             await Excel.run(async (context) => {
-                const sheet = context.workbook.worksheets.getItem("Sample");
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
 
-                const formats = [
-                    ["0.00", "0.00"],
-                    ["0.00", "0.00"],
-                    ["0.00", "0.00"]
+                const formats: string[][] = [
+                    ["0", "$0.00", "$0.00"],
+                    ["0", "$0.00", "$0.00"],
+                    ["0", "$0.00", "$0.00"]
                 ];
 
-                const range = sheet.getRange("D3:E5");
-                range.numberFormat = formats;
+                const dataRange: Excel.Range = sheet.getRange("C3:E5");
+                dataRange.numberFormat = formats;
                 await context.sync();
+                console.log("The number formats were updated.");
             });
         }
 
         async function setup() {
             await Excel.run(async (context) => {
-                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
-                const sheet = context.workbook.worksheets.add("Sample");
+                const existingSheet: Excel.Worksheet = context.workbook.worksheets.getItemOrNullObject("Sample");
+                existingSheet.load("isNullObject");
+                await context.sync();
 
-                const data = [
+                if (!existingSheet.isNullObject) {
+                    existingSheet.delete();
+                }
+
+                const sheet: Excel.Worksheet = context.workbook.worksheets.add("Sample");
+
+                const data: (string | number)[][] = [
                     ["Product", "Qty", "Unit Price", "Total Price"],
                     ["Almonds", 2, 7.50, "=C3 * D3"],
                     ["Coffee", 1, 34.50, "=C4 * D4"],
@@ -56,9 +108,7 @@ script:
                 const range = sheet.getRange("B2:E5");
                 range.values = data;
                 range.format.autofitColumns();
-
                 sheet.activate();
-                
                 await context.sync();
             });
         }
@@ -77,7 +127,7 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample shows how to format a range.</p>
+            <p>This sample shows how to set and get font properties and apply other formatting to a range.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -85,8 +135,10 @@ template:
         </section>
         <section>
             <h3>Try it out</h3>
-            <button id="set-font-and-fill-color">Set font and fill color</button>   
-            <button id="set-number-format">Set number format</button> 
+            <button id="set-range-font">Set range font</button>
+            <button id="get-range-font">Get range font</button>
+            <button id="set-fill-color">Set fill color</button>
+            <button id="set-number-format">Set number format</button>
         </section>
     language: html
 style:

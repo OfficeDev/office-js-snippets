@@ -120,7 +120,7 @@ describe('Runtime Execution Tests - Word', () => {
       assertions: ({ mockContext }) => {
         const breaks = mockContext.document.activeWindow.activePane.pages.items[0].breaks;
         expect(breaks.load).toHaveBeenCalledWith('items/pageIndex');
-        expect(consoleSpy).toHaveBeenCalledWith('Found 1 break(s).');
+        expect(consoleSpy).toHaveBeenCalledWith('Breaks found: 1');
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });

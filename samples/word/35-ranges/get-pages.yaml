@@ -5,7 +5,7 @@ description: Shows how to work with pages, panes, and windows.
 author: yilin4
 host: WORD
 api_set:
-    WordApiDesktop: '1.2'
+    WordApiDesktop: '1.3'
 script:
     content: |
         document.getElementById("get-pages-selected-range").addEventListener("click", () => tryCatch(getPagesOfSelectedRange));
@@ -16,6 +16,7 @@ script:
           .getElementById("get-pages-enclosing-viewport")
           .addEventListener("click", () => tryCatch(getPagesEnclosingViewport));
         document.getElementById("get-all-pages").addEventListener("click", () => tryCatch(getAllPages));
+        document.getElementById("get-breaks").addEventListener("click", () => tryCatch(getBreaks));
         document.getElementById("get-all-panes").addEventListener("click", () => tryCatch(getAllPanes));
         document.getElementById("get-all-windows").addEventListener("click", () => tryCatch(getAllWindows));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
@@ -171,6 +172,30 @@ script:
           });
         }
 
+        async function getBreaks() {
+          // Gets every page, column, and section break in the active document pane.
+          await Word.run(async (context) => {
+            const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+            pages.load("items");
+            await context.sync();
+
+            const breakCollections: Word.BreakCollection[] = [];
+            pages.items.forEach((page: Word.Page) => {
+              const breaks: Word.BreakCollection = page.breaks;
+              breaks.load("items/pageIndex");
+              breakCollections.push(breaks);
+            });
+
+            await context.sync();
+
+            const documentBreaks: Word.Break[] = breakCollections.flatMap((breaks) => breaks.items);
+            console.log(`Found ${documentBreaks.length} break(s).`);
+            documentBreaks.forEach((documentBreak: Word.Break) => {
+              console.log(`Break on page ${documentBreak.pageIndex}.`);
+            });
+          });
+        }
+
         async function getAllPanes() {
           await Word.run(async (context) => {
             // Gets all the panes in the active document window.
@@ -221,6 +246,8 @@ script:
                 "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
                 "Replace"
               );
+            await context.sync();
+            console.log("Added sample text with a page break.");
           });
         }
 
@@ -249,6 +276,7 @@ template:
             <button id="get-pages-third-paragraph">Get the third paragraph's page info</button>
             <button id="get-pages-enclosing-viewport">Get pages enclosing viewport</button>
             <button id="get-all-pages">Get all pages</button>
+            <button id="get-breaks">Get breaks</button>
           <button id="get-all-panes">Get all panes</button>
           <button id="get-all-windows">Get all windows</button>
         </section>

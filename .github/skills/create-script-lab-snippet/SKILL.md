@@ -189,6 +189,16 @@ Excel,CalculationMode,,enum,excel-workbook-calculation,switchToManualCalculation
 Office,MessageCompose,subject,,outlook-other-item-apis-get-set-subject-compose,get
 ```
 
+### Check for adjacent API coverage
+
+Before finalizing the CSV rows, audit each new or expanded mapped function for other focal Office.js APIs that it now demonstrates and that still need sample coverage.
+
+1. List the non-incidental API surfaces that are explicit and important to the function's scenario. Check the focal class, interface, enum, or type; the owning property or method; and closely related return, parameter, options, result, collection, and item types.
+2. Search the host CSV for useful existing coverage of each surface. Do not assume that coverage of the originally requested API also covers a related API reference page.
+3. Add another mapping when the extracted function is independently useful for an uncovered API page and makes that API's type and role obvious. For example, a function that explicitly gets a typed collection and iterates typed items may cover both the item class and its collection class.
+4. Apply this audit to both top-level type requests and member-level requests. A property or method sample can expose an uncovered return, parameter, options, or result type just as a class sample can expose its collection type.
+5. Do not add code or mappings merely to increase the row count. Skip setup plumbing, navigation, loading, synchronization, logging, and types that are only incidental to the scenario.
+
 Apply these rules:
 
 - Preserve the CSV header, UTF-8 BOM if present, line endings, quoting, and existing sort order.

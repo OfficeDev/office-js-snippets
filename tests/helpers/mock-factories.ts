@@ -118,21 +118,38 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     worksheetName = 'Sheet1',
   } = options;
 
+  const mockFont = {
+    color: '',
+    bold: false,
+    italic: false,
+    name: 'Calibri',
+    size: 11,
+    underline: 'None',
+    load: jest.fn(),
+    set: jest.fn((properties: Record<string, unknown>) => Object.assign(mockFont, properties)),
+  };
+
   const mockRange = {
     address: rangeAddress,
     values: rangeValues,
     text: rangeText,
+    numberFormat: [],
     format: {
       fill: { color: '' },
-      font: { color: '', bold: false, italic: false },
+      font: mockFont,
+      autofitColumns: jest.fn(),
     },
     load: jest.fn(),
   };
 
   const mockWorksheet = {
     name: worksheetName,
+    isNullObject: false,
     getRange: jest.fn(() => mockRange),
     getRangeByIndexes: jest.fn(() => mockRange),
+    load: jest.fn(),
+    delete: jest.fn(),
+    activate: jest.fn(),
   };
 
   const mockContext = {
@@ -141,6 +158,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
       worksheets: {
         getActiveWorksheet: jest.fn(() => mockWorksheet),
         getItem: jest.fn(() => mockWorksheet),
+        getItemOrNullObject: jest.fn(() => mockWorksheet),
         add: jest.fn(() => mockWorksheet),
       },
     },
@@ -148,6 +166,13 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   };
 
   const mockData = {
+    RangeUnderlineStyle: {
+      none: 'None',
+      single: 'Single',
+      double: 'Double',
+      singleAccountant: 'SingleAccountant',
+      doubleAccountant: 'DoubleAccountant',
+    },
     run: jest.fn(async (callback: Function) => {
       await callback(mockContext);
     }),

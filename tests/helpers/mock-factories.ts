@@ -274,6 +274,44 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
   mockParagraph.getRange.mockReturnValue(mockRange);
 
+  const mockBreak = {
+    pageIndex: 1,
+    range: mockRange,
+    load: jest.fn(),
+  };
+
+  const mockBreaks = {
+    items: [mockBreak],
+    load: jest.fn(),
+  };
+
+  const mockPage = {
+    index: 1,
+    breaks: mockBreaks,
+    getRange: jest.fn(() => mockRange),
+    load: jest.fn(),
+  };
+
+  const mockPages = {
+    items: [mockPage],
+    load: jest.fn(),
+  };
+
+  const mockPane = {
+    pages: mockPages,
+    pagesEnclosingViewport: mockPages,
+    load: jest.fn(),
+  };
+
+  const mockWindow = {
+    activePane: mockPane,
+    panes: {
+      items: [mockPane],
+      load: jest.fn(),
+    },
+    load: jest.fn(),
+  };
+
   const mockTableOfAuthorities = {
     category: 1,
     entrySeparator: ' ',
@@ -334,6 +372,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     text: bodyText,
     clear: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
+    insertBreak: jest.fn(),
     insertText: jest.fn(),
     insertTable: jest.fn(() => mockTable),
     getRange: jest.fn(() => mockRange),
@@ -439,6 +478,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockContext = {
     document: {
       body: mockBody,
+      activeWindow: mockWindow,
       getSelection: jest.fn(() => mockRange),
       applyQuickStyleSet: jest.fn(),
       properties: mockProperties,
@@ -519,6 +559,10 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockBody,
     mockParagraph,
     mockParagraphs,
+    mockBreak,
+    mockBreaks,
+    mockPage,
+    mockPages,
     mockTable,
     mockTables,
     mockProperties,

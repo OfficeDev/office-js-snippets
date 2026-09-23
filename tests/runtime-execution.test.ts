@@ -130,6 +130,19 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
+  test('Word: get document breaks executes without runtime errors', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'get-pages.yaml'),
+      buttonId: 'get-breaks',
+      assertions: ({ mockContext }) => {
+        const breaks = mockContext.document.activeWindow.activePane.pages.items[0].breaks;
+        expect(breaks.load).toHaveBeenCalledWith('items/pageIndex');
+        expect(consoleSpy).toHaveBeenCalledWith('Breaks found: 1');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
   test.each([
     {
       snippetPath: path.join('samples', 'word', '42-reference-tables', 'table-of-authorities.yaml'),

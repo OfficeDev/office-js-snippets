@@ -185,6 +185,58 @@ describe('Runtime Execution Tests - Word', () => {
       await runWordSnippetTest({ snippetPath, buttonId, mockOptions });
     }
   });
+
+  test.each([
+    'setup',
+    'set-alignment',
+    'set-indents',
+    'set-spacing',
+    'set-pagination',
+    'get-paragraph-format',
+  ])(
+    'Word: paragraph format %s action executes without runtime errors',
+    async (buttonId) => {
+      await runWordSnippetTest({
+        snippetPath: path.join('samples', 'word', '28-formatting', 'paragraph-format.yaml'),
+        buttonId,
+        assertions: ({ mockContext, mockParagraphFormat, mockStyles }) => {
+          expect(mockContext.sync).toHaveBeenCalled();
+          expect(
+            mockStyles.getByNameOrNullObject.mock.calls.length + mockStyles.getByName.mock.calls.length
+          ).toBeGreaterThan(0);
+
+          if (buttonId === 'set-alignment') {
+            expect(mockParagraphFormat.alignment).toBe('Justified');
+          }
+
+          if (buttonId === 'set-indents') {
+            expect(mockParagraphFormat.firstLineIndent).toBe(18);
+            expect(mockParagraphFormat.leftIndent).toBe(24);
+            expect(mockParagraphFormat.rightIndent).toBe(12);
+          }
+
+          if (buttonId === 'set-spacing') {
+            expect(mockParagraphFormat.lineSpacing).toBe(18);
+            expect(mockParagraphFormat.spaceAfter).toBe(12);
+            expect(mockParagraphFormat.spaceBefore).toBe(6);
+          }
+
+          if (buttonId === 'set-pagination') {
+            expect(mockParagraphFormat.keepTogether).toBe(true);
+            expect(mockParagraphFormat.keepWithNext).toBe(true);
+            expect(mockParagraphFormat.widowControl).toBe(true);
+          }
+
+          if (buttonId === 'get-paragraph-format') {
+            expect(mockParagraphFormat.load).toHaveBeenCalled();
+            expect(mockParagraphFormat.toJSON).toHaveBeenCalled();
+          }
+
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        },
+      });
+    }
+  );
 });
 
 describe('Runtime Execution Tests - PowerPoint', () => {

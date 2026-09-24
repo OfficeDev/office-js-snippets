@@ -93,7 +93,16 @@ export async function runWordSnippetTest(options: RunSnippetTestOptions) {
   const buttonHandlers = new Map<string, Function>();
 
   // Create Word mock
-  const { mockObject, mockContext, mockRange, mockBody, mockParagraph } = createWordMock(
+  const {
+    mockObject,
+    mockContext,
+    mockRange,
+    mockBody,
+    mockParagraph,
+    mockParagraphFormat,
+    mockStyle,
+    mockStyles,
+  } = createWordMock(
     mockOptions as WordMockOptions
   );
 
@@ -110,10 +119,26 @@ export async function runWordSnippetTest(options: RunSnippetTestOptions) {
 
   // Run custom assertions
   if (assertions) {
-    assertions({ mockContext, mockRange, mockBody, mockParagraph });
+    assertions({
+      mockContext,
+      mockRange,
+      mockBody,
+      mockParagraph,
+      mockParagraphFormat,
+      mockStyle,
+      mockStyles,
+    });
   }
 
-  return { mockContext, mockRange, mockBody, mockParagraph };
+  return {
+    mockContext,
+    mockRange,
+    mockBody,
+    mockParagraph,
+    mockParagraphFormat,
+    mockStyle,
+    mockStyles,
+  };
 }
 
 /**

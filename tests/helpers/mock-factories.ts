@@ -118,21 +118,38 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     worksheetName = 'Sheet1',
   } = options;
 
+  const mockFont = {
+    color: '',
+    bold: false,
+    italic: false,
+    name: 'Calibri',
+    size: 11,
+    underline: 'None',
+    load: jest.fn(),
+    set: jest.fn((properties: Record<string, unknown>) => Object.assign(mockFont, properties)),
+  };
+
   const mockRange = {
     address: rangeAddress,
     values: rangeValues,
     text: rangeText,
+    numberFormat: [],
     format: {
       fill: { color: '' },
-      font: { color: '', bold: false, italic: false },
+      font: mockFont,
+      autofitColumns: jest.fn(),
     },
     load: jest.fn(),
   };
 
   const mockWorksheet = {
     name: worksheetName,
+    isNullObject: false,
     getRange: jest.fn(() => mockRange),
     getRangeByIndexes: jest.fn(() => mockRange),
+    load: jest.fn(),
+    delete: jest.fn(),
+    activate: jest.fn(),
   };
 
   const mockContext = {
@@ -141,6 +158,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
       worksheets: {
         getActiveWorksheet: jest.fn(() => mockWorksheet),
         getItem: jest.fn(() => mockWorksheet),
+        getItemOrNullObject: jest.fn(() => mockWorksheet),
         add: jest.fn(() => mockWorksheet),
       },
     },
@@ -148,6 +166,13 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   };
 
   const mockData = {
+    RangeUnderlineStyle: {
+      none: 'None',
+      single: 'Single',
+      double: 'Double',
+      singleAccountant: 'SingleAccountant',
+      doubleAccountant: 'DoubleAccountant',
+    },
     run: jest.fn(async (callback: Function) => {
       await callback(mockContext);
     }),
@@ -249,6 +274,44 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
   mockParagraph.getRange.mockReturnValue(mockRange);
 
+  const mockBreak = {
+    pageIndex: 1,
+    range: mockRange,
+    load: jest.fn(),
+  };
+
+  const mockBreaks = {
+    items: [mockBreak],
+    load: jest.fn(),
+  };
+
+  const mockPage = {
+    index: 1,
+    breaks: mockBreaks,
+    getRange: jest.fn(() => mockRange),
+    load: jest.fn(),
+  };
+
+  const mockPages = {
+    items: [mockPage],
+    load: jest.fn(),
+  };
+
+  const mockPane = {
+    pages: mockPages,
+    pagesEnclosingViewport: mockPages,
+    load: jest.fn(),
+  };
+
+  const mockWindow = {
+    activePane: mockPane,
+    panes: {
+      items: [mockPane],
+      load: jest.fn(),
+    },
+    load: jest.fn(),
+  };
+
   const mockTableOfAuthorities = {
     category: 1,
     entrySeparator: ' ',
@@ -309,6 +372,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     text: bodyText,
     clear: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
+    insertBreak: jest.fn(),
     insertText: jest.fn(),
     insertTable: jest.fn(() => mockTable),
     getRange: jest.fn(() => mockRange),
@@ -414,6 +478,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockContext = {
     document: {
       body: mockBody,
+      activeWindow: mockWindow,
       getSelection: jest.fn(() => mockRange),
       applyQuickStyleSet: jest.fn(),
       properties: mockProperties,
@@ -494,6 +559,10 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockBody,
     mockParagraph,
     mockParagraphs,
+    mockBreak,
+    mockBreaks,
+    mockPage,
+    mockPages,
     mockTable,
     mockTables,
     mockProperties,

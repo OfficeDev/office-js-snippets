@@ -58,6 +58,23 @@ describe('Runtime Execution Tests - Excel', () => {
       },
     });
   });
+
+  test.each([
+    'setup',
+    'set-range-font',
+    'get-range-font',
+    'set-fill-color',
+    'set-number-format',
+  ])('Excel: range formatting %s action executes without runtime errors', async (buttonId) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '42-range', 'formatting.yaml'),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
 });
 
 describe('Runtime Execution Tests - Word', () => {
@@ -108,6 +125,19 @@ describe('Runtime Execution Tests - Word', () => {
         expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('The selected data is'));
 
         // Verify no errors were logged
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('Word: get document breaks executes without runtime errors', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'get-pages.yaml'),
+      buttonId: 'get-breaks',
+      assertions: ({ mockContext }) => {
+        const breaks = mockContext.document.activeWindow.activePane.pages.items[0].breaks;
+        expect(breaks.load).toHaveBeenCalledWith('items/pageIndex');
+        expect(consoleSpy).toHaveBeenCalledWith('Breaks found: 1');
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });

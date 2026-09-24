@@ -144,6 +144,29 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   test.each([
+    'setup',
+    'get-row-properties',
+    'update-row-data',
+    'update-row-formatting',
+    'insert-row',
+    'delete-row',
+    'get-column-properties',
+    'update-column-formatting',
+    'get-cell-properties',
+    'update-cell-data',
+    'update-cell-formatting',
+  ])('Word: manage table rows, columns, and cells %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '40-tables', 'manage-table-rows-columns-cells.yaml'),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
     {
       snippetPath: path.join('samples', 'word', '42-reference-tables', 'table-of-authorities.yaml'),
       buttonIds: ['setup', 'mark-citations', 'create-table-of-authorities', 'get-properties', 'set-properties', 'delete-table'],

@@ -248,13 +248,67 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   // Mock table cell body
   const mockCellBody = {
+    font: { color: '' },
     text: 'Mock cell text',
     load: jest.fn(),
   };
 
+  const mockTableCell = {
+    body: mockCellBody,
+    cellIndex: 0,
+    columnWidth: 72,
+    horizontalAlignment: 'Left',
+    rowIndex: 1,
+    shadingColor: '#FFFFFF',
+    value: 'North',
+    verticalAlignment: 'Top',
+    width: 72,
+    load: jest.fn(),
+  };
+
+  const mockTableColumn = {
+    columnIndex: 0,
+    isFirst: true,
+    isLast: false,
+    width: 72,
+    load: jest.fn(),
+  };
+
+  const mockTableColumns = {
+    items: [mockTableColumn],
+    load: jest.fn(),
+  };
+
+  const mockTableRowCollection: any = {
+    items: [],
+    getFirst: jest.fn(),
+    load: jest.fn(),
+  };
+
+  const mockTableRow: any = {
+    cellCount: 3,
+    font: { color: '' },
+    horizontalAlignment: 'Left',
+    isHeader: false,
+    preferredHeight: 18,
+    rowIndex: 1,
+    shadingColor: '#FFFFFF',
+    values: [['North', '$125,000', 'On track']],
+    verticalAlignment: 'Top',
+    delete: jest.fn(),
+    getNext: jest.fn(),
+    insertRows: jest.fn(() => mockTableRowCollection),
+    load: jest.fn(),
+  };
+  mockTableRow.getNext.mockReturnValue(mockTableRow);
+  mockTableRowCollection.items = [mockTableRow];
+  mockTableRowCollection.getFirst.mockReturnValue(mockTableRow);
+
   // Mock table
   const mockTable = {
-    getCell: jest.fn(() => ({ body: mockCellBody })),
+    getCell: jest.fn(() => mockTableCell),
+    getRange: jest.fn(),
+    rows: mockTableRowCollection,
     load: jest.fn(),
   };
 
@@ -271,7 +325,9 @@ export function createWordMock(options: WordMockOptions = {}) {
     insertText: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
     paragraphs: mockParagraphs,
+    tableColumns: mockTableColumns,
   };
+  mockTable.getRange.mockReturnValue(mockRange);
   mockParagraph.getRange.mockReturnValue(mockRange);
 
   const mockBreak = {
@@ -530,6 +586,19 @@ export function createWordMock(options: WordMockOptions = {}) {
     replace: 'Replace',
   };
 
+  wordMockObject.Alignment = {
+    centered: 'Centered',
+    justified: 'Justified',
+    left: 'Left',
+    right: 'Right',
+  };
+
+  wordMockObject.VerticalAlignment = {
+    bottom: 'Bottom',
+    center: 'Center',
+    top: 'Top',
+  };
+
   wordMockObject.RangeLocation = {
     start: 'Start',
     end: 'End',
@@ -537,6 +606,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   wordMockObject.BuiltInStyleName = {
+    gridTable5Dark_Accent2: 'Grid Table 5 Dark - Accent 2',
     heading1: 'Heading 1',
     heading2: 'Heading 2',
     normal: 'Normal',
@@ -565,6 +635,9 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockPages,
     mockTable,
     mockTables,
+    mockTableCell,
+    mockTableColumn,
+    mockTableColumns,
     mockProperties,
     mockCoauthoring,
     mockCoauthor,

@@ -208,12 +208,12 @@ Apply these rules:
 - For a top-level class, interface, enum, or type mapping, leave `Member Name` empty and put the category in `Member ID or top-level category`.
 - Use the exact generated snippet `id`.
 - Use the exact TypeScript function name; mapped functions must use a `function name(...)` declaration that `config/build.documentation.ts` can extract.
-- Map a function at most once to any single API reference webpage. Do not map the same function to a class and several of that class's properties or methods, because those mappings repeat identical code on the same class page.
+- Map at most one function to each exact API target: a top-level class, interface, enum, or type, or a specific property or method overload. Do not add multiple examples for the same target, even when the functions demonstrate distinct scenarios.
+- Do not map the same function to a class and several of that class's properties or methods, because those mappings repeat identical code on the same class page.
 - If one function demonstrates several members on the same page, choose the single row that best represents its purpose. For a requested class, prefer the top-level `class` row. For a requested member, prefer that exact member row.
 - The same function may appear in multiple rows only when each row targets a genuinely different API page, such as a class page, its collection page, and an options-interface page.
-- Different functions may map to the same API page when they provide distinct, useful examples rather than duplicated code.
 - Do not map incidental APIs used only for setup, navigation, loading, synchronization, logging, or cleanup.
-- Do not add duplicate rows for coverage already provided by the same function.
+- Do not add duplicate rows for coverage already provided by another function.
 
 If a mapped function is renamed or moved to another snippet, update every affected CSV row in the same change.
 

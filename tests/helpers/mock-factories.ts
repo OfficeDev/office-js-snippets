@@ -228,6 +228,7 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockParagraph = {
     text: paragraphText,
+    style: '',
     font: {
       color: '',
       bold: false,
@@ -242,7 +243,49 @@ export function createWordMock(options: WordMockOptions = {}) {
   // Mock paragraph collection
   const mockParagraphs = {
     getFirst: jest.fn(() => mockParagraph),
+    getLast: jest.fn(() => mockParagraph),
     items: [mockParagraph],
+    load: jest.fn(),
+  };
+
+  const mockParagraphFormat = {
+    alignment: 'Left',
+    firstLineIndent: 0,
+    keepTogether: false,
+    keepWithNext: false,
+    leftIndent: 0,
+    lineSpacing: 12,
+    rightIndent: 0,
+    spaceAfter: 8,
+    spaceBefore: 0,
+    widowControl: true,
+    load: jest.fn(),
+    toJSON: jest.fn(function() {
+      return {
+        alignment: this.alignment,
+        firstLineIndent: this.firstLineIndent,
+        keepTogether: this.keepTogether,
+        keepWithNext: this.keepWithNext,
+        leftIndent: this.leftIndent,
+        lineSpacing: this.lineSpacing,
+        rightIndent: this.rightIndent,
+        spaceAfter: this.spaceAfter,
+        spaceBefore: this.spaceBefore,
+        widowControl: this.widowControl,
+      };
+    }),
+  };
+
+  const mockStyle = {
+    isNullObject: false,
+    name: 'SampleParagraphFormat',
+    paragraphFormat: mockParagraphFormat,
+    load: jest.fn(),
+  };
+
+  const mockStyles = {
+    getByName: jest.fn(() => mockStyle),
+    getByNameOrNullObject: jest.fn(() => mockStyle),
     load: jest.fn(),
   };
 
@@ -535,6 +578,8 @@ export function createWordMock(options: WordMockOptions = {}) {
     document: {
       body: mockBody,
       activeWindow: mockWindow,
+      addStyle: jest.fn(() => mockStyle),
+      getStyles: jest.fn(() => mockStyles),
       getSelection: jest.fn(() => mockRange),
       applyQuickStyleSet: jest.fn(),
       properties: mockProperties,
@@ -618,6 +663,10 @@ export function createWordMock(options: WordMockOptions = {}) {
     template: 'Template',
   };
 
+  wordMockObject.StyleType = {
+    paragraph: 'Paragraph',
+  };
+
   wordMockObject.TabLeader = {
     dashes: 'Dashes',
   };
@@ -629,6 +678,9 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockBody,
     mockParagraph,
     mockParagraphs,
+    mockParagraphFormat,
+    mockStyle,
+    mockStyles,
     mockBreak,
     mockBreaks,
     mockPage,

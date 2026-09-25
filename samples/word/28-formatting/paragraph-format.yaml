@@ -1,0 +1,230 @@
+order: 5
+id: word-formatting-paragraph-format
+name: Paragraph format
+description: Creates a paragraph style, sets its paragraph format, and gets the formatting properties.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.5'
+    WordApiDesktop: '1.1'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("set-alignment").addEventListener("click", () => tryCatch(setAlignment));
+        document.getElementById("set-indents").addEventListener("click", () => tryCatch(setIndents));
+        document.getElementById("set-spacing").addEventListener("click", () => tryCatch(setSpacing));
+        document.getElementById("set-pagination").addEventListener("click", () => tryCatch(setPagination));
+        document.getElementById("get-paragraph-format").addEventListener("click", () => tryCatch(getParagraphFormat));
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const styleName = "SampleParagraphFormat";
+            let sampleStyle: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
+            sampleStyle.load("isNullObject");
+            await context.sync();
+
+            if (sampleStyle.isNullObject) {
+              sampleStyle = context.document.addStyle(styleName, Word.StyleType.paragraph);
+            }
+
+            const paragraphFormat: Word.ParagraphFormat = sampleStyle.paragraphFormat;
+            paragraphFormat.alignment = Word.Alignment.left;
+            paragraphFormat.firstLineIndent = 0;
+            paragraphFormat.keepTogether = false;
+            paragraphFormat.keepWithNext = false;
+            paragraphFormat.leftIndent = 0;
+            paragraphFormat.lineSpacing = 12;
+            paragraphFormat.rightIndent = 0;
+            paragraphFormat.spaceAfter = 8;
+            paragraphFormat.spaceBefore = 0;
+            paragraphFormat.widowControl = true;
+
+            const body: Word.Body = context.document.body;
+            body.clear();
+            body.insertParagraph(
+              "The following filler paragraphs position the styled sample text near a page boundary.",
+              Word.InsertLocation.start
+            );
+
+            for (let i = 1; i <= 18; i++) {
+              body.insertParagraph(
+                `Filler paragraph ${i}: This text reserves space so pagination changes are easier to see.`,
+                Word.InsertLocation.end
+              );
+            }
+
+            const sampleText =
+              "Office Add-ins extend Word with web technologies and the Office JavaScript API. " +
+              "A paragraph style can consistently control alignment, indentation, spacing, and pagination across document content. " +
+              "Use the actions in the task pane to change the SampleParagraphFormat style and compare how these paragraphs appear.";
+
+            for (let i = 1; i <= 4; i++) {
+              const sampleParagraph: Word.Paragraph = body.insertParagraph(
+                `Styled sample paragraph ${i}. ${sampleText}`,
+                Word.InsertLocation.end
+              );
+              sampleParagraph.style = styleName;
+            }
+
+            await context.sync();
+            console.log("Created page-length content with four SampleParagraphFormat paragraphs.");
+          });
+        }
+
+        async function setAlignment() {
+          // Sets the alignment of a custom paragraph style.
+          await Word.run(async (context) => {
+            const styleName = "SampleParagraphFormat";
+            const sampleStyle: Word.Style = context.document.getStyles().getByName(styleName);
+            const paragraphFormat: Word.ParagraphFormat = sampleStyle.paragraphFormat;
+            paragraphFormat.alignment = Word.Alignment.justified;
+            await context.sync();
+
+            console.log("Set the SampleParagraphFormat alignment to justified.");
+          });
+        }
+
+        async function setIndents() {
+          // Sets the first-line, left, and right indents of a custom paragraph style.
+          await Word.run(async (context) => {
+            const styleName = "SampleParagraphFormat";
+            const sampleStyle: Word.Style = context.document.getStyles().getByName(styleName);
+            const paragraphFormat: Word.ParagraphFormat = sampleStyle.paragraphFormat;
+            paragraphFormat.firstLineIndent = 18;
+            paragraphFormat.leftIndent = 24;
+            paragraphFormat.rightIndent = 12;
+            await context.sync();
+
+            console.log("Updated the SampleParagraphFormat indents.");
+          });
+        }
+
+        async function setSpacing() {
+          // Sets the line and paragraph spacing of a custom paragraph style.
+          await Word.run(async (context) => {
+            const styleName = "SampleParagraphFormat";
+            const sampleStyle: Word.Style = context.document.getStyles().getByName(styleName);
+            const paragraphFormat: Word.ParagraphFormat = sampleStyle.paragraphFormat;
+            paragraphFormat.lineSpacing = 18;
+            paragraphFormat.spaceAfter = 12;
+            paragraphFormat.spaceBefore = 6;
+            await context.sync();
+
+            console.log("Updated the SampleParagraphFormat spacing.");
+          });
+        }
+
+        async function setPagination() {
+          // Keeps styled paragraphs together and controls page breaks around them.
+          await Word.run(async (context) => {
+            const styleName = "SampleParagraphFormat";
+            const sampleStyle: Word.Style = context.document.getStyles().getByName(styleName);
+            const paragraphFormat: Word.ParagraphFormat = sampleStyle.paragraphFormat;
+            paragraphFormat.keepTogether = true;
+            paragraphFormat.keepWithNext = true;
+            paragraphFormat.widowControl = true;
+            await context.sync();
+
+            console.log("Updated the SampleParagraphFormat pagination settings.");
+          });
+        }
+
+        async function getParagraphFormat() {
+          // Gets the paragraph format properties of a custom paragraph style.
+          await Word.run(async (context) => {
+            const styleName = "SampleParagraphFormat";
+            const sampleStyle: Word.Style = context.document.getStyles().getByName(styleName);
+            const paragraphFormat: Word.ParagraphFormat = sampleStyle.paragraphFormat;
+            const loadOptions: Word.Interfaces.ParagraphFormatLoadOptions = {
+              alignment: true,
+              firstLineIndent: true,
+              keepTogether: true,
+              keepWithNext: true,
+              leftIndent: true,
+              lineSpacing: true,
+              rightIndent: true,
+              spaceAfter: true,
+              spaceBefore: true,
+              widowControl: true
+            };
+            paragraphFormat.load(loadOptions);
+            await context.sync();
+
+            const formatData: Word.Interfaces.ParagraphFormatData = paragraphFormat.toJSON();
+            console.log("SampleParagraphFormat properties:", formatData);
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            This sample shows how to set and get the paragraph format of a custom paragraph style. Set up creates enough
+            content to make alignment and pagination changes visible.
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <button id="setup">Create sample paragraphs and style</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="set-alignment">Set alignment</button>
+            <button id="set-indents">Set indents</button>
+            <button id="set-spacing">Set spacing</button>
+            <button id="set-pagination">Set pagination</button>
+            <button id="get-paragraph-format">Get paragraph format</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

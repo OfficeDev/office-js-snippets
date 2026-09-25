@@ -30808,16 +30808,20 @@ Word.Document#selection:member:
 Word.Document#sections:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
 
+
+    // Gets every section and reads the text in each section body.
 
     await Word.run(async (context) => {
-      context.document.sections
-        .getFirst()
-        .getFooter("EvenPages")
-        .insertParagraph("This is an even-pages footer.", "End");
+      const sections: Word.SectionCollection = context.document.sections;
+      sections.load("items/body/text");
 
       await context.sync();
+
+      sections.items.forEach((section: Word.Section, index: number) => {
+        console.log(`Section ${index + 1}: ${section.body.text}`);
+      });
     });
 Word.Document#settings:member:
   - >-
@@ -32110,15 +32114,17 @@ Word.InsertLocation:enum:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
 
 
-    // Inserts a section without an associated page break.
+    // Adds a section at the current position without adding a page break.
 
     await Word.run(async (context) => {
       const body: Word.Body = context.document.body;
-      body.insertBreak(Word.BreakType.sectionContinuous, Word.InsertLocation.end);
+      const insertLocation: Word.InsertLocation = Word.InsertLocation.end;
+      body.insertBreak(Word.BreakType.sectionContinuous, insertLocation);
+      body.insertParagraph("Continuous section", insertLocation);
 
       await context.sync();
 
-      console.log("Inserted section without an associated page break.");
+      console.log("Added a section without adding a page break.");
     });
 Word.InsertShapeOptions:interface:
   - >-
@@ -35487,6 +35493,29 @@ Word.Section#getHeader:member(1):
 
       await context.sync();
     });
+Word.Section#getNextOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
+
+
+    // Navigates from the first section to the next section when one exists.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const nextSection: Word.Section = firstSection.getNextOrNullObject();
+      nextSection.load("isNullObject, body/text");
+
+      await context.sync();
+
+      if (nextSection.isNullObject) {
+        console.log("The document doesn't have another section.");
+        return;
+      }
+
+      console.log(`Next section text: ${nextSection.body.text}`);
+    });
 Word.Section#pageSetup:member:
   - >-
     // Link to full sample:
@@ -35531,15 +35560,17 @@ Word.Section:class:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
 
 
-    // Inserts a section break on the next page.
+    // Gets the first section and reads the text in its body.
 
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.insertBreak(Word.BreakType.sectionNext, Word.InsertLocation.end);
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const firstSectionBody: Word.Body = firstSection.body;
+      firstSectionBody.load("text");
 
       await context.sync();
 
-      console.log("Inserted section break on next page.");
+      console.log(`First section text: ${firstSectionBody.text}`);
     });
 Word.SectionCollection:class:
   - >-
@@ -35547,29 +35578,35 @@ Word.SectionCollection:class:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
 
 
-    // Inserts a section break on the next even page.
+    // Gets every section and reads the text in each section body.
 
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.insertBreak(Word.BreakType.sectionEven, Word.InsertLocation.end);
+      const sections: Word.SectionCollection = context.document.sections;
+      sections.load("items/body/text");
 
       await context.sync();
 
-      console.log("Inserted section break on next even page.");
+      sections.items.forEach((section: Word.Section, index: number) => {
+        console.log(`Section ${index + 1}: ${section.body.text}`);
+      });
     });
 Word.SectionCollection#getFirst:member(1):
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
 
+
+    // Gets the first section and reads the text in its body.
 
     await Word.run(async (context) => {
-      context.document.sections
-        .getFirst()
-        .getFooter("EvenPages")
-        .insertParagraph("This is an even-pages footer.", "End");
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const firstSectionBody: Word.Body = firstSection.body;
+      firstSectionBody.load("text");
 
       await context.sync();
+
+      console.log(`First section text: ${firstSectionBody.text}`);
     });
 Word.SectionCollection#items:member:
   - >-

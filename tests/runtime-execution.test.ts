@@ -145,6 +145,26 @@ describe('Runtime Execution Tests - Word', () => {
 
   test.each([
     'setup',
+    'get-first-section',
+    'get-sections',
+    'get-next-section',
+    'add-next-section',
+    'add-even-section',
+    'add-odd-section',
+    'add-continuous-section',
+  ])('Word: manage sections %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'insert-section-breaks.yaml'),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    'setup',
     'get-row-properties',
     'update-row-data',
     'update-row-formatting',

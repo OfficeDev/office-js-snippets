@@ -75,6 +75,21 @@ describe('Runtime Execution Tests - Excel', () => {
       },
     });
   });
+
+  test.each([
+    'setup',
+    'add-rows',
+    'get-row-count',
+    'get-first-row',
+    'delete-rows',
+  ])('Excel: manage table rows %s action executes without runtime errors', async (buttonId) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '46-table', 'manage-table-rows.yaml'),
+      buttonId,
+    });
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe('Runtime Execution Tests - Word', () => {

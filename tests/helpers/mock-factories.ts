@@ -142,11 +142,37 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     load: jest.fn(),
   };
 
+  const mockTableRow = {
+    index: 0,
+    values: [['Pau Pons', 'North', 1400]],
+    load: jest.fn(),
+  };
+
+  const mockTableRows = {
+    items: [mockTableRow],
+    count: 1,
+    add: jest.fn(() => mockTableRow),
+    deleteRows: jest.fn(),
+    getCount: jest.fn(() => ({ value: 1 })),
+    getItemAt: jest.fn(() => mockTableRow),
+    load: jest.fn(),
+  };
+
+  const mockTable = {
+    name: 'SalesTable',
+    rows: mockTableRows,
+  };
+
   const mockWorksheet = {
     name: worksheetName,
     isNullObject: false,
     getRange: jest.fn(() => mockRange),
     getRangeByIndexes: jest.fn(() => mockRange),
+    getUsedRange: jest.fn(() => mockRange),
+    tables: {
+      add: jest.fn(() => mockTable),
+      getItem: jest.fn(() => mockTable),
+    },
     load: jest.fn(),
     delete: jest.fn(),
     activate: jest.fn(),

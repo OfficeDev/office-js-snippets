@@ -215,6 +215,9 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockBorders = {
     items: [mockBorder],
+    outsideBorderColor: '#C65911',
+    outsideBorderType: 'Single',
+    outsideBorderWidth: 'Pt100',
     load: jest.fn(),
   };
 
@@ -276,10 +279,30 @@ export function createWordMock(options: WordMockOptions = {}) {
     }),
   };
 
+  const mockShading = {
+    backgroundPatternColor: '#FFFFFF',
+    foregroundPatternColor: '#FFFFFF',
+    texture: 'None',
+    load: jest.fn(),
+  };
+
+  const mockStyleFont = {
+    color: '#000000',
+    name: 'Calibri',
+    size: 11,
+    load: jest.fn(),
+  };
+
   const mockStyle = {
     isNullObject: false,
     name: 'SampleParagraphFormat',
+    nameLocal: 'Sample Style',
+    type: 'Paragraph',
+    borders: mockBorders,
+    font: mockStyleFont,
     paragraphFormat: mockParagraphFormat,
+    shading: mockShading,
+    delete: jest.fn(),
     load: jest.fn(),
   };
 
@@ -667,6 +690,22 @@ export function createWordMock(options: WordMockOptions = {}) {
     paragraph: 'Paragraph',
   };
 
+  wordMockObject.BorderType = {
+    dashed: 'Dashed',
+    single: 'Single',
+  };
+
+  wordMockObject.BorderWidth = {
+    pt100: 'Pt100',
+    pt225: 'Pt225',
+  };
+
+  wordMockObject.ShadingTextureType = {
+    darkTrellis: 'DarkTrellis',
+    lightTrellis: 'LightTrellis',
+    solid: 'Solid',
+  };
+
   wordMockObject.TabLeader = {
     dashes: 'Dashes',
   };
@@ -679,6 +718,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockParagraph,
     mockParagraphs,
     mockParagraphFormat,
+    mockShading,
     mockStyle,
     mockStyles,
     mockBreak,

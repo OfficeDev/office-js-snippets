@@ -100,6 +100,7 @@ export async function runWordSnippetTest(options: RunSnippetTestOptions) {
     mockBody,
     mockParagraph,
     mockParagraphFormat,
+    mockShading,
     mockStyle,
     mockStyles,
   } = createWordMock(
@@ -125,6 +126,7 @@ export async function runWordSnippetTest(options: RunSnippetTestOptions) {
       mockBody,
       mockParagraph,
       mockParagraphFormat,
+      mockShading,
       mockStyle,
       mockStyles,
     });
@@ -136,6 +138,7 @@ export async function runWordSnippetTest(options: RunSnippetTestOptions) {
     mockBody,
     mockParagraph,
     mockParagraphFormat,
+    mockShading,
     mockStyle,
     mockStyles,
   };

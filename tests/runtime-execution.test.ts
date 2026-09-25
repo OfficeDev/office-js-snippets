@@ -237,6 +237,70 @@ describe('Runtime Execution Tests - Word', () => {
       });
     }
   );
+
+  test.each([
+    'setup',
+    'set-border-type',
+    'set-border-width',
+    'set-border-color',
+    'get-border-properties',
+    'set-background-color',
+    'set-foreground-color',
+    'set-texture',
+    'get-shading',
+  ])(
+    'Word: manage styles %s action executes without runtime errors',
+    async (buttonId) => {
+      await runWordSnippetTest({
+        snippetPath: path.join('samples', 'word', '28-formatting', 'manage-styles.yaml'),
+        buttonId,
+        assertions: ({ mockContext, mockShading, mockStyle, mockStyles }) => {
+          expect(mockContext.sync).toHaveBeenCalled();
+          expect(
+            mockStyles.getByNameOrNullObject.mock.calls.length + mockStyles.getByName.mock.calls.length
+          ).toBeGreaterThan(0);
+
+          if (buttonId === 'set-border-type') {
+            expect(mockStyle.borders.outsideBorderType).toBe('Dashed');
+          }
+
+          if (buttonId === 'set-border-width') {
+            expect(mockStyle.borders.outsideBorderWidth).toBe('Pt225');
+          }
+
+          if (buttonId === 'set-border-color') {
+            expect(mockStyle.borders.outsideBorderColor).toBe('#4472C4');
+          }
+
+          if (buttonId === 'get-border-properties') {
+            expect(mockStyle.borders.load).toHaveBeenCalledWith(
+              'outsideBorderColor, outsideBorderType, outsideBorderWidth'
+            );
+          }
+
+          if (buttonId === 'set-background-color') {
+            expect(mockShading.backgroundPatternColor).toBe('#D9EAF7');
+          }
+
+          if (buttonId === 'set-foreground-color') {
+            expect(mockShading.foregroundPatternColor).toBe('#1F4E78');
+          }
+
+          if (buttonId === 'set-texture') {
+            expect(mockShading.texture).toBe('DarkTrellis');
+          }
+
+          if (buttonId === 'get-shading') {
+            expect(mockShading.load).toHaveBeenCalledWith(
+              'backgroundPatternColor, foregroundPatternColor, texture'
+            );
+          }
+
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        },
+      });
+    }
+  );
 });
 
 describe('Runtime Execution Tests - PowerPoint', () => {

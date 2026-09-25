@@ -1,21 +1,65 @@
 order: 4
 id: word-formatting-manage-styles
 name: Manage styles
-description: This sample shows how to perform operations on the styles in the current document and how to add and delete custom styles.
+description: Creates, applies, formats, and deletes custom styles in a Word document.
+author: OfficeDev
 host: WORD
 api_set:
+    WordApi: '1.6'
     WordApiDesktop: '1.1'
 script:
     content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("count").addEventListener("click", () => tryCatch(getCount));
         document.getElementById("add-style").addEventListener("click", () => tryCatch(addStyle));
         document.getElementById("properties").addEventListener("click", () => tryCatch(getProperties));
         document.getElementById("apply-style").addEventListener("click", () => tryCatch(applyStyle));
         document.getElementById("font-properties").addEventListener("click", () => tryCatch(setFontProperties));
         document.getElementById("paragraph-format").addEventListener("click", () => tryCatch(setParagraphFormat));
-        document.getElementById("border-properties").addEventListener("click", () => tryCatch(setBorderProperties));
-        document.getElementById("shading-properties").addEventListener("click", () => tryCatch(setShadingProperties));
+        document.getElementById("set-border-type").addEventListener("click", () => tryCatch(setOutsideBorderType));
+        document.getElementById("set-border-width").addEventListener("click", () => tryCatch(setOutsideBorderWidth));
+        document.getElementById("set-border-color").addEventListener("click", () => tryCatch(setOutsideBorderColor));
+        document.getElementById("get-border-properties").addEventListener("click", () => tryCatch(getOutsideBorderProperties));
+        document.getElementById("set-background-color").addEventListener("click", () => tryCatch(setBackgroundColor));
+        document.getElementById("set-foreground-color").addEventListener("click", () => tryCatch(setForegroundColor));
+        document.getElementById("set-texture").addEventListener("click", () => tryCatch(setTexture));
+        document.getElementById("get-shading").addEventListener("click", () => tryCatch(getShading));
         document.getElementById("delete-style").addEventListener("click", () => tryCatch(deleteStyle));
+
+        async function setup() {
+          // Creates a custom paragraph style and applies it to sample text.
+          await Word.run(async (context) => {
+            const styleName = "Sample Style";
+            let sampleStyle: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
+            sampleStyle.load("isNullObject");
+            await context.sync();
+
+            if (sampleStyle.isNullObject) {
+              sampleStyle = context.document.addStyle(styleName, Word.StyleType.paragraph);
+            }
+
+            const borders: Word.BorderCollection = sampleStyle.borders;
+            borders.outsideBorderType = Word.BorderType.single;
+            borders.outsideBorderWidth = Word.BorderWidth.pt100;
+            borders.outsideBorderColor = "#C65911";
+
+            const shading: Word.Shading = sampleStyle.shading;
+            shading.backgroundPatternColor = "#FFF2CC";
+            shading.foregroundPatternColor = "#C65911";
+            shading.texture = Word.ShadingTextureType.lightTrellis;
+
+            const body: Word.Body = context.document.body;
+            body.clear();
+            const sampleParagraph: Word.Paragraph = body.insertParagraph(
+              "Use the task pane actions to change this custom paragraph style.",
+              Word.InsertLocation.start
+            );
+            sampleParagraph.style = styleName;
+
+            await context.sync();
+            console.log("Created and applied the Sample Style custom paragraph style.");
+          });
+        }
 
         async function getCount() {
           // Gets the number of available styles stored with the document.
@@ -38,12 +82,12 @@ script:
             }
 
             const style: Word.Style = context.document.getStyles().getByNameOrNullObject(newStyleName);
-            style.load();
+            style.load("isNullObject");
             await context.sync();
 
             if (!style.isNullObject) {
               console.warn(
-                `There's an existing style with the same name '${newStyleName}'! Please provide another style name.`
+                `There's an existing style with the same name '${newStyleName}'. Enter another style name.`
               );
               return;
             }
@@ -52,7 +96,7 @@ script:
             context.document.addStyle(newStyleName, newStyleType);
             await context.sync();
 
-            console.log(newStyleName + " has been added to the style list.");
+            console.log(`${newStyleName} was added to the style list.`);
           });
         }
 
@@ -66,17 +110,19 @@ script:
             }
 
             const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
-            style.load();
+            style.load("isNullObject, nameLocal, type");
+            style.font.load("color, name, size");
+            style.paragraphFormat.load("alignment, leftIndent");
             await context.sync();
 
             if (style.isNullObject) {
               console.warn(`There's no existing style with the name '${styleName}'.`);
             } else {
-              style.font.load();
-              style.paragraphFormat.load();
-              await context.sync();
-
-              console.log(`Properties of the '${styleName}' style:`, style);
+              console.log(`Style: ${style.nameLocal}`);
+              console.log(`Type: ${style.type}`);
+              console.log(`Font: ${style.font.name}, ${style.font.size} points, ${style.font.color}`);
+              console.log(`Alignment: ${style.paragraphFormat.alignment}`);
+              console.log(`Left indent: ${style.paragraphFormat.leftIndent} points`);
             }
           });
         }
@@ -91,7 +137,7 @@ script:
             }
 
             const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
-            style.load();
+            style.load("isNullObject, nameLocal, type");
             await context.sync();
 
             if (style.isNullObject) {
@@ -101,139 +147,166 @@ script:
             } else {
               const body: Word.Body = context.document.body;
               body.clear();
-              body.insertParagraph(
-                "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
-                "Start"
+              const paragraph: Word.Paragraph = body.insertParagraph(
+                "This paragraph uses a custom style.",
+                Word.InsertLocation.start
               );
-              const paragraph: Word.Paragraph = body.paragraphs.getFirst();
               paragraph.style = style.nameLocal;
-              console.log(`'${styleName}' style applied to first paragraph.`);
+              await context.sync();
+
+              console.log(`Applied '${styleName}' to the sample paragraph.`);
             }
           });
         }
 
         async function setFontProperties() {
-          // Updates font properties (e.g., color, size) of the specified style.
+          // Sets the font color and size of the sample style.
           await Word.run(async (context) => {
-            const styleName = (document.getElementById("style-name") as HTMLInputElement).value;
-            if (styleName == "") {
-              console.warn("Enter a style name to update font properties.");
-              return;
-            }
-
-            const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
-            style.load();
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const font: Word.Font = sampleStyle.font;
+            font.color = "#C00000";
+            font.size = 20;
             await context.sync();
 
-            if (style.isNullObject) {
-              console.warn(`There's no existing style with the name '${styleName}'.`);
-            } else {
-              const font: Word.Font = style.font;
-              font.color = "#FF0000";
-              font.size = 20;
-              console.log(`Successfully updated font properties of the '${styleName}' style.`);
-            }
+            console.log("Set the Sample Style font color to red and size to 20 points.");
           });
         }
 
         async function setParagraphFormat() {
-          // Sets certain aspects of the specified style's paragraph format e.g., the left indent size and the alignment.
+          // Sets the alignment and left indent of the sample style.
           await Word.run(async (context) => {
-            const styleName = (document.getElementById("style-name") as HTMLInputElement).value;
-            if (styleName == "") {
-              console.warn("Enter a style name to update its paragraph format.");
-              return;
-            }
-
-            const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
-            style.load();
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const paragraphFormat: Word.ParagraphFormat = sampleStyle.paragraphFormat;
+            paragraphFormat.leftIndent = 30;
+            paragraphFormat.alignment = Word.Alignment.centered;
             await context.sync();
 
-            if (style.isNullObject) {
-              console.warn(`There's no existing style with the name '${styleName}'.`);
-            } else {
-              style.paragraphFormat.leftIndent = 30;
-              style.paragraphFormat.alignment = Word.Alignment.centered;
-              console.log(`Successfully the paragraph format of the '${styleName}' style.`);
-            }
+            console.log("Centered the Sample Style text and set its left indent to 30 points.");
           });
         }
 
-        async function setBorderProperties() {
-          // Updates border properties (e.g., type, width, color) of the specified style.
+        async function setOutsideBorderType() {
+          // Sets the outside border type of the sample style.
           await Word.run(async (context) => {
-            const styleName = (document.getElementById("style-name") as HTMLInputElement).value;
-            if (styleName == "") {
-              console.warn("Enter a style name to update border properties.");
-              return;
-            }
-
-            const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
-            style.load();
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const borders: Word.BorderCollection = sampleStyle.borders;
+            borders.outsideBorderType = Word.BorderType.dashed;
             await context.sync();
 
-            if (style.isNullObject) {
-              console.warn(`There's no existing style with the name '${styleName}'.`);
-            } else {
-              const borders: Word.BorderCollection = style.borders;
-              borders.load("items");
-              await context.sync();
-
-              borders.outsideBorderType = Word.BorderType.dashed;
-              borders.outsideBorderWidth = Word.BorderWidth.pt025;
-              borders.outsideBorderColor = "green";
-              console.log("Updated outside borders.");
-            }
+            console.log("Set the Sample Style outside border type to dashed.");
           });
         }
 
-        async function setShadingProperties() {
-          // Updates shading properties (e.g., texture, pattern colors) of the specified style.
+        async function setOutsideBorderWidth() {
+          // Sets the outside border width of the sample style.
           await Word.run(async (context) => {
-            const styleName = (document.getElementById("style-name") as HTMLInputElement).value;
-            if (styleName == "") {
-              console.warn("Enter a style name to update shading properties.");
-              return;
-            }
-
-            const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
-            style.load();
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const borders: Word.BorderCollection = sampleStyle.borders;
+            const borderWidth: Word.BorderWidth = Word.BorderWidth.pt225;
+            borders.outsideBorderWidth = borderWidth;
             await context.sync();
 
-            if (style.isNullObject) {
-              console.warn(`There's no existing style with the name '${styleName}'.`);
-            } else {
-              const shading: Word.Shading = style.shading;
-              shading.load();
-              await context.sync();
+            console.log("Set the Sample Style outside border width to 2.25 points.");
+          });
+        }
 
-              shading.backgroundPatternColor = "blue";
-              shading.foregroundPatternColor = "yellow";
-              shading.texture = Word.ShadingTextureType.darkTrellis;
+        async function setOutsideBorderColor() {
+          // Sets the outside border color of the sample style.
+          await Word.run(async (context) => {
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const borders: Word.BorderCollection = sampleStyle.borders;
+            borders.outsideBorderColor = "#4472C4";
+            await context.sync();
 
-              console.log("Updated shading.");
-            }
+            console.log("Set the Sample Style outside border color to blue.");
+          });
+        }
+
+        async function getOutsideBorderProperties() {
+          // Gets the outside border properties of the sample style.
+          await Word.run(async (context) => {
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const borders: Word.BorderCollection = sampleStyle.borders;
+            borders.load("outsideBorderColor, outsideBorderType, outsideBorderWidth");
+            await context.sync();
+
+            console.log("Outside border color:", borders.outsideBorderColor);
+            console.log("Outside border type:", borders.outsideBorderType);
+            console.log("Outside border width:", borders.outsideBorderWidth);
+          });
+        }
+
+        async function setBackgroundColor() {
+          // Sets the background pattern color of the sample style.
+          await Word.run(async (context) => {
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const shading: Word.Shading = sampleStyle.shading;
+            shading.backgroundPatternColor = "#D9EAF7";
+            await context.sync();
+
+            console.log("Set the Sample Style background pattern color to light blue.");
+          });
+        }
+
+        async function setForegroundColor() {
+          // Sets the foreground pattern color of the sample style.
+          await Word.run(async (context) => {
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const shading: Word.Shading = sampleStyle.shading;
+            shading.foregroundPatternColor = "#1F4E78";
+            await context.sync();
+
+            console.log("Set the Sample Style foreground pattern color to dark blue.");
+          });
+        }
+
+        async function setTexture() {
+          // Sets the shading texture of the sample style.
+          await Word.run(async (context) => {
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const shading: Word.Shading = sampleStyle.shading;
+            const texture: Word.ShadingTextureType = Word.ShadingTextureType.darkTrellis;
+            shading.texture = texture;
+            await context.sync();
+
+            console.log("Set the Sample Style shading texture to dark trellis.");
+          });
+        }
+
+        async function getShading() {
+          // Gets the pattern colors and texture of the sample style.
+          await Word.run(async (context) => {
+            const sampleStyle: Word.Style = context.document.getStyles().getByName("Sample Style");
+            const shading: Word.Shading = sampleStyle.shading;
+            shading.load("backgroundPatternColor, foregroundPatternColor, texture");
+            await context.sync();
+
+            console.log("Background pattern color:", shading.backgroundPatternColor);
+            console.log("Foreground pattern color:", shading.foregroundPatternColor);
+            console.log("Texture:", shading.texture);
           });
         }
 
         async function deleteStyle() {
-          // Deletes the custom style.
+          // Deletes the specified custom style.
           await Word.run(async (context) => {
-            const styleName = (document.getElementById("style-name") as HTMLInputElement).value;
+            const styleName = (document.getElementById("style-name-to-delete") as HTMLInputElement).value;
             if (styleName == "") {
               console.warn("Enter a style name to delete.");
               return;
             }
 
             const style: Word.Style = context.document.getStyles().getByNameOrNullObject(styleName);
-            style.load();
+            style.load("isNullObject");
             await context.sync();
 
             if (style.isNullObject) {
               console.warn(`There's no existing style with the name '${styleName}'.`);
             } else {
               style.delete();
-              console.log(`Successfully deleted custom style '${styleName}'.`);
+              await context.sync();
+
+              console.log(`Deleted the custom style '${styleName}'.`);
             }
           });
         }
@@ -251,57 +324,54 @@ script:
 template:
     content: |-
         <section>
-            This sample demonstrates how to manage styles.
+            <p>Create a reusable paragraph style, explore its formatting, and manage other custom styles in the document.</p>
+            <p><b>Important:</b> Borders, foreground patterns, and textures require Word on Windows with WordApiDesktop 1.1.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Create the Sample Style with an outside border and patterned shading, then apply it to sample text.</p>
+            <button id="setup">Set up the sample</button>
         </section>
         <section>
-            <h3>Try it out</h3>
-            <p>
-                <h4>Get current number of styles</h4>
-                <button id="count">Get count</button>
-            </p>
+            <h3>Format the Sample Style</h3>
+            <h4>Font and paragraph</h4>
+            <button id="font-properties">Set font properties</button>
+            <button id="paragraph-format">Set paragraph format</button>
+            <h4>Outside border</h4>
+            <button id="set-border-type">Set border type</button>
+            <button id="set-border-width">Set border width</button>
+            <button id="set-border-color">Set border color</button>
+            <button id="get-border-properties">Get border properties</button>
+            <h4>Shading</h4>
+            <button id="set-background-color">Set background color</button>
+            <button id="set-foreground-color">Set foreground color</button>
+            <button id="set-texture">Set texture</button>
+            <button id="get-shading">Get shading</button>
+        </section>
+        <section>
+            <h3>Manage other styles</h3>
+            <button id="count">Get style count</button>
             <h4>Add a custom style</h4>
-            <div>Give the style an alphanumeric name. Must start with a letter. Examples: NewName, newname1</div>
-            <p>
-                <label style="margin-left: 20px">Name:</label>
-                <input id="new-style-name"/>
-            </p>
-                <p />
-                <label style="margin-left: 20px">Type:</label>
-                <select id="new-style-type">
+            <p>Give the style an alphanumeric name that starts with a letter.</p>
+            <label for="new-style-name">Name:</label>
+            <input id="new-style-name" />
+            <label for="new-style-type">Type:</label>
+            <select id="new-style-type">
                 <option>Paragraph</option>
-            <option>Character</option>  
-            <option>List</option>  
-            <option>Table</option>
-          </select>
-                <p />
-                <button id="add-style">Add style</button>
-                <h4>Use custom style</h4>
-                <label style="margin-left: 20px">Style name:</label>
-                <input id="style-name-to-use"/>
-                <p />
-                <button id="properties">Get properties</button>
-                <p />
-                <button id="apply-style">Apply style to paragraph</button>
-                <h4>Update custom style</h4>
-                <label style="margin-left: 20px">Style name:</label>
-                <input id="style-name"/>
-                <p />
-                <div>Set font color to red and font size to 20.</div>
-                <button id="font-properties">Set font properties</button>
-                <p />
-                <div>Set paragraph left indent size to 30 and alignment to center.</div>
-                <button id="paragraph-format">Set paragraph format</button>
-                <p />
-                <div>Set outside border type to dashed, width to pt. 0.25, and color to green.</div>
-                <button id="border-properties">Set border properties</button>
-                <p />
-                <div>Set texture to DarkTrellis, foreground pattern color to yellow, and background pattern color to blue.</div>
-                <button id="shading-properties">Set shading properties</button>
-                <h4>Delete custom style</h4>
-                <p>
-                    <label style="margin-left: 20px">Style name:</label>
-                    <input id="style-name-to-delete"/>
-                    <button id="delete-style">Delete style</button>
+                <option>Character</option>
+                <option>List</option>
+                <option>Table</option>
+            </select>
+            <button id="add-style">Add style</button>
+            <h4>Use a custom style</h4>
+            <label for="style-name-to-use">Style name:</label>
+            <input id="style-name-to-use" />
+            <button id="properties">Get properties</button>
+            <button id="apply-style">Apply style to paragraph</button>
+            <h4>Delete a custom style</h4>
+            <label for="style-name-to-delete">Style name:</label>
+            <input id="style-name-to-delete" />
+            <button id="delete-style">Delete style</button>
         </section>
     language: html
 style:
@@ -323,8 +393,26 @@ style:
             font-size: 16px;
         }
 
+        h4 {
+            margin-bottom: 8px;
+        }
+
         p {
             margin: 0 0 10px 0;
+        }
+
+        label,
+        input,
+        select {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input,
+        select {
+            box-sizing: border-box;
+            padding: 6px;
+            width: 100%;
         }
 
         button {
@@ -347,20 +435,6 @@ style:
 
         button:active {
             background-color: #d0d0d0;
-        }
-
-        input {
-            padding: 8px;
-            margin: 5px 0;
-            border: 1px solid #ccc;
-            border-radius: 2px;
-            font-size: 14px;
-        }
-
-        .header {
-            text-align: center;
-            background-color: #f3f2f1;
-            padding: 10px;
         }
     language: css
 libraries: |-

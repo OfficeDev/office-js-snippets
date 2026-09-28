@@ -528,6 +528,33 @@ export function createWordMock(options: WordMockOptions = {}) {
     tables: mockTables,
   };
 
+  const mockSectionBody = {
+    ...mockBody,
+    text: 'Mock section body',
+    load: jest.fn(),
+  };
+  const mockNextSectionBody = {
+    ...mockBody,
+    text: 'Mock next section body',
+    load: jest.fn(),
+  };
+  const mockNextSection = {
+    body: mockNextSectionBody,
+    isNullObject: false,
+    load: jest.fn(),
+  };
+  const mockSection = {
+    body: mockSectionBody,
+    isNullObject: false,
+    getNextOrNullObject: jest.fn(() => mockNextSection),
+    load: jest.fn(),
+  };
+  const mockSections = {
+    items: [mockSection, mockNextSection],
+    getFirst: jest.fn(() => mockSection),
+    load: jest.fn(),
+  };
+
   // Mock coauthoring objects
   const mockCoauthor = {
     name: 'Mock Author',
@@ -634,6 +661,7 @@ export function createWordMock(options: WordMockOptions = {}) {
       properties: mockProperties,
       coauthoring: mockCoauthoring,
       compare: jest.fn(),
+      sections: mockSections,
       tablesOfAuthorities: mockTablesOfAuthorities,
       tablesOfContents: mockTablesOfContents,
       tablesOfFigures: mockTablesOfFigures,
@@ -678,6 +706,13 @@ export function createWordMock(options: WordMockOptions = {}) {
     start: 'Start',
     end: 'End',
     replace: 'Replace',
+  };
+
+  wordMockObject.BreakType = {
+    sectionContinuous: 'SectionContinuous',
+    sectionEven: 'SectionEven',
+    sectionNext: 'SectionNext',
+    sectionOdd: 'SectionOdd',
   };
 
   wordMockObject.Alignment = {

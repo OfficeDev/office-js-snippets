@@ -75,6 +75,21 @@ describe('Runtime Execution Tests - Excel', () => {
       },
     });
   });
+
+  test.each([
+    'setup',
+    'add-rows',
+    'get-row-count',
+    'get-first-row',
+    'delete-rows',
+  ])('Excel: manage table rows %s action executes without runtime errors', async (buttonId) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '46-table', 'manage-table-rows.yaml'),
+      buttonId,
+    });
+
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe('Runtime Execution Tests - Word', () => {
@@ -144,6 +159,49 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   test.each([
+    'setup',
+    'get-first-section',
+    'get-sections',
+    'get-next-section',
+    'add-next-section',
+    'add-even-section',
+    'add-odd-section',
+    'add-continuous-section',
+  ])('Word: manage sections %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'insert-section-breaks.yaml'),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    'setup',
+    'get-row-properties',
+    'update-row-data',
+    'update-row-formatting',
+    'insert-row',
+    'delete-row',
+    'get-column-properties',
+    'update-column-formatting',
+    'get-cell-properties',
+    'update-cell-data',
+    'update-cell-formatting',
+  ])('Word: manage table rows, columns, and cells %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '40-tables', 'manage-table-rows-columns-cells.yaml'),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
     {
       snippetPath: path.join('samples', 'word', '42-reference-tables', 'table-of-authorities.yaml'),
       buttonIds: ['setup', 'mark-citations', 'create-table-of-authorities', 'get-properties', 'set-properties', 'delete-table'],
@@ -162,6 +220,122 @@ describe('Runtime Execution Tests - Word', () => {
       await runWordSnippetTest({ snippetPath, buttonId, mockOptions });
     }
   });
+
+  test.each([
+    'setup',
+    'set-alignment',
+    'set-indents',
+    'set-spacing',
+    'set-pagination',
+    'get-paragraph-format',
+  ])(
+    'Word: paragraph format %s action executes without runtime errors',
+    async (buttonId) => {
+      await runWordSnippetTest({
+        snippetPath: path.join('samples', 'word', '28-formatting', 'paragraph-format.yaml'),
+        buttonId,
+        assertions: ({ mockContext, mockParagraphFormat, mockStyles }) => {
+          expect(mockContext.sync).toHaveBeenCalled();
+          expect(
+            mockStyles.getByNameOrNullObject.mock.calls.length + mockStyles.getByName.mock.calls.length
+          ).toBeGreaterThan(0);
+
+          if (buttonId === 'set-alignment') {
+            expect(mockParagraphFormat.alignment).toBe('Justified');
+          }
+
+          if (buttonId === 'set-indents') {
+            expect(mockParagraphFormat.firstLineIndent).toBe(18);
+            expect(mockParagraphFormat.leftIndent).toBe(24);
+            expect(mockParagraphFormat.rightIndent).toBe(12);
+          }
+
+          if (buttonId === 'set-spacing') {
+            expect(mockParagraphFormat.lineSpacing).toBe(18);
+            expect(mockParagraphFormat.spaceAfter).toBe(12);
+            expect(mockParagraphFormat.spaceBefore).toBe(6);
+          }
+
+          if (buttonId === 'set-pagination') {
+            expect(mockParagraphFormat.keepTogether).toBe(true);
+            expect(mockParagraphFormat.keepWithNext).toBe(true);
+            expect(mockParagraphFormat.widowControl).toBe(true);
+          }
+
+          if (buttonId === 'get-paragraph-format') {
+            expect(mockParagraphFormat.load).toHaveBeenCalled();
+            expect(mockParagraphFormat.toJSON).toHaveBeenCalled();
+          }
+
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        },
+      });
+    }
+  );
+
+  test.each([
+    'setup',
+    'set-border-type',
+    'set-border-width',
+    'set-border-color',
+    'get-border-properties',
+    'set-background-color',
+    'set-foreground-color',
+    'set-texture',
+    'get-shading',
+  ])(
+    'Word: manage styles %s action executes without runtime errors',
+    async (buttonId) => {
+      await runWordSnippetTest({
+        snippetPath: path.join('samples', 'word', '28-formatting', 'manage-styles.yaml'),
+        buttonId,
+        assertions: ({ mockContext, mockShading, mockStyle, mockStyles }) => {
+          expect(mockContext.sync).toHaveBeenCalled();
+          expect(
+            mockStyles.getByNameOrNullObject.mock.calls.length + mockStyles.getByName.mock.calls.length
+          ).toBeGreaterThan(0);
+
+          if (buttonId === 'set-border-type') {
+            expect(mockStyle.borders.outsideBorderType).toBe('Dashed');
+          }
+
+          if (buttonId === 'set-border-width') {
+            expect(mockStyle.borders.outsideBorderWidth).toBe('Pt225');
+          }
+
+          if (buttonId === 'set-border-color') {
+            expect(mockStyle.borders.outsideBorderColor).toBe('#4472C4');
+          }
+
+          if (buttonId === 'get-border-properties') {
+            expect(mockStyle.borders.load).toHaveBeenCalledWith(
+              'outsideBorderColor, outsideBorderType, outsideBorderWidth'
+            );
+          }
+
+          if (buttonId === 'set-background-color') {
+            expect(mockShading.backgroundPatternColor).toBe('#D9EAF7');
+          }
+
+          if (buttonId === 'set-foreground-color') {
+            expect(mockShading.foregroundPatternColor).toBe('#1F4E78');
+          }
+
+          if (buttonId === 'set-texture') {
+            expect(mockShading.texture).toBe('DarkTrellis');
+          }
+
+          if (buttonId === 'get-shading') {
+            expect(mockShading.load).toHaveBeenCalledWith(
+              'backgroundPatternColor, foregroundPatternColor, texture'
+            );
+          }
+
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        },
+      });
+    }
+  );
 });
 
 describe('Runtime Execution Tests - PowerPoint', () => {

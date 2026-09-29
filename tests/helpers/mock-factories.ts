@@ -142,11 +142,37 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     load: jest.fn(),
   };
 
+  const mockTableRow = {
+    index: 0,
+    values: [['Pau Pons', 'North', 1400]],
+    load: jest.fn(),
+  };
+
+  const mockTableRows = {
+    items: [mockTableRow],
+    count: 1,
+    add: jest.fn(() => mockTableRow),
+    deleteRows: jest.fn(),
+    getCount: jest.fn(() => ({ value: 1 })),
+    getItemAt: jest.fn(() => mockTableRow),
+    load: jest.fn(),
+  };
+
+  const mockTable = {
+    name: 'SalesTable',
+    rows: mockTableRows,
+  };
+
   const mockWorksheet = {
     name: worksheetName,
     isNullObject: false,
     getRange: jest.fn(() => mockRange),
     getRangeByIndexes: jest.fn(() => mockRange),
+    getUsedRange: jest.fn(() => mockRange),
+    tables: {
+      add: jest.fn(() => mockTable),
+      getItem: jest.fn(() => mockTable),
+    },
     load: jest.fn(),
     delete: jest.fn(),
     activate: jest.fn(),
@@ -215,6 +241,9 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockBorders = {
     items: [mockBorder],
+    outsideBorderColor: '#C65911',
+    outsideBorderType: 'Single',
+    outsideBorderWidth: 'Pt100',
     load: jest.fn(),
   };
 
@@ -228,6 +257,7 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockParagraph = {
     text: paragraphText,
+    style: '',
     font: {
       color: '',
       bold: false,
@@ -242,19 +272,135 @@ export function createWordMock(options: WordMockOptions = {}) {
   // Mock paragraph collection
   const mockParagraphs = {
     getFirst: jest.fn(() => mockParagraph),
+    getLast: jest.fn(() => mockParagraph),
     items: [mockParagraph],
+    load: jest.fn(),
+  };
+
+  const mockParagraphFormat = {
+    alignment: 'Left',
+    firstLineIndent: 0,
+    keepTogether: false,
+    keepWithNext: false,
+    leftIndent: 0,
+    lineSpacing: 12,
+    rightIndent: 0,
+    spaceAfter: 8,
+    spaceBefore: 0,
+    widowControl: true,
+    load: jest.fn(),
+    toJSON: jest.fn(function() {
+      return {
+        alignment: this.alignment,
+        firstLineIndent: this.firstLineIndent,
+        keepTogether: this.keepTogether,
+        keepWithNext: this.keepWithNext,
+        leftIndent: this.leftIndent,
+        lineSpacing: this.lineSpacing,
+        rightIndent: this.rightIndent,
+        spaceAfter: this.spaceAfter,
+        spaceBefore: this.spaceBefore,
+        widowControl: this.widowControl,
+      };
+    }),
+  };
+
+  const mockShading = {
+    backgroundPatternColor: '#FFFFFF',
+    foregroundPatternColor: '#FFFFFF',
+    texture: 'None',
+    load: jest.fn(),
+  };
+
+  const mockStyleFont = {
+    color: '#000000',
+    name: 'Calibri',
+    size: 11,
+    load: jest.fn(),
+  };
+
+  const mockStyle = {
+    isNullObject: false,
+    name: 'SampleParagraphFormat',
+    nameLocal: 'Sample Style',
+    type: 'Paragraph',
+    borders: mockBorders,
+    font: mockStyleFont,
+    paragraphFormat: mockParagraphFormat,
+    shading: mockShading,
+    delete: jest.fn(),
+    load: jest.fn(),
+  };
+
+  const mockStyles = {
+    getByName: jest.fn(() => mockStyle),
+    getByNameOrNullObject: jest.fn(() => mockStyle),
     load: jest.fn(),
   };
 
   // Mock table cell body
   const mockCellBody = {
+    font: { color: '' },
     text: 'Mock cell text',
     load: jest.fn(),
   };
 
+  const mockTableCell = {
+    body: mockCellBody,
+    cellIndex: 0,
+    columnWidth: 72,
+    horizontalAlignment: 'Left',
+    rowIndex: 1,
+    shadingColor: '#FFFFFF',
+    value: 'North',
+    verticalAlignment: 'Top',
+    width: 72,
+    load: jest.fn(),
+  };
+
+  const mockTableColumn = {
+    columnIndex: 0,
+    isFirst: true,
+    isLast: false,
+    width: 72,
+    load: jest.fn(),
+  };
+
+  const mockTableColumns = {
+    items: [mockTableColumn],
+    load: jest.fn(),
+  };
+
+  const mockTableRowCollection: any = {
+    items: [],
+    getFirst: jest.fn(),
+    load: jest.fn(),
+  };
+
+  const mockTableRow: any = {
+    cellCount: 3,
+    font: { color: '' },
+    horizontalAlignment: 'Left',
+    isHeader: false,
+    preferredHeight: 18,
+    rowIndex: 1,
+    shadingColor: '#FFFFFF',
+    values: [['North', '$125,000', 'On track']],
+    verticalAlignment: 'Top',
+    delete: jest.fn(),
+    getNext: jest.fn(),
+    insertRows: jest.fn(() => mockTableRowCollection),
+    load: jest.fn(),
+  };
+  mockTableRow.getNext.mockReturnValue(mockTableRow);
+  mockTableRowCollection.items = [mockTableRow];
+  mockTableRowCollection.getFirst.mockReturnValue(mockTableRow);
+
   // Mock table
   const mockTable = {
-    getCell: jest.fn(() => ({ body: mockCellBody })),
+    getCell: jest.fn(() => mockTableCell),
+    getRange: jest.fn(),
+    rows: mockTableRowCollection,
     load: jest.fn(),
   };
 
@@ -271,7 +417,9 @@ export function createWordMock(options: WordMockOptions = {}) {
     insertText: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
     paragraphs: mockParagraphs,
+    tableColumns: mockTableColumns,
   };
+  mockTable.getRange.mockReturnValue(mockRange);
   mockParagraph.getRange.mockReturnValue(mockRange);
 
   const mockBreak = {
@@ -380,6 +528,33 @@ export function createWordMock(options: WordMockOptions = {}) {
     tables: mockTables,
   };
 
+  const mockSectionBody = {
+    ...mockBody,
+    text: 'Mock section body',
+    load: jest.fn(),
+  };
+  const mockNextSectionBody = {
+    ...mockBody,
+    text: 'Mock next section body',
+    load: jest.fn(),
+  };
+  const mockNextSection = {
+    body: mockNextSectionBody,
+    isNullObject: false,
+    load: jest.fn(),
+  };
+  const mockSection = {
+    body: mockSectionBody,
+    isNullObject: false,
+    getNextOrNullObject: jest.fn(() => mockNextSection),
+    load: jest.fn(),
+  };
+  const mockSections = {
+    items: [mockSection, mockNextSection],
+    getFirst: jest.fn(() => mockSection),
+    load: jest.fn(),
+  };
+
   // Mock coauthoring objects
   const mockCoauthor = {
     name: 'Mock Author',
@@ -479,11 +654,14 @@ export function createWordMock(options: WordMockOptions = {}) {
     document: {
       body: mockBody,
       activeWindow: mockWindow,
+      addStyle: jest.fn(() => mockStyle),
+      getStyles: jest.fn(() => mockStyles),
       getSelection: jest.fn(() => mockRange),
       applyQuickStyleSet: jest.fn(),
       properties: mockProperties,
       coauthoring: mockCoauthoring,
       compare: jest.fn(),
+      sections: mockSections,
       tablesOfAuthorities: mockTablesOfAuthorities,
       tablesOfContents: mockTablesOfContents,
       tablesOfFigures: mockTablesOfFigures,
@@ -530,6 +708,26 @@ export function createWordMock(options: WordMockOptions = {}) {
     replace: 'Replace',
   };
 
+  wordMockObject.BreakType = {
+    sectionContinuous: 'SectionContinuous',
+    sectionEven: 'SectionEven',
+    sectionNext: 'SectionNext',
+    sectionOdd: 'SectionOdd',
+  };
+
+  wordMockObject.Alignment = {
+    centered: 'Centered',
+    justified: 'Justified',
+    left: 'Left',
+    right: 'Right',
+  };
+
+  wordMockObject.VerticalAlignment = {
+    bottom: 'Bottom',
+    center: 'Center',
+    top: 'Top',
+  };
+
   wordMockObject.RangeLocation = {
     start: 'Start',
     end: 'End',
@@ -537,6 +735,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   wordMockObject.BuiltInStyleName = {
+    gridTable5Dark_Accent2: 'Grid Table 5 Dark - Accent 2',
     heading1: 'Heading 1',
     heading2: 'Heading 2',
     normal: 'Normal',
@@ -546,6 +745,26 @@ export function createWordMock(options: WordMockOptions = {}) {
   wordMockObject.ApplyQuickStyleSet = {
     sessionStart: 'SessionStart',
     template: 'Template',
+  };
+
+  wordMockObject.StyleType = {
+    paragraph: 'Paragraph',
+  };
+
+  wordMockObject.BorderType = {
+    dashed: 'Dashed',
+    single: 'Single',
+  };
+
+  wordMockObject.BorderWidth = {
+    pt100: 'Pt100',
+    pt225: 'Pt225',
+  };
+
+  wordMockObject.ShadingTextureType = {
+    darkTrellis: 'DarkTrellis',
+    lightTrellis: 'LightTrellis',
+    solid: 'Solid',
   };
 
   wordMockObject.TabLeader = {
@@ -559,12 +778,19 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockBody,
     mockParagraph,
     mockParagraphs,
+    mockParagraphFormat,
+    mockShading,
+    mockStyle,
+    mockStyles,
     mockBreak,
     mockBreaks,
     mockPage,
     mockPages,
     mockTable,
     mockTables,
+    mockTableCell,
+    mockTableColumn,
+    mockTableColumns,
     mockProperties,
     mockCoauthoring,
     mockCoauthor,

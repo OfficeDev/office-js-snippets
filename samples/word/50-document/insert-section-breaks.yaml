@@ -1,63 +1,118 @@
-order: 2
+order: 13
 id: word-document-insert-section-breaks
-name: Add a section
-description: Shows how to insert section breaks in the document.
+name: Manage sections
+description: Creates sections, reads their content, and navigates between them.
 host: WORD
 api_set:
-    WordApi: '1.1'
+    WordApi: '1.3'
 script:
     content: |-
-        document.getElementById("add-sectionNext").addEventListener("click", () => tryCatch(addNext));
-        document.getElementById("add-sectionEven").addEventListener("click", () => tryCatch(addEven));
-        document.getElementById("add-sectionOdd").addEventListener("click", () => tryCatch(addOdd));
-        document.getElementById("add-sectionContinuous").addEventListener("click", () => tryCatch(addContinuous));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-first-section").addEventListener("click", () => tryCatch(getFirstSection));
+        document.getElementById("get-sections").addEventListener("click", () => tryCatch(getSections));
+        document.getElementById("get-next-section").addEventListener("click", () => tryCatch(getNextSection));
+        document.getElementById("add-next-section").addEventListener("click", () => tryCatch(addNext));
+        document.getElementById("add-even-section").addEventListener("click", () => tryCatch(addEven));
+        document.getElementById("add-odd-section").addEventListener("click", () => tryCatch(addOdd));
+        document.getElementById("add-continuous-section").addEventListener("click", () => tryCatch(addContinuous));
 
-        async function addNext() {
-          // Inserts a section break on the next page.
+        async function getFirstSection() {
+          // Gets the first section and reads the text in its body.
           await Word.run(async (context) => {
-            const body: Word.Body = context.document.body;
-            body.insertBreak(Word.BreakType.sectionNext, Word.InsertLocation.end);
+            const sections: Word.SectionCollection = context.document.sections;
+            const firstSection: Word.Section = sections.getFirst();
+            const firstSectionBody: Word.Body = firstSection.body;
+            firstSectionBody.load("text");
 
             await context.sync();
 
-            console.log("Inserted section break on next page.");
+            console.log(`First section text: ${firstSectionBody.text}`);
+          });
+        }
+
+        async function getSections() {
+          // Gets every section and reads the text in each section body.
+          await Word.run(async (context) => {
+            const sections: Word.SectionCollection = context.document.sections;
+            sections.load("items/body/text");
+
+            await context.sync();
+
+            sections.items.forEach((section: Word.Section, index: number) => {
+              console.log(`Section ${index + 1}: ${section.body.text}`);
+            });
+          });
+        }
+
+        async function getNextSection() {
+          // Navigates from the first section to the next section when one exists.
+          await Word.run(async (context) => {
+            const sections: Word.SectionCollection = context.document.sections;
+            const firstSection: Word.Section = sections.getFirst();
+            const nextSection: Word.Section = firstSection.getNextOrNullObject();
+            nextSection.load("isNullObject, body/text");
+
+            await context.sync();
+
+            if (nextSection.isNullObject) {
+              console.log("The document doesn't have another section.");
+              return;
+            }
+
+            console.log(`Next section text: ${nextSection.body.text}`);
+          });
+        }
+
+        async function addNext() {
+          // Adds a section that begins on the next page.
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.insertBreak(Word.BreakType.sectionNext, Word.InsertLocation.end);
+            body.insertParagraph("Next-page section", Word.InsertLocation.end);
+
+            await context.sync();
+
+            console.log("Added a section that begins on the next page.");
           });
         }
 
         async function addEven() {
-          // Inserts a section break on the next even page.
+          // Adds a section that begins on the next even-numbered page.
           await Word.run(async (context) => {
             const body: Word.Body = context.document.body;
             body.insertBreak(Word.BreakType.sectionEven, Word.InsertLocation.end);
+            body.insertParagraph("Even-page section", Word.InsertLocation.end);
 
             await context.sync();
 
-            console.log("Inserted section break on next even page.");
+            console.log("Added a section that begins on the next even-numbered page.");
           });
         }
 
         async function addOdd() {
-          // Inserts a section break on the next odd page.
+          // Adds a section that begins on the next odd-numbered page.
           await Word.run(async (context) => {
             const body: Word.Body = context.document.body;
             body.insertBreak(Word.BreakType.sectionOdd, Word.InsertLocation.end);
+            body.insertParagraph("Odd-page section", Word.InsertLocation.end);
 
             await context.sync();
 
-            console.log("Inserted section break on next odd page.");
+            console.log("Added a section that begins on the next odd-numbered page.");
           });
         }
 
         async function addContinuous() {
-          // Inserts a section without an associated page break.
+          // Adds a section at the current position without adding a page break.
           await Word.run(async (context) => {
             const body: Word.Body = context.document.body;
-            body.insertBreak(Word.BreakType.sectionContinuous, Word.InsertLocation.end);
+            const insertLocation: Word.InsertLocation = Word.InsertLocation.end;
+            body.insertBreak(Word.BreakType.sectionContinuous, insertLocation);
+            body.insertParagraph("Continuous section", insertLocation);
 
             await context.sync();
 
-            console.log("Inserted section without an associated page break.");
+            console.log("Added a section without adding a page break.");
           });
         }
 
@@ -65,16 +120,17 @@ script:
           await Word.run(async (context) => {
             const body: Word.Body = context.document.body;
             body.clear();
-            body.insertParagraph(
-              "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
-              "Start"
-            );
-            body.paragraphs
-              .getLast()
-              .insertText(
-                "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
-                "Replace"
-              );
+            body.insertParagraph("Executive summary", Word.InsertLocation.end);
+            body.insertParagraph("This section summarizes the quarterly report.", Word.InsertLocation.end);
+            body.insertBreak(Word.BreakType.sectionNext, Word.InsertLocation.end);
+            body.insertParagraph("Sales analysis", Word.InsertLocation.end);
+            body.insertParagraph("This section reviews quarterly sales results.", Word.InsertLocation.end);
+            body.insertBreak(Word.BreakType.sectionNext, Word.InsertLocation.end);
+            body.insertParagraph("Appendix", Word.InsertLocation.end);
+            body.insertParagraph("This section contains supporting data.", Word.InsertLocation.end);
+
+            await context.sync();
+            console.log("Created a report with three sections.");
           });
         }
 
@@ -91,19 +147,24 @@ script:
 template:
     content: |-
         <section>
-            This sample shows how to insert sections in the document.
+            <p>Organize a report into sections, inspect each section's content, and move between sections.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
-            <button id="setup">Add sample text</button>
-          <p>You should also show the formatting marks to see the section indicators. To learn more, refer to <a target="_blank" href="https://support.microsoft.com/office/84a53213-5d02-404a-b022-09cae1a3958b">Show or hide tab marks in Word</a></p> 
+            <p>Create a three-section report with an executive summary, sales analysis, and appendix.</p>
+            <button id="setup">Set up the sample</button>
         </section>
         <section>
             <h3>Try it out</h3>
-            <button id="add-sectionNext">Insert on next page</button>
-            <button id="add-sectionEven">Insert on next even page</button>
-            <button id="add-sectionOdd">Insert on next odd page</button>
-            <button id="add-sectionContinuous">Insert without a page break (Continuous)</button>
+            <button id="get-first-section">Get first section</button>
+            <button id="get-sections">Get all sections</button>
+            <button id="get-next-section">Get next section</button>
+            <h4>Add a section</h4>
+            <button id="add-next-section">Start on next page</button>
+            <button id="add-even-section">Start on next even page</button>
+            <button id="add-odd-section">Start on next odd page</button>
+            <button id="add-continuous-section">Start at current position</button>
+            <p>Show formatting marks to see the section breaks. For details, see <a target="_blank" href="https://support.microsoft.com/office/84a53213-5d02-404a-b022-09cae1a3958b">Show or hide tab marks in Word</a>.</p>
         </section>
     language: html
 style:

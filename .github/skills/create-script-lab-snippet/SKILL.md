@@ -110,6 +110,8 @@ Outlook does not provide a general equivalent of creating a sample workbook, doc
 
 Use one clearly named function per focused operation. Split a workflow into as many meaningful, independently runnable actions as the API supports, such as prepare or mark entries, create, get properties, set properties, update, and delete. Give each action its own clearly labeled button and present the buttons in workflow order.
 
+When demonstrating writable properties, prefer targeted set actions that change one property at a time or a small, cohesive group of properties. Give each action its own button and assign the properties directly, such as `object.property = value`, instead of using the object's `set` method. Use `set` only when the requested API is the `set` method itself or when an atomic multi-property update is essential to the scenario. Ensure each targeted action creates an independently visible or otherwise verifiable change.
+
 Always keep get and set operations in separate functions. A create or mutation function may log a short completion message, but move property loading and detailed console output into a dedicated get function. Do not combine steps merely to reduce the number of functions; discrete functions are easier to understand and can provide distinct reference-documentation examples.
 
 A successful action must give the user an unambiguous way to verify its effect. When an API changes hidden document state, such as inserting field codes, explain that the visible document might not change and identify the next action or host setting that proves the operation succeeded. Keep this guidance in the task pane when it is necessary to understand the workflow.
@@ -157,6 +159,7 @@ Before writing code, inspect the closest samples in the same host and group and 
 - For Outlook, follow neighboring samples by registering callback-based actions directly, such as `document.getElementById("get").addEventListener("click", get)`. Use `Office.onReady` for initialization and event registration when required.
 - Use lowercase hyphenated HTML IDs. Give every new action button a meaningful ID that describes its operation, such as `create-table-of-contents`, `mark-citations`, or `update-page-numbers`; do not use a generic ID such as `run`. When expanding an existing sample, preserve an established `run` ID unless renaming it is necessary to keep the updated workflow clear and all references are updated. For document hosts, include a separate **Set up** section followed by **Try it out** actions. For Outlook, include **Set up** only when the sample can safely prepare its current item.
 - Do not add visible step numbers to task-pane instructions or action labels when button order already makes the workflow clear. Use a numbered procedure only when the user must perform a strict sequence outside the task pane.
+- Write the opening task-pane description in terms of the user's scenario and intended outcome, not the code or API implementation. Avoid introductions such as "This sample demonstrates..." or descriptions centered on object and member names. Keep API support requirements or platform limitations in a separate note when needed.
 - Keep the name and description concise and specific to the demonstrated behavior.
 - Use the canonical stable or beta Office.js URL and matching type definitions already used by neighboring snippets.
 - For Outlook, use the canonical `https://officeapis.public.onecdn.static.microsoft/1/office.js` library used by neighboring samples.
@@ -208,12 +211,12 @@ Apply these rules:
 - For a top-level class, interface, enum, or type mapping, leave `Member Name` empty and put the category in `Member ID or top-level category`.
 - Use the exact generated snippet `id`.
 - Use the exact TypeScript function name; mapped functions must use a `function name(...)` declaration that `config/build.documentation.ts` can extract.
-- Map a function at most once to any single API reference webpage. Do not map the same function to a class and several of that class's properties or methods, because those mappings repeat identical code on the same class page.
+- Map at most one function to each exact API target: a top-level class, interface, enum, or type, or a specific property or method overload. Do not add multiple examples for the same target, even when the functions demonstrate distinct scenarios.
+- Do not map the same function to a class and several of that class's properties or methods, because those mappings repeat identical code on the same class page.
 - If one function demonstrates several members on the same page, choose the single row that best represents its purpose. For a requested class, prefer the top-level `class` row. For a requested member, prefer that exact member row.
 - The same function may appear in multiple rows only when each row targets a genuinely different API page, such as a class page, its collection page, and an options-interface page.
-- Different functions may map to the same API page when they provide distinct, useful examples rather than duplicated code.
 - Do not map incidental APIs used only for setup, navigation, loading, synchronization, logging, or cleanup.
-- Do not add duplicate rows for coverage already provided by the same function.
+- Do not add duplicate rows for coverage already provided by another function.
 
 If a mapped function is renamed or moved to another snippet, update every affected CSV row in the same change.
 

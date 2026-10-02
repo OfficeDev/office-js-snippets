@@ -9,8 +9,10 @@ script:
     content: |-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("get-first-section").addEventListener("click", () => tryCatch(getFirstSection));
+        document.getElementById("get-section-body").addEventListener("click", () => tryCatch(getSectionBody));
         document.getElementById("get-sections").addEventListener("click", () => tryCatch(getSections));
         document.getElementById("get-next-section").addEventListener("click", () => tryCatch(getNextSection));
+        document.getElementById("get-next-section-or-null").addEventListener("click", () => tryCatch(getNextSectionOrNull));
         document.getElementById("add-next-section").addEventListener("click", () => tryCatch(addNext));
         document.getElementById("add-even-section").addEventListener("click", () => tryCatch(addEven));
         document.getElementById("add-odd-section").addEventListener("click", () => tryCatch(addOdd));
@@ -44,12 +46,46 @@ script:
           });
         }
 
-        async function getNextSection() {
-          // Navigates from the first section to the next section when one exists.
+        async function getSectionBody() {
+          // Gets the body of the second section and reads its text.
           await Word.run(async (context) => {
             const sections: Word.SectionCollection = context.document.sections;
-            const firstSection: Word.Section = sections.getFirst();
-            const nextSection: Word.Section = firstSection.getNextOrNullObject();
+            sections.load("items");
+            await context.sync();
+
+            const secondSection: Word.Section = sections.items[1];
+            const secondSectionBody: Word.Body = secondSection.body;
+            secondSectionBody.load("text");
+
+            await context.sync();
+
+            console.log(`Second section text: ${secondSectionBody.text}`);
+          });
+        }
+
+        async function getNextSection() {
+          // Gets the section after the current selection when another section is expected.
+          await Word.run(async (context) => {
+            const selection: Word.Range = context.document.getSelection();
+            const selectedBody: Word.Body = selection.parentBody;
+            const selectedSection: Word.Section = selectedBody.parentSection;
+            const nextSection: Word.Section = selectedSection.getNext();
+            const nextSectionBody: Word.Body = nextSection.body;
+            nextSectionBody.load("text");
+
+            await context.sync();
+
+            console.log(`Next section text: ${nextSectionBody.text}`);
+          });
+        }
+
+        async function getNextSectionOrNull() {
+          // Gets the section after the current selection, or a null object if it is the last section.
+          await Word.run(async (context) => {
+            const selection: Word.Range = context.document.getSelection();
+            const selectedBody: Word.Body = selection.parentBody;
+            const selectedSection: Word.Section = selectedBody.parentSection;
+            const nextSection: Word.Section = selectedSection.getNextOrNullObject();
             nextSection.load("isNullObject, body/text");
 
             await context.sync();
@@ -157,8 +193,11 @@ template:
         <section>
             <h3>Try it out</h3>
             <button id="get-first-section">Get first section</button>
+            <button id="get-section-body">Get section body</button>
             <button id="get-sections">Get all sections</button>
+            <p>Place the cursor in a section, then use the next-section buttons. In the last section, <b>Get next section</b> raises an <code>ItemNotFound</code> error, while <b>Get next section or null object</b> reports that no next section exists.</p>
             <button id="get-next-section">Get next section</button>
+            <button id="get-next-section-or-null">Get next section or null object</button>
             <h4>Add a section</h4>
             <button id="add-next-section">Start on next page</button>
             <button id="add-even-section">Start on next even page</button>

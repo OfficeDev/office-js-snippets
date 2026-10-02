@@ -161,8 +161,10 @@ describe('Runtime Execution Tests - Word', () => {
   test.each([
     'setup',
     'get-first-section',
+    'get-section-body',
     'get-sections',
     'get-next-section',
+    'get-next-section-or-null',
     'add-next-section',
     'add-even-section',
     'add-odd-section',
@@ -170,6 +172,32 @@ describe('Runtime Execution Tests - Word', () => {
   ])('Word: manage sections %s action executes without runtime errors', async (buttonId) => {
     await runWordSnippetTest({
       snippetPath: path.join('samples', 'word', '50-document', 'insert-section-breaks.yaml'),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    'setup',
+    'apply-layout',
+    'apply-page-borders',
+    'protect-section',
+    'get-page-setup',
+    'get-section-protection',
+  ])('Word: manage section layout %s action executes without runtime errors', async (buttonId) => {
+    (global as any).Office = {
+      context: {
+        requirements: {
+          isSetSupported: jest.fn(() => true),
+        },
+      },
+    };
+
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'manage-section-starts.yaml'),
       buttonId,
       assertions: ({ mockContext }) => {
         expect(mockContext.sync).toHaveBeenCalled();

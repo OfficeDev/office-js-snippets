@@ -25834,6 +25834,27 @@ Word.Body#onCommentSelected:member:
         console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
       });
     }
+Word.Body#parentSection:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
+
+
+    // Gets the section after the current selection when another section is
+    expected.
+
+    await Word.run(async (context) => {
+      const selection: Word.Range = context.document.getSelection();
+      const selectedBody: Word.Body = selection.parentBody;
+      const selectedSection: Word.Section = selectedBody.parentSection;
+      const nextSection: Word.Section = selectedSection.getNext();
+      const nextSectionBody: Word.Body = nextSection.body;
+      nextSectionBody.load("text");
+
+      await context.sync();
+
+      console.log(`Next section text: ${nextSectionBody.text}`);
+    });
 Word.Body#paragraphs:member:
   - >-
     // Link to full sample:
@@ -26356,6 +26377,32 @@ Word.BorderUniversalCollection:class:
       console.log(
         `Applied the ${Word.BorderLineStyle.double} line style to ${borders.items.length} paragraph borders.`
       );
+    });
+Word.BorderUniversalCollection#applyPageBordersToAllSections:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-section-starts.yaml
+
+
+    // Applies a double blue page border to every section in the report.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const sectionBorders: Word.BorderUniversalCollection = firstSection.borders;
+      sectionBorders.load("items");
+      await context.sync();
+
+      sectionBorders.items.forEach((sectionBorder: Word.BorderUniversal) => {
+        sectionBorder.isVisible = true;
+        sectionBorder.color = "#4472C4";
+        sectionBorder.lineStyle = Word.BorderLineStyle.double;
+        sectionBorder.lineWidth = Word.LineWidth.pt150;
+      });
+      sectionBorders.applyPageBordersToAllSections();
+
+      await context.sync();
+      console.log("Applied page borders to every section.");
     });
 Word.BorderUniversalCollection#items:member:
   - >-
@@ -32040,11 +32087,14 @@ Word.HeaderFooterType:enum:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
 
 
+    // Inserts a primary header by using the HeaderFooterType enum.
+
     await Word.run(async (context) => {
-      context.document.sections
-        .getFirst()
-        .getHeader(Word.HeaderFooterType.primary)
-        .insertParagraph("This is a primary header.", "End");
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const headerType: Word.HeaderFooterType = Word.HeaderFooterType.primary;
+      const primaryHeader: Word.Body = firstSection.getHeader(headerType);
+      primaryHeader.insertParagraph("This is a primary header.", Word.InsertLocation.end);
 
       await context.sync();
     });
@@ -33421,6 +33471,8 @@ Word.PageSetup#toJSON:member(1):
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-section-starts.yaml
 
+
+    // Reads the document page setup and the start type for every section.
 
     await Word.run(async (context) => {
       const pageSetup: Word.PageSetup = context.document.pageSetup;
@@ -35130,6 +35182,27 @@ Word.Range#paragraphs:member:
         }
       }
     });
+Word.Range#parentBody:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
+
+
+    // Gets the section after the current selection when another section is
+    expected.
+
+    await Word.run(async (context) => {
+      const selection: Word.Range = context.document.getSelection();
+      const selectedBody: Word.Body = selection.parentBody;
+      const selectedSection: Word.Section = selectedBody.parentSection;
+      const nextSection: Word.Section = selectedSection.getNext();
+      const nextSectionBody: Word.Body = nextSection.body;
+      nextSectionBody.load("text");
+
+      await context.sync();
+
+      console.log(`Next section text: ${nextSectionBody.text}`);
+    });
 Word.Range#parentContentControl:member:
   - >-
     // Link to full sample:
@@ -35543,17 +35616,36 @@ Word.SearchOptions#newObject:member(1):
       console.log(`Replacing ${count} placeholders with the correlated objects pattern took ${Date.now() - startTime} milliseconds.`);
       console.log()
     });
+Word.Section#getFooter:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
+
+
+    // Inserts a first-page footer by using the HeaderFooterType enum.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const footerType: Word.HeaderFooterType = Word.HeaderFooterType.firstPage;
+      const firstPageFooter: Word.Body = firstSection.getFooter(footerType);
+      firstPageFooter.insertParagraph("This is a first-page footer.", Word.InsertLocation.end);
+
+      await context.sync();
+    });
 Word.Section#getFooter:member(2):
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
 
 
+    // Inserts a primary footer by using the string overload.
+
     await Word.run(async (context) => {
-      context.document.sections
-        .getFirst()
-        .getFooter("Primary")
-        .insertParagraph("This is a primary footer.", "End");
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const primaryFooter: Word.Body = firstSection.getFooter("Primary");
+      primaryFooter.insertParagraph("This is a primary footer.", Word.InsertLocation.end);
 
       await context.sync();
     });
@@ -35563,13 +35655,53 @@ Word.Section#getHeader:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
 
 
+    // Inserts a primary header by using the HeaderFooterType enum.
+
     await Word.run(async (context) => {
-      context.document.sections
-        .getFirst()
-        .getHeader(Word.HeaderFooterType.primary)
-        .insertParagraph("This is a primary header.", "End");
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const headerType: Word.HeaderFooterType = Word.HeaderFooterType.primary;
+      const primaryHeader: Word.Body = firstSection.getHeader(headerType);
+      primaryHeader.insertParagraph("This is a primary header.", Word.InsertLocation.end);
 
       await context.sync();
+    });
+Word.Section#getHeader:member(2):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-header-and-footer.yaml
+
+
+    // Inserts a first-page header by using the string overload.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const firstPageHeader: Word.Body = firstSection.getHeader("FirstPage");
+      firstPageHeader.insertParagraph("This is a first-page header.", Word.InsertLocation.end);
+
+      await context.sync();
+    });
+Word.Section#getNext:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
+
+
+    // Gets the section after the current selection when another section is
+    expected.
+
+    await Word.run(async (context) => {
+      const selection: Word.Range = context.document.getSelection();
+      const selectedBody: Word.Body = selection.parentBody;
+      const selectedSection: Word.Section = selectedBody.parentSection;
+      const nextSection: Word.Section = selectedSection.getNext();
+      const nextSectionBody: Word.Body = nextSection.body;
+      nextSectionBody.load("text");
+
+      await context.sync();
+
+      console.log(`Next section text: ${nextSectionBody.text}`);
     });
 Word.Section#getNextOrNullObject:member(1):
   - >-
@@ -35577,12 +35709,14 @@ Word.Section#getNextOrNullObject:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
 
 
-    // Navigates from the first section to the next section when one exists.
+    // Gets the section after the current selection, or a null object if it is
+    the last section.
 
     await Word.run(async (context) => {
-      const sections: Word.SectionCollection = context.document.sections;
-      const firstSection: Word.Section = sections.getFirst();
-      const nextSection: Word.Section = firstSection.getNextOrNullObject();
+      const selection: Word.Range = context.document.getSelection();
+      const selectedBody: Word.Body = selection.parentBody;
+      const selectedSection: Word.Section = selectedBody.parentSection;
+      const nextSection: Word.Section = selectedSection.getNextOrNullObject();
       nextSection.load("isNullObject, body/text");
 
       await context.sync();
@@ -35593,6 +35727,53 @@ Word.Section#getNextOrNullObject:member(1):
       }
 
       console.log(`Next section text: ${nextSection.body.text}`);
+    });
+Word.Section#body:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/insert-section-breaks.yaml
+
+
+    // Gets the body of the second section and reads its text.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      sections.load("items");
+      await context.sync();
+
+      const secondSection: Word.Section = sections.items[1];
+      const secondSectionBody: Word.Body = secondSection.body;
+      secondSectionBody.load("text");
+
+      await context.sync();
+
+      console.log(`Second section text: ${secondSectionBody.text}`);
+    });
+Word.Section#borders:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-section-starts.yaml
+
+
+    // Applies a double blue page border to every section in the report.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      const firstSection: Word.Section = sections.getFirst();
+      const sectionBorders: Word.BorderUniversalCollection = firstSection.borders;
+      sectionBorders.load("items");
+      await context.sync();
+
+      sectionBorders.items.forEach((sectionBorder: Word.BorderUniversal) => {
+        sectionBorder.isVisible = true;
+        sectionBorder.color = "#4472C4";
+        sectionBorder.lineStyle = Word.BorderLineStyle.double;
+        sectionBorder.lineWidth = Word.LineWidth.pt150;
+      });
+      sectionBorders.applyPageBordersToAllSections();
+
+      await context.sync();
+      console.log("Applied page borders to every section.");
     });
 Word.Section#pageSetup:member:
   - >-
@@ -35631,6 +35812,26 @@ Word.Section#pageSetup:member:
 
       await context.sync();
       console.log("Applied print and binding settings to the report.");
+    });
+Word.Section#protectedForForms:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-section-starts.yaml
+
+
+    // Protects the main chapter section when document form protection is
+    enabled.
+
+    await Word.run(async (context) => {
+      const sections: Word.SectionCollection = context.document.sections;
+      sections.load("items");
+      await context.sync();
+
+      const chapterSection: Word.Section = sections.items[1];
+      chapterSection.protectedForForms = true;
+
+      await context.sync();
+      console.log("Marked the main chapter section for form protection.");
     });
 Word.Section:class:
   - >-

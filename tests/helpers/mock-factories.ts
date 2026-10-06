@@ -538,19 +538,50 @@ export function createWordMock(options: WordMockOptions = {}) {
     text: 'Mock next section body',
     load: jest.fn(),
   };
+  const mockPageSetup = {
+    sectionStart: 'NewPage',
+    load: jest.fn(),
+    set: jest.fn(),
+    toJSON: jest.fn(() => ({ sectionStart: 'NewPage' })),
+  };
+  const mockSectionBorder = {
+    color: '#000000',
+    isVisible: false,
+    lineStyle: 'Single',
+    lineWidth: 'Pt050',
+    load: jest.fn(),
+  };
+  const mockSectionBorders = {
+    items: [mockSectionBorder],
+    applyPageBordersToAllSections: jest.fn(),
+    load: jest.fn(),
+  };
   const mockNextSection = {
     body: mockNextSectionBody,
+    borders: mockSectionBorders,
     isNullObject: false,
+    pageSetup: { ...mockPageSetup },
+    protectedForForms: false,
     load: jest.fn(),
   };
   const mockSection = {
     body: mockSectionBody,
+    borders: mockSectionBorders,
     isNullObject: false,
+    pageSetup: { ...mockPageSetup },
+    protectedForForms: false,
+    getNext: jest.fn(() => mockNextSection),
     getNextOrNullObject: jest.fn(() => mockNextSection),
     load: jest.fn(),
   };
+  Object.assign(mockRange, { parentBody: mockSectionBody });
+  Object.assign(mockSectionBody, { parentSection: mockSection });
+  const mockThirdSection = {
+    ...mockNextSection,
+    pageSetup: { ...mockPageSetup },
+  };
   const mockSections = {
-    items: [mockSection, mockNextSection],
+    items: [mockSection, mockNextSection, mockThirdSection],
     getFirst: jest.fn(() => mockSection),
     load: jest.fn(),
   };
@@ -661,6 +692,7 @@ export function createWordMock(options: WordMockOptions = {}) {
       properties: mockProperties,
       coauthoring: mockCoauthoring,
       compare: jest.fn(),
+      pageSetup: mockPageSetup,
       sections: mockSections,
       tablesOfAuthorities: mockTablesOfAuthorities,
       tablesOfContents: mockTablesOfContents,
@@ -695,6 +727,23 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   wordMockObject.LineWidth = {
     pt150: 'Pt150',
+  };
+
+  wordMockObject.GutterPosition = {
+    left: 'Left',
+  };
+
+  wordMockObject.PageOrientation = {
+    portrait: 'Portrait',
+  };
+
+  wordMockObject.PaperSize = {
+    letter: 'Letter',
+  };
+
+  wordMockObject.SectionStart = {
+    continuous: 'Continuous',
+    oddPage: 'OddPage',
   };
   wordMockObject.BevelType = {
     circle: 'circle',

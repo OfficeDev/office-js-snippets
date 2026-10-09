@@ -160,6 +160,27 @@ describe('Runtime Execution Tests - Word', () => {
 
   test.each([
     'setup',
+    'get-all-tracked-changes',
+    'get-first-tracked-change-or-null',
+    'get-first-tracked-change-range',
+    'get-next-tracked-change',
+    'accept-first-tracked-change',
+    'reject-first-tracked-change',
+    'accept-all-tracked-changes',
+    'reject-all-tracked-changes',
+  ])('Word: manage tracked changes %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'manage-tracked-changes.yaml'),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    'setup',
     'get-first-section',
     'get-section-body',
     'get-sections',

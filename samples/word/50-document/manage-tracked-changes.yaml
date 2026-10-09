@@ -1,13 +1,14 @@
 order: 15
 id: word-document-manage-tracked-changes
 name: Manage tracked changes
-description: This samples shows how to manage tracked changes, including accepting and rejecting changes.
+description: Creates tracked changes and shows how to inspect, accept, and reject them.
 host: WORD
 api_set:
     WordApi: '1.6'
 script:
     content: |-
         document.getElementById("get-all-tracked-changes").addEventListener("click", () => tryCatch(getAllTrackedChanges));
+        document.getElementById("get-first-tracked-change-or-null").addEventListener("click", () => tryCatch(getFirstTrackedChangeOrNull));
         document.getElementById("get-first-tracked-change-range").addEventListener("click", () => tryCatch(getFirstTrackedChangeRange));
         document.getElementById("get-next-tracked-change").addEventListener("click", () => tryCatch(getNextTrackedChange));
         document.getElementById("accept-first-tracked-change").addEventListener("click", () => tryCatch(acceptFirstTrackedChange));
@@ -17,14 +18,48 @@ script:
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
         async function getAllTrackedChanges() {
-          // Gets all tracked changes.
+          // Gets the tracked changes and logs their details.
           await Word.run(async (context) => {
             const body: Word.Body = context.document.body;
             const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
-            trackedChanges.load();
+            trackedChanges.load("items/author, items/date, items/text, items/type");
             await context.sync();
 
-            console.log(trackedChanges);
+            if (trackedChanges.items.length === 0) {
+              console.warn("No tracked changes were found.");
+              return;
+            }
+
+            trackedChanges.items.forEach((trackedChange: Word.TrackedChange, index: number) => {
+              console.log(`Tracked change ${index + 1}:`, {
+                author: trackedChange.author,
+                date: trackedChange.date,
+                text: trackedChange.text,
+                type: trackedChange.type,
+              });
+            });
+          });
+        }
+
+        async function getFirstTrackedChangeOrNull() {
+          // Safely gets the first tracked change without throwing an error when the collection is empty.
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
+            const firstTrackedChange: Word.TrackedChange = trackedChanges.getFirstOrNullObject();
+            firstTrackedChange.load(["author", "isNullObject", "text", "type"]);
+            await context.sync();
+
+            if (firstTrackedChange.isNullObject) {
+              console.warn("No tracked changes were found.");
+              return;
+            }
+
+            console.log("First tracked change:", {
+              author: firstTrackedChange.author,
+              text: firstTrackedChange.text,
+              type: firstTrackedChange.type,
+            });
           });
         }
 
@@ -70,11 +105,9 @@ script:
             const body: Word.Body = context.document.body;
             const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
             const trackedChange: Word.TrackedChange = trackedChanges.getFirst();
-            trackedChange.load();
+            trackedChange.accept();
             await context.sync();
 
-            console.log("First tracked change:", trackedChange);
-            trackedChange.accept();
             console.log("Accepted the first tracked change.");
           });
         }
@@ -85,11 +118,9 @@ script:
             const body: Word.Body = context.document.body;
             const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
             const trackedChange: Word.TrackedChange = trackedChanges.getFirst();
-            trackedChange.load();
+            trackedChange.reject();
             await context.sync();
 
-            console.log("First tracked change:", trackedChange);
-            trackedChange.reject();
             console.log("Rejected the first tracked change.");
           });
         }
@@ -100,6 +131,8 @@ script:
             const body: Word.Body = context.document.body;
             const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
             trackedChanges.acceptAll();
+            await context.sync();
+
             console.log("Accepted all tracked changes.");
           });
         }
@@ -110,30 +143,38 @@ script:
             const body: Word.Body = context.document.body;
             const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
             trackedChanges.rejectAll();
+            await context.sync();
+
             console.log("Rejected all tracked changes.");
           });
         }
 
         async function setup() {
-          // Updates the text and sets the font color to red.
+          // Replaces the document body and creates three tracked changes.
           await Word.run(async (context) => {
-            context.document.changeTrackingMode = Word.ChangeTrackingMode.off;
+            const document: Word.Document = context.document;
+            const body: Word.Body = document.body;
 
-            context.document.body.insertText("AAA BBB CCC DDD EEE FFF", "Replace");
+            document.changeTrackingMode = Word.ChangeTrackingMode.off;
+            body.clear();
+            body.insertParagraph("The quick brown fox jumps over the lazy dog.", Word.InsertLocation.start);
+            await context.sync();
 
-            context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
-            context.document.body
-              .search("BBB")
-              .getFirst()
-              .insertText("WWW", "Replace");
-            context.document.body
-              .search("DDD ")
-              .getFirst()
-              .delete();
-            context.document.body
-              .search("FFF")
-              .getFirst()
-              .insertText("XXX ", "Start");
+            document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+            await context.sync();
+
+            const adjective: Word.Range = body.search("quick").getFirst();
+            const animal: Word.Range = body.search("fox").getFirst();
+            const ending: Word.Range = body.search("dog").getFirst();
+            adjective.insertText("swift", Word.InsertLocation.replace);
+            animal.delete();
+            ending.insertText("hound", Word.InsertLocation.replace);
+            await context.sync();
+
+            document.changeTrackingMode = Word.ChangeTrackingMode.off;
+            await context.sync();
+
+            console.log("Created three tracked changes.");
           });
         }
 
@@ -150,27 +191,22 @@ script:
 template:
     content: |-
         <section>
-            This sample shows how to manage tracked changes.
+            Reset the document with sample text, then inspect or resolve its tracked changes.
         </section>
         <section class="setup">
             <h3>Set up</h3>
-            <button id="setup">Add sample text</button>
+            <button id="setup">Create tracked changes</button>
         </section>
         <section>
             <h3>Try it out</h3>
             <button id="get-all-tracked-changes">Get all tracked changes</button>
+            <button id="get-first-tracked-change-or-null">Safely get the first tracked change</button>
             <button id="get-first-tracked-change-range">Get the first tracked change's range</button>
             <button id="get-next-tracked-change">Get the next tracked change</button>
             <button id="accept-first-tracked-change">Accept the first tracked change</button>
             <button id="reject-first-tracked-change">Reject the first tracked change</button>
-        </section>
-        <section>
-            <p>First, choose the <b>Add sample text</b> button.
-                <button id="accept-all-tracked-changes">Accept all tracked changes</button>
-            </p>
-            <p>First, choose the <b>Add sample text</b> button.
-                <button id="reject-all-tracked-changes">Reject all tracked changes</button>
-            </p>
+            <button id="accept-all-tracked-changes">Accept all tracked changes</button>
+            <button id="reject-all-tracked-changes">Reject all tracked changes</button>
         </section>
     language: html
 style:

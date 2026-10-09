@@ -413,6 +413,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockRange = {
     text: selectionText,
     font: { color: '', bold: false },
+    delete: jest.fn(),
     load: jest.fn(),
     insertText: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
@@ -516,6 +517,29 @@ export function createWordMock(options: WordMockOptions = {}) {
     load: jest.fn(),
   };
 
+  const mockTrackedChange = {
+    author: 'Mock Author',
+    date: new Date('2024-01-01'),
+    isNullObject: false,
+    text: 'Mock tracked change',
+    type: 'Added',
+    accept: jest.fn(),
+    getNext: jest.fn(),
+    getRange: jest.fn(() => mockRange),
+    load: jest.fn(),
+    reject: jest.fn(),
+  };
+  mockTrackedChange.getNext.mockReturnValue(mockTrackedChange);
+
+  const mockTrackedChanges = {
+    items: [mockTrackedChange],
+    acceptAll: jest.fn(),
+    getFirst: jest.fn(() => mockTrackedChange),
+    getFirstOrNullObject: jest.fn(() => mockTrackedChange),
+    load: jest.fn(),
+    rejectAll: jest.fn(),
+  };
+
   const mockBody = {
     text: bodyText,
     clear: jest.fn(),
@@ -524,7 +548,11 @@ export function createWordMock(options: WordMockOptions = {}) {
     insertText: jest.fn(),
     insertTable: jest.fn(() => mockTable),
     getRange: jest.fn(() => mockRange),
+    getTrackedChanges: jest.fn(() => mockTrackedChanges),
     load: jest.fn(),
+    search: jest.fn(() => ({
+      getFirst: jest.fn(() => mockRange),
+    })),
     tables: mockTables,
   };
 
@@ -684,6 +712,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockContext = {
     document: {
       body: mockBody,
+      changeTrackingMode: 'Off',
       activeWindow: mockWindow,
       addStyle: jest.fn(() => mockStyle),
       getStyles: jest.fn(() => mockStyles),
@@ -714,6 +743,12 @@ export function createWordMock(options: WordMockOptions = {}) {
   wordMockObject.CompareTarget = {
     compareTargetCurrent: 'Current',
     compareTargetNew: 'New',
+  };
+
+  wordMockObject.ChangeTrackingMode = {
+    off: 'Off',
+    trackAll: 'TrackAll',
+    trackMineOnly: 'TrackMineOnly',
   };
 
   wordMockObject.CoauthoringLockType = {

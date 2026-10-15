@@ -1,4 +1,4 @@
-order: 2
+order: 10
 id: word-ranges-split-words-of-first-paragraph
 name: Split a paragraph into ranges
 description: Splits a paragraph into word ranges and then traverses all the ranges to format each word, producing a "karaoke" effect.
@@ -10,11 +10,14 @@ script:
     content: |-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("highlight").addEventListener("click", () => tryCatch(highlightWords));
+        document.getElementById("get-next-sentence").addEventListener("click", () => tryCatch(getNextSentence));
+        document.getElementById("get-next-sentence-safely").addEventListener("click", () => tryCatch(getNextSentenceSafely));
 
         async function highlightWords() {
+          // Splits the first paragraph into words and highlights them in sequence.
           await Word.run(async (context) => {
-            const paragraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
-            const words = paragraph.split([" "], true /* trimDelimiters*/, true /* trimSpaces */);
+            const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+            const words: Word.RangeCollection = paragraphRange.split([" "], false, true, true);
             words.load("text");
 
             await context.sync();
@@ -26,13 +29,36 @@ script:
               words.items[i].font.highlightColor = "#FFFF00";
 
               await context.sync();
-              await pause(200);
+              await new Promise((resolve) => setTimeout(resolve, 200));
             }
           });
         }
 
-        function pause(milliseconds) {
-          return new Promise((resolve) => setTimeout(resolve, milliseconds));
+        async function getNextSentence() {
+            // Gets the sentence following the first sentence in the document.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const firstSentence: Word.Range = paragraphRange.getTextRanges(["?", "."], true).getFirst();
+                const nextSentence: Word.Range = firstSentence.getNextTextRange(["?", "."], true);
+                nextSentence.load("text");
+                await context.sync();
+                console.log("Next sentence:", nextSentence.text);
+            });
+        }
+
+        async function getNextSentenceSafely() {
+            // Checks for a sentence after the end of the document without throwing.
+            await Word.run(async (context) => {
+                const endRange: Word.Range = context.document.body.getRange(Word.RangeLocation.end);
+                const nextSentence: Word.Range = endRange.getNextTextRangeOrNullObject([".", "?"], true);
+                nextSentence.load("text");
+                await context.sync();
+                if (nextSentence.isNullObject) {
+                    console.warn("There is no sentence after the end of the document.");
+                    return;
+                }
+                console.log("Next sentence:", nextSentence.text);
+            });
         }
 
         async function setup() {
@@ -49,6 +75,7 @@ script:
                 "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
                 "Replace"
               );
+            await context.sync();
           });
         }
 
@@ -64,7 +91,7 @@ script:
 template:
     content: |-
         <section>
-           This sample demonstrates splitting and traversing ranges.
+           This sample demonstrates how to split a paragraph into word ranges and move between sentences.
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -73,6 +100,8 @@ template:
         <section>
             <h3>Try it out</h3>
             <button id="highlight">Highlight word by word</button>
+            <button id="get-next-sentence">Get next sentence</button>
+            <button id="get-next-sentence-safely">Check beyond the final sentence</button>
         </section>
     language: html
 style:

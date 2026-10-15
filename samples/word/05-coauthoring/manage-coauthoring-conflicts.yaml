@@ -1,4 +1,4 @@
-order: 3
+order: 2
 id: word-coauthoring-manage-coauthoring-conflicts
 name: Manage coauthoring conflicts
 description: Shows how to inspect and resolve coauthoring conflicts in a Word document.
@@ -8,6 +8,7 @@ api_set:
 script:
     content: |-
         document.getElementById("get-conflicts").addEventListener("click", () => tryCatch(getConflicts));
+        document.getElementById("get-range-conflicts").addEventListener("click", () => tryCatch(getRangeConflicts));
         document.getElementById("accept-first").addEventListener("click", () => tryCatch(acceptFirst));
         document.getElementById("reject-first").addEventListener("click", () => tryCatch(rejectFirst));
         document.getElementById("accept-all").addEventListener("click", () => tryCatch(acceptAll));
@@ -30,6 +31,18 @@ script:
               console.log(`  Conflict ${i + 1}: type = ${conflicts.items[i].type}`);
             }
           });
+        }
+
+        async function getRangeConflicts() {
+            // Gets coauthoring conflicts associated with the selected range.
+            await Word.run(async (context) => {
+                const selectedRange: Word.Range = context.document.getSelection();
+                const conflicts: Word.ConflictCollection = selectedRange.conflicts;
+                conflicts.load("items/type");
+                await context.sync();
+                console.log("Conflicts in the selection:", conflicts.items.length);
+                conflicts.items.forEach((conflict: Word.Conflict) => console.log("Conflict type:", conflict.type));
+            });
         }
 
         async function acceptFirst() {
@@ -103,7 +116,7 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample shows how to inspect and resolve coauthoring conflicts in Word.</p>
+            <p>This sample shows how to inspect conflicts across a shared document or within selected text and choose which changes to keep.</p>
             <p>Make sure the document is saved to OneDrive or SharePoint to enable coauthoring features.</p>
             <p><b>Important</b>: This API is only available in Word on Windows (WordApiDesktop 1.4). It is not supported in Word on the web.</p>
         </section>
@@ -112,6 +125,7 @@ template:
             <p>Note: Coauthoring conflicts can't be simulated by the APIs. You'll have to open a document with existing conflicts to see this in action.</p>
             <p>
                 <button id="get-conflicts">Get conflicts</button>
+                <button id="get-range-conflicts">Get conflicts in selected text</button>
             </p>
             <p>
                 <button id="accept-first">Accept first conflict</button>

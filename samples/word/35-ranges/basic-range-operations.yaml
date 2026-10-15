@@ -1,0 +1,214 @@
+order: 1
+id: word-ranges-basic-range-operations
+name: Basic range operations
+description: Reads, edits, searches, and styles the text of a document range.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.5'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-range").addEventListener("click", () => tryCatch(getRangeInfo));
+        document.getElementById("replace-text").addEventListener("click", () => tryCatch(replaceText));
+        document.getElementById("insert-paragraph").addEventListener("click", () => tryCatch(insertParagraph));
+        document.getElementById("insert-break").addEventListener("click", () => tryCatch(insertBreak));
+        document.getElementById("search-range").addEventListener("click", () => tryCatch(searchRange));
+        document.getElementById("set-style").addEventListener("click", () => tryCatch(setStyle));
+        document.getElementById("clear-range").addEventListener("click", () => tryCatch(clearRange));
+        document.getElementById("delete-range").addEventListener("click", () => tryCatch(deleteRange));
+
+        async function getRangeInfo() {
+            // Reads the text and checks whether the first paragraph range is empty.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                paragraphRange.load("text,isEmpty,style");
+                await context.sync();
+                console.log({ text: paragraphRange.text, isEmpty: paragraphRange.isEmpty, style: paragraphRange.style });
+            });
+        }
+
+        async function replaceText() {
+            // Replaces the first paragraph's text without replacing its paragraph mark.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const insertedRange: Word.Range = paragraphRange.insertText("Updated project summary.", Word.InsertLocation.replace);
+                await context.sync();
+                console.log("Replaced the first paragraph's text.");
+            });
+        }
+
+        async function insertParagraph() {
+            // Adds a paragraph after the first paragraph range.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const newParagraph: Word.Paragraph = paragraphRange.insertParagraph("Additional project details.", Word.InsertLocation.after);
+                await context.sync();
+                console.log("Inserted a paragraph after the summary.");
+            });
+        }
+
+        async function insertBreak() {
+            // Inserts a page break after the first paragraph range.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                paragraphRange.insertBreak(Word.BreakType.page, Word.InsertLocation.after);
+                await context.sync();
+                console.log("Inserted a page break after the summary.");
+            });
+        }
+
+        async function searchRange() {
+            // Finds whole-word matches within the first paragraph.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const searchOptions: Word.SearchOptions = Word.SearchOptions.newObject(context);
+                searchOptions.matchCase = false;
+                searchOptions.matchWholeWord = true;
+                const matches: Word.RangeCollection = paragraphRange.search("project", searchOptions);
+                matches.load("items/text");
+                await context.sync();
+                console.log("Matches found:", matches.items.length);
+                matches.items.forEach((match: Word.Range) => console.log(match.text));
+            });
+        }
+
+        async function setStyle() {
+            // Applies the sample's custom paragraph style to the first paragraph range.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                paragraphRange.style = "RangeSampleStyle";
+                await context.sync();
+                console.log("Applied the sample's custom style.");
+            });
+        }
+
+        async function clearRange() {
+            // Removes the first paragraph's text while preserving the paragraph.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                paragraphRange.clear();
+                await context.sync();
+                console.log("Cleared the summary text. The paragraph remains.");
+            });
+        }
+
+        async function deleteRange() {
+            // Deletes the first paragraph range, including its paragraph mark.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                paragraphRange.delete();
+                await context.sync();
+                console.log("Deleted the first paragraph range.");
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                body.insertParagraph("Project summary: the project is on schedule.", Word.InsertLocation.start);
+                body.insertParagraph("Next steps: review the project plan.", Word.InsertLocation.end);
+                body.styleBuiltIn = Word.BuiltInStyleName.normal;
+                const existingStyle: Word.Style = context.document.getStyles().getByNameOrNullObject("RangeSampleStyle");
+                existingStyle.load("isNullObject");
+                await context.sync();
+                if (existingStyle.isNullObject) {
+                    const sampleStyle: Word.Style = context.document.addStyle("RangeSampleStyle", Word.StyleType.paragraph);
+                    sampleStyle.font.bold = true;
+                    sampleStyle.font.color = "#005A9E";
+                }
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>This sample demonstrates how to read and edit a project summary, search its text, and apply a custom style.</section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with two sample paragraphs. Run again to reset after edits.</p>
+            <button id="setup">Add sample text</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="get-range">Get range text and properties</button>
+            <button id="replace-text">Replace summary text</button>
+            <button id="insert-paragraph">Insert paragraph</button>
+            <button id="insert-break">Insert page break</button>
+            <button id="search-range">Search summary for project</button>
+            <button id="set-style">Apply custom style</button>
+            <button id="clear-range">Clear summary text</button>
+            <button id="delete-range">Delete first paragraph</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

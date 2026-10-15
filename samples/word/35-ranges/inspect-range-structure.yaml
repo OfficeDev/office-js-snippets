@@ -1,0 +1,296 @@
+order: 6
+id: word-ranges-inspect-range-structure
+name: Inspect range structure
+description: Inspects content controls, fields, pictures, lists, and tables inside a document range.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.5'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-controls").addEventListener("click", () => tryCatch(getContentControls));
+        document.getElementById("get-fields").addEventListener("click", () => tryCatch(getFields));
+        document.getElementById("get-pictures").addEventListener("click", () => tryCatch(getInlinePictures));
+        document.getElementById("get-lists").addEventListener("click", () => tryCatch(getLists));
+        document.getElementById("insert-table").addEventListener("click", () => tryCatch(insertTable));
+        document.getElementById("get-tables").addEventListener("click", () => tryCatch(getTables));
+        document.getElementById("get-parent-table").addEventListener("click", () => tryCatch(getParentTable));
+        document.getElementById("get-parent-cell").addEventListener("click", () => tryCatch(getParentCell));
+        document.getElementById("check-parent-table").addEventListener("click", () => tryCatch(checkParentTable));
+        document.getElementById("check-parent-cell").addEventListener("click", () => tryCatch(checkParentCell));
+        document.getElementById("set-hyperlink").addEventListener("click", () => tryCatch(setHyperlink));
+        document.getElementById("get-hyperlink-ranges").addEventListener("click", () => tryCatch(getHyperlinkRanges));
+
+        async function getContentControls() {
+            // Gets the content controls contained in the document body range.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const contentControls: Word.ContentControlCollection = bodyRange.contentControls;
+                contentControls.load("items/tag,items/title,items/text");
+                await context.sync();
+                console.log("Content controls found:", contentControls.items.length);
+                contentControls.items.forEach((control: Word.ContentControl) => {
+                    console.log({ tag: control.tag, title: control.title, text: control.text });
+                });
+            });
+        }
+
+        async function getFields() {
+            // Gets field codes and displayed results in the document body range.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const fields: Word.FieldCollection = bodyRange.fields;
+                fields.load("items/code,items/result/text");
+                await context.sync();
+                console.log("Fields found:", fields.items.length);
+                fields.items.forEach((field: Word.Field) => console.log({ code: field.code, text: field.result.text }));
+            });
+        }
+
+        async function getInlinePictures() {
+            // Reads the dimensions of inline pictures in the document body range.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const pictures: Word.InlinePictureCollection = bodyRange.inlinePictures;
+                pictures.load("items/width,items/height");
+                await context.sync();
+                console.log("Inline pictures found:", pictures.items.length);
+                pictures.items.forEach((picture: Word.InlinePicture) => console.log({ width: picture.width, height: picture.height }));
+            });
+        }
+
+        async function getLists() {
+            // Reads the identifiers of lists in the document body range.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const lists: Word.ListCollection = bodyRange.lists;
+                lists.load("items/id");
+                await context.sync();
+                console.log("Lists found:", lists.items.length);
+                lists.items.forEach((list: Word.List) => console.log("List ID:", list.id));
+            });
+        }
+
+        async function insertTable() {
+            // Adds a project status table after the last paragraph range.
+            await Word.run(async (context) => {
+                const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+                const projectTable: Word.Table = lastRange.insertTable(2, 2, Word.InsertLocation.after, [
+                    ["Task", "Status"],
+                    ["Review", "Ready"]
+                ]);
+                await context.sync();
+                console.log("Inserted a project status table.");
+            });
+        }
+
+        async function getTables() {
+            // Reads the row counts and values of tables in the document body range.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const tables: Word.TableCollection = bodyRange.tables;
+                tables.load("items/rowCount,items/values");
+                await context.sync();
+                console.log("Tables found:", tables.items.length);
+                tables.items.forEach((table: Word.Table) => console.log({ rowCount: table.rowCount, values: table.values }));
+            });
+        }
+
+        async function getParentTable() {
+            // Reads the table containing the first table cell's range.
+            await Word.run(async (context) => {
+                const cellRange: Word.Range = context.document.body.tables.getFirst().getCell(0, 0).body.getRange();
+                const parentTable: Word.Table = cellRange.parentTable;
+                parentTable.load("rowCount,values");
+                await context.sync();
+                console.log({ rowCount: parentTable.rowCount, values: parentTable.values });
+            });
+        }
+
+        async function getParentCell() {
+            // Reads the cell containing the first table cell's range.
+            await Word.run(async (context) => {
+                const cellRange: Word.Range = context.document.body.tables.getFirst().getCell(0, 0).body.getRange();
+                const parentCell: Word.TableCell = cellRange.parentTableCell;
+                parentCell.load("rowIndex,cellIndex,value");
+                await context.sync();
+                console.log({ rowIndex: parentCell.rowIndex, cellIndex: parentCell.cellIndex, value: parentCell.value });
+            });
+        }
+
+        async function checkParentTable() {
+            // Checks whether the first paragraph is inside a table.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const parentTable: Word.Table = paragraphRange.parentTableOrNullObject;
+                parentTable.load("rowCount");
+                await context.sync();
+                if (parentTable.isNullObject) {
+                    console.warn("The first paragraph is not inside a table.");
+                    return;
+                }
+                console.log("Parent table rows:", parentTable.rowCount);
+            });
+        }
+
+        async function checkParentCell() {
+            // Checks whether the first paragraph is inside a table cell.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const parentCell: Word.TableCell = paragraphRange.parentTableCellOrNullObject;
+                parentCell.load("value");
+                await context.sync();
+                if (parentCell.isNullObject) {
+                    console.warn("The first paragraph is not inside a table cell.");
+                    return;
+                }
+                console.log("Parent cell text:", parentCell.value);
+            });
+        }
+
+        async function setHyperlink() {
+            // Links the first paragraph's text to the Word add-in documentation.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                paragraphRange.hyperlink = "https://learn.microsoft.com/office/dev/add-ins/word/";
+                await context.sync();
+                console.log("Linked the summary text to the Word add-in documentation.");
+            });
+        }
+
+        async function getHyperlinkRanges() {
+            // Reads the text and destinations of hyperlinks in the document body range.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const hyperlinkRanges: Word.RangeCollection = bodyRange.getHyperlinkRanges();
+                hyperlinkRanges.load("items/text,items/hyperlink");
+                await context.sync();
+                console.log("Hyperlinks found:", hyperlinkRanges.items.length);
+                hyperlinkRanges.items.forEach((hyperlinkRange: Word.Range) => {
+                    console.log({ text: hyperlinkRange.text, hyperlink: hyperlinkRange.hyperlink });
+                });
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                const summary: Word.Paragraph = body.insertParagraph("Project summary", Word.InsertLocation.start);
+                const summaryControl: Word.ContentControl = summary.getRange(Word.RangeLocation.content).insertContentControl();
+                summaryControl.tag = "RangeSampleSummary";
+                summaryControl.title = "Project summary";
+                const statusParagraph: Word.Paragraph = body.insertParagraph("Report status: ", Word.InsertLocation.end);
+                statusParagraph.getRange().insertField(Word.InsertLocation.end, Word.FieldType.quote, "\"Ready for review.\"");
+                const pictureParagraph: Word.Paragraph = body.insertParagraph("Sample picture: ", Word.InsertLocation.end);
+                const picture: Word.InlinePicture = pictureParagraph.insertInlinePictureFromBase64(
+                    "iVBORw0KGgoAAAANSUhEUgAAAB4AAAANCAIAAAAxEEnAAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACFSURBVDhPtY1BEoQwDMP6/0+XgIMTBAeYoTqso9Rkx1zG+tNj1H94jgGzeNSjteO5vtQQuG2seO0av8LzGbe3anzRoJ4ybm/VeKEerAEbAUpW4aWQCmrGFWykRzGBCnYy2ha3oAIq2MloW9yCCqhgJ6NtcQsqoIKdjLbFLaiACnYyf2fODbrjZcXfr2F4AAAAAElFTkSuQmCC",
+                    Word.InsertLocation.end
+                );
+                picture.width = 90;
+                const task: Word.Paragraph = body.insertParagraph("Review project plan", Word.InsertLocation.end);
+                const taskList: Word.List = task.startNewList();
+                taskList.insertParagraph("Approve project plan", Word.InsertLocation.end);
+                body.insertParagraph("Project status", Word.InsertLocation.end);
+                body.insertTable(2, 2, Word.InsertLocation.end, [["Task", "Status"], ["Review", "Ready"]]);
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>This sample demonstrates how to inspect a project report's content controls, status field, picture, task list, table, and links.</section>
+        <section><p><b>Support:</b> Creating the sample status field requires Word on Windows or Mac.
+            Field insertion is not supported in Word on the web.</p></section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with a sample report and its supporting objects.</p>
+            <button id="setup">Create sample report</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="get-controls">Get content controls</button>
+            <button id="get-fields">Get fields</button>
+            <button id="get-pictures">Get inline pictures</button>
+            <button id="get-lists">Get lists</button>
+            <button id="insert-table">Insert another status table</button>
+            <button id="get-tables">Get tables</button>
+            <button id="get-parent-table">Get first cell's parent table</button>
+            <button id="get-parent-cell">Get first cell's parent cell</button>
+            <button id="check-parent-table">Check summary's parent table</button>
+            <button id="check-parent-cell">Check summary's parent cell</button>
+            <button id="set-hyperlink">Link summary to documentation</button>
+            <button id="get-hyperlink-ranges">Get hyperlink text and destinations</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

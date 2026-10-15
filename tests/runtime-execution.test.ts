@@ -219,6 +219,43 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
+  test.each([
+    ['05-coauthoring', 'manage-coauthoring-conflicts.yaml', 'get-range-conflicts', 'Conflicts in the selection: 1'],
+    ['05-coauthoring', 'manage-coauthoring-conflicts.yaml', 'get-range-conflicts', expect.stringMatching(/^Conflict type: .+$/)],
+    ['25-paragraph', 'get-paragraph-on-insertion-point.yaml', 'get-paragraph', expect.stringContaining('The first paragraph of the selected text: ')],
+    ['25-paragraph', 'get-paragraph-on-insertion-point.yaml', 'get-sentences', 'Sentences from the current sentence to the paragraph end:'],
+    ['35-ranges', 'basic-range-operations.yaml', 'search-range', 'Matches found: 1'],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-borders', "First paragraph's border formatting:"],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-sections', 'Sections found: 3'],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-frames', 'Frames found: 1'],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-hyperlinks', 'Hyperlinks found: 1'],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-shapes', 'Shapes found: 1'],
+  ] as const)('Word: %s/%s %s logs a single descriptive message', async (group, file, buttonId, message) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', group, file),
+      buttonId,
+      assertions: () => {
+        expect(consoleSpy).toHaveBeenCalledWith(message);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
+    ['format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
+    ['format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
+  ] as const)('Word: %s %s labels structured property output', async (file, buttonId, label, properties) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', file),
+      buttonId,
+      assertions: () => {
+        expect(consoleSpy).toHaveBeenCalledWith(label, expect.objectContaining(properties));
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
   test('Word: Range.split uses the Range argument order', async () => {
     await runWordSnippetTest({
       snippetPath: path.join('samples', 'word', '35-ranges', 'split-words-of-first-paragraph.yaml'),

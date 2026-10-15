@@ -118,6 +118,8 @@ A successful action must give the user an unambiguous way to verify its effect. 
 
 Do not log an Office.js client object directly. An unloaded proxy commonly appears as an empty object in the console and does not help the user verify the action. Mutation functions should log a concise completion message. Dedicated get functions should explicitly load the relevant properties, synchronize, and then log those values.
 
+Keep scalar labels and values together in a single console argument using a template string, such as ``console.log(`Matches found: ${matches.items.length}`);``, so Script Lab displays them together. Add descriptive labels to text and property output, and introduce collection output with a clear heading. For multiple properties, log a descriptive label alongside a plain object of loaded values; preserve the object's structure rather than interpolating or stringifying it.
+
 A function may support multiple CSV rows only when it genuinely demonstrates closely related APIs on different reference pages.
 
 Every function that will be mapped in a CSV must remain understandable when extracted from the full snippet:

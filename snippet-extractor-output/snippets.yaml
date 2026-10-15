@@ -25224,15 +25224,27 @@ Word.Body#getTrackedChanges:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
 
 
-    // Gets all tracked changes.
+    // Gets the tracked changes and logs their details.
 
     await Word.run(async (context) => {
       const body: Word.Body = context.document.body;
       const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
-      trackedChanges.load();
+      trackedChanges.load("items/author, items/date, items/text, items/type");
       await context.sync();
 
-      console.log(trackedChanges);
+      if (trackedChanges.items.length === 0) {
+        console.warn("No tracked changes were found.");
+        return;
+      }
+
+      trackedChanges.items.forEach((trackedChange: Word.TrackedChange, index: number) => {
+        console.log(`Tracked change ${index + 1}:`, {
+          author: trackedChange.author,
+          date: trackedChange.date,
+          text: trackedChange.text,
+          type: trackedChange.type,
+        });
+      });
     });
 Word.Body#insertBreak:member(1):
   - >-
@@ -35381,26 +35393,32 @@ Word.RangeCollection#getFirst:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
 
 
-    // Updates the text and sets the font color to red.
+    // Replaces the document body and creates three tracked changes.
 
     await Word.run(async (context) => {
-      context.document.changeTrackingMode = Word.ChangeTrackingMode.off;
+      const document: Word.Document = context.document;
+      const body: Word.Body = document.body;
 
-      context.document.body.insertText("AAA BBB CCC DDD EEE FFF", "Replace");
+      document.changeTrackingMode = Word.ChangeTrackingMode.off;
+      body.clear();
+      body.insertParagraph("The quick brown fox jumps over the lazy dog.", Word.InsertLocation.start);
+      await context.sync();
 
-      context.document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
-      context.document.body
-        .search("BBB")
-        .getFirst()
-        .insertText("WWW", "Replace");
-      context.document.body
-        .search("DDD ")
-        .getFirst()
-        .delete();
-      context.document.body
-        .search("FFF")
-        .getFirst()
-        .insertText("XXX ", "Start");
+      document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+      await context.sync();
+
+      const adjective: Word.Range = body.search("quick").getFirst();
+      const animal: Word.Range = body.search("fox").getFirst();
+      const ending: Word.Range = body.search("dog").getFirst();
+      adjective.insertText("swift", Word.InsertLocation.replace);
+      animal.delete();
+      ending.insertText("hound", Word.InsertLocation.replace);
+      await context.sync();
+
+      document.changeTrackingMode = Word.ChangeTrackingMode.off;
+      await context.sync();
+
+      console.log("Created three tracked changes.");
     });
 Word.RangeCollection#items:member:
   - >-
@@ -39409,11 +39427,9 @@ Word.TrackedChange#accept:member(1):
       const body: Word.Body = context.document.body;
       const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
       const trackedChange: Word.TrackedChange = trackedChanges.getFirst();
-      trackedChange.load();
+      trackedChange.accept();
       await context.sync();
 
-      console.log("First tracked change:", trackedChange);
-      trackedChange.accept();
       console.log("Accepted the first tracked change.");
     });
 Word.TrackedChange#getNext:member(1):
@@ -39472,11 +39488,9 @@ Word.TrackedChange#reject:member(1):
       const body: Word.Body = context.document.body;
       const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
       const trackedChange: Word.TrackedChange = trackedChanges.getFirst();
-      trackedChange.load();
+      trackedChange.reject();
       await context.sync();
 
-      console.log("First tracked change:", trackedChange);
-      trackedChange.reject();
       console.log("Rejected the first tracked change.");
     });
 Word.TrackedChangeCollection:class:
@@ -39485,19 +39499,27 @@ Word.TrackedChangeCollection:class:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
 
 
-    // Gets the range of the first tracked change.
+    // Gets the tracked changes and logs their details.
 
     await Word.run(async (context) => {
       const body: Word.Body = context.document.body;
       const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
-      const trackedChange: Word.TrackedChange = trackedChanges.getFirst();
+      trackedChanges.load("items/author, items/date, items/text, items/type");
       await context.sync();
 
-      const range: Word.Range = trackedChange.getRange();
-      range.load();
-      await context.sync();
+      if (trackedChanges.items.length === 0) {
+        console.warn("No tracked changes were found.");
+        return;
+      }
 
-      console.log("range.text: " + range.text);
+      trackedChanges.items.forEach((trackedChange: Word.TrackedChange, index: number) => {
+        console.log(`Tracked change ${index + 1}:`, {
+          author: trackedChange.author,
+          date: trackedChange.date,
+          text: trackedChange.text,
+          type: trackedChange.type,
+        });
+      });
     });
 Word.TrackedChangeCollection#acceptAll:member(1):
   - >-
@@ -39511,6 +39533,8 @@ Word.TrackedChangeCollection#acceptAll:member(1):
       const body: Word.Body = context.document.body;
       const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
       trackedChanges.acceptAll();
+      await context.sync();
+
       console.log("Accepted all tracked changes.");
     });
 Word.TrackedChangeCollection#getFirst:member(1):
@@ -39533,6 +39557,33 @@ Word.TrackedChangeCollection#getFirst:member(1):
 
       console.log("range.text: " + range.text);
     });
+Word.TrackedChangeCollection#getFirstOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Safely gets the first tracked change without throwing an error when the
+    collection is empty.
+
+    await Word.run(async (context) => {
+      const body: Word.Body = context.document.body;
+      const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
+      const firstTrackedChange: Word.TrackedChange = trackedChanges.getFirstOrNullObject();
+      firstTrackedChange.load(["author", "isNullObject", "text", "type"]);
+      await context.sync();
+
+      if (firstTrackedChange.isNullObject) {
+        console.warn("No tracked changes were found.");
+        return;
+      }
+
+      console.log("First tracked change:", {
+        author: firstTrackedChange.author,
+        text: firstTrackedChange.text,
+        type: firstTrackedChange.type,
+      });
+    });
 Word.TrackedChangeCollection#rejectAll:member(1):
   - >-
     // Link to full sample:
@@ -39545,6 +39596,8 @@ Word.TrackedChangeCollection#rejectAll:member(1):
       const body: Word.Body = context.document.body;
       const trackedChanges: Word.TrackedChangeCollection = body.getTrackedChanges();
       trackedChanges.rejectAll();
+      await context.sync();
+
       console.log("Rejected all tracked changes.");
     });
 Word.TrackedChangeType:enum:

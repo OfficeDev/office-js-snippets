@@ -1,0 +1,225 @@
+order: 4
+id: word-lists-manage-list-items
+name: Manage list items
+description: Reads list item markers and sibling positions, changes levels, and navigates a list hierarchy.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.3'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-list-string").addEventListener("click", () => tryCatch(getListString));
+        document.getElementById("get-sibling-index").addEventListener("click", () => tryCatch(getSiblingIndex));
+        document.getElementById("get-ancestor").addEventListener("click", () => tryCatch(getAncestor));
+        document.getElementById("get-ancestor-or-null").addEventListener("click", () => tryCatch(getAncestorOrNullObject));
+        document.getElementById("get-descendants").addEventListener("click", () => tryCatch(getDescendants));
+        document.getElementById("set-level").addEventListener("click", () => tryCatch(setLevel));
+
+        async function getListString() {
+            // Reads the number or bullet displayed before the last list item.
+            await Word.run(async (context) => {
+                const lastParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getLast();
+                const listItem: Word.ListItem = lastParagraph.listItem;
+                listItem.load("listString");
+                await context.sync();
+
+                console.log(`Last list item marker: ${listItem.listString}`);
+            });
+        }
+
+        async function getSiblingIndex() {
+            // Reads the last list item's position among items at the same level.
+            await Word.run(async (context) => {
+                const lastParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getLast();
+                const listItem: Word.ListItem = lastParagraph.listItem;
+                listItem.load("siblingIndex");
+                await context.sync();
+
+                console.log(`Last list item sibling index: ${listItem.siblingIndex}`);
+            });
+        }
+
+        async function getAncestor() {
+            // Gets the parent paragraph of the last list item.
+            await Word.run(async (context) => {
+                const lastParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getLast();
+                const listItem: Word.ListItem = lastParagraph.listItem;
+                const parentParagraph: Word.Paragraph = listItem.getAncestor(true);
+                parentParagraph.load("text");
+                await context.sync();
+
+                console.log(`Parent of the last list item: ${parentParagraph.text}`);
+            });
+        }
+
+        async function getAncestorOrNullObject() {
+            // Checks whether the top-level list item has an ancestor without throwing an error.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getFirst();
+                const listItem: Word.ListItem = firstParagraph.listItem;
+                const ancestorParagraph: Word.Paragraph = listItem.getAncestorOrNullObject();
+                ancestorParagraph.load("text");
+                await context.sync();
+
+                if (ancestorParagraph.isNullObject) {
+                    console.log("The first list item has no ancestor because it is at the top level.");
+                } else {
+                    console.log(`Ancestor of the first list item: ${ancestorParagraph.text}`);
+                }
+            });
+        }
+
+        async function getDescendants() {
+            // Compares direct children with all descendants of the first list item.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getFirst();
+                const listItem: Word.ListItem = firstParagraph.listItem;
+                const children: Word.ParagraphCollection = listItem.getDescendants(true);
+                const descendants: Word.ParagraphCollection = listItem.getDescendants(false);
+                children.load("items/text");
+                descendants.load("items/text");
+                await context.sync();
+
+                console.log(`Direct children (${children.items.length}):`);
+                for (const childParagraph of children.items) {
+                    console.log(`- ${childParagraph.text}`);
+                }
+                console.log(`All descendants (${descendants.items.length}):`);
+                for (const descendantParagraph of descendants.items) {
+                    console.log(`- ${descendantParagraph.text}`);
+                }
+            });
+        }
+
+        async function setLevel() {
+            // Moves the last list item to the third level of the hierarchy.
+            await Word.run(async (context) => {
+                const lastParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getLast();
+                const listItem: Word.ListItem = lastParagraph.listItem;
+                listItem.level = 2;
+                await context.sync();
+
+                console.log("The last list item is now at level 2 (the third level).");
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                const firstParagraph: Word.Paragraph = body.insertParagraph("Design", "Start");
+                const list: Word.List = firstParagraph.startNewList();
+                list.load("$none");
+                await context.sync();
+
+                firstParagraph.listItem.level = 0;
+                list.setLevelNumbering(0, Word.ListNumbering.arabic);
+                list.setLevelNumbering(1, Word.ListNumbering.lowerLetter);
+                list.setLevelNumbering(2, Word.ListNumbering.lowerRoman);
+                const draftParagraph: Word.Paragraph = list.insertParagraph("Draft", "End");
+                draftParagraph.listItem.level = 1;
+                const reviewParagraph: Word.Paragraph = list.insertParagraph("Review", "End");
+                reviewParagraph.listItem.level = 2;
+                const publishParagraph: Word.Paragraph = list.insertParagraph("Publish", "End");
+                publishParagraph.listItem.level = 1;
+                await context.sync();
+
+                console.log("Setup complete: Design contains Draft and Publish. Draft contains Review.");
+            });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample demonstrates list item markers, sibling positions, levels, and hierarchy navigation.</p>
+        </section>
+        <section>
+            <h3>Set up</h3>
+            <p>Set up replaces the document body with a three-level list.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Read results in the console.</p>
+            <button id="get-list-string">Get last item marker</button>
+            <button id="get-sibling-index">Get last item sibling index</button>
+            <button id="get-ancestor">Get last item parent</button>
+            <button id="get-ancestor-or-null">Check first item ancestor</button>
+            <button id="get-descendants">Get children and descendants</button>
+            <button id="set-level">Move last item to third level</button>
+            <p>Changing Publish's level moves it under Draft and changes its marker, sibling position, and parent. Set up restores the original hierarchy.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

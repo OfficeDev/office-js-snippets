@@ -108,6 +108,7 @@ export interface ExcelMockOptions {
   rangeValues?: any[][];
   rangeText?: string;
   worksheetName?: string;
+  horizontalPageBreakCount?: number;
 }
 
 export function createExcelMock(options: ExcelMockOptions = {}) {
@@ -116,6 +117,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     rangeValues = [['value1', 'value2']],
     rangeText = 'Mock text',
     worksheetName = 'Sheet1',
+    horizontalPageBreakCount = 2,
   } = options;
 
   const mockFont = {
@@ -138,6 +140,8 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
       fill: { color: '' },
       font: mockFont,
       autofitColumns: jest.fn(),
+      columnWidth: 0,
+      rowHeight: 0,
     },
     load: jest.fn(),
   };
@@ -163,9 +167,42 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     rows: mockTableRows,
   };
 
+  function createPageBreakCollection(count: number, horizontal: boolean) {
+    const pageBreaks = Array.from({ length: count }, (_, index) => ({
+      rowIndex: horizontal ? 11 + index * 10 : 0,
+      columnIndex: horizontal ? 0 : 4,
+      load: jest.fn(),
+      delete: jest.fn(),
+      getCellAfterBreak: jest.fn(() => mockRange),
+    }));
+    return {
+      items: pageBreaks,
+      load: jest.fn(),
+      add: jest.fn(() => ({
+        load: jest.fn(),
+        delete: jest.fn(),
+        getCellAfterBreak: jest.fn(() => mockRange),
+      })),
+      getCount: jest.fn(() => ({ value: pageBreaks.length })),
+      getItem: jest.fn((index: number) => {
+        if (index < 0 || index >= pageBreaks.length) {
+          throw new RangeError('Page break index is out of range.');
+        }
+        return pageBreaks[index];
+      }),
+      removePageBreaks: jest.fn(),
+    };
+  }
+
   const mockWorksheet = {
     name: worksheetName,
     isNullObject: false,
+    horizontalPageBreaks: createPageBreakCollection(horizontalPageBreakCount, true),
+    verticalPageBreaks: createPageBreakCollection(1, false),
+    pageLayout: {
+      setPrintArea: jest.fn(),
+      zoom: { scale: 100 },
+    },
     getRange: jest.fn(() => mockRange),
     getRangeByIndexes: jest.fn(() => mockRange),
     getUsedRange: jest.fn(() => mockRange),

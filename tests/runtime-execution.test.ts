@@ -93,6 +93,107 @@ describe('Runtime Execution Tests - Excel', () => {
 
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
+
+  test.each([
+    'setup',
+    'add-page-breaks',
+    'list-page-breaks',
+    'count-page-breaks',
+    'get-first-page-break',
+    'delete-first-page-break',
+    'remove-page-breaks',
+  ])('Excel: manage page breaks %s action executes without runtime errors', async (buttonId) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '54-worksheet', 'manage-page-breaks.yaml'),
+      buttonId,
+      assertions: ({ mockContext, mockWorksheet, mockRange }) => {
+        const horizontalBreaks = mockWorksheet.horizontalPageBreaks;
+        const verticalBreaks = mockWorksheet.verticalPageBreaks;
+        expect(mockContext.sync).toHaveBeenCalled();
+
+        switch (buttonId) {
+          case 'setup':
+            expect(mockContext.workbook.worksheets.add).toHaveBeenCalledWith('Sample');
+            expect(mockWorksheet.delete).toHaveBeenCalled();
+            expect(mockRange.values).toHaveLength(41);
+            expect(mockRange.values.every((row: unknown[]) => row.length === 8)).toBe(true);
+            expect(mockRange.values[1]).toEqual(['Product 1', 'South', 110, 110, 110, 110, 440, 2000]);
+            expect(mockWorksheet.pageLayout.setPrintArea).toHaveBeenCalledWith('A1:H41');
+            expect(mockWorksheet.activate).toHaveBeenCalled();
+            break;
+          case 'add-page-breaks':
+            expect(horizontalBreaks.add.mock.calls).toEqual([['A12'], ['A22']]);
+            expect(mockWorksheet.getRange).toHaveBeenCalledWith('E1');
+            expect(verticalBreaks.add).toHaveBeenCalledWith(mockRange);
+            break;
+          case 'list-page-breaks':
+            expect(horizontalBreaks.load).toHaveBeenCalledWith('items/rowIndex, items/columnIndex');
+            expect(verticalBreaks.load).toHaveBeenCalledWith('items/rowIndex, items/columnIndex');
+            expect(consoleSpy).toHaveBeenCalledWith('Horizontal page breaks: 2');
+            expect(consoleSpy).toHaveBeenCalledWith('Vertical page breaks: 1');
+            expect(consoleSpy).toHaveBeenCalledWith('Horizontal break (zero-based indexes):', {
+              rowIndex: 11, columnIndex: 0,
+            });
+            break;
+          case 'count-page-breaks':
+            expect(horizontalBreaks.getCount).toHaveBeenCalled();
+            expect(verticalBreaks.getCount).toHaveBeenCalled();
+            expect(consoleSpy).toHaveBeenCalledWith('Horizontal page breaks: 2');
+            expect(consoleSpy).toHaveBeenCalledWith('Vertical page breaks: 1');
+            break;
+          case 'get-first-page-break':
+            expect(horizontalBreaks.getItem).toHaveBeenCalledWith(0);
+            expect(horizontalBreaks.items[0].getCellAfterBreak).toHaveBeenCalled();
+            expect(horizontalBreaks.items[0].load).toHaveBeenCalledWith('rowIndex, columnIndex');
+            expect(mockRange.load).toHaveBeenCalledWith('address');
+            expect(consoleSpy).toHaveBeenCalledWith('First horizontal page break (zero-based indexes):', {
+              rowIndex: 11, columnIndex: 0, cellAfterBreak: mockRange.address,
+            });
+            break;
+          case 'delete-first-page-break':
+            expect(horizontalBreaks.getItem).toHaveBeenCalledWith(0);
+            expect(horizontalBreaks.items[0].delete).toHaveBeenCalled();
+            expect(verticalBreaks.items[0].delete).not.toHaveBeenCalled();
+            break;
+          case 'remove-page-breaks':
+            expect(horizontalBreaks.removePageBreaks).toHaveBeenCalled();
+            expect(verticalBreaks.removePageBreaks).toHaveBeenCalled();
+            break;
+        }
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each(['get-first-page-break', 'delete-first-page-break'])(
+    'Excel: manage page breaks %s reports an empty collection',
+    async (buttonId) => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      await runExcelSnippetTest({
+        snippetPath: path.join('samples', 'excel', '54-worksheet', 'manage-page-breaks.yaml'),
+        buttonId,
+        mockOptions: { horizontalPageBreakCount: 0 },
+        assertions: ({ mockWorksheet }) => {
+          expect(mockWorksheet.horizontalPageBreaks.getItem).not.toHaveBeenCalled();
+          expect(consoleWarnSpy).toHaveBeenCalledWith(
+            'No horizontal page breaks. Choose Add page breaks first.'
+          );
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        },
+      });
+    }
+  );
+
+  test('Excel: page layout add page break action executes without runtime errors', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '54-worksheet', 'worksheet-page-layout.yaml'),
+      buttonId: 'setPageBreaks',
+      assertions: ({ mockWorksheet }) => {
+        expect(mockWorksheet.horizontalPageBreaks.add).toHaveBeenCalledWith('A21:E21');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
 });
 
 describe('Runtime Execution Tests - Word', () => {

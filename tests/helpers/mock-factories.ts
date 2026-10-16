@@ -109,15 +109,17 @@ export interface ExcelMockOptions {
   rangeValuesAsJson?: unknown[][];
   rangeText?: string;
   worksheetName?: string;
+  horizontalPageBreakCount?: number;
 }
 
 export function createExcelMock(options: ExcelMockOptions = {}) {
   const {
     rangeAddress = 'A1:B2',
     rangeValues = [['value1', 'value2']],
-    rangeValuesAsJson = [],
+    rangeValuesAsJson = [[{ type: 'String', basicValue: 'Mock value' }]],
     rangeText = 'Mock text',
     worksheetName = 'Sheet1',
+    horizontalPageBreakCount = 2,
   } = options;
 
   const mockFont = {
@@ -141,6 +143,8 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
       fill: { color: '' },
       font: mockFont,
       autofitColumns: jest.fn(),
+      columnWidth: 0,
+      rowHeight: 0,
     },
     load: jest.fn(),
   };
@@ -169,9 +173,42 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     },
   };
 
+  function createPageBreakCollection(count: number, horizontal: boolean) {
+    const pageBreaks = Array.from({ length: count }, (_, index) => ({
+      rowIndex: horizontal ? 11 + index * 10 : 0,
+      columnIndex: horizontal ? 0 : 4,
+      load: jest.fn(),
+      delete: jest.fn(),
+      getCellAfterBreak: jest.fn(() => mockRange),
+    }));
+    return {
+      items: pageBreaks,
+      load: jest.fn(),
+      add: jest.fn(() => ({
+        load: jest.fn(),
+        delete: jest.fn(),
+        getCellAfterBreak: jest.fn(() => mockRange),
+      })),
+      getCount: jest.fn(() => ({ value: pageBreaks.length })),
+      getItem: jest.fn((index: number) => {
+        if (index < 0 || index >= pageBreaks.length) {
+          throw new RangeError('Page break index is out of range.');
+        }
+        return pageBreaks[index];
+      }),
+      removePageBreaks: jest.fn(),
+    };
+  }
+
   const mockWorksheet = {
     name: worksheetName,
     isNullObject: false,
+    horizontalPageBreaks: createPageBreakCollection(horizontalPageBreakCount, true),
+    verticalPageBreaks: createPageBreakCollection(1, false),
+    pageLayout: {
+      setPrintArea: jest.fn(),
+      zoom: { scale: 100 },
+    },
     getRange: jest.fn(() => mockRange),
     getRangeByIndexes: jest.fn(() => mockRange),
     getUsedRange: jest.fn(() => mockRange),
@@ -218,7 +255,12 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     CellValueType: {
       double: 'Double',
       entity: 'Entity',
+      error: 'Error',
       function: 'Function',
+      notAvailable: 'NotAvailable',
+    },
+    ErrorCellValueType: {
+      busy: 'Busy',
     },
     FunctionCellValueType: {
       javaScriptReference: 'JavaScriptReference',
@@ -278,6 +320,15 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockParagraph = {
     text: paragraphText,
+    alignment: 'Left',
+    firstLineIndent: 0,
+    leftIndent: 0,
+    rightIndent: 0,
+    lineSpacing: 12,
+    spaceBefore: 0,
+    spaceAfter: 0,
+    lineUnitBefore: 0,
+    lineUnitAfter: 0,
     style: '',
     font: {
       color: '',
@@ -859,11 +910,21 @@ export function createWordMock(options: WordMockOptions = {}) {
   });
   mockRange.insertText.mockReturnValue(mockRange);
   Object.assign(mockParagraph, {
+    clear: jest.fn(),
+    delete: jest.fn(),
+    getHtml: jest.fn(() => ({ value: '<p>Mock paragraph</p>' })),
+    getOoxml: jest.fn(() => ({ value: '<w:p>Mock paragraph</w:p>' })),
+    insertHtml: jest.fn(() => mockRange),
+    insertOoxml: jest.fn(() => mockRange),
     insertText: jest.fn(() => mockRange),
     insertBreak: jest.fn(),
     insertInlinePictureFromBase64: jest.fn(() => mockInlinePicture),
     startNewList: jest.fn(() => mockList),
     getNext: jest.fn(() => mockParagraph),
+    getPrevious: jest.fn(() => mockParagraph),
+    getNextOrNullObject: jest.fn(() => ({ isNullObject: true, load: jest.fn() })),
+    getPreviousOrNullObject: jest.fn(() => ({ isNullObject: true, load: jest.fn() })),
+    getTextRanges: jest.fn(() => mockRanges),
   });
   // Two fixed paragraphs support location-comparison actions without modeling document mutation.
   mockParagraphs.items.push({ ...mockParagraph });

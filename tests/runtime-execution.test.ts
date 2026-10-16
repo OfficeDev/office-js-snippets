@@ -99,6 +99,77 @@ describe('Runtime Execution Tests - Excel', () => {
     }
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
+  test.each([
+    { basicType: 'Error', basicValue: '#UNKNOWN!' },
+    { basicType: 'String', basicValue: 'Unsupported value' },
+    { basicType: 'Double', basicValue: 42 },
+    { basicType: 'Boolean', basicValue: false },
+  ])('Excel: inspects an unavailable value with $basicType fallback', async (fallback) => {
+    const unavailableValue = { type: 'NotAvailable', ...fallback };
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-error-values.yaml'),
+      buttonId: 'inspect-unavailable-value',
+      mockOptions: { rangeValuesAsJson: [[unavailableValue]] },
+      assertions: ({ mockContext, mockRange, mockWorksheet }) => {
+        expect(mockContext.workbook.worksheets.getItem).toHaveBeenCalledWith('Sample');
+        expect(mockWorksheet.getRange).toHaveBeenCalledWith('B1');
+        expect(mockRange.load).toHaveBeenCalledWith('valuesAsJson');
+        expect(mockContext.sync).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledWith('B1 value type:', 'NotAvailable');
+        expect(consoleSpy).toHaveBeenCalledWith('B1 fallback type:', fallback.basicType);
+        expect(consoleSpy).toHaveBeenCalledWith('B1 fallback value:', fallback.basicValue);
+        expect(mockRange.valuesAsJson).toEqual([[unavailableValue]]);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { type: 'String', basicValue: 'Sample text' },
+    { type: 'LinkedEntity', basicValue: '#VALUE!', text: 'Microsoft Corporation' },
+    { type: 'LocalImage', basicValue: '#VALUE!' },
+    { type: 'Error', errorType: 'Busy', basicValue: '#BUSY!' },
+    { type: 'Error', errorType: 'NotAvailable', basicValue: '#N/A' },
+  ])('Excel: does not confuse $basicValue with an unavailable value type', async (cellValue) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-error-values.yaml'),
+      buttonId: 'inspect-unavailable-value',
+      mockOptions: { rangeValuesAsJson: [[cellValue]] },
+      assertions: ({ mockRange }) => {
+        expect(consoleSpy).toHaveBeenCalledWith('B1 value type:', cellValue.type);
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "B1's value type is supported. No unavailable-type fallback was returned."
+        );
+        expect(consoleSpy).toHaveBeenCalledTimes(2);
+        expect(consoleSpy).not.toHaveBeenCalledWith('B1 fallback value:', expect.anything());
+        expect(mockRange.valuesAsJson).toEqual([[cellValue]]);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each(['setup', 'set-busy-error', 'change-busy-error'])(
+    'Excel: error values %s action executes without runtime errors',
+    async (buttonId) => {
+      await runExcelSnippetTest({
+        snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-error-values.yaml'),
+        buttonId,
+        mockOptions: { rangeValuesAsJson: [[{ type: 'Error', errorType: 'Busy' }]] },
+        assertions: ({ mockContext, mockRange, mockWorksheet }) => {
+          expect(mockContext.sync).toHaveBeenCalled();
+          if (buttonId === 'set-busy-error') {
+            expect(mockRange.valuesAsJson).toEqual([[{ type: 'Error', errorType: 'Busy' }]]);
+          } else if (buttonId === 'change-busy-error') {
+            expect(mockWorksheet.getRange).toHaveBeenCalledWith('A1');
+            expect(mockRange.values).toEqual([['Process unavailable.']]);
+          } else {
+            expect(mockRange.values).toEqual([['Ready', 'Sample text']]);
+          }
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        },
+      });
+    }
+  );
 
   test.each([
     'setup',
@@ -132,6 +203,77 @@ describe('Runtime Execution Tests - Excel', () => {
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
+  test.each([
+    'setup',
+    'add-page-breaks',
+    'list-page-breaks',
+    'count-page-breaks',
+    'get-first-page-break',
+    'delete-first-page-break',
+    'remove-page-breaks',
+  ])('Excel: manage page breaks %s action executes without runtime errors', async (buttonId) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '54-worksheet', 'manage-page-breaks.yaml'),
+      buttonId,
+      assertions: ({ mockContext, mockWorksheet, mockRange }) => {
+        const horizontalBreaks = mockWorksheet.horizontalPageBreaks;
+        const verticalBreaks = mockWorksheet.verticalPageBreaks;
+        expect(mockContext.sync).toHaveBeenCalled();
+
+        switch (buttonId) {
+          case 'setup':
+            expect(mockContext.workbook.worksheets.add).toHaveBeenCalledWith('Sample');
+            expect(mockWorksheet.delete).toHaveBeenCalled();
+            expect(mockRange.values).toHaveLength(41);
+            expect(mockRange.values.every((row: unknown[]) => row.length === 8)).toBe(true);
+            expect(mockRange.values[1]).toEqual(['Product 1', 'South', 110, 110, 110, 110, 440, 2000]);
+            expect(mockWorksheet.pageLayout.setPrintArea).toHaveBeenCalledWith('A1:H41');
+            expect(mockWorksheet.activate).toHaveBeenCalled();
+            break;
+          case 'add-page-breaks':
+            expect(horizontalBreaks.add.mock.calls).toEqual([['A12'], ['A22']]);
+            expect(mockWorksheet.getRange).toHaveBeenCalledWith('E1');
+            expect(verticalBreaks.add).toHaveBeenCalledWith(mockRange);
+            break;
+          case 'list-page-breaks':
+            expect(horizontalBreaks.load).toHaveBeenCalledWith('items/rowIndex, items/columnIndex');
+            expect(verticalBreaks.load).toHaveBeenCalledWith('items/rowIndex, items/columnIndex');
+            expect(consoleSpy).toHaveBeenCalledWith('Horizontal page breaks: 2');
+            expect(consoleSpy).toHaveBeenCalledWith('Vertical page breaks: 1');
+            expect(consoleSpy).toHaveBeenCalledWith('Horizontal break (zero-based indexes):', {
+              rowIndex: 11, columnIndex: 0,
+            });
+            break;
+          case 'count-page-breaks':
+            expect(horizontalBreaks.getCount).toHaveBeenCalled();
+            expect(verticalBreaks.getCount).toHaveBeenCalled();
+            expect(consoleSpy).toHaveBeenCalledWith('Horizontal page breaks: 2');
+            expect(consoleSpy).toHaveBeenCalledWith('Vertical page breaks: 1');
+            break;
+          case 'get-first-page-break':
+            expect(horizontalBreaks.getItem).toHaveBeenCalledWith(0);
+            expect(horizontalBreaks.items[0].getCellAfterBreak).toHaveBeenCalled();
+            expect(horizontalBreaks.items[0].load).toHaveBeenCalledWith('rowIndex, columnIndex');
+            expect(mockRange.load).toHaveBeenCalledWith('address');
+            expect(consoleSpy).toHaveBeenCalledWith('First horizontal page break (zero-based indexes):', {
+              rowIndex: 11, columnIndex: 0, cellAfterBreak: mockRange.address,
+            });
+            break;
+          case 'delete-first-page-break':
+            expect(horizontalBreaks.getItem).toHaveBeenCalledWith(0);
+            expect(horizontalBreaks.items[0].delete).toHaveBeenCalled();
+            expect(verticalBreaks.items[0].delete).not.toHaveBeenCalled();
+            break;
+          case 'remove-page-breaks':
+            expect(horizontalBreaks.removePageBreaks).toHaveBeenCalled();
+            expect(verticalBreaks.removePageBreaks).toHaveBeenCalled();
+            break;
+        }
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
   test('Excel: function reference setup prepares the Sample worksheet', async () => {
     await runExcelSnippetTest({
       snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-function-references.yaml'),
@@ -146,6 +288,36 @@ describe('Runtime Execution Tests - Excel', () => {
         ]);
         expect(mockWorksheet.activate).toHaveBeenCalled();
         expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each(['get-first-page-break', 'delete-first-page-break'])(
+    'Excel: manage page breaks %s reports an empty collection',
+    async (buttonId) => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      await runExcelSnippetTest({
+        snippetPath: path.join('samples', 'excel', '54-worksheet', 'manage-page-breaks.yaml'),
+        buttonId,
+        mockOptions: { horizontalPageBreakCount: 0 },
+        assertions: ({ mockWorksheet }) => {
+          expect(mockWorksheet.horizontalPageBreaks.getItem).not.toHaveBeenCalled();
+          expect(consoleWarnSpy).toHaveBeenCalledWith(
+            'No horizontal page breaks. Choose Add page breaks first.'
+          );
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        },
+      });
+    }
+  );
+
+  test('Excel: page layout add page break action executes without runtime errors', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '54-worksheet', 'worksheet-page-layout.yaml'),
+      buttonId: 'setPageBreaks',
+      assertions: ({ mockWorksheet }) => {
+        expect(mockWorksheet.horizontalPageBreaks.add).toHaveBeenCalledWith('A21:E21');
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
@@ -393,6 +565,17 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   const rangeScenarios = [
+    ['25-paragraph', 'basic-paragraph-operations.yaml', [
+      'setup', 'get-paragraph', 'get-next', 'get-previous', 'check-next', 'check-previous',
+      'get-sentences', 'clear-paragraph', 'delete-paragraph',
+    ]],
+    ['25-paragraph', 'insert-and-read-paragraph-markup.yaml', [
+      'setup', 'insert-html', 'insert-ooxml', 'get-html', 'get-ooxml',
+    ]],
+    ['25-paragraph', 'paragraph-properties.yaml', [
+      'setup', 'indent', 'indent-first-line', 'indent-right', 'spacing', 'space-before',
+      'space-after', 'line-unit-spacing-after', 'line-unit-spacing-before', 'align', 'get-formatting',
+    ]],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
       'search-range', 'set-style', 'clear-range', 'delete-range',
@@ -451,6 +634,14 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   test.each([
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'get-paragraph', expect.stringContaining('First paragraph: ')],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'check-next', 'There is no paragraph after the last paragraph.'],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'check-previous', 'There is no paragraph before the first paragraph.'],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'get-next', expect.stringContaining('Next paragraph: ')],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'get-previous', expect.stringContaining('Previous paragraph: ')],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'get-sentences', 'Sentences found: 1'],
+    ['25-paragraph', 'insert-and-read-paragraph-markup.yaml', 'get-html', 'Paragraph HTML: <p>Mock paragraph</p>'],
+    ['25-paragraph', 'insert-and-read-paragraph-markup.yaml', 'get-ooxml', 'Paragraph OOXML: <w:p>Mock paragraph</w:p>'],
     ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Can coauthor: true'],
     ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Can merge: true'],
     ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Pending updates: false'],
@@ -497,6 +688,7 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   test.each([
+    ['25-paragraph', 'paragraph-properties.yaml', 'get-formatting', 'Paragraph:', { firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0 }],
     ['35-ranges', 'basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
     ['35-ranges', 'format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
     ['35-ranges', 'format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
@@ -510,6 +702,87 @@ describe('Runtime Execution Tests - Word', () => {
       buttonId,
       assertions: () => {
         expect(consoleSpy).toHaveBeenCalledWith(label, expect.objectContaining(properties));
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['clear-paragraph', 'clear', 'delete'],
+    ['delete-paragraph', 'delete', 'clear'],
+  ])('Word: %s invokes the paragraph operation, not a range operation', async (buttonId, method, otherMethod) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '25-paragraph', 'basic-paragraph-operations.yaml'),
+      buttonId,
+      assertions: ({ mockParagraph, mockRange }) => {
+        expect(mockParagraph[method]).toHaveBeenCalledTimes(1);
+        expect(mockParagraph[otherMethod]).not.toHaveBeenCalled();
+        expect(mockRange[method]).not.toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['indent-first-line', 'firstLineIndent', 36],
+    ['indent-right', 'rightIndent', 72],
+    ['space-before', 'spaceBefore', 24],
+  ])('Word: %s assigns the requested paragraph property', async (buttonId, property, value) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '25-paragraph', 'paragraph-properties.yaml'),
+      buttonId: String(buttonId),
+      assertions: ({ mockParagraph }) => {
+        expect(mockParagraph[property]).toBe(value);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['insert-html', 'insertHtml', expect.stringContaining('<b>Project update:</b>')],
+    ['insert-ooxml', 'insertOoxml', expect.stringContaining('<pkg:package')],
+  ])('Word: %s replaces content through the Paragraph API', async (buttonId, method, markup) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '25-paragraph', 'insert-and-read-paragraph-markup.yaml'),
+      buttonId,
+      assertions: ({ mockParagraph, mockRange }) => {
+        expect(mockParagraph[method]).toHaveBeenCalledWith(markup, 'Replace');
+        expect(mockRange[method]).not.toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['check-next', 'getNextOrNullObject', 'Next paragraph: Neighbor paragraph.'],
+    ['check-previous', 'getPreviousOrNullObject', 'Previous paragraph: Neighbor paragraph.'],
+  ])('Word: %s handles both null and non-null paragraphs', async (buttonId, method, message) => {
+    const { mockObject, mockParagraph } = createWordMock();
+    const neighbor = { isNullObject: false, text: 'Neighbor paragraph.', load: jest.fn() };
+    const getNeighbor = jest.fn(() => neighbor);
+    Object.assign(mockParagraph, { [method]: getNeighbor });
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '25-paragraph', 'basic-paragraph-operations.yaml')));
+    await clickButton(buttonHandlers, buttonId);
+    expect(consoleSpy).toHaveBeenCalledWith(message);
+
+    neighbor.isNullObject = true;
+    Object.defineProperty(neighbor, 'text', { get: () => { throw new Error('Null paragraph text is unavailable.'); } });
+    await clickButton(buttonHandlers, buttonId);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    expect(getNeighbor).toHaveBeenCalledTimes(2);
+  });
+
+  test('Word: paragraph sentences use the paragraph-specific argument order', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '25-paragraph', 'basic-paragraph-operations.yaml'),
+      buttonId: 'get-sentences',
+      assertions: ({ mockParagraph }) => {
+        expect(mockParagraph.getTextRanges).toHaveBeenCalledWith(['.'], true);
+        const sentences = mockParagraph.getTextRanges.mock.results[0].value;
+        expect(sentences.load).toHaveBeenCalledWith('items/text');
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });

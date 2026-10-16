@@ -220,16 +220,40 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   test.each([
+    ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Can coauthor: true'],
+    ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Can merge: true'],
+    ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Pending updates: false'],
+    ['05-coauthoring', 'manage-coauthors.yaml', 'get-my-info', expect.stringMatching(/^Current user: .+$/)],
     ['05-coauthoring', 'manage-coauthoring-conflicts.yaml', 'get-range-conflicts', 'Conflicts in the selection: 1'],
     ['05-coauthoring', 'manage-coauthoring-conflicts.yaml', 'get-range-conflicts', expect.stringMatching(/^Conflict type: .+$/)],
     ['25-paragraph', 'get-paragraph-on-insertion-point.yaml', 'get-paragraph', expect.stringContaining('The first paragraph of the selected text: ')],
     ['25-paragraph', 'get-paragraph-on-insertion-point.yaml', 'get-sentences', 'Sentences from the current sentence to the paragraph end:'],
     ['35-ranges', 'basic-range-operations.yaml', 'search-range', 'Matches found: 1'],
+    ['35-ranges', 'compare-location.yaml', 'expand-ranges', expect.stringContaining('Expanded text: ')],
+    ['35-ranges', 'compare-location.yaml', 'intersect-ranges', expect.stringContaining('Overlapping text: ')],
+    ['35-ranges', 'format-range-text-desktop.yaml', 'detect-language', 'Language detected: true'],
+    ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-html', expect.stringContaining('Range HTML: ')],
+    ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-ooxml', expect.stringContaining('Range OOXML: ')],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-borders', "First paragraph's border formatting:"],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-sections', 'Sections found: 3'],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-frames', 'Frames found: 1'],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-hyperlinks', 'Hyperlinks found: 1'],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-shapes', 'Shapes found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-controls', 'Content controls found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-fields', 'Fields found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-pictures', 'Inline pictures found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-lists', 'Lists found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-lists', 'List ID: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-tables', 'Tables found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-hyperlink-ranges', 'Hyperlinks found: 1'],
+    ['35-ranges', 'manage-range-bookmarks.yaml', 'get-bookmarks', 'Bookmarks found: 1'],
+    ['35-ranges', 'split-words-of-first-paragraph.yaml', 'get-next-sentence', expect.stringContaining('Next sentence: ')],
+    ['50-document', 'manage-footnotes.yaml', 'get-endnotes', 'Endnotes found: 1'],
+    ['50-document', 'manage-tracked-changes.yaml', 'get-range-revisions', 'Revisions in the first paragraph: 1'],
+    ['50-document', 'manage-tracked-changes.yaml', 'get-range-tracked-changes', expect.stringMatching(/^Tracked changes in the first paragraph: \d+$/)],
+    ['50-document', 'manage-tracked-changes.yaml', 'get-first-tracked-change-range', expect.stringContaining('Tracked change range text: ')],
+    ['99-preview-apis', 'read-range-underline.yaml', 'get-underline', 'Underline type: Single'],
+    ['99-preview-apis', 'read-range-underline.yaml', 'get-underline', 'Has a single underline: true'],
   ] as const)('Word: %s/%s %s logs a single descriptive message', async (group, file, buttonId, message) => {
     await runWordSnippetTest({
       snippetPath: path.join('samples', 'word', group, file),
@@ -242,12 +266,16 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   test.each([
-    ['basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
-    ['format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
-    ['format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
-  ] as const)('Word: %s %s labels structured property output', async (file, buttonId, label, properties) => {
+    ['35-ranges', 'basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
+    ['35-ranges', 'format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
+    ['35-ranges', 'format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
+    ['35-ranges', 'format-range-text-desktop.yaml', 'get-proofing', "First paragraph's proofing settings:", { languageId: 'EnglishUS', languageDetected: false }],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-table', 'Parent table:', { rowCount: 2, values: expect.any(Array) }],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-cell', 'Parent cell:', { rowIndex: expect.any(Number), cellIndex: expect.any(Number), value: expect.any(String) }],
+    ['50-document', 'manage-tracked-changes.yaml', 'get-next-tracked-change', 'Next tracked change:', { author: expect.any(String), date: expect.any(Date), text: expect.any(String), type: expect.any(String) }],
+  ] as const)('Word: %s/%s %s labels structured property output', async (group, file, buttonId, label, properties) => {
     await runWordSnippetTest({
-      snippetPath: path.join('samples', 'word', '35-ranges', file),
+      snippetPath: path.join('samples', 'word', group, file),
       buttonId,
       assertions: () => {
         expect(consoleSpy).toHaveBeenCalledWith(label, expect.objectContaining(properties));
@@ -291,7 +319,7 @@ describe('Runtime Execution Tests - Word', () => {
         expect(mockRange.editors.getItemAt).toHaveBeenCalledWith(0);
         const editor = mockRange.editors.getItemAt.mock.results[0].value;
         expect(editor.load).toHaveBeenCalledWith('name,id');
-        expect(consoleSpy).toHaveBeenCalledWith('Editing-permission entries:', 1);
+        expect(consoleSpy).toHaveBeenCalledWith('Editing-permission entries: 1');
         expect(consoleSpy).toHaveBeenCalledWith({ name: 'Everyone', id: 'Everyone' });
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },

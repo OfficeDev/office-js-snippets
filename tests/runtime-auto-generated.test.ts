@@ -82,6 +82,7 @@ const INCLUDED_GROUPS = [
   '28-formatting',
   '30-properties',
   '35-ranges',
+  '36-pages',
   '40-tables',
   '42-reference-tables',
   '45-shapes',

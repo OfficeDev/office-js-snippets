@@ -116,7 +116,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const {
     rangeAddress = 'A1:B2',
     rangeValues = [['value1', 'value2']],
-    rangeValuesAsJson = [],
+    rangeValuesAsJson = [[{ type: 'String', basicValue: 'Mock value' }]],
     rangeText = 'Mock text',
     worksheetName = 'Sheet1',
     horizontalPageBreakCount = 2,
@@ -249,7 +249,12 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     CellValueType: {
       double: 'Double',
       entity: 'Entity',
+      error: 'Error',
       function: 'Function',
+      notAvailable: 'NotAvailable',
+    },
+    ErrorCellValueType: {
+      busy: 'Busy',
     },
     FunctionCellValueType: {
       javaScriptReference: 'JavaScriptReference',

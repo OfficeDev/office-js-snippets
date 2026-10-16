@@ -63,6 +63,78 @@ describe('Runtime Execution Tests - Excel', () => {
   });
 
   test.each([
+    { basicType: 'Error', basicValue: '#UNKNOWN!' },
+    { basicType: 'String', basicValue: 'Unsupported value' },
+    { basicType: 'Double', basicValue: 42 },
+    { basicType: 'Boolean', basicValue: false },
+  ])('Excel: inspects an unavailable value with $basicType fallback', async (fallback) => {
+    const unavailableValue = { type: 'NotAvailable', ...fallback };
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-error-values.yaml'),
+      buttonId: 'inspect-unavailable-value',
+      mockOptions: { rangeValuesAsJson: [[unavailableValue]] },
+      assertions: ({ mockContext, mockRange, mockWorksheet }) => {
+        expect(mockContext.workbook.worksheets.getItem).toHaveBeenCalledWith('Sample');
+        expect(mockWorksheet.getRange).toHaveBeenCalledWith('B1');
+        expect(mockRange.load).toHaveBeenCalledWith('valuesAsJson');
+        expect(mockContext.sync).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledWith('B1 value type:', 'NotAvailable');
+        expect(consoleSpy).toHaveBeenCalledWith('B1 fallback type:', fallback.basicType);
+        expect(consoleSpy).toHaveBeenCalledWith('B1 fallback value:', fallback.basicValue);
+        expect(mockRange.valuesAsJson).toEqual([[unavailableValue]]);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { type: 'String', basicValue: 'Sample text' },
+    { type: 'LinkedEntity', basicValue: '#VALUE!', text: 'Microsoft Corporation' },
+    { type: 'LocalImage', basicValue: '#VALUE!' },
+    { type: 'Error', errorType: 'Busy', basicValue: '#BUSY!' },
+    { type: 'Error', errorType: 'NotAvailable', basicValue: '#N/A' },
+  ])('Excel: does not confuse $basicValue with an unavailable value type', async (cellValue) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-error-values.yaml'),
+      buttonId: 'inspect-unavailable-value',
+      mockOptions: { rangeValuesAsJson: [[cellValue]] },
+      assertions: ({ mockRange }) => {
+        expect(consoleSpy).toHaveBeenCalledWith('B1 value type:', cellValue.type);
+        expect(consoleSpy).toHaveBeenCalledWith(
+          "B1's value type is supported. No unavailable-type fallback was returned."
+        );
+        expect(consoleSpy).toHaveBeenCalledTimes(2);
+        expect(consoleSpy).not.toHaveBeenCalledWith('B1 fallback value:', expect.anything());
+        expect(mockRange.valuesAsJson).toEqual([[cellValue]]);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each(['setup', 'set-busy-error', 'change-busy-error'])(
+    'Excel: error values %s action executes without runtime errors',
+    async (buttonId) => {
+      await runExcelSnippetTest({
+        snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-error-values.yaml'),
+        buttonId,
+        mockOptions: { rangeValuesAsJson: [[{ type: 'Error', errorType: 'Busy' }]] },
+        assertions: ({ mockContext, mockRange, mockWorksheet }) => {
+          expect(mockContext.sync).toHaveBeenCalled();
+          if (buttonId === 'set-busy-error') {
+            expect(mockRange.valuesAsJson).toEqual([[{ type: 'Error', errorType: 'Busy' }]]);
+          } else if (buttonId === 'change-busy-error') {
+            expect(mockWorksheet.getRange).toHaveBeenCalledWith('A1');
+            expect(mockRange.values).toEqual([['Process unavailable.']]);
+          } else {
+            expect(mockRange.values).toEqual([['Ready', 'Sample text']]);
+          }
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        },
+      });
+    }
+  );
+
+  test.each([
     'setup',
     'set-range-font',
     'get-range-font',

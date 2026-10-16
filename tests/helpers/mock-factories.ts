@@ -556,6 +556,18 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
   mockTrackedChange.getNext.mockReturnValue(mockTrackedChange);
 
+  const mockRevision = {
+    author: 'Mock Author',
+    date: new Date('2024-01-01'),
+    formatDescription: '',
+    index: 1,
+    type: 'Insert',
+    get range() { return mockRange; },
+    get movedRange() { return mockRange; },
+    accept: jest.fn(),
+    reject: jest.fn(),
+  };
+
   const mockTrackedChanges = {
     items: [mockTrackedChange],
     acceptAll: jest.fn(),
@@ -790,7 +802,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     editors: mockEditors,
     endnotes: mockEndnotes,
     conflicts: mockConflictCollection,
-    revisions: { items: [{ author: 'Mock Author', date: new Date('2024-01-01'), type: 'Insert' }], load: jest.fn() },
+    revisions: { items: [mockRevision], load: jest.fn() },
     clear: jest.fn(),
     getRange: jest.fn(() => mockRange),
     compareLocationWith: jest.fn(() => ({ value: 'Before' })),
@@ -862,6 +874,8 @@ export function createWordMock(options: WordMockOptions = {}) {
     document: {
       body: mockBody,
       changeTrackingMode: 'Off',
+      trackMoves: false,
+      revisions: { items: [mockRevision], load: jest.fn() },
       activeWindow: mockWindow,
       windows: { items: [mockWindow], load: jest.fn() },
       addStyle: jest.fn(() => mockStyle),
@@ -906,6 +920,11 @@ export function createWordMock(options: WordMockOptions = {}) {
     off: 'Off',
     trackAll: 'TrackAll',
     trackMineOnly: 'TrackMineOnly',
+  };
+
+  wordMockObject.RevisionType = {
+    movedFrom: 'MovedFrom',
+    movedTo: 'MovedTo',
   };
 
   wordMockObject.CoauthoringLockType = {

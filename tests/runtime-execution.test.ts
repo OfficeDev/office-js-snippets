@@ -469,6 +469,131 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
+  test('Word: revision metadata includes formatting and collection position', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'manage-tracked-changes.yaml'),
+      buttonId: 'get-range-revisions',
+      assertions: ({ mockRange }) => {
+        expect(mockRange.revisions.load).toHaveBeenCalledWith(
+          'items/author,items/date,items/type,items/index,items/formatDescription'
+        );
+        expect(consoleSpy).toHaveBeenCalledWith('Revision properties:', {
+          author: 'Mock Author',
+          date: new Date('2024-01-01'),
+          type: 'Insert',
+          index: 1,
+          formatDescription: '',
+        });
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['get-first-revision-range', true],
+    ['get-first-revision-range', false],
+    ['accept-first-revision', true],
+    ['accept-first-revision', false],
+    ['reject-first-revision', true],
+    ['reject-first-revision', false],
+  ] as const)('Word: %s handles revision availability (%s)', async (buttonId, hasRevision) => {
+    const { mockObject, mockContext, mockRange } = createWordMock();
+    const revision = mockRange.revisions.items[0];
+    if (!hasRevision) {
+      mockRange.revisions.items.length = 0;
+    }
+    const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '50-document', 'manage-tracked-changes.yaml')));
+
+    await clickButton(buttonHandlers, buttonId);
+
+    expect(mockRange.revisions.load).toHaveBeenCalledWith('items');
+    if (!hasRevision) {
+      expect(warningSpy).toHaveBeenCalledWith('No revisions were found. Run Set up to create tracked changes.');
+      expect(mockRange.select).not.toHaveBeenCalled();
+      expect(revision.accept).not.toHaveBeenCalled();
+      expect(revision.reject).not.toHaveBeenCalled();
+    } else if (buttonId === 'get-first-revision-range') {
+      expect(mockRange.load).toHaveBeenCalledWith('text');
+      expect(mockRange.select).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(`First revision range text: ${mockRange.text}`);
+    } else if (buttonId === 'accept-first-revision') {
+      expect(revision.accept).toHaveBeenCalledTimes(1);
+      expect(revision.reject).not.toHaveBeenCalled();
+    } else {
+      expect(revision.reject).toHaveBeenCalledTimes(1);
+      expect(revision.accept).not.toHaveBeenCalled();
+    }
+    expect(mockContext.sync).toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Word: tracked move setup creates two paragraphs and enables move tracking', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'track-moved-text.yaml'),
+      buttonId: 'setup',
+      assertions: ({ mockContext, mockBody, mockRange }) => {
+        expect(mockBody.clear).toHaveBeenCalled();
+        expect(mockBody.insertParagraph).toHaveBeenNthCalledWith(
+          1, 'This paragraph stays in place.', 'Start'
+        );
+        expect(mockBody.insertParagraph).toHaveBeenNthCalledWith(
+          2, 'Move this entire paragraph above the first paragraph.', 'End'
+        );
+        expect(mockContext.document.trackMoves).toBe(true);
+        expect(mockContext.document.changeTrackingMode).toBe('TrackAll');
+        expect(mockRange.select).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each(['MovedFrom', 'MovedTo', 'Insert', 'Empty'])(
+    'Word: moved revision range handles %s revisions',
+    async (revisionType) => {
+      const { mockObject, mockContext, mockRange } = createWordMock();
+      const revisions = mockContext.document.revisions;
+      const revision = revisions.items[0];
+      mockRange.revisions.items.length = 0;
+      revision.type = revisionType;
+      if (revisionType === 'Empty') {
+        revisions.items.length = 0;
+      }
+      const movedRange = { ...mockRange, text: 'Moved sample text', load: jest.fn(), select: jest.fn() };
+      const movedRangeGetter = jest.spyOn(revision, 'movedRange', 'get').mockReturnValue(movedRange);
+      const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      (global as any).Word = mockObject;
+      const buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '50-document', 'track-moved-text.yaml')));
+
+      await clickButton(buttonHandlers, 'get-moved-revision-range');
+
+      expect(revisions.load).toHaveBeenCalledWith('items/type');
+      expect(mockRange.revisions.load).not.toHaveBeenCalled();
+      if (revisionType === 'MovedFrom' || revisionType === 'MovedTo') {
+        expect(movedRangeGetter).toHaveBeenCalled();
+        expect(movedRange.load).toHaveBeenCalledWith('text');
+        expect(movedRange.select).toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith('Moved revision range text: Moved sample text');
+        expect(warningSpy).not.toHaveBeenCalled();
+      } else {
+        expect(movedRangeGetter).not.toHaveBeenCalled();
+        expect(movedRange.select).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Revision types found:', revisionType === 'Empty' ? [] : ['Insert']
+        );
+        expect(warningSpy).toHaveBeenCalledWith(
+          'No tracked move was found. Move an entire paragraph as described in the task pane; moving a phrase may produce insertion and deletion revisions instead.'
+        );
+      }
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    }
+  );
+
   test.each([
     'setup',
     'get-first-section',

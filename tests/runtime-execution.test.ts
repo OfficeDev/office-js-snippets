@@ -60,6 +60,44 @@ describe('Runtime Execution Tests - Excel', () => {
   });
 
   test.each([
+    {
+      details: { valueBefore: 'Merchant', valueAfter: 42, valueTypeBefore: 'String', valueTypeAfter: 'Double' },
+      expectedLog: 'Change at B2: was Merchant(String), now is 42(Double)',
+      isError: false,
+    },
+    {
+      details: { valueBefore: 42, valueAfter: '#DIV/0!', valueTypeBefore: 'Double', valueTypeAfter: 'Error' },
+      expectedLog: 'Change at B2: was 42(Double), now is #DIV/0!(Error)',
+      isError: true,
+    },
+    {
+      details: undefined,
+      expectedLog: 'Edit one table cell at a time to inspect its value and type.',
+      isError: false,
+    },
+  ])('Excel: table change details reports $expectedLog', async ({ details, expectedLog, isError }) => {
+    const { mockContext, mockWorksheet } = await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '30-events', 'data-change-event-details.yaml'),
+      buttonId: 'register-handler',
+    });
+
+    expect(mockContext.workbook.worksheets.getItem).toHaveBeenCalledWith('Sample');
+    expect(mockWorksheet.tables.getItem).toHaveBeenCalledWith('ExpensesTable');
+    const changedEvent = mockWorksheet.tables.getItem.mock.results[0].value.onChanged;
+    expect(changedEvent.add).toHaveBeenCalledTimes(1);
+    const handler = changedEvent.add.mock.calls[0][0];
+    await handler({ address: 'B2', details });
+
+    expect(consoleSpy).toHaveBeenCalledWith(expectedLog);
+    if (isError) {
+      expect(consoleSpy).toHaveBeenCalledWith('The updated cell contains an error:', '#DIV/0!');
+    } else {
+      expect(consoleSpy).not.toHaveBeenCalledWith('The updated cell contains an error:', expect.anything());
+    }
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
     'setup',
     'set-range-font',
     'get-range-font',

@@ -161,6 +161,9 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockTable = {
     name: 'SalesTable',
     rows: mockTableRows,
+    onChanged: {
+      add: jest.fn(),
+    },
   };
 
   const mockWorksheet = {
@@ -205,7 +208,11 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   };
 
   return {
-    mockObject: new OfficeMockObject(mockData, OfficeApp.Excel),
+    mockObject: Object.assign(new OfficeMockObject(mockData, OfficeApp.Excel), {
+      RangeValueType: {
+        error: 'Error',
+      },
+    }),
     mockContext,
     mockRange,
     mockWorksheet,

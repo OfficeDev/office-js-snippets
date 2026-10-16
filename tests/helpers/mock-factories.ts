@@ -396,10 +396,20 @@ export function createWordMock(options: WordMockOptions = {}) {
   mockTableRowCollection.items = [mockTableRow];
   mockTableRowCollection.getFirst.mockReturnValue(mockTableRow);
 
+  const mockInsertedTable = {
+    styleBuiltIn: '',
+  };
+
   // Mock table
   const mockTable = {
     getCell: jest.fn(() => mockTableCell),
     getRange: jest.fn(),
+    addColumns: jest.fn(),
+    addRows: jest.fn(() => mockTableRowCollection),
+    deleteColumns: jest.fn(),
+    deleteRows: jest.fn(),
+    insertParagraph: jest.fn(() => mockParagraph),
+    insertTable: jest.fn(() => mockInsertedTable),
     rows: mockTableRowCollection,
     load: jest.fn(),
   };

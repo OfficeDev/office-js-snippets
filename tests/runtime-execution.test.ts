@@ -564,6 +564,75 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
+  test('Word: table structure setup replaces the document with a sample table', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '40-tables', 'manage-table-structure.yaml'),
+      buttonId: 'setup',
+      assertions: ({ mockContext, mockBody }) => {
+        expect(mockBody.clear).toHaveBeenCalled();
+        expect(mockBody.insertTable).toHaveBeenCalledWith(4, 3, 'Start', [
+          ['Region', 'Sales', 'Status'],
+          ['North', '$125,000', 'On track'],
+          ['South', '$98,000', 'Needs review'],
+          ['West', '$143,000', 'On track'],
+        ]);
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { buttonId: 'add-columns', method: 'addColumns', args: ['End', 1] },
+    { buttonId: 'add-rows', method: 'addRows', args: ['End', 1] },
+    { buttonId: 'delete-columns', method: 'deleteColumns', args: [2, 1] },
+    { buttonId: 'delete-rows', method: 'deleteRows', args: [1, 1] },
+    { buttonId: 'insert-paragraph', method: 'insertParagraph', args: ['Quarterly sales', 'Before'] },
+    {
+      buttonId: 'insert-table',
+      method: 'insertTable',
+      args: [2, 2, 'After', [['Item', 'Note'], ['Sales', 'Review quarterly totals.']]],
+    },
+  ])('Word: table structure $buttonId uses the Table method', async ({ buttonId, method, args }) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '40-tables', 'manage-table-structure.yaml'),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        const table = mockContext.document.body.tables.getFirst();
+        expect(table[method]).toHaveBeenCalledWith(...args);
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    {
+      buttonId: 'delete-columns',
+      warning: 'Keep at least one column. Add a column or choose Set up to reset the sample.',
+    },
+    {
+      buttonId: 'delete-rows',
+      warning: 'Keep the header row. Add a row or choose Set up to reset the sample.',
+    },
+  ])('Word: table structure $buttonId preserves the final row or column', async ({ buttonId, warning }) => {
+    const { mockObject, mockTable } = createWordMock();
+    Object.assign(mockTable, { rowCount: 1 });
+    mockTable.rows.getFirst().cellCount = 1;
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '40-tables', 'manage-table-structure.yaml')));
+
+    await clickButton(buttonHandlers, buttonId);
+
+    expect(mockTable.deleteColumns).not.toHaveBeenCalled();
+    expect(mockTable.deleteRows).not.toHaveBeenCalled();
+    expect(warningSpy).toHaveBeenCalledWith(warning);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
   test.each([
     {
       snippetPath: path.join('samples', 'word', '42-reference-tables', 'table-of-authorities.yaml'),

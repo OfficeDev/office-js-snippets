@@ -1,0 +1,218 @@
+order: 4
+id: word-tables-manage-table-structure
+name: Manage table structure
+description: Adds and deletes table rows and columns, and inserts paragraphs and tables relative to a table.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.3'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("add-columns").addEventListener("click", () => tryCatch(addColumns));
+        document.getElementById("add-rows").addEventListener("click", () => tryCatch(addRows));
+        document.getElementById("delete-columns").addEventListener("click", () => tryCatch(deleteColumns));
+        document.getElementById("delete-rows").addEventListener("click", () => tryCatch(deleteRows));
+        document.getElementById("insert-paragraph").addEventListener("click", () => tryCatch(insertParagraph));
+        document.getElementById("insert-table").addEventListener("click", () => tryCatch(insertTable));
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+
+            const tableData = [
+              ["Region", "Sales", "Status"],
+              ["North", "$125,000", "On track"],
+              ["South", "$98,000", "Needs review"],
+              ["West", "$143,000", "On track"]
+            ];
+            const salesTable: Word.Table = body.insertTable(4, 3, Word.InsertLocation.start, tableData);
+            salesTable.headerRowCount = 1;
+            salesTable.styleBuiltIn = Word.BuiltInStyleName.gridTable5Dark_Accent2;
+
+            await context.sync();
+            console.log("Created the sample sales table.");
+          });
+        }
+
+        async function addColumns() {
+          // Adds a column to the end of the first table.
+          await Word.run(async (context) => {
+            const salesTable: Word.Table = context.document.body.tables.getFirst();
+            salesTable.addColumns(Word.InsertLocation.end, 1);
+
+            await context.sync();
+            console.log("Added a column to the end of the sales table.");
+          });
+        }
+
+        async function addRows() {
+          // Adds a row to the end of the first table.
+          await Word.run(async (context) => {
+            const salesTable: Word.Table = context.document.body.tables.getFirst();
+            salesTable.addRows(Word.InsertLocation.end, 1);
+
+            await context.sync();
+            console.log("Added a row to the end of the sales table.");
+          });
+        }
+
+        async function deleteColumns() {
+          // Deletes the last column while keeping at least one column in the table.
+          await Word.run(async (context) => {
+            const salesTable: Word.Table = context.document.body.tables.getFirst();
+            const firstRow: Word.TableRow = salesTable.rows.getFirst();
+            firstRow.load("cellCount");
+            await context.sync();
+
+            if (firstRow.cellCount <= 1) {
+              console.warn("Keep at least one column. Add a column or choose Set up to reset the sample.");
+              return;
+            }
+
+            salesTable.deleteColumns(firstRow.cellCount - 1, 1);
+            await context.sync();
+            console.log("Deleted the last column of the sales table.");
+          });
+        }
+
+        async function deleteRows() {
+          // Deletes the last row while keeping the table's header row.
+          await Word.run(async (context) => {
+            const salesTable: Word.Table = context.document.body.tables.getFirst();
+            salesTable.load("rowCount");
+            await context.sync();
+
+            if (salesTable.rowCount <= 1) {
+              console.warn("Keep the header row. Add a row or choose Set up to reset the sample.");
+              return;
+            }
+
+            salesTable.deleteRows(salesTable.rowCount - 1, 1);
+            await context.sync();
+            console.log("Deleted the last row of the sales table.");
+          });
+        }
+
+        async function insertParagraph() {
+          // Inserts a heading before the first table.
+          await Word.run(async (context) => {
+            const salesTable: Word.Table = context.document.body.tables.getFirst();
+            const heading: Word.Paragraph = salesTable.insertParagraph("Quarterly sales", Word.InsertLocation.before);
+            heading.font.bold = true;
+
+            await context.sync();
+            console.log("Inserted a heading before the sales table.");
+          });
+        }
+
+        async function insertTable() {
+          // Inserts a notes table after the first table.
+          await Word.run(async (context) => {
+            const salesTable: Word.Table = context.document.body.tables.getFirst();
+            const notesTable: Word.Table = salesTable.insertTable(2, 2, Word.InsertLocation.after, [
+              ["Item", "Note"],
+              ["Sales", "Review quarterly totals."]
+            ]);
+            notesTable.styleBuiltIn = Word.BuiltInStyleName.gridTable5Dark_Accent2;
+
+            await context.sync();
+            console.log("Inserted a notes table after the sales table.");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to change a sales table's structure and insert content before or after it.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Set up replaces the document body with a sample sales table. Use it again to reset the sample.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Actions change the first table in the document. See the changes directly in the document.</p>
+            <button id="add-columns">Add a column at the end</button>
+            <button id="add-rows">Add a row at the end</button>
+            <button id="delete-columns">Delete the last column</button>
+            <button id="delete-rows">Delete the last row</button>
+            <p>Delete actions keep at least one column and the header row.</p>
+            <button id="insert-paragraph">Insert a heading before the table</button>
+            <button id="insert-table">Insert a notes table after the table</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

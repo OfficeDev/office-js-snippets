@@ -1,0 +1,148 @@
+order: 7
+id: word-ranges-manage-range-bookmarks
+name: Manage range bookmarks
+description: Names a paragraph range and reads its bookmarks.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.4'
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("insert-bookmark").addEventListener("click", () => tryCatch(insertBookmark));
+        document.getElementById("get-bookmark-names").addEventListener("click", () => tryCatch(getBookmarkNames));
+        document.getElementById("get-bookmarks").addEventListener("click", () => tryCatch(getBookmarks));
+
+        async function insertBookmark() {
+            // Names the first paragraph range, replacing any existing bookmark with this name.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                paragraphRange.insertBookmark("RangeSampleSummary");
+                await context.sync();
+                console.log("Inserted the RangeSampleSummary bookmark. Get bookmark names to verify it.");
+            });
+        }
+
+        async function getBookmarkNames() {
+            // Gets the names of bookmarks within or overlapping the first paragraph.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const bookmarkNames: OfficeExtension.ClientResult<string[]> = paragraphRange.getBookmarks(false, true);
+                await context.sync();
+                console.log("Bookmark names:", bookmarkNames.value);
+            });
+        }
+
+        async function getBookmarks() {
+            // Reads the bookmarks and their text within the first paragraph.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+                bookmarks.load("items/name,items/isEmpty,items/range/text");
+                await context.sync();
+                console.log(`Bookmarks found: ${bookmarks.items.length}`);
+                bookmarks.items.forEach((bookmark: Word.Bookmark) => {
+                    console.log({ name: bookmark.name, isEmpty: bookmark.isEmpty, text: bookmark.range.text });
+                });
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                context.document.body.clear();
+                context.document.body.insertParagraph("Project summary marked for later reference.", Word.InsertLocation.start);
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>This sample demonstrates how to bookmark a project summary for later reference and inspect the named text.</section>
+        <section>
+            <p><b>Support:</b> Insert bookmark and Get bookmark names require WordApi 1.4.
+            Get bookmark details requires WordApiDesktop 1.4 on Windows or Mac.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with a sample summary.</p>
+            <button id="setup">Add sample summary</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="insert-bookmark">Insert bookmark</button>
+            <p>Bookmarks are hidden document state. Use the following actions to verify the name and text.</p>
+            <button id="get-bookmark-names">Get bookmark names</button>
+            <button id="get-bookmarks">Get bookmark details (desktop)</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

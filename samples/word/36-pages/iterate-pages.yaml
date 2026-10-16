@@ -1,0 +1,136 @@
+order: 1
+id: word-pages-iterate-pages
+name: Iterate through document pages
+description: Reads each page in order and stops safely after the last page.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApiDesktop: '1.2'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("iterate-pages").addEventListener("click", () => tryCatch(iteratePages));
+
+        async function iteratePages() {
+            // Visits each page and stops safely when there is no next page.
+            await Word.run(async (context) => {
+                const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+                let currentPage: Word.Page = pages.getFirstOrNullObject();
+                await context.sync();
+
+                while (!currentPage.isNullObject) {
+                    currentPage.load("index");
+                    const pageRange: Word.Range = currentPage.getRange();
+                    pageRange.load("text");
+                    await context.sync();
+
+                    console.log(`Page ${currentPage.index} text: ${pageRange.text}`);
+                    currentPage = currentPage.getNextOrNullObject();
+                    await context.sync();
+                }
+
+                console.log("Reached the end of the pages in the active pane.");
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.insertText("Page one: Introduction to page iteration.", Word.InsertLocation.replace);
+                body.insertBreak(Word.BreakType.page, Word.InsertLocation.end);
+                body.insertParagraph("Page two: Continue iterating through the document.", Word.InsertLocation.end);
+                body.insertBreak(Word.BreakType.page, Word.InsertLocation.end);
+                body.insertParagraph("Page three: The last page in the document.", Word.InsertLocation.end);
+                body.getRange().select();
+                await context.sync();
+                console.log("Replaced the document body with sample text separated by two page breaks.");
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample reads the index and text of each page in order, then detects the end of the document without requesting a nonexistent page.</p>
+            <p><b>Note:</b> Requires Word on Windows or Mac with WordApiDesktop 1.2.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Set up replaces the document body with sample text separated by two page breaks.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>The console shows each page's index and text, followed by a message when iteration reaches the end.</p>
+            <button id="iterate-pages">Iterate through pages</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

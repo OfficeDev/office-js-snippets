@@ -106,6 +106,7 @@ export function createOfficeCommonApiMock() {
 export interface ExcelMockOptions {
   rangeAddress?: string;
   rangeValues?: any[][];
+  rangeValuesAsJson?: unknown[][];
   rangeText?: string;
   worksheetName?: string;
 }
@@ -114,6 +115,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const {
     rangeAddress = 'A1:B2',
     rangeValues = [['value1', 'value2']],
+    rangeValuesAsJson = [],
     rangeText = 'Mock text',
     worksheetName = 'Sheet1',
   } = options;
@@ -132,6 +134,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockRange = {
     address: rangeAddress,
     values: rangeValues,
+    valuesAsJson: rangeValuesAsJson,
     text: rangeText,
     numberFormat: [],
     format: {
@@ -206,6 +209,18 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
       await callback(mockContext);
     }),
   };
+
+  const mockObject = new OfficeMockObject(mockData, OfficeApp.Excel);
+  Object.assign(mockObject, {
+    CellValueType: {
+      double: 'Double',
+      entity: 'Entity',
+      function: 'Function',
+    },
+    FunctionCellValueType: {
+      javaScriptReference: 'JavaScriptReference',
+    },
+  });
 
   return {
     mockObject: Object.assign(new OfficeMockObject(mockData, OfficeApp.Excel), {
@@ -415,11 +430,12 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockTables = {
     getFirst: jest.fn(() => mockTable),
     items: [mockTable],
+    load: jest.fn(),
   };
 
   const mockRange = {
     text: selectionText,
-    font: { color: '', bold: false },
+    font: { color: '', bold: false, highlightColor: '', underline: 'None' },
     delete: jest.fn(),
     load: jest.fn(),
     insertText: jest.fn(),
@@ -443,15 +459,39 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockPage = {
     index: 1,
+    height: 792,
+    width: 612,
+    isNullObject: false,
     breaks: mockBreaks,
+    getNext: jest.fn(),
+    getNextOrNullObject: jest.fn(),
     getRange: jest.fn(() => mockRange),
     load: jest.fn(),
+    toJSON: jest.fn(function() {
+      return { index: this.index, height: this.height, width: this.width };
+    }),
   };
 
-  const mockPages = {
-    items: [mockPage],
+  // Fixed pages exercise navigation without modeling Word's pagination.
+  const mockNullPage = { isNullObject: true };
+  const mockNextPage = {
+    ...mockPage,
+    index: 2,
+    breaks: { items: [], load: jest.fn() },
+    getNext: jest.fn(() => { throw new Error('ItemNotFound'); }),
+    getNextOrNullObject: jest.fn(() => mockNullPage),
     load: jest.fn(),
   };
+  mockPage.getNext.mockReturnValue(mockNextPage);
+  mockPage.getNextOrNullObject.mockReturnValue(mockNextPage);
+
+  const mockPages = {
+    items: [mockPage, mockNextPage],
+    getFirst: jest.fn(() => mockPage),
+    getFirstOrNullObject: jest.fn(() => mockPage),
+    load: jest.fn(),
+  };
+  Object.assign(mockRange, { pages: mockPages });
 
   const mockPane = {
     pages: mockPages,
@@ -538,6 +578,18 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
   mockTrackedChange.getNext.mockReturnValue(mockTrackedChange);
 
+  const mockRevision = {
+    author: 'Mock Author',
+    date: new Date('2024-01-01'),
+    formatDescription: '',
+    index: 1,
+    type: 'Insert',
+    get range() { return mockRange; },
+    get movedRange() { return mockRange; },
+    accept: jest.fn(),
+    reject: jest.fn(),
+  };
+
   const mockTrackedChanges = {
     items: [mockTrackedChange],
     acceptAll: jest.fn(),
@@ -549,6 +601,7 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockBody = {
     text: bodyText,
+    paragraphs: mockParagraphs,
     clear: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
     insertBreak: jest.fn(),
@@ -696,6 +749,129 @@ export function createWordMock(options: WordMockOptions = {}) {
     load: jest.fn(),
   };
 
+  const mockNullRange = { isNullObject: true, load: jest.fn() };
+  const mockRanges = {
+    items: [mockRange],
+    getFirst: jest.fn(() => mockRange),
+    getLast: jest.fn(() => mockRange),
+    load: jest.fn(),
+  };
+  const mockContentControl = { tag: 'RangeSampleSummary', title: 'Project summary', text: 'Project summary' };
+  const mockInlinePicture = { width: 90, height: 39 };
+  const mockList = { id: 1, insertParagraph: jest.fn(() => mockParagraph) };
+  const mockShape = { name: 'RangeSamplePicture', type: 'Picture', width: 90, height: 39 };
+  const mockEditor = { name: 'Everyone', id: 'Everyone', load: jest.fn() };
+  const mockEditors = {
+    addByType: jest.fn(() => mockEditor),
+    getCount: jest.fn(() => ({ value: 1 })),
+    getItemAt: jest.fn(() => mockEditor),
+  };
+  const mockFrame = { width: 200, height: 50, range: mockRange };
+  const mockFrames = { items: [mockFrame], add: jest.fn(() => mockFrame), load: jest.fn() };
+  const mockNote = { body: { text: 'Sample endnote' } };
+  const mockEndnotes = { items: [mockNote], load: jest.fn() };
+  const extendedRange = Object.assign(mockRange, {
+    isNullObject: false,
+    isEmpty: false,
+    style: 'Normal',
+    start: 0,
+    end: 40,
+    id: 'range-1',
+    storyLength: 80,
+    storyType: 'MainText',
+    isEndOfRowMark: false,
+    isTextVisibleOnScreen: true,
+    bold: true,
+    italic: true,
+    boldBidirectional: false,
+    italicBidirectional: false,
+    case: 'TitleSentence',
+    characterWidth: 'Half',
+    combineCharacters: false,
+    disableCharacterSpaceGrid: false,
+    emphasisMark: 'None',
+    fitTextWidth: 100,
+    highlightColorIndex: 'Yellow',
+    horizontalInVertical: 'None',
+    kana: 'Katakana',
+    twoLinesInOne: 'None',
+    showAll: false,
+    languageId: 'EnglishUS',
+    languageIdFarEast: 'Japanese',
+    languageIdOther: 'EnglishUS',
+    languageDetected: false,
+    hasNoProofing: false,
+    spellingChecked: false,
+    grammarChecked: false,
+    underline: 'Single',
+    hyperlink: 'https://learn.microsoft.com/office/dev/add-ins/word/',
+    borders: mockBorders,
+    shading: mockShading,
+    contentControls: { items: [mockContentControl], load: jest.fn() },
+    fields: { items: [{ code: 'QUOTE "Ready for review."', result: mockRange }], load: jest.fn() },
+    inlinePictures: { items: [mockInlinePicture], load: jest.fn() },
+    lists: { items: [mockList], load: jest.fn() },
+    tables: mockTables,
+    parentTable: mockTable,
+    parentTableCell: mockTableCell,
+    parentTableOrNullObject: { isNullObject: true, load: jest.fn() },
+    parentTableCellOrNullObject: { isNullObject: true, load: jest.fn() },
+    bookmarks: { items: [{ name: 'RangeSampleSummary', isEmpty: false, range: mockRange }], load: jest.fn() },
+    hyperlinks: { items: [{ address: 'https://learn.microsoft.com/office/dev/add-ins/word/', range: mockRange }], load: jest.fn() },
+    shapes: { items: [mockShape], load: jest.fn() },
+    sections: mockSections,
+    frames: mockFrames,
+    editors: mockEditors,
+    endnotes: mockEndnotes,
+    conflicts: mockConflictCollection,
+    revisions: { items: [mockRevision], load: jest.fn() },
+    clear: jest.fn(),
+    getRange: jest.fn(() => mockRange),
+    compareLocationWith: jest.fn(() => ({ value: 'Before' })),
+    expandTo: jest.fn(() => mockRange),
+    expandToOrNullObject: jest.fn(() => mockRange),
+    intersectWith: jest.fn(() => mockRange),
+    intersectWithOrNullObject: jest.fn(() => mockRange),
+    getTextRanges: jest.fn(() => mockRanges),
+    getNextTextRange: jest.fn(() => mockRange),
+    getNextTextRangeOrNullObject: jest.fn(() => mockNullRange),
+    split: jest.fn(() => mockRanges),
+    search: jest.fn(() => mockRanges),
+    select: jest.fn(),
+    highlight: jest.fn(),
+    removeHighlight: jest.fn(),
+    getHtml: jest.fn(() => ({ value: '<p>Mock paragraph</p>' })),
+    getOoxml: jest.fn(() => ({ value: '<w:p>Mock paragraph</w:p>' })),
+    insertHtml: jest.fn(() => mockRange),
+    insertOoxml: jest.fn(() => mockRange),
+    insertFileFromBase64: jest.fn(() => mockRange),
+    insertBreak: jest.fn(),
+    insertTable: jest.fn(() => mockTable),
+    insertBookmark: jest.fn(),
+    getBookmarks: jest.fn(() => ({ value: ['RangeSampleSummary'] })),
+    getHyperlinkRanges: jest.fn(() => mockRanges),
+    insertContentControl: jest.fn(() => mockContentControl),
+    insertField: jest.fn(),
+    insertEndnote: jest.fn(() => mockNote),
+    insertPictureFromBase64: jest.fn(() => mockShape),
+    insertComment: jest.fn(() => ({ content: 'Please review this project summary.' })),
+    getTrackedChanges: jest.fn(() => mockTrackedChanges),
+    detectLanguage: jest.fn(() => ({ value: true })),
+  });
+  mockRange.insertText.mockReturnValue(mockRange);
+  Object.assign(mockParagraph, {
+    insertText: jest.fn(() => mockRange),
+    insertBreak: jest.fn(),
+    insertInlinePictureFromBase64: jest.fn(() => mockInlinePicture),
+    startNewList: jest.fn(() => mockList),
+    getNext: jest.fn(() => mockParagraph),
+  });
+  // Two fixed paragraphs support location-comparison actions without modeling document mutation.
+  mockParagraphs.items.push({ ...mockParagraph });
+  Object.assign(mockTable, { rowCount: 2, values: [['Task', 'Status'], ['Review', 'Ready']] });
+  Object.assign(mockCellBody, { getRange: jest.fn(() => mockRange) });
+  Object.assign(mockBody, { font: { bold: false, color: '' }, styleBuiltIn: 'Normal', insertText: jest.fn(() => mockRange) });
+
   // Mock document properties
   const mockProperties = {
     author: 'Mock Author',
@@ -720,7 +896,10 @@ export function createWordMock(options: WordMockOptions = {}) {
     document: {
       body: mockBody,
       changeTrackingMode: 'Off',
+      trackMoves: false,
+      revisions: { items: [mockRevision], load: jest.fn() },
       activeWindow: mockWindow,
+      windows: { items: [mockWindow], load: jest.fn() },
       addStyle: jest.fn(() => mockStyle),
       getStyles: jest.fn(() => mockStyles),
       getSelection: jest.fn(() => mockRange),
@@ -738,8 +917,15 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   const mockData = {
-    run: jest.fn(async (callback: Function) => {
-      await callback(mockContext);
+    run: jest.fn(async (contextOrCallback: Function | object, callback?: Function) => {
+      if (typeof contextOrCallback !== 'function' && contextOrCallback !== mockRange && contextOrCallback !== mockContext) {
+        throw new Error('Word.run received an unsupported mock object or context.');
+      }
+      const action = typeof contextOrCallback === 'function' ? contextOrCallback : callback;
+      if (!action) {
+        throw new Error('Word.run requires a callback.');
+      }
+      await action(mockContext);
     }),
   };
 
@@ -756,6 +942,11 @@ export function createWordMock(options: WordMockOptions = {}) {
     off: 'Off',
     trackAll: 'TrackAll',
     trackMineOnly: 'TrackMineOnly',
+  };
+
+  wordMockObject.RevisionType = {
+    movedFrom: 'MovedFrom',
+    movedTo: 'MovedTo',
   };
 
   wordMockObject.CoauthoringLockType = {
@@ -800,6 +991,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   wordMockObject.BreakType = {
+    page: 'Page',
     sectionContinuous: 'SectionContinuous',
     sectionEven: 'SectionEven',
     sectionNext: 'SectionNext',
@@ -820,6 +1012,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   wordMockObject.RangeLocation = {
+    content: 'Content',
     start: 'Start',
     end: 'End',
     whole: 'Whole',
@@ -861,11 +1054,22 @@ export function createWordMock(options: WordMockOptions = {}) {
   wordMockObject.TabLeader = {
     dashes: 'Dashes',
   };
+  wordMockObject.SelectionMode = { end: 'End', start: 'Start', select: 'Select' };
+  wordMockObject.CharacterCase = { upper: 'Upper' };
+  wordMockObject.CharacterWidth = { full: 'Full' };
+  wordMockObject.HorizontalInVerticalType = { fitInLine: 'FitInLine' };
+  wordMockObject.Kana = { hiragana: 'Hiragana' };
+  wordMockObject.TwoLinesInOneType = { parentheses: 'Parentheses' };
+  wordMockObject.LanguageId = { englishUS: 'EnglishUS', japanese: 'Japanese' };
+  wordMockObject.EditorType = { everyone: 'Everyone' };
+  wordMockObject.FieldType = { quote: 'Quote' };
+  wordMockObject.UnderlineType = { single: 'Single' };
+  wordMockObject.SearchOptions = { newObject: jest.fn(() => ({ matchCase: false, matchWholeWord: false })) };
 
   return {
     mockObject: wordMockObject,
     mockContext,
-    mockRange,
+    mockRange: extendedRange,
     mockBody,
     mockParagraph,
     mockParagraphs,

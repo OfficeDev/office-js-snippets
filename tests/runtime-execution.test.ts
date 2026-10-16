@@ -90,6 +90,96 @@ describe('Runtime Execution Tests - Excel', () => {
 
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
+
+  test('Excel: function reference setup prepares the Sample worksheet', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-function-references.yaml'),
+      buttonId: 'setup',
+      assertions: ({ mockContext, mockRange, mockWorksheet }) => {
+        expect(mockContext.workbook.worksheets.getItemOrNullObject).toHaveBeenCalledWith('Sample');
+        expect(mockWorksheet.delete).toHaveBeenCalled();
+        expect(mockContext.workbook.worksheets.add).toHaveBeenCalledWith('Sample');
+        expect(mockRange.values).toEqual([
+          ['Entity', 'Purpose'],
+          ['Create the reference here', 'Store and inspect a custom-function reference'],
+        ]);
+        expect(mockWorksheet.activate).toHaveBeenCalled();
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('Excel: creates a typed custom-function reference inside an entity', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-function-references.yaml'),
+      buttonId: 'create-function-reference',
+      assertions: ({ mockContext, mockRange, mockWorksheet }) => {
+        expect(mockContext.workbook.worksheets.getItem).toHaveBeenCalledWith('Sample');
+        expect(mockWorksheet.getRange).toHaveBeenCalledWith('A2');
+        expect(mockRange.valuesAsJson).toEqual([[{
+          type: 'Entity',
+          text: 'Math value',
+          properties: {
+            Value: { type: 'Double', basicValue: 10 },
+            Get27: {
+              type: 'Function',
+              functionType: 'JavaScriptReference',
+              namespace: 'CONTOSO',
+              id: 'GET27',
+            },
+          },
+        }]]);
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('Excel: reads the stored custom-function identity', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-function-references.yaml'),
+      buttonId: 'get-function-reference',
+      mockOptions: {
+        rangeValuesAsJson: [[{
+          type: 'Entity',
+          properties: {
+            Get27: {
+              type: 'Function',
+              functionType: 'JavaScriptReference',
+              namespace: 'CONTOSO',
+              id: 'GET27',
+            },
+          },
+        }]],
+      },
+      assertions: ({ mockRange }) => {
+        expect(mockRange.load).toHaveBeenCalledWith('valuesAsJson');
+        expect(consoleSpy).toHaveBeenCalledWith('Function type:', 'JavaScriptReference');
+        expect(consoleSpy).toHaveBeenCalledWith('Custom-function namespace:', 'CONTOSO');
+        expect(consoleSpy).toHaveBeenCalledWith('Custom-function ID:', 'GET27');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each<[unknown, string]>([
+    [{ type: 'String', basicValue: 'Create the reference here' }, 'Create the function reference'],
+    [{ type: 'Entity', properties: {} }, "doesn't contain a Get27 function reference"],
+    [{ type: 'Entity', properties: { Get27: { type: 'Double', basicValue: 27 } } },
+      "doesn't contain a Get27 function reference"],
+  ])('Excel: reports an invalid function-reference cell (%#)', async (cellValue, message) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-function-references.yaml'),
+      buttonId: 'get-function-reference',
+      mockOptions: { rangeValuesAsJson: [[cellValue]] },
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.objectContaining({
+      message: expect.stringContaining(message),
+    }));
+    expect(consoleSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe('Runtime Execution Tests - Word', () => {

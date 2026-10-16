@@ -150,7 +150,7 @@ describe('Runtime Execution Tests - Word', () => {
 
   test('Word: get document breaks executes without runtime errors', async () => {
     await runWordSnippetTest({
-      snippetPath: path.join('samples', 'word', '35-ranges', 'get-pages.yaml'),
+      snippetPath: path.join('samples', 'word', '36-pages', 'get-pages.yaml'),
       buttonId: 'get-breaks',
       assertions: ({ mockContext }) => {
         const breaks = mockContext.document.activeWindow.activePane.pages.items[0].breaks;
@@ -168,7 +168,7 @@ describe('Runtime Execution Tests - Word', () => {
     { label: 'text with a newline', rangeText: 'First line\nSecond line', escapedText: '"First line\\nSecond line"' },
   ])('Word: get break ranges displays $label', async ({ rangeText, escapedText }) => {
     await runWordSnippetTest({
-      snippetPath: path.join('samples', 'word', '35-ranges', 'get-pages.yaml'),
+      snippetPath: path.join('samples', 'word', '36-pages', 'get-pages.yaml'),
       buttonId: 'get-break-ranges',
       mockOptions: { selectionText: rangeText },
       assertions: ({ mockContext, mockRange }) => {
@@ -180,6 +180,109 @@ describe('Runtime Execution Tests - Word', () => {
           ['Break ranges found: 1'],
           [`Break 1 range text (escaped): ${escapedText}`],
         ]);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    'setup',
+    'get-pages-selected-range',
+    'get-pages-enclosing-viewport',
+    'get-all-pages',
+    'get-page-dimensions',
+    'get-next-page',
+    'get-page-data',
+    'get-all-panes',
+    'get-all-windows',
+  ])('Word: pages %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '36-pages', 'get-pages.yaml'),
+      buttonId,
+      assertions: ({ mockContext, mockBody, mockRange }) => {
+        const pages = mockContext.document.activeWindow.activePane.pages;
+        if (buttonId === 'setup') {
+          expect(mockBody.insertText).toHaveBeenCalledWith(
+            'Page one: Introduction to the page sample.', 'Replace'
+          );
+          expect(mockBody.insertBreak).toHaveBeenCalledTimes(2);
+          expect(mockRange.select).toHaveBeenCalled();
+        } else if (buttonId === 'get-page-dimensions') {
+          expect(pages.items[0].load).toHaveBeenCalledWith('index,height,width');
+          expect(consoleSpy).toHaveBeenCalledWith('First page properties:', {
+            index: 1, heightInPoints: 792, widthInPoints: 612,
+          });
+        } else if (buttonId === 'get-next-page') {
+          expect(pages.items[0].getNext).toHaveBeenCalled();
+          expect(consoleSpy).toHaveBeenCalledWith('Next page index: 2');
+        } else if (buttonId === 'get-page-data') {
+          expect(pages.items[0].toJSON).toHaveBeenCalled();
+          expect(consoleSpy).toHaveBeenCalledWith('First page data:', {
+            index: 1, height: 792, width: 612,
+          });
+        }
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([true, false])('Word: third-paragraph pages handles paragraph availability (%s)', async (hasThirdParagraph) => {
+    const { mockObject, mockParagraphs, mockParagraph } = createWordMock();
+    if (hasThirdParagraph) {
+      mockParagraphs.items.push({ ...mockParagraph });
+    }
+    const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '36-pages', 'get-pages.yaml')));
+
+    await clickButton(buttonHandlers, 'get-pages-third-paragraph');
+
+    if (hasThirdParagraph) {
+      expect(consoleSpy).toHaveBeenCalledWith('Pages containing the third paragraph: 2');
+      expect(warningSpy).not.toHaveBeenCalled();
+    } else {
+      expect(warningSpy).toHaveBeenCalledWith('Run Set up to create at least three paragraphs.');
+    }
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Word: next page warns instead of calling getNext on a single-page document', async () => {
+    const { mockObject, mockPages, mockPage } = createWordMock();
+    mockPages.items.splice(1);
+    const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '36-pages', 'get-pages.yaml')));
+
+    await clickButton(buttonHandlers, 'get-next-page');
+
+    expect(mockPage.getNext).not.toHaveBeenCalled();
+    expect(warningSpy).toHaveBeenCalledWith('Run Set up to create multiple pages before getting the next page.');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each(['setup', 'iterate-pages'])('Word: page iteration %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '36-pages', 'iterate-pages.yaml'),
+      buttonId,
+      assertions: ({ mockContext, mockBody }) => {
+        const pages = mockContext.document.activeWindow.activePane.pages;
+        if (buttonId === 'setup') {
+          expect(mockBody.insertText).toHaveBeenCalledWith(
+            'Page one: Introduction to page iteration.', 'Replace'
+          );
+          expect(mockBody.insertBreak).toHaveBeenCalledTimes(2);
+        } else {
+          expect(pages.getFirstOrNullObject).toHaveBeenCalled();
+          expect(pages.items[0].getNextOrNullObject).toHaveBeenCalledTimes(1);
+          expect(pages.items[1].getNextOrNullObject).toHaveBeenCalledTimes(1);
+          expect(consoleSpy).toHaveBeenCalledWith('Reached the end of the pages in the active pane.');
+        }
+        expect(mockContext.sync).toHaveBeenCalled();
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });

@@ -1,0 +1,221 @@
+order: 1
+id: word-paragraph-basic-paragraph-operations
+name: Basic paragraph operations
+description: Reads paragraphs, navigates between them, and clears or deletes a paragraph.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.3'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-paragraph").addEventListener("click", () => tryCatch(getParagraph));
+        document.getElementById("get-next").addEventListener("click", () => tryCatch(getNext));
+        document.getElementById("get-previous").addEventListener("click", () => tryCatch(getPrevious));
+        document.getElementById("check-next").addEventListener("click", () => tryCatch(checkNext));
+        document.getElementById("check-previous").addEventListener("click", () => tryCatch(checkPrevious));
+        document.getElementById("get-sentences").addEventListener("click", () => tryCatch(getSentences));
+        document.getElementById("clear-paragraph").addEventListener("click", () => tryCatch(clearParagraph));
+        document.getElementById("delete-paragraph").addEventListener("click", () => tryCatch(deleteParagraph));
+
+        async function getParagraph() {
+            // Reads the first paragraph's text.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                firstParagraph.load("text");
+                await context.sync();
+                console.log(`First paragraph: ${firstParagraph.text}`);
+            });
+        }
+
+        async function getNext() {
+            // Reads the paragraph immediately after the first paragraph.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                const nextParagraph: Word.Paragraph = firstParagraph.getNext();
+                nextParagraph.load("text");
+                await context.sync();
+                console.log(`Next paragraph: ${nextParagraph.text}`);
+            });
+        }
+
+        async function getPrevious() {
+            // Reads the paragraph immediately before the last paragraph.
+            await Word.run(async (context) => {
+                const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+                const previousParagraph: Word.Paragraph = lastParagraph.getPrevious();
+                previousParagraph.load("text");
+                await context.sync();
+                console.log(`Previous paragraph: ${previousParagraph.text}`);
+            });
+        }
+
+        async function checkNext() {
+            // Checks for a following paragraph without throwing at the end of the body.
+            await Word.run(async (context) => {
+                const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+                const nextParagraph: Word.Paragraph = lastParagraph.getNextOrNullObject();
+                nextParagraph.load("text");
+                await context.sync();
+                if (nextParagraph.isNullObject) {
+                    console.log("There is no paragraph after the last paragraph.");
+                } else {
+                    console.log(`Next paragraph: ${nextParagraph.text}`);
+                }
+            });
+        }
+
+        async function checkPrevious() {
+            // Checks for a preceding paragraph without throwing at the start of the body.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                const previousParagraph: Word.Paragraph = firstParagraph.getPreviousOrNullObject();
+                previousParagraph.load("text");
+                await context.sync();
+                if (previousParagraph.isNullObject) {
+                    console.log("There is no paragraph before the first paragraph.");
+                } else {
+                    console.log(`Previous paragraph: ${previousParagraph.text}`);
+                }
+            });
+        }
+
+        async function getSentences() {
+            // Reads sentence ranges delimited by periods in the first paragraph.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                const sentences: Word.RangeCollection = firstParagraph.getTextRanges(["."], true);
+                sentences.load("items/text");
+                await context.sync();
+                console.log(`Sentences found: ${sentences.items.length}`);
+                for (const sentence of sentences.items) {
+                    console.log(`Sentence: ${sentence.text}`);
+                }
+            });
+        }
+
+        async function clearParagraph() {
+            // Removes the first paragraph's content but keeps the paragraph.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                firstParagraph.clear();
+                await context.sync();
+                console.log("Cleared the first paragraph. Its empty paragraph remains.");
+            });
+        }
+
+        async function deleteParagraph() {
+            // Removes the first paragraph and its content from the document.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                firstParagraph.delete();
+                await context.sync();
+                console.log("Deleted the first paragraph and its content.");
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                body.insertParagraph("Project summary. The review is ready.", Word.InsertLocation.start);
+                body.insertParagraph("Review the draft with the team.", Word.InsertLocation.end);
+                body.insertParagraph("Publish the approved update.", Word.InsertLocation.end);
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to read and navigate paragraphs and compare clearing a paragraph with deleting it.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with three sample paragraphs.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="get-paragraph">Get first paragraph</button>
+            <button id="get-next">Get next paragraph</button>
+            <button id="get-previous">Get previous paragraph</button>
+            <button id="check-next">Check after last paragraph</button>
+            <button id="check-previous">Check before first paragraph</button>
+            <button id="get-sentences">Get first paragraph's sentences</button>
+            <button id="clear-paragraph">Clear first paragraph</button>
+            <button id="delete-paragraph">Delete first paragraph</button>
+            <p>Read results appear in the console. Set up again before comparing clear and delete or restoring the navigation examples.</p>
+            <p>Word's Show/Hide paragraph marks setting makes the empty paragraph left by Clear visible.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

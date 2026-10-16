@@ -1,4 +1,4 @@
-order: 13
+order: 15
 id: word-paragraph-paragraph-properties
 name: Paragraph properties
 description: Sets indentation, space between paragraphs, and other paragraph properties.
@@ -9,64 +9,125 @@ api_set:
 script:
     content: |-
         document.getElementById("indent").addEventListener("click", () => tryCatch(indent));
+        document.getElementById("indent-first-line").addEventListener("click", () => tryCatch(indentFirstLine));
+        document.getElementById("indent-right").addEventListener("click", () => tryCatch(indentRight));
         document.getElementById("spacing").addEventListener("click", () => tryCatch(spacing));
+        document.getElementById("space-before").addEventListener("click", () => tryCatch(spaceBefore));
         document.getElementById("space-after").addEventListener("click", () => tryCatch(spaceAfter));
         document.getElementById("line-unit-spacing-after").addEventListener("click", () => tryCatch(spaceAfterInLines));
         document.getElementById("line-unit-spacing-before").addEventListener("click", () => tryCatch(spaceBeforeInLines));
         document.getElementById("align").addEventListener("click", () => tryCatch(align));
+        document.getElementById("get-formatting").addEventListener("click", () => tryCatch(getFormatting));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
         async function indent() {
+          // Indents the first paragraph from the left margin.
           await Word.run(async (context) => {
-            // Indent the first paragraph.
-            context.document.body.paragraphs.getFirst().leftIndent = 75; //units = points
+            const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+            firstParagraph.leftIndent = 75;
 
-            return context.sync();
+            await context.sync();
+          });
+        }
+
+        async function indentFirstLine() {
+          // Indents only the first line of the first paragraph.
+          await Word.run(async (context) => {
+            const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+            firstParagraph.firstLineIndent = 36;
+            await context.sync();
+          });
+        }
+
+        async function indentRight() {
+          // Narrows the first paragraph by adding a right indent.
+          await Word.run(async (context) => {
+            const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+            firstParagraph.rightIndent = 72;
+            await context.sync();
           });
         }
 
         async function spacing() {
+          // Adjusts the spacing between lines in the first paragraph.
           await Word.run(async (context) => {
-            // Adjust line spacing.
-            context.document.body.paragraphs.getFirst().lineSpacing = 20;
+            const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+            firstParagraph.lineSpacing = 20;
 
             await context.sync();
           });
         }
 
         async function spaceAfter() {
+          // Adds space after the first paragraph, measured in points.
           await Word.run(async (context) => {
-            // Set the space (in points) after the first paragraph.
-            context.document.body.paragraphs.getFirst().spaceAfter = 20;
+            const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+            firstParagraph.spaceAfter = 20;
 
             await context.sync();
           });
         }
 
-        async function spaceAfterInLines() {
+        async function spaceBefore() {
+          // Adds space before the last paragraph, measured in points.
           await Word.run(async (context) => {
-            // Set the space (in line units) after the first paragraph.
-            context.document.body.paragraphs.getFirst().lineUnitAfter = 1;
+            const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+            lastParagraph.spaceBefore = 24;
+            await context.sync();
+          });
+        }
+
+        async function spaceAfterInLines() {
+          // Adds space after the first paragraph, measured in grid lines.
+          await Word.run(async (context) => {
+            const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+            firstParagraph.lineUnitAfter = 1;
 
             await context.sync();
           });
         }
 
         async function spaceBeforeInLines() {
+          // Adds space before the last paragraph, measured in grid lines.
           await Word.run(async (context) => {
-            // Set the space (in line units) before the first paragraph.
-            context.document.body.paragraphs.getFirst().lineUnitBefore = 1;
+            const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+            lastParagraph.lineUnitBefore = 1;
 
             await context.sync();
           });
         }
 
         async function align() {
+          // Centers the last paragraph between the document margins.
           await Word.run(async (context) => {
-            // Center last paragraph alignment.
-            context.document.body.paragraphs.getLast().alignment = "Centered";
+            const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+            const alignment: Word.Alignment = Word.Alignment.centered;
+            lastParagraph.alignment = alignment;
 
             await context.sync();
+          });
+        }
+
+        async function getFormatting() {
+          await Word.run(async (context) => {
+            const paragraphs: Word.ParagraphCollection = context.document.body.paragraphs;
+            paragraphs.load("items/text,items/alignment,items/firstLineIndent,items/leftIndent,items/rightIndent,items/lineSpacing,items/spaceBefore,items/spaceAfter,items/lineUnitBefore,items/lineUnitAfter");
+            await context.sync();
+            console.log("Paragraph formatting (indents and point spacing are in points):");
+            for (const paragraph of paragraphs.items) {
+              console.log("Paragraph:", {
+                text: paragraph.text,
+                alignment: paragraph.alignment,
+                firstLineIndent: paragraph.firstLineIndent,
+                leftIndent: paragraph.leftIndent,
+                rightIndent: paragraph.rightIndent,
+                lineSpacing: paragraph.lineSpacing,
+                spaceBefore: paragraph.spaceBefore,
+                spaceAfter: paragraph.spaceAfter,
+                lineUnitBefore: paragraph.lineUnitBefore,
+                lineUnitAfter: paragraph.lineUnitAfter
+              });
+            }
           });
         }
 
@@ -78,14 +139,24 @@ script:
               "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
               "Start"
             );
-            body.paragraphs
-              .getLast()
-              .insertText(
+            body.insertParagraph(
                 "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
-                "Replace"
+                "End"
               );
-            body.paragraphs.getFirst().alignment = "Left";
-            body.paragraphs.getLast().alignment = Word.Alignment.left;
+            body.paragraphs.load("items");
+            await context.sync();
+            for (const paragraph of body.paragraphs.items) {
+              paragraph.alignment = Word.Alignment.left;
+              paragraph.firstLineIndent = 0;
+              paragraph.leftIndent = 0;
+              paragraph.rightIndent = 0;
+              paragraph.lineSpacing = 12;
+              paragraph.spaceBefore = 0;
+              paragraph.spaceAfter = 0;
+              paragraph.lineUnitBefore = 0;
+              paragraph.lineUnitAfter = 0;
+            }
+            await context.sync();
           });
         }
 
@@ -102,22 +173,25 @@ script:
 template:
     content: |-
         <section>
-        This sample demonstrates paragraph property usage.
+            <p>This sample shows how paragraph indentation, alignment, and spacing affect two sample paragraphs.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
-            <button id="setup">Setup</button>
+            <p>Replaces the document body with two paragraphs and resets their formatting.</p>
+            <button id="setup">Set up</button>
         </section>
         <section>
             <h3>Try it out</h3>
-            <button id="indent">Indent first paragraph</button><p>
-            <button id="spacing">Adjust first paragraph's line spacing</button><p>
-            <button id="space-after">Adjust space between paragraphs</button><p>
+            <button id="indent">Indent first paragraph from left</button>
+            <button id="indent-first-line">Indent first line</button>
+            <button id="indent-right">Indent first paragraph from right</button>
+            <button id="spacing">Adjust first paragraph's line spacing</button>
+            <button id="space-before">Add space before last paragraph</button>
+            <button id="space-after">Add space after first paragraph</button>
             <button id="line-unit-spacing-after">Adjust space after first paragraph</button>
-            <p>
-                <button id="line-unit-spacing-before">Adjust space before first paragraph</button>
-            <p>
+            <button id="line-unit-spacing-before">Adjust space before last paragraph</button>
             <button id="align">Align last paragraph to center</button>
+            <button id="get-formatting">Get paragraph formatting</button>
         </section>
     language: html
 style:

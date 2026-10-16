@@ -1,0 +1,180 @@
+order: 4
+id: word-ranges-insert-and-read-formatted-content
+name: Insert and read formatted content
+description: Inserts HTML, OOXML, or a document into a range and reads its markup.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.3'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("insert-html").addEventListener("click", () => tryCatch(insertHtml));
+        document.getElementById("insert-ooxml").addEventListener("click", () => tryCatch(insertOoxml));
+        document.getElementById("insert-file").addEventListener("click", () => tryCatch(insertFile));
+        document.getElementById("get-html").addEventListener("click", () => tryCatch(getHtml));
+        document.getElementById("get-ooxml").addEventListener("click", () => tryCatch(getOoxml));
+
+        async function insertHtml() {
+            // Replaces the first paragraph's content with formatted HTML.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const insertedRange: Word.Range = paragraphRange.insertHtml("<b>Project update:</b> <i>ready for review.</i>", Word.InsertLocation.replace);
+                await context.sync();
+                console.log("Inserted bold and italic text from HTML.");
+            });
+        }
+
+        async function insertOoxml() {
+            // Replaces the first paragraph with a bold paragraph from an OOXML package.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const ooxml: string =
+                    `<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+                        <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+                            <pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                                <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+                            </Relationships></pkg:xmlData>
+                        </pkg:part>
+                        <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+                            <pkg:xmlData><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                <w:body><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Project update from OOXML.</w:t></w:r></w:p></w:body>
+                            </w:document></pkg:xmlData>
+                        </pkg:part>
+                    </pkg:package>`;
+                const insertedRange: Word.Range = paragraphRange.insertOoxml(ooxml, Word.InsertLocation.replace);
+                await context.sync();
+                console.log("Inserted a bold paragraph from OOXML.");
+            });
+        }
+
+        async function insertFile() {
+            // Replaces the first paragraph with the contents of a small embedded DOCX file.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                // The DOCX contains one paragraph: "Imported project update."
+                const base64File: string = "UEsDBBQAAAAIAAAAIVD3S4B1wgAAAHYBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbH2QuQ7CMAyGX6XKiqgRAwOiLMAKDLyAlbptRC7FLsfbk3INCBjt//gsLw7XSFxcnPVcqU4kzgFYd+SQyxDJZ6UJyaHkMbUQUR+xJZhOJjPQwQt5GcvQoZaLNTXYWyk2l7xmE3ylEllWxephHFiVwhit0ShZh5OvPyjjJ6HMybuHOxN5lA0KvhIG5TfgmdudKCVTU7HHJFt02QXnkGqog+5dTpb/a77cGZrGaHrnh7aYgiZm41tny7fi0PjX/XB/9/IGUEsDBBQAAAAIAAAAIVBhey9DiQAAAPIAAAALAAAAX3JlbHMvLnJlbHONzzsOAiEQBuCrEA6ws1pYGKCy2dZ4AQLDIy6PDBj19lJYrMbCcuaffH9GnHHVPZbcQqyNPdKam+Sh93oEaCZg0m0qFfNIXKGk+xjJQ9Xmqj3Cfp4PQFuDK7E12WIlp8XuOLs8K/5jF+eiwVMxt4S5/6j4uhiyJo9d8nshC/a9ngbLQQn4eFG9AFBLAwQUAAAACAAAACFQZhg8uIUAAAC1AAAAEQAAAHdvcmQvZG9jdW1lbnQueG1sRY47DsIwDIavUvUAdcXAEIXubFwhJKYtquPIcZVye5IysHyW/T9kW0xgvxNG7Q7aYjbl1i+qyQBkvyC5PHDCWLUXCzmtq8xQWEIS9pjzGmfa4DKOVyC3xn6yxTw5fNpMDdKg050Si2Loau6NXrs9Bac4WGhqo5w8M7kaHgLn4VcG/0enL1BLAQIUABQAAAAIAAAAIVD3S4B1wgAAAHYBAAATAAAAAAAAAAAAAACAAQAAAABbQ29udGVudF9UeXBlc10ueG1sUEsBAhQAFAAAAAgAAAAhUGF7L0OJAAAA8gAAAAsAAAAAAAAAAAAAAIAB8wAAAF9yZWxzLy5yZWxzUEsBAhQAFAAAAAgAAAAhUGYYPLiFAAAAtQAAABEAAAAAAAAAAAAAAIABpQEAAHdvcmQvZG9jdW1lbnQueG1sUEsFBgAAAAADAAMAuQAAAFkCAAAAAA==";
+                const insertedRange: Word.Range = paragraphRange.insertFileFromBase64(base64File, Word.InsertLocation.replace);
+                await context.sync();
+                console.log("Inserted the embedded document's project update.");
+            });
+        }
+
+        async function getHtml() {
+            // Reads an HTML representation of the first paragraph range.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const html: OfficeExtension.ClientResult<string> = paragraphRange.getHtml();
+                await context.sync();
+                console.log(`Range HTML: ${html.value}`);
+            });
+        }
+
+        async function getOoxml() {
+            // Reads the OOXML representation of the first paragraph range.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const ooxml: OfficeExtension.ClientResult<string> = paragraphRange.getOoxml();
+                await context.sync();
+                console.log(`Range OOXML: ${ooxml.value}`);
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                body.insertParagraph("Project update placeholder.", Word.InsertLocation.start);
+                body.insertParagraph("This paragraph stays below the update.", Word.InsertLocation.end);
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>This sample shows how to replace a project update with formatted content and inspect the resulting markup.</section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with two sample paragraphs.</p>
+            <button id="setup">Add sample text</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="insert-html">Replace first paragraph with HTML</button>
+            <button id="insert-ooxml">Replace first paragraph with OOXML</button>
+            <button id="insert-file">Replace first paragraph with DOCX</button>
+            <button id="get-html">Get range HTML</button>
+            <button id="get-ooxml">Get range OOXML</button>
+            <p>HTML output can differ across platforms. Use OOXML when exact formatting fidelity matters.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

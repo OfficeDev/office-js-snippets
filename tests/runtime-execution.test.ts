@@ -5,6 +5,9 @@ import {
   runCommonApiSnippetTest,
 } from './helpers/snippet-test-runner';
 import * as path from 'path';
+import { createWordMock } from './helpers/mock-factories';
+import { loadSnippetByPath } from './helpers/test-helpers';
+import { executeSnippetCode, createMockDocument, clickButton } from './helpers/snippet-runtime';
 
 describe('Runtime Execution Tests - Excel', () => {
   let consoleSpy: jest.SpyInstance;
@@ -156,6 +159,190 @@ describe('Runtime Execution Tests - Word', () => {
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
+  });
+
+  const rangeScenarios = [
+    ['35-ranges', 'basic-range-operations.yaml', [
+      'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
+      'search-range', 'set-style', 'clear-range', 'delete-range',
+    ]],
+    ['35-ranges', 'compare-location.yaml', [
+      'setup', 'compare', 'compare-to-selection', 'expand-ranges', 'expand-ranges-safely',
+      'intersect-ranges', 'intersect-ranges-safely',
+    ]],
+    ['35-ranges', 'split-words-of-first-paragraph.yaml', [
+      'setup', 'highlight', 'get-next-sentence', 'get-next-sentence-safely',
+    ]],
+    ['35-ranges', 'scroll-to-range.yaml', [
+      'setup', 'scroll', 'scroll-end', 'highlight-range', 'remove-highlight',
+    ]],
+    ['35-ranges', 'insert-and-read-formatted-content.yaml', [
+      'setup', 'insert-html', 'insert-ooxml', 'insert-file', 'get-html', 'get-ooxml',
+    ]],
+    ['35-ranges', 'manage-range-bookmarks.yaml', [
+      'setup', 'insert-bookmark', 'get-bookmark-names', 'get-bookmarks',
+    ]],
+    ['35-ranges', 'inspect-range-structure.yaml', [
+      'setup', 'get-controls', 'get-fields', 'get-pictures', 'get-lists', 'insert-table',
+      'get-tables', 'get-parent-table', 'get-parent-cell', 'check-parent-table',
+      'check-parent-cell', 'set-hyperlink', 'get-hyperlink-ranges',
+    ]],
+    ['35-ranges', 'format-range-text-desktop.yaml', [
+      'setup', 'get-formatting', 'get-position', 'move-start', 'move-end', 'set-case',
+      'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
+      'set-kana', 'set-two-lines', 'set-language', 'set-east-asian-language',
+      'set-other-language', 'detect-language', 'reset-language-detection',
+      'disable-proofing', 'reset-spelling', 'reset-grammar', 'get-proofing', 'show-marks',
+    ]],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', [
+      'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames',
+      'get-hyperlinks', 'insert-picture', 'get-shapes',
+    ]],
+    ['35-ranges', 'manage-range-editing-permissions-desktop.yaml', ['setup', 'add-editor', 'get-editors']],
+    ['50-document', 'manage-footnotes.yaml', ['setup', 'insert-endnote', 'get-endnotes']],
+    ['50-document', 'manage-tracked-changes.yaml', ['get-range-tracked-changes', 'get-range-revisions']],
+    ['25-paragraph', 'get-paragraph-on-insertion-point.yaml', ['setup', 'get-paragraph', 'get-sentences']],
+    ['05-coauthoring', 'manage-coauthoring-conflicts.yaml', ['get-range-conflicts']],
+    ['99-preview-apis', 'read-range-underline.yaml', ['setup', 'get-underline']],
+  ] as const;
+
+  test.each(rangeScenarios.flatMap(([group, file, buttons]) =>
+    buttons.map(buttonId => ({ group, file, buttonId }))
+  ))('Word: $file $buttonId action executes without runtime errors', async ({ group, file, buttonId }) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', group, file),
+      buttonId,
+      assertions: ({ mockContext }) => {
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+        expect(mockContext.sync).toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Can coauthor: true'],
+    ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Can merge: true'],
+    ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Pending updates: false'],
+    ['05-coauthoring', 'manage-coauthors.yaml', 'get-my-info', expect.stringMatching(/^Current user: .+$/)],
+    ['05-coauthoring', 'manage-coauthoring-conflicts.yaml', 'get-range-conflicts', 'Conflicts in the selection: 1'],
+    ['05-coauthoring', 'manage-coauthoring-conflicts.yaml', 'get-range-conflicts', expect.stringMatching(/^Conflict type: .+$/)],
+    ['25-paragraph', 'get-paragraph-on-insertion-point.yaml', 'get-paragraph', expect.stringContaining('The first paragraph of the selected text: ')],
+    ['25-paragraph', 'get-paragraph-on-insertion-point.yaml', 'get-sentences', 'Sentences from the current sentence to the paragraph end:'],
+    ['35-ranges', 'basic-range-operations.yaml', 'search-range', 'Matches found: 1'],
+    ['35-ranges', 'compare-location.yaml', 'expand-ranges', expect.stringContaining('Expanded text: ')],
+    ['35-ranges', 'compare-location.yaml', 'intersect-ranges', expect.stringContaining('Overlapping text: ')],
+    ['35-ranges', 'format-range-text-desktop.yaml', 'detect-language', 'Language detected: true'],
+    ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-html', expect.stringContaining('Range HTML: ')],
+    ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-ooxml', expect.stringContaining('Range OOXML: ')],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-borders', "First paragraph's border formatting:"],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-sections', 'Sections found: 3'],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-frames', 'Frames found: 1'],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-hyperlinks', 'Hyperlinks found: 1'],
+    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-shapes', 'Shapes found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-controls', 'Content controls found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-fields', 'Fields found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-pictures', 'Inline pictures found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-lists', 'Lists found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-lists', 'List ID: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-tables', 'Tables found: 1'],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-hyperlink-ranges', 'Hyperlinks found: 1'],
+    ['35-ranges', 'manage-range-bookmarks.yaml', 'get-bookmarks', 'Bookmarks found: 1'],
+    ['35-ranges', 'split-words-of-first-paragraph.yaml', 'get-next-sentence', expect.stringContaining('Next sentence: ')],
+    ['50-document', 'manage-footnotes.yaml', 'get-endnotes', 'Endnotes found: 1'],
+    ['50-document', 'manage-tracked-changes.yaml', 'get-range-revisions', 'Revisions in the first paragraph: 1'],
+    ['50-document', 'manage-tracked-changes.yaml', 'get-range-tracked-changes', expect.stringMatching(/^Tracked changes in the first paragraph: \d+$/)],
+    ['50-document', 'manage-tracked-changes.yaml', 'get-first-tracked-change-range', expect.stringContaining('Tracked change range text: ')],
+    ['99-preview-apis', 'read-range-underline.yaml', 'get-underline', 'Underline type: Single'],
+    ['99-preview-apis', 'read-range-underline.yaml', 'get-underline', 'Has a single underline: true'],
+  ] as const)('Word: %s/%s %s logs a single descriptive message', async (group, file, buttonId, message) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', group, file),
+      buttonId,
+      assertions: () => {
+        expect(consoleSpy).toHaveBeenCalledWith(message);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['35-ranges', 'basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
+    ['35-ranges', 'format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
+    ['35-ranges', 'format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
+    ['35-ranges', 'format-range-text-desktop.yaml', 'get-proofing', "First paragraph's proofing settings:", { languageId: 'EnglishUS', languageDetected: false }],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-table', 'Parent table:', { rowCount: 2, values: expect.any(Array) }],
+    ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-cell', 'Parent cell:', { rowIndex: expect.any(Number), cellIndex: expect.any(Number), value: expect.any(String) }],
+    ['50-document', 'manage-tracked-changes.yaml', 'get-next-tracked-change', 'Next tracked change:', { author: expect.any(String), date: expect.any(Date), text: expect.any(String), type: expect.any(String) }],
+  ] as const)('Word: %s/%s %s labels structured property output', async (group, file, buttonId, label, properties) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', group, file),
+      buttonId,
+      assertions: () => {
+        expect(consoleSpy).toHaveBeenCalledWith(label, expect.objectContaining(properties));
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('Word: Range.split uses the Range argument order', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'split-words-of-first-paragraph.yaml'),
+      buttonId: 'highlight',
+      assertions: ({ mockRange }) => {
+        expect(mockRange.split).toHaveBeenCalledWith([' '], false, true, true);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('Word: editing permissions grants access to Everyone on the first paragraph', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'manage-range-editing-permissions-desktop.yaml'),
+      buttonId: 'add-editor',
+      assertions: ({ mockContext, mockBody, mockParagraph, mockRange }) => {
+        expect(mockBody.paragraphs.getFirst).toHaveBeenCalled();
+        expect(mockParagraph.getRange).toHaveBeenCalledWith('Content');
+        expect(mockRange.editors.addByType).toHaveBeenCalledWith('Everyone');
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('Word: editing permissions reads entries by index and logs loaded properties', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'manage-range-editing-permissions-desktop.yaml'),
+      buttonId: 'get-editors',
+      assertions: ({ mockRange }) => {
+        expect(mockRange.editors.getCount).toHaveBeenCalledTimes(1);
+        expect(mockRange.editors.getItemAt).toHaveBeenCalledTimes(1);
+        expect(mockRange.editors.getItemAt).toHaveBeenCalledWith(0);
+        const editor = mockRange.editors.getItemAt.mock.results[0].value;
+        expect(editor.load).toHaveBeenCalledWith('name,id');
+        expect(consoleSpy).toHaveBeenCalledWith('Editing-permission entries: 1');
+        expect(consoleSpy).toHaveBeenCalledWith({ name: 'Everyone', id: 'Everyone' });
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['expand-ranges-safely', 'expandToOrNullObject', 'cannot be combined'],
+    ['intersect-ranges-safely', 'intersectWithOrNullObject', 'does not overlap'],
+  ] as const)('Word: %s reports a null range', async (buttonId, method, warning) => {
+    const { mockObject, mockRange } = createWordMock();
+    const nullRange = { ...mockRange, isNullObject: true, load: jest.fn() };
+    // Null ranges have no readable text; returning undefined here would conceal an invalid read.
+    Object.defineProperty(nullRange, 'text', { get: () => { throw new Error('Null range text is unavailable.'); } });
+    mockRange[method].mockReturnValue(nullRange);
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '35-ranges', 'compare-location.yaml')));
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await clickButton(buttonHandlers, buttonId);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining(warning));
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   test.each([

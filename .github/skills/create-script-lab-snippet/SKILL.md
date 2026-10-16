@@ -118,6 +118,8 @@ A successful action must give the user an unambiguous way to verify its effect. 
 
 Do not log an Office.js client object directly. An unloaded proxy commonly appears as an empty object in the console and does not help the user verify the action. Mutation functions should log a concise completion message. Dedicated get functions should explicitly load the relevant properties, synchronize, and then log those values.
 
+Keep scalar labels and values together in a single console argument using a template string, such as ``console.log(`Matches found: ${matches.items.length}`);``, so Script Lab displays them together. Add descriptive labels to text and property output, and introduce collection output with a clear heading. For multiple properties, log a descriptive label alongside a plain object of loaded values; preserve the object's structure rather than interpolating or stringifying it.
+
 A function may support multiple CSV rows only when it genuinely demonstrates closely related APIs on different reference pages.
 
 Every function that will be mapped in a CSV must remain understandable when extracted from the full snippet:
@@ -155,15 +157,79 @@ Before writing code, inspect the closest samples in the same host and group and 
 - Create a new group only if no existing group fits. Preserve that host's numbering convention.
 - Do not manually invent a new snippet `id`; let the build generate it.
 - Use TypeScript, four-space indentation after YAML block indentation, double quotes in snippet code, and semicolons.
+- Use the standard CSS below so fonts, spacing, controls, and hover/active states match the existing snippets. Intentionally styled "for fun" samples are exceptions, not templates for ordinary samples.
 - For Excel, Word, and PowerPoint, register buttons with `document.getElementById(...).addEventListener("click", () => tryCatch(...))` and include the repository's standard `tryCatch` helper.
 - For Outlook, follow neighboring samples by registering callback-based actions directly, such as `document.getElementById("get").addEventListener("click", get)`. Use `Office.onReady` for initialization and event registration when required.
 - Use lowercase hyphenated HTML IDs. Give every new action button a meaningful ID that describes its operation, such as `create-table-of-contents`, `mark-citations`, or `update-page-numbers`; do not use a generic ID such as `run`. When expanding an existing sample, preserve an established `run` ID unless renaming it is necessary to keep the updated workflow clear and all references are updated. For document hosts, include a separate **Set up** section followed by **Try it out** actions. For Outlook, include **Set up** only when the sample can safely prepare its current item.
 - Do not add visible step numbers to task-pane instructions or action labels when button order already makes the workflow clear. Use a numbered procedure only when the user must perform a strict sequence outside the task pane.
-- Write the opening task-pane description in terms of the user's scenario and intended outcome, not the code or API implementation. Avoid introductions such as "This sample demonstrates..." or descriptions centered on object and member names. Keep API support requirements or platform limitations in a separate note when needed.
+- Write the opening task-pane text as a description of the sample, not as commands to the user. Use wording such as "This sample demonstrates..." or "This sample shows..." to describe the scenario and intended outcome. Keep API support requirements or platform limitations in a separate note when needed.
 - Keep the name and description concise and specific to the demonstrated behavior.
 - Use the canonical stable or beta Office.js URL and matching type definitions already used by neighboring snippets.
 - For Outlook, use the canonical `https://officeapis.public.onecdn.static.microsoft/1/office.js` library used by neighboring samples.
 - Do not introduce unrelated libraries or abstractions.
+
+### Standard snippet CSS
+
+Use this CSS as the `style.content` of ordinary snippets, with `style.language: css`. Preserve intentional custom styling in "for fun" snippets.
+
+```css
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 10px;
+}
+
+section {
+    margin-bottom: 20px;
+}
+
+h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+p {
+    margin: 0 0 10px 0;
+}
+
+button {
+    background-color: #f0f0f0;
+    color: #333333;
+    border: 1px solid #8a8a8a;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    margin-left: 20px;
+    margin-bottom: 5px;
+    min-width: 80px;
+    display: block;
+}
+
+button:hover {
+    background-color: #e0e0e0;
+}
+
+button:active {
+    background-color: #d0d0d0;
+}
+
+input {
+    padding: 8px;
+    margin: 5px 0;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    font-size: 14px;
+}
+
+.header {
+    text-align: center;
+    background-color: #f3f2f1;
+    padding: 10px;
+}
+```
 
 ### Order snippets within the group
 

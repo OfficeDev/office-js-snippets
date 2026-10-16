@@ -5,6 +5,7 @@ description: Creates tracked changes and shows how to inspect, accept, and rejec
 host: WORD
 api_set:
     WordApi: '1.6'
+    WordApiDesktop: '1.4'
 script:
     content: |-
         document.getElementById("get-all-tracked-changes").addEventListener("click", () => tryCatch(getAllTrackedChanges));
@@ -16,6 +17,36 @@ script:
         document.getElementById("accept-all-tracked-changes").addEventListener("click", () => tryCatch(acceptAllTrackedChanges));
         document.getElementById("reject-all-tracked-changes").addEventListener("click", () => tryCatch(rejectAllTrackedChanges));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-range-tracked-changes").addEventListener("click", () => tryCatch(getRangeTrackedChanges));
+        document.getElementById("get-range-revisions").addEventListener("click", () => tryCatch(getRangeRevisions));
+
+        async function getRangeRevisions() {
+            // Reads revision metadata for the first paragraph on desktop Word.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const revisions: Word.RevisionCollection = paragraphRange.revisions;
+                revisions.load("items/author,items/date,items/type");
+                await context.sync();
+                console.log(`Revisions in the first paragraph: ${revisions.items.length}`);
+                revisions.items.forEach((revision: Word.Revision) => {
+                    console.log({ author: revision.author, date: revision.date, type: revision.type });
+                });
+            });
+        }
+
+        async function getRangeTrackedChanges() {
+            // Gets the tracked changes inside the first paragraph.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const trackedChanges: Word.TrackedChangeCollection = paragraphRange.getTrackedChanges();
+                trackedChanges.load("items/author,items/text,items/type");
+                await context.sync();
+                console.log(`Tracked changes in the first paragraph: ${trackedChanges.items.length}`);
+                trackedChanges.items.forEach((change: Word.TrackedChange) => {
+                    console.log({ author: change.author, text: change.text, type: change.type });
+                });
+            });
+        }
 
         async function getAllTrackedChanges() {
           // Gets the tracked changes and logs their details.
@@ -75,7 +106,7 @@ script:
             range.load();
             await context.sync();
 
-            console.log("range.text: " + range.text);
+            console.log(`Tracked change range text: ${range.text}`);
           });
         }
 
@@ -95,7 +126,12 @@ script:
             nextTrackedChange.load(["author", "date", "text", "type"]);
             await context.sync();
 
-            console.log(nextTrackedChange);
+            console.log("Next tracked change:", {
+              author: nextTrackedChange.author,
+              date: nextTrackedChange.date,
+              text: nextTrackedChange.text,
+              type: nextTrackedChange.type,
+            });
           });
         }
 
@@ -191,7 +227,7 @@ script:
 template:
     content: |-
         <section>
-            Reset the document with sample text, then inspect or resolve its tracked changes.
+            This sample shows how to create, inspect, and resolve tracked changes in a document.
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -200,6 +236,10 @@ template:
         <section>
             <h3>Try it out</h3>
             <button id="get-all-tracked-changes">Get all tracked changes</button>
+            <button id="get-range-tracked-changes">Get tracked changes in first paragraph</button>
+            <button id="get-range-revisions">Get revision metadata (desktop)</button>
+            <p>Revision metadata requires WordApiDesktop 1.4 on Windows or Mac.
+            Other actions require WordApi 1.6.</p>
             <button id="get-first-tracked-change-or-null">Safely get the first tracked change</button>
             <button id="get-first-tracked-change-range">Get the first tracked change's range</button>
             <button id="get-next-tracked-change">Get the next tracked change</button>

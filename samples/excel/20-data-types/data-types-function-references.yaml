@@ -1,0 +1,135 @@
+order: 7
+id: excel-data-types-data-types-function-references
+name: 'Data types: Function references'
+description: Attach a custom-function reference to an entity value and inspect its metadata.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("create-function-reference").addEventListener("click", () => tryCatch(createFunctionReference));
+        document.getElementById("get-function-reference").addEventListener("click", () => tryCatch(getFunctionReference));
+
+        async function createFunctionReference() {
+            // Attach a reference to a JavaScript custom function as a method on a math entity.
+            await Excel.run(async (context) => {
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                const entityRange: Excel.Range = sheet.getRange("A2");
+                const referenceType: Excel.FunctionCellValueType = Excel.FunctionCellValueType.javaScriptReference;
+                const customFunctionReference: Excel.JavaScriptCustomFunctionReferenceCellValue = {
+                    type: Excel.CellValueType.function,
+                    functionType: referenceType,
+                    namespace: "CONTOSO",
+                    id: "GET27"
+                };
+
+                // The namespace and ID identify a function; this value doesn't register its implementation.
+                const mathEntity: Excel.EntityCellValue = {
+                    type: Excel.CellValueType.entity,
+                    text: "Math value",
+                    properties: {
+                        Value: {
+                            type: Excel.CellValueType.double,
+                            basicValue: 10
+                        },
+                        Get27: customFunctionReference
+                    }
+                };
+                entityRange.valuesAsJson = [[mathEntity]];
+                entityRange.format.autofitColumns();
+                await context.sync();
+                console.log("Created the Math value entity in Sample!A2. Read the reference to inspect its metadata.");
+            });
+        }
+
+        async function getFunctionReference() {
+            // Read the custom-function identity stored in an entity's method property.
+            await Excel.run(async (context) => {
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                const entityRange: Excel.Range = sheet.getRange("A2");
+                entityRange.load("valuesAsJson");
+                await context.sync();
+
+                const cellValue: Excel.CellValue = entityRange.valuesAsJson[0][0];
+                if (cellValue.type !== Excel.CellValueType.entity) {
+                    throw new Error("Create the function reference in Sample!A2 first.");
+                }
+
+                const methodValue: Excel.CellValue = cellValue.properties["Get27"];
+                if (!methodValue || methodValue.type !== Excel.CellValueType.function) {
+                    throw new Error("The entity in Sample!A2 doesn't contain a Get27 function reference.");
+                }
+
+                const functionReference: Excel.FunctionCellValue = methodValue;
+                console.log("Function type:", functionReference.functionType);
+                console.log("Custom-function namespace:", functionReference.namespace);
+                console.log("Custom-function ID:", functionReference.id);
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet: Excel.Worksheet = context.workbook.worksheets.add("Sample");
+                sheet.getRange("A1:B2").values = [
+                    ["Entity", "Purpose"],
+                    ["Create the reference here", "Store and inspect a custom-function reference"]
+                ];
+                sheet.getRange("A1:B1").format.font.bold = true;
+                sheet.getRange("A:B").format.autofitColumns();
+                sheet.activate();
+                await context.sync();
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+          <p>Attach a reusable method reference to a math entity, then inspect the custom-function namespace and ID stored with it.</p>
+          <p><b>Requires:</b> ExcelApi 1.19.</p>
+          <p>CONTOSO and GET27 are illustrative namespace and function ID values. This sample stores and reads the reference metadata; it doesn't register or invoke a custom function.</p>
+          <p>The method isn't shown in the entity's data card. Use <b>Read function reference</b> to verify the stored metadata in the console.</p>
+        </section>
+        <section class="setup">
+          <h3>Set up</h3>
+          <p>Replace the Sample worksheet with deterministic data.</p>
+          <button id="setup">Set up</button>
+        </section>
+        <section>
+          <h3>Try it out</h3>
+          <button id="create-function-reference">Create function reference</button>
+          <button id="get-function-reference">Read function reference</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        button {
+            display: block;
+            margin-bottom: 5px;
+            padding: 8px 16px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

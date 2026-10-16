@@ -30982,6 +30982,38 @@ Word.Document#properties:member:
         await context.sync();
         console.log(JSON.stringify(builtInProperties, null, 4));
     });
+Word.Document#revisions:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/track-moved-text.yaml
+
+
+    // Reads and selects the text associated with a tracked move.
+
+    await Word.run(async (context) => {
+        const document: Word.Document = context.document;
+        const revisions: Word.RevisionCollection = document.revisions;
+        revisions.load("items/type");
+        await context.sync();
+
+        const movedFrom: Word.RevisionType = Word.RevisionType.movedFrom;
+        const movedTo: Word.RevisionType = Word.RevisionType.movedTo;
+        const movedRevision: Word.Revision | undefined = revisions.items.find(
+            (revision: Word.Revision) => revision.type === movedFrom || revision.type === movedTo
+        );
+        if (!movedRevision) {
+            console.log("Revision types found:", revisions.items.map((revision: Word.Revision) => revision.type));
+            console.warn("No tracked move was found. Move an entire paragraph as described in the task pane; moving a phrase may produce insertion and deletion revisions instead.");
+            return;
+        }
+
+        const movedRange: Word.Range = movedRevision.movedRange;
+        movedRange.load("text");
+        movedRange.select();
+        await context.sync();
+
+        console.log(`Moved revision range text: ${movedRange.text}`);
+    });
 Word.Document#selection:member:
   - >-
     // Link to full sample:
@@ -36469,11 +36501,17 @@ Word.Range#revisions:member:
     await Word.run(async (context) => {
         const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
         const revisions: Word.RevisionCollection = paragraphRange.revisions;
-        revisions.load("items/author,items/date,items/type");
+        revisions.load("items/author,items/date,items/type,items/index,items/formatDescription");
         await context.sync();
         console.log(`Revisions in the first paragraph: ${revisions.items.length}`);
         revisions.items.forEach((revision: Word.Revision) => {
-            console.log({ author: revision.author, date: revision.date, type: revision.type });
+            console.log("Revision properties:", {
+                author: revision.author,
+                date: revision.date,
+                type: revision.type,
+                index: revision.index,
+                formatDescription: revision.formatDescription,
+            });
         });
     });
 Word.Range#sections:member:
@@ -36712,7 +36750,7 @@ Word.RangeCollection#getFirst:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
 
 
-    // Replaces the document body and creates three tracked changes.
+    // Replaces the document body and tracks text and formatting edits.
 
     await Word.run(async (context) => {
       const document: Word.Document = context.document;
@@ -36732,12 +36770,14 @@ Word.RangeCollection#getFirst:member(1):
       adjective.insertText("swift", Word.InsertLocation.replace);
       animal.delete();
       ending.insertText("hound", Word.InsertLocation.replace);
+      const description: Word.Range = body.search("lazy").getFirst();
+      description.font.bold = true;
       await context.sync();
 
       document.changeTrackingMode = Word.ChangeTrackingMode.off;
       await context.sync();
 
-      console.log("Created three tracked changes.");
+      console.log("Created tracked text edits and applied bold formatting.");
     });
 Word.RangeCollection#items:member:
   - >-
@@ -36886,12 +36926,127 @@ Word.Revision:class:
     await Word.run(async (context) => {
         const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
         const revisions: Word.RevisionCollection = paragraphRange.revisions;
-        revisions.load("items/author,items/date,items/type");
+        revisions.load("items/author,items/date,items/type,items/index,items/formatDescription");
         await context.sync();
         console.log(`Revisions in the first paragraph: ${revisions.items.length}`);
         revisions.items.forEach((revision: Word.Revision) => {
-            console.log({ author: revision.author, date: revision.date, type: revision.type });
+            console.log("Revision properties:", {
+                author: revision.author,
+                date: revision.date,
+                type: revision.type,
+                index: revision.index,
+                formatDescription: revision.formatDescription,
+            });
         });
+    });
+Word.Revision#accept:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Incorporates the first revision into the document.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const revisions: Word.RevisionCollection = paragraphRange.revisions;
+        revisions.load("items");
+        await context.sync();
+
+        if (revisions.items.length === 0) {
+            console.warn("No revisions were found. Run Set up to create tracked changes.");
+            return;
+        }
+
+        const firstRevision: Word.Revision = revisions.items[0];
+        firstRevision.accept();
+        await context.sync();
+
+        console.log("Accepted the first revision. Get revision metadata to inspect the remaining revisions.");
+    });
+Word.Revision#movedRange:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/track-moved-text.yaml
+
+
+    // Reads and selects the text associated with a tracked move.
+
+    await Word.run(async (context) => {
+        const document: Word.Document = context.document;
+        const revisions: Word.RevisionCollection = document.revisions;
+        revisions.load("items/type");
+        await context.sync();
+
+        const movedFrom: Word.RevisionType = Word.RevisionType.movedFrom;
+        const movedTo: Word.RevisionType = Word.RevisionType.movedTo;
+        const movedRevision: Word.Revision | undefined = revisions.items.find(
+            (revision: Word.Revision) => revision.type === movedFrom || revision.type === movedTo
+        );
+        if (!movedRevision) {
+            console.log("Revision types found:", revisions.items.map((revision: Word.Revision) => revision.type));
+            console.warn("No tracked move was found. Move an entire paragraph as described in the task pane; moving a phrase may produce insertion and deletion revisions instead.");
+            return;
+        }
+
+        const movedRange: Word.Range = movedRevision.movedRange;
+        movedRange.load("text");
+        movedRange.select();
+        await context.sync();
+
+        console.log(`Moved revision range text: ${movedRange.text}`);
+    });
+Word.Revision#range:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Reads and selects the text affected by the first revision.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const revisions: Word.RevisionCollection = paragraphRange.revisions;
+        revisions.load("items");
+        await context.sync();
+
+        if (revisions.items.length === 0) {
+            console.warn("No revisions were found. Run Set up to create tracked changes.");
+            return;
+        }
+
+        const firstRevision: Word.Revision = revisions.items[0];
+        const revisionRange: Word.Range = firstRevision.range;
+        revisionRange.load("text");
+        revisionRange.select();
+        await context.sync();
+
+        console.log(`First revision range text: ${revisionRange.text}`);
+    });
+Word.Revision#reject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Removes the first revision and restores the original content.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const revisions: Word.RevisionCollection = paragraphRange.revisions;
+        revisions.load("items");
+        await context.sync();
+
+        if (revisions.items.length === 0) {
+            console.warn("No revisions were found. Run Set up to create tracked changes.");
+            return;
+        }
+
+        const firstRevision: Word.Revision = revisions.items[0];
+        firstRevision.reject();
+        await context.sync();
+
+        console.log("Rejected the first revision. Get revision metadata to inspect the remaining revisions.");
     });
 Word.RevisionCollection:class:
   - >-
@@ -36904,12 +37059,50 @@ Word.RevisionCollection:class:
     await Word.run(async (context) => {
         const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
         const revisions: Word.RevisionCollection = paragraphRange.revisions;
-        revisions.load("items/author,items/date,items/type");
+        revisions.load("items/author,items/date,items/type,items/index,items/formatDescription");
         await context.sync();
         console.log(`Revisions in the first paragraph: ${revisions.items.length}`);
         revisions.items.forEach((revision: Word.Revision) => {
-            console.log({ author: revision.author, date: revision.date, type: revision.type });
+            console.log("Revision properties:", {
+                author: revision.author,
+                date: revision.date,
+                type: revision.type,
+                index: revision.index,
+                formatDescription: revision.formatDescription,
+            });
         });
+    });
+Word.RevisionType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/track-moved-text.yaml
+
+
+    // Reads and selects the text associated with a tracked move.
+
+    await Word.run(async (context) => {
+        const document: Word.Document = context.document;
+        const revisions: Word.RevisionCollection = document.revisions;
+        revisions.load("items/type");
+        await context.sync();
+
+        const movedFrom: Word.RevisionType = Word.RevisionType.movedFrom;
+        const movedTo: Word.RevisionType = Word.RevisionType.movedTo;
+        const movedRevision: Word.Revision | undefined = revisions.items.find(
+            (revision: Word.Revision) => revision.type === movedFrom || revision.type === movedTo
+        );
+        if (!movedRevision) {
+            console.log("Revision types found:", revisions.items.map((revision: Word.Revision) => revision.type));
+            console.warn("No tracked move was found. Move an entire paragraph as described in the task pane; moving a phrase may produce insertion and deletion revisions instead.");
+            return;
+        }
+
+        const movedRange: Word.Range = movedRevision.movedRange;
+        movedRange.load("text");
+        movedRange.select();
+        await context.sync();
+
+        console.log(`Moved revision range text: ${movedRange.text}`);
     });
 Word.SaveBehavior:enum:
   - >-

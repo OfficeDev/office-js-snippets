@@ -1,7 +1,7 @@
 order: 7
 id: word-ranges-manage-range-bookmarks
 name: Manage range bookmarks
-description: Names a paragraph range and reads its bookmarks.
+description: Creates, inspects, resizes, copies, selects, and deletes paragraph bookmarks.
 author: OfficeDev
 host: WORD
 api_set:
@@ -13,6 +13,12 @@ script:
         document.getElementById("insert-bookmark").addEventListener("click", () => tryCatch(insertBookmark));
         document.getElementById("get-bookmark-names").addEventListener("click", () => tryCatch(getBookmarkNames));
         document.getElementById("get-bookmarks").addEventListener("click", () => tryCatch(getBookmarks));
+        document.getElementById("set-bookmark-start").addEventListener("click", () => tryCatch(setBookmarkStart));
+        document.getElementById("set-bookmark-end").addEventListener("click", () => tryCatch(setBookmarkEnd));
+        document.getElementById("copy-bookmark").addEventListener("click", () => tryCatch(copyBookmark));
+        document.getElementById("select-bookmark").addEventListener("click", () => tryCatch(selectBookmark));
+        document.getElementById("check-bookmark").addEventListener("click", () => tryCatch(checkBookmark));
+        document.getElementById("delete-bookmark").addEventListener("click", () => tryCatch(deleteBookmark));
 
         async function insertBookmark() {
             // Names the first paragraph range, replacing any existing bookmark with this name.
@@ -35,16 +41,153 @@ script:
         }
 
         async function getBookmarks() {
-            // Reads the bookmarks and their text within the first paragraph.
+            // Read bookmark properties and the text enclosed by each bookmark.
             await Word.run(async (context) => {
                 const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
                 const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
-                bookmarks.load("items/name,items/isEmpty,items/range/text");
+                bookmarks.load("items/name,items/start,items/end,items/isEmpty,items/isColumn,items/storyType,items/range/text");
                 await context.sync();
                 console.log(`Bookmarks found: ${bookmarks.items.length}`);
                 bookmarks.items.forEach((bookmark: Word.Bookmark) => {
-                    console.log({ name: bookmark.name, isEmpty: bookmark.isEmpty, text: bookmark.range.text });
+                    console.log("Bookmark details:", {
+                        name: bookmark.name,
+                        start: bookmark.start,
+                        end: bookmark.end,
+                        isEmpty: bookmark.isEmpty,
+                        isColumn: bookmark.isColumn,
+                        storyType: bookmark.storyType,
+                        text: bookmark.range.text
+                    });
                 });
+            });
+        }
+
+        async function setBookmarkStart() {
+            // Move the bookmark's start past the word "Project" without changing the document text.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+                bookmarks.load("items/name,items/end");
+                paragraphRange.load("start");
+                await context.sync();
+
+                const summaryBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleSummary");
+                if (!summaryBookmark) {
+                    console.warn("RangeSampleSummary was not found. Choose Insert bookmark first.");
+                    return;
+                }
+
+                const newStart = paragraphRange.start + "Project ".length;
+                if (newStart >= summaryBookmark.end) {
+                    console.warn("The bookmark is too short. Run Set up and Insert bookmark again.");
+                    return;
+                }
+
+                summaryBookmark.start = newStart;
+                await context.sync();
+                console.log("Moved the bookmark start past 'Project '. Get bookmark details to verify the enclosed text.");
+            });
+        }
+
+        async function setBookmarkEnd() {
+            // Move the bookmark's end before the summary's final period.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+                bookmarks.load("items/name,items/start");
+                paragraphRange.load("end");
+                await context.sync();
+
+                const summaryBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleSummary");
+                if (!summaryBookmark) {
+                    console.warn("RangeSampleSummary was not found. Choose Insert bookmark first.");
+                    return;
+                }
+
+                const newEnd = paragraphRange.end - 1;
+                if (newEnd <= summaryBookmark.start) {
+                    console.warn("The bookmark is too short. Run Set up and Insert bookmark again.");
+                    return;
+                }
+
+                summaryBookmark.end = newEnd;
+                await context.sync();
+                console.log("Moved the bookmark end before the final period. Get bookmark details to verify the enclosed text.");
+            });
+        }
+
+        async function copyBookmark() {
+            // Create another named bookmark over the same text as the summary bookmark.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+                bookmarks.load("items/name");
+                await context.sync();
+
+                const summaryBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleSummary");
+                if (!summaryBookmark) {
+                    console.warn("RangeSampleSummary was not found. Choose Insert bookmark first.");
+                    return;
+                }
+                if (bookmarks.items.some((bookmark) => bookmark.name === "RangeSampleCopy")) {
+                    console.warn("RangeSampleCopy already exists. Delete the copied bookmark before copying again.");
+                    return;
+                }
+
+                summaryBookmark.copyTo("RangeSampleCopy");
+                await context.sync();
+                console.log("Created RangeSampleCopy over the same text. Get bookmark details to inspect both names.");
+            });
+        }
+
+        async function selectBookmark() {
+            // Select the summary bookmark's current text in the document.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+                bookmarks.load("items/name");
+                await context.sync();
+
+                const summaryBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleSummary");
+                if (!summaryBookmark) {
+                    console.warn("RangeSampleSummary was not found. Choose Insert bookmark first.");
+                    return;
+                }
+
+                summaryBookmark.select();
+                await context.sync();
+                console.log("Selected RangeSampleSummary in the document.");
+            });
+        }
+
+        async function checkBookmark() {
+            // Check whether the copied bookmark exists within the first paragraph.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+                const copyExists: OfficeExtension.ClientResult<boolean> = bookmarks.exists("RangeSampleCopy");
+                await context.sync();
+                console.log(`RangeSampleCopy exists: ${copyExists.value}`);
+            });
+        }
+
+        async function deleteBookmark() {
+            // Delete the copied bookmark without deleting its text or the original bookmark.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+                bookmarks.load("items/name");
+                await context.sync();
+
+                const copiedBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleCopy");
+                if (!copiedBookmark) {
+                    console.warn("RangeSampleCopy was not found. Choose Copy bookmark first.");
+                    return;
+                }
+
+                copiedBookmark.delete();
+                await context.sync();
+                console.log("Deleted RangeSampleCopy. Its text and RangeSampleSummary remain. Check copied bookmark to verify.");
             });
         }
 
@@ -66,10 +209,12 @@ script:
     language: typescript
 template:
     content: |-
-        <section>This sample demonstrates how to bookmark a project summary for later reference and inspect the named text.</section>
+        <section>
+            <p>This sample demonstrates how to create, inspect, resize, copy, select, and delete bookmarks around a project summary.</p>
+        </section>
         <section>
             <p><b>Support:</b> Insert bookmark and Get bookmark names require WordApi 1.4.
-            Get bookmark details requires WordApiDesktop 1.4 on Windows or Mac.</p>
+            All other actions require WordApiDesktop 1.4 on Windows or Mac and aren't supported in Word on the web.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -82,6 +227,20 @@ template:
             <p>Bookmarks are hidden document state. Use the following actions to verify the name and text.</p>
             <button id="get-bookmark-names">Get bookmark names</button>
             <button id="get-bookmarks">Get bookmark details (desktop)</button>
+            <p>Changing a bookmark boundary changes only the enclosed range, not the document text.
+            The positions are character offsets within the bookmark's story, and the end is exclusive.
+            In this sample, the story is MainText and isColumn and isEmpty are false.</p>
+            <button id="set-bookmark-start">Set bookmark start (desktop)</button>
+            <button id="set-bookmark-end">Set bookmark end (desktop)</button>
+            <p>Get bookmark details after each change, or select the bookmark to see the enclosed text.
+            Insert bookmark restores the original boundaries.</p>
+            <button id="copy-bookmark">Copy bookmark (desktop)</button>
+            <button id="select-bookmark">Select summary bookmark (desktop)</button>
+            <button id="check-bookmark">Check copied bookmark (desktop)</button>
+            <button id="delete-bookmark">Delete copied bookmark (desktop)</button>
+            <p>Copy creates RangeSampleCopy over the same text; it doesn't duplicate the text.
+            Check copied bookmark reports true after copying and false after deletion.
+            Deletion removes only the copied bookmark. Word's <b>Insert</b> &gt; <b>Bookmark</b> dialog also lists both names.</p>
         </section>
     language: html
 style:

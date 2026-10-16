@@ -1,7 +1,7 @@
 order: 6
 id: excel-data-change-event-details
 name: Data changed event details
-description: Uses the onChanged event of a table to determine the specifics of changes.
+description: Inspect a table cell's values and basic types before and after an edit, and identify error values.
 host: EXCEL
 api_set:
     ExcelApi: '1.9'
@@ -12,7 +12,8 @@ script:
 
         async function registerChangeEventHandler() {
             await Excel.run(async (context) => {
-                const expensesTable = context.workbook.worksheets.getActiveWorksheet().tables.getItem("ExpensesTable");
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                const expensesTable: Excel.Table = sheet.tables.getItem("ExpensesTable");
 
                 // This event fires when a user edits a cell in the table.
                 expensesTable.onChanged.add(onTableChanged);
@@ -23,12 +24,22 @@ script:
         }
 
         async function onTableChanged(eventArgs: Excel.TableChangedEventArgs) {
+            // Inspect the values and basic types of an edited table cell, and identify errors.
             await Excel.run(async (context) => {
-                const details = eventArgs.details;
+                const details: Excel.ChangedEventDetail = eventArgs.details;
                 const address = eventArgs.address;
+                if (!details) {
+                    console.log("Edit one table cell at a time to inspect its value and type.");
+                    return;
+                }
 
                 console.log(`Change at ${address}: was ${details.valueBefore}(${details.valueTypeBefore}),`
                   + ` now is ${details.valueAfter}(${details.valueTypeAfter})`);
+
+                const errorType: Excel.RangeValueType = Excel.RangeValueType.error;
+                if (details.valueTypeAfter === errorType) {
+                    console.log("The updated cell contains an error:", details.valueAfter);
+                }
             });
         }
 
@@ -71,17 +82,17 @@ script:
 template:
     content: |-
         <section>
-          <p>This sample shows how to use table changed events.</p>
+          <p>Inspect a table cell's values and basic types before and after an edit, and identify error values.</p>
         </section>
         <section>
-          <h3>Setup</h3>
-          <button id="setup">Create table</button>
+          <h3>Set up</h3>
+          <button id="setup">Set up</button>
         </section>
         <section>
           <h3>Try it out</h3>
           <button id="register-handler">Register data change handler</button>
-          <p />
-          <p>Edit individual cells in the table to trigger the event and see the console output.</p>
+          <p>After registering the handler, edit one cell at a time in ExpensesTable on the Sample worksheet. Replace a merchant name with a number to see its basic type change from String to a numeric type in the console.</p>
+          <p>Enter =1/0 in a table cell to produce a #DIV/0! error. The handler compares the new basic type with Excel.RangeValueType.error and logs an additional error message.</p>
         </section>
     language: html
 style:

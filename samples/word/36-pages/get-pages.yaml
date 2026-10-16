@@ -1,7 +1,7 @@
 order: 2
 id: word-ranges-get-pages
 name: Work with pages, panes, and windows
-description: Inspects page content and dimensions, navigates pages, and lists panes and windows.
+description: Inspects page content, dimensions, and breaks, navigates pages, and lists panes and windows.
 author: OfficeDev
 host: WORD
 api_set:
@@ -20,6 +20,7 @@ script:
         document.getElementById("get-next-page").addEventListener("click", () => tryCatch(getNextPage));
         document.getElementById("get-page-data").addEventListener("click", () => tryCatch(getPageData));
         document.getElementById("get-breaks").addEventListener("click", () => tryCatch(getBreaks));
+        document.getElementById("get-break-ranges").addEventListener("click", () => tryCatch(getBreakRanges));
         document.getElementById("get-all-panes").addEventListener("click", () => tryCatch(getAllPanes));
         document.getElementById("get-all-windows").addEventListener("click", () => tryCatch(getAllWindows));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
@@ -211,7 +212,7 @@ script:
         }
 
         async function getBreaks() {
-          // Gets every page, column, and section break in the active document pane.
+          // Gets the page number of every break in the active document pane.
           await Word.run(async (context) => {
             const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
             pages.load("items");
@@ -230,6 +231,36 @@ script:
             console.log(`Breaks found: ${documentBreaks.length}`);
             documentBreaks.forEach((documentBreak: Word.Break) => {
               console.log(`Break on page ${documentBreak.pageIndex}.`);
+            });
+          });
+        }
+
+        async function getBreakRanges() {
+          // Gets the text of each break's range in the active document pane.
+          await Word.run(async (context) => {
+            const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+            pages.load("items");
+            await context.sync();
+
+            const breakCollections: Word.BreakCollection[] = [];
+            pages.items.forEach((page: Word.Page) => {
+              const breaks: Word.BreakCollection = page.breaks;
+              breaks.load("items");
+              breakCollections.push(breaks);
+            });
+            await context.sync();
+
+            const documentBreaks: Word.Break[] = breakCollections.flatMap((breaks) => breaks.items);
+            const breakRanges: Word.Range[] = documentBreaks.map((documentBreak: Word.Break) => {
+              const breakRange: Word.Range = documentBreak.range;
+              breakRange.load("text");
+              return breakRange;
+            });
+            await context.sync();
+
+            console.log(`Break ranges found: ${breakRanges.length}`);
+            breakRanges.forEach((breakRange: Word.Range, index: number) => {
+              console.log(`Break ${index + 1} range text (escaped): ${JSON.stringify(breakRange.text)}`);
             });
           });
         }
@@ -288,7 +319,7 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample shows page content and paper dimensions, navigates between pages, and lists document panes and windows.</p>
+            <p>This sample shows page content, paper dimensions, and breaks, navigates between pages, and lists document panes and windows.</p>
             <p><b>Note:</b> Requires Word on Windows or Mac with WordApiDesktop 1.3.</p>
         </section>
         <section class="setup">
@@ -306,6 +337,9 @@ template:
             <button id="get-next-page">Get next page</button>
             <button id="get-page-data">Get first page as plain data</button>
             <button id="get-breaks">Get breaks</button>
+            <p>Get breaks logs the number of breaks and the page number of each break.</p>
+            <button id="get-break-ranges">Get break ranges</button>
+            <p>Get break ranges logs each break's range text with special characters escaped so they are visible in the console.</p>
             <button id="get-all-panes">Get all panes</button>
             <button id="get-all-windows">Get all windows</button>
         </section>

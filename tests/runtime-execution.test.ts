@@ -419,6 +419,30 @@ describe('Runtime Execution Tests - Word', () => {
         const breaks = mockContext.document.activeWindow.activePane.pages.items[0].breaks;
         expect(breaks.load).toHaveBeenCalledWith('items/pageIndex');
         expect(consoleSpy).toHaveBeenCalledWith('Breaks found: 1');
+        expect(consoleSpy).toHaveBeenCalledWith('Break on page 1.');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { label: 'a page break character', rangeText: '\f', escapedText: '"\\f"' },
+    { label: 'an empty range', rangeText: '', escapedText: '""' },
+    { label: 'text with a newline', rangeText: 'First line\nSecond line', escapedText: '"First line\\nSecond line"' },
+  ])('Word: get break ranges displays $label', async ({ rangeText, escapedText }) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '36-pages', 'get-pages.yaml'),
+      buttonId: 'get-break-ranges',
+      mockOptions: { selectionText: rangeText },
+      assertions: ({ mockContext, mockRange }) => {
+        const pages = mockContext.document.activeWindow.activePane.pages;
+        expect(pages.load).toHaveBeenCalledWith('items');
+        expect(pages.items[0].breaks.load).toHaveBeenCalledWith('items');
+        expect(mockRange.load).toHaveBeenCalledWith('text');
+        expect(consoleSpy.mock.calls).toEqual([
+          ['Break ranges found: 1'],
+          [`Break 1 range text (escaped): ${escapedText}`],
+        ]);
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });

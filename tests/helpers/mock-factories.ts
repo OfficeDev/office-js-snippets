@@ -168,6 +168,9 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockTable = {
     name: 'SalesTable',
     rows: mockTableRows,
+    onChanged: {
+      add: jest.fn(),
+    },
   };
 
   function createPageBreakCollection(count: number, horizontal: boolean) {
@@ -246,6 +249,9 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
 
   const mockObject = new OfficeMockObject(mockData, OfficeApp.Excel);
   Object.assign(mockObject, {
+    RangeValueType: {
+      error: 'Error',
+    },
     CellValueType: {
       double: 'Double',
       entity: 'Entity',

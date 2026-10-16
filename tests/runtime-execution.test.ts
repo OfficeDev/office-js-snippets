@@ -448,6 +448,82 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
+  test.each([
+    'setup',
+    'get-list-string',
+    'get-sibling-index',
+    'get-ancestor',
+    'get-ancestor-or-null',
+    'get-descendants',
+    'set-level',
+  ])('Word: manage list items %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '20-lists', 'manage-list-items.yaml'),
+      buttonId,
+      assertions: ({ mockContext, mockBody, mockParagraph }) => {
+        const list = mockBody.lists.getFirst();
+        const listItem = mockParagraph.listItem;
+        if (buttonId === 'setup') {
+          expect(mockBody.clear).toHaveBeenCalled();
+          expect(mockBody.insertParagraph).toHaveBeenCalledWith('Design', 'Start');
+          expect(mockParagraph.startNewList).toHaveBeenCalled();
+          expect(list.insertParagraph.mock.calls).toEqual([
+            ['Draft', 'End'], ['Review', 'End'], ['Publish', 'End'],
+          ]);
+          expect(list.setLevelNumbering.mock.calls).toEqual([
+            [0, 'Arabic'], [1, 'LowerLetter'], [2, 'LowerRoman'],
+          ]);
+        } else if (buttonId === 'get-list-string') {
+          expect(list.paragraphs.getLast).toHaveBeenCalled();
+          expect(listItem.load).toHaveBeenCalledWith('listString');
+          expect(consoleSpy).toHaveBeenCalledWith('Last list item marker: b.');
+        } else if (buttonId === 'get-sibling-index') {
+          expect(list.paragraphs.getLast).toHaveBeenCalled();
+          expect(listItem.load).toHaveBeenCalledWith('siblingIndex');
+          expect(consoleSpy).toHaveBeenCalledWith('Last list item sibling index: 1');
+        } else if (buttonId === 'get-ancestor') {
+          expect(listItem.getAncestor).toHaveBeenCalledWith(true);
+          expect(mockParagraph.load).toHaveBeenCalledWith('text');
+          expect(consoleSpy).toHaveBeenCalledWith('Parent of the last list item: Mock paragraph');
+        } else if (buttonId === 'get-ancestor-or-null') {
+          expect(listItem.getAncestorOrNullObject).toHaveBeenCalledWith();
+          expect(consoleSpy).toHaveBeenCalledWith(
+            'The first list item has no ancestor because it is at the top level.'
+          );
+        } else if (buttonId === 'get-descendants') {
+          expect(listItem.getDescendants.mock.calls).toEqual([[true], [false]]);
+          expect(list.paragraphs.load).toHaveBeenCalledWith('items/text');
+          expect(consoleSpy).toHaveBeenCalledWith('Direct children (2):');
+          expect(consoleSpy).toHaveBeenCalledWith('All descendants (2):');
+          expect(consoleSpy).toHaveBeenCalledWith('- Mock paragraph');
+        } else {
+          expect(listItem.level).toBe(2);
+        }
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([false, true])('Word: optional list ancestor handles isNullObject=%s', async (isNullObject) => {
+    const { mockObject, mockContext, mockParagraph } = createWordMock();
+    const ancestor = { isNullObject, text: 'Design', load: jest.fn() };
+    mockParagraph.listItem.getAncestorOrNullObject.mockReturnValue(ancestor);
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '20-lists', 'manage-list-items.yaml')));
+
+    await clickButton(buttonHandlers, 'get-ancestor-or-null');
+
+    expect(ancestor.load).toHaveBeenCalledWith('text');
+    expect(mockContext.sync).toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(isNullObject
+      ? 'The first list item has no ancestor because it is at the top level.'
+      : 'Ancestor of the first list item: Design');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
   test('Word: get document breaks executes without runtime errors', async () => {
     await runWordSnippetTest({
       snippetPath: path.join('samples', 'word', '36-pages', 'get-pages.yaml'),

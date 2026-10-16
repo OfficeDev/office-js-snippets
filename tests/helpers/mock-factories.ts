@@ -320,8 +320,19 @@ export function createWordMock(options: WordMockOptions = {}) {
     load: jest.fn(),
   };
 
+  const mockListItem = {
+    level: 1,
+    listString: 'b.',
+    siblingIndex: 1,
+    load: jest.fn(),
+    getAncestor: jest.fn(),
+    getAncestorOrNullObject: jest.fn(),
+    getDescendants: jest.fn(),
+  };
+
   const mockParagraph = {
     text: paragraphText,
+    listItem: mockListItem,
     alignment: 'Left',
     firstLineIndent: 0,
     leftIndent: 0,
@@ -348,6 +359,17 @@ export function createWordMock(options: WordMockOptions = {}) {
     getFirst: jest.fn(() => mockParagraph),
     getLast: jest.fn(() => mockParagraph),
     items: [mockParagraph],
+    load: jest.fn(),
+  };
+
+  mockListItem.getAncestor.mockReturnValue(mockParagraph);
+  mockListItem.getAncestorOrNullObject.mockReturnValue({ isNullObject: true, load: jest.fn() });
+  mockListItem.getDescendants.mockReturnValue(mockParagraphs);
+  const mockList = {
+    id: 1,
+    paragraphs: mockParagraphs,
+    insertParagraph: jest.fn(() => mockParagraph),
+    setLevelNumbering: jest.fn(),
     load: jest.fn(),
   };
 
@@ -654,6 +676,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockBody = {
     text: bodyText,
     paragraphs: mockParagraphs,
+    lists: { items: [mockList], getFirst: jest.fn(() => mockList), load: jest.fn() },
     clear: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
     insertBreak: jest.fn(),
@@ -810,7 +833,6 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
   const mockContentControl = { tag: 'RangeSampleSummary', title: 'Project summary', text: 'Project summary' };
   const mockInlinePicture = { width: 90, height: 39 };
-  const mockList = { id: 1, insertParagraph: jest.fn(() => mockParagraph) };
   const mockShape = { name: 'RangeSamplePicture', type: 'Picture', width: 90, height: 39 };
   const mockEditor = { name: 'Everyone', id: 'Everyone', load: jest.fn() };
   const mockEditors = {
@@ -1133,6 +1155,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     dashes: 'Dashes',
   };
   wordMockObject.SelectionMode = { end: 'End', start: 'Start', select: 'Select' };
+  wordMockObject.ListNumbering = { arabic: 'Arabic', lowerLetter: 'LowerLetter', lowerRoman: 'LowerRoman' };
   wordMockObject.CharacterCase = { upper: 'Upper' };
   wordMockObject.CharacterWidth = { full: 'Full' };
   wordMockObject.HorizontalInVerticalType = { fitInLine: 'FitInLine' };

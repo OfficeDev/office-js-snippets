@@ -437,15 +437,39 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockPage = {
     index: 1,
+    height: 792,
+    width: 612,
+    isNullObject: false,
     breaks: mockBreaks,
+    getNext: jest.fn(),
+    getNextOrNullObject: jest.fn(),
     getRange: jest.fn(() => mockRange),
     load: jest.fn(),
+    toJSON: jest.fn(function() {
+      return { index: this.index, height: this.height, width: this.width };
+    }),
   };
 
-  const mockPages = {
-    items: [mockPage],
+  // Fixed pages exercise navigation without modeling Word's pagination.
+  const mockNullPage = { isNullObject: true };
+  const mockNextPage = {
+    ...mockPage,
+    index: 2,
+    breaks: { items: [], load: jest.fn() },
+    getNext: jest.fn(() => { throw new Error('ItemNotFound'); }),
+    getNextOrNullObject: jest.fn(() => mockNullPage),
     load: jest.fn(),
   };
+  mockPage.getNext.mockReturnValue(mockNextPage);
+  mockPage.getNextOrNullObject.mockReturnValue(mockNextPage);
+
+  const mockPages = {
+    items: [mockPage, mockNextPage],
+    getFirst: jest.fn(() => mockPage),
+    getFirstOrNullObject: jest.fn(() => mockPage),
+    load: jest.fn(),
+  };
+  Object.assign(mockRange, { pages: mockPages });
 
   const mockPane = {
     pages: mockPages,
@@ -839,6 +863,7 @@ export function createWordMock(options: WordMockOptions = {}) {
       body: mockBody,
       changeTrackingMode: 'Off',
       activeWindow: mockWindow,
+      windows: { items: [mockWindow], load: jest.fn() },
       addStyle: jest.fn(() => mockStyle),
       getStyles: jest.fn(() => mockStyles),
       getSelection: jest.fn(() => mockRange),

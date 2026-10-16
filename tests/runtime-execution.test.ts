@@ -374,6 +374,8 @@ describe('Runtime Execution Tests - Word', () => {
     ]],
     ['35-ranges', 'manage-range-bookmarks.yaml', [
       'setup', 'insert-bookmark', 'get-bookmark-names', 'get-bookmarks',
+      'set-bookmark-start', 'set-bookmark-end', 'copy-bookmark', 'select-bookmark',
+      'check-bookmark',
     ]],
     ['35-ranges', 'inspect-range-structure.yaml', [
       'setup', 'get-controls', 'get-fields', 'get-pictures', 'get-lists', 'insert-table',
@@ -476,6 +478,139 @@ describe('Runtime Execution Tests - Word', () => {
       },
     });
   });
+
+  test.each([
+    'get-bookmarks', 'set-bookmark-start', 'set-bookmark-end',
+    'copy-bookmark', 'select-bookmark', 'check-bookmark', 'delete-bookmark',
+  ])('Word: bookmark %s uses the typed bookmark operation', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'manage-range-bookmarks.yaml'),
+      buttonId,
+      mockOptions: {
+        bookmarkNames: buttonId === 'delete-bookmark'
+          ? ['RangeSampleSummary', 'RangeSampleCopy'] : ['RangeSampleSummary'],
+      },
+      assertions: ({ mockContext, mockRange }) => {
+        const bookmarks = mockRange.bookmarks;
+        const summaryBookmark = bookmarks.items[0];
+        expect(mockContext.sync).toHaveBeenCalled();
+        switch (buttonId) {
+          case 'get-bookmarks':
+            expect(bookmarks.load).toHaveBeenCalledWith(
+              'items/name,items/start,items/end,items/isEmpty,items/isColumn,items/storyType,items/range/text'
+            );
+            expect(consoleSpy).toHaveBeenCalledWith('Bookmark details:', {
+              name: 'RangeSampleSummary', start: 0, end: 40,
+              isEmpty: false, isColumn: false, storyType: 'MainText', text: mockRange.text,
+            });
+            break;
+          case 'set-bookmark-start':
+            expect(mockRange.load).toHaveBeenCalledWith('start');
+            expect(bookmarks.load).toHaveBeenCalledWith('items/name,items/end');
+            expect(summaryBookmark.start).toBe(8);
+            expect(summaryBookmark.end).toBe(40);
+            break;
+          case 'set-bookmark-end':
+            expect(mockRange.load).toHaveBeenCalledWith('end');
+            expect(bookmarks.load).toHaveBeenCalledWith('items/name,items/start');
+            expect(summaryBookmark.end).toBe(39);
+            expect(summaryBookmark.start).toBe(0);
+            break;
+          case 'copy-bookmark':
+            expect(summaryBookmark.copyTo).toHaveBeenCalledWith('RangeSampleCopy');
+            break;
+          case 'select-bookmark':
+            expect(summaryBookmark.select).toHaveBeenCalled();
+            break;
+          case 'check-bookmark':
+            expect(bookmarks.exists).toHaveBeenCalledWith('RangeSampleCopy');
+            expect(consoleSpy).toHaveBeenCalledWith('RangeSampleCopy exists: false');
+            break;
+          case 'delete-bookmark':
+            expect(bookmarks.items[1].delete).toHaveBeenCalled();
+            expect(summaryBookmark.delete).not.toHaveBeenCalled();
+            expect(mockRange.delete).not.toHaveBeenCalled();
+            break;
+        }
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    'set-bookmark-start', 'set-bookmark-end', 'copy-bookmark', 'select-bookmark', 'delete-bookmark',
+  ])('Word: bookmark %s reports a missing bookmark', async (buttonId) => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'manage-range-bookmarks.yaml'),
+      buttonId,
+      mockOptions: { bookmarkNames: [] },
+      assertions: () => {
+        expect(warnSpy).toHaveBeenCalledWith(
+          buttonId === 'delete-bookmark'
+            ? 'RangeSampleCopy was not found. Choose Copy bookmark first.'
+            : 'RangeSampleSummary was not found. Choose Insert bookmark first.'
+        );
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('Word: bookmark copy reports an existing copy without overwriting it', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'manage-range-bookmarks.yaml'),
+      buttonId: 'copy-bookmark',
+      mockOptions: { bookmarkNames: ['RangeSampleSummary', 'RangeSampleCopy'] },
+      assertions: ({ mockRange }) => {
+        expect(mockRange.bookmarks.items[0].copyTo).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledWith(
+          'RangeSampleCopy already exists. Delete the copied bookmark before copying again.'
+        );
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('Word: bookmark existence reports a present copy', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'manage-range-bookmarks.yaml'),
+      buttonId: 'check-bookmark',
+      mockOptions: { bookmarkNames: ['RangeSampleSummary', 'RangeSampleCopy'] },
+      assertions: () => {
+        expect(consoleSpy).toHaveBeenCalledWith('RangeSampleCopy exists: true');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each(['set-bookmark-start', 'set-bookmark-end'])(
+    'Word: bookmark %s rejects a boundary that would cross the other endpoint',
+    async (buttonId) => {
+      const { mockObject, mockRange, mockContext } = createWordMock();
+      const summaryBookmark = mockRange.bookmarks.items[0];
+      if (buttonId === 'set-bookmark-start') {
+        summaryBookmark.end = 8;
+      } else {
+        summaryBookmark.start = 39;
+      }
+      (global as any).Word = mockObject;
+      const buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(
+        path.join('samples', 'word', '35-ranges', 'manage-range-bookmarks.yaml')
+      ));
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      await clickButton(buttonHandlers, buttonId);
+      expect(warnSpy).toHaveBeenCalledWith(
+        'The bookmark is too short. Run Set up and Insert bookmark again.'
+      );
+      expect(summaryBookmark.start).toBe(buttonId === 'set-bookmark-start' ? 0 : 39);
+      expect(summaryBookmark.end).toBe(buttonId === 'set-bookmark-start' ? 8 : 40);
+      expect(mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    }
+  );
 
   test('Word: Range.split uses the Range argument order', async () => {
     await runWordSnippetTest({

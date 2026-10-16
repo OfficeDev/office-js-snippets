@@ -232,6 +232,7 @@ export interface WordMockOptions {
   selectionText?: string;
   paragraphText?: string;
   bodyText?: string;
+  bookmarkNames?: string[];
 }
 
 export function createWordMock(options: WordMockOptions = {}) {
@@ -239,6 +240,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     selectionText = 'Mock selected text',
     paragraphText = 'Mock paragraph',
     bodyText = 'Mock body text',
+    bookmarkNames = ['RangeSampleSummary'],
   } = options;
 
   // Mock for getText() return value
@@ -763,6 +765,22 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockFrames = { items: [mockFrame], add: jest.fn(() => mockFrame), load: jest.fn() };
   const mockNote = { body: { text: 'Sample endnote' } };
   const mockEndnotes = { items: [mockNote], load: jest.fn() };
+  const mockBookmarks = {
+    items: bookmarkNames.map(name => ({
+      name,
+      start: 0,
+      end: 40,
+      isEmpty: false,
+      isColumn: false,
+      storyType: 'MainText',
+      range: mockRange,
+      copyTo: jest.fn((copyName: string) => ({ name: copyName, range: mockRange })),
+      select: jest.fn(),
+      delete: jest.fn(),
+    })),
+    load: jest.fn(),
+    exists: jest.fn((name: string) => ({ value: bookmarkNames.includes(name) })),
+  };
   const extendedRange = Object.assign(mockRange, {
     isNullObject: false,
     isEmpty: false,
@@ -809,7 +827,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     parentTableCell: mockTableCell,
     parentTableOrNullObject: { isNullObject: true, load: jest.fn() },
     parentTableCellOrNullObject: { isNullObject: true, load: jest.fn() },
-    bookmarks: { items: [{ name: 'RangeSampleSummary', isEmpty: false, range: mockRange }], load: jest.fn() },
+    bookmarks: mockBookmarks,
     hyperlinks: { items: [{ address: 'https://learn.microsoft.com/office/dev/add-ins/word/', range: mockRange }], load: jest.fn() },
     shapes: { items: [mockShape], load: jest.fn() },
     sections: mockSections,

@@ -212,7 +212,12 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     CellValueType: {
       double: 'Double',
       entity: 'Entity',
+      error: 'Error',
       function: 'Function',
+      notAvailable: 'NotAvailable',
+    },
+    ErrorCellValueType: {
+      busy: 'Busy',
     },
     FunctionCellValueType: {
       javaScriptReference: 'JavaScriptReference',
@@ -220,15 +225,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   });
 
   return {
-    mockObject: Object.assign(new OfficeMockObject(mockData, OfficeApp.Excel), {
-      CellValueType: {
-        error: 'Error',
-        notAvailable: 'NotAvailable',
-      },
-      ErrorCellValueType: {
-        busy: 'Busy',
-      },
-    }),
+    mockObject,
     mockContext,
     mockRange,
     mockWorksheet,

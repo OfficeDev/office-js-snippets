@@ -24663,21 +24663,14 @@ Word.Alignment:enum:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Centers the last paragraph between the document margins.
+
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.clear();
-      body.insertParagraph(
-        "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
-        "Start"
-      );
-      body.paragraphs
-        .getLast()
-        .insertText(
-          "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
-          "Replace"
-        );
-      body.paragraphs.getFirst().alignment = "Left";
-      body.paragraphs.getLast().alignment = Word.Alignment.left;
+      const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+      const alignment: Word.Alignment = Word.Alignment.centered;
+      lastParagraph.alignment = alignment;
+
+      await context.sync();
     });
 Word.ApplyQuickStyleSet:enum:
   - >-
@@ -34320,16 +34313,141 @@ Word.PaneCollection:class:
 Word.Paragraph:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
 
+
+    // Reads the first paragraph's text.
 
     await Word.run(async (context) => {
-      // The collection of paragraphs of the current selection returns the full paragraphs contained in it.
-      const paragraph: Word.Paragraph = context.document.getSelection().paragraphs.getFirst();
-      paragraph.load("text");
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        firstParagraph.load("text");
+        await context.sync();
+        console.log(`First paragraph: ${firstParagraph.text}`);
+    });
+Word.Paragraph#clear:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
 
-      await context.sync();
-      console.log(`The first paragraph of the selected text: ${paragraph.text}`);
+
+    // Removes the first paragraph's content but keeps the paragraph.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        firstParagraph.clear();
+        await context.sync();
+        console.log("Cleared the first paragraph. Its empty paragraph remains.");
+    });
+Word.Paragraph#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Removes the first paragraph and its content from the document.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        firstParagraph.delete();
+        await context.sync();
+        console.log("Deleted the first paragraph and its content.");
+    });
+Word.Paragraph#getHtml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-and-read-paragraph-markup.yaml
+
+
+    // Reads an HTML representation of the first paragraph.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const html: OfficeExtension.ClientResult<string> = firstParagraph.getHtml();
+        await context.sync();
+        console.log(`Paragraph HTML: ${html.value}`);
+    });
+Word.Paragraph#getNext:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Reads the paragraph immediately after the first paragraph.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const nextParagraph: Word.Paragraph = firstParagraph.getNext();
+        nextParagraph.load("text");
+        await context.sync();
+        console.log(`Next paragraph: ${nextParagraph.text}`);
+    });
+Word.Paragraph#getNextOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Checks for a following paragraph without throwing at the end of the body.
+
+    await Word.run(async (context) => {
+        const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+        const nextParagraph: Word.Paragraph = lastParagraph.getNextOrNullObject();
+        nextParagraph.load("text");
+        await context.sync();
+        if (nextParagraph.isNullObject) {
+            console.log("There is no paragraph after the last paragraph.");
+        } else {
+            console.log(`Next paragraph: ${nextParagraph.text}`);
+        }
+    });
+Word.Paragraph#getOoxml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-and-read-paragraph-markup.yaml
+
+
+    // Reads the first paragraph's Office Open XML representation.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const ooxml: OfficeExtension.ClientResult<string> = firstParagraph.getOoxml();
+        await context.sync();
+        console.log(`Paragraph OOXML: ${ooxml.value}`);
+    });
+Word.Paragraph#getPrevious:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Reads the paragraph immediately before the last paragraph.
+
+    await Word.run(async (context) => {
+        const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+        const previousParagraph: Word.Paragraph = lastParagraph.getPrevious();
+        previousParagraph.load("text");
+        await context.sync();
+        console.log(`Previous paragraph: ${previousParagraph.text}`);
+    });
+Word.Paragraph#getPreviousOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Checks for a preceding paragraph without throwing at the start of the
+    body.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const previousParagraph: Word.Paragraph = firstParagraph.getPreviousOrNullObject();
+        previousParagraph.load("text");
+        await context.sync();
+        if (previousParagraph.isNullObject) {
+            console.log("There is no paragraph before the first paragraph.");
+        } else {
+            console.log(`Previous paragraph: ${previousParagraph.text}`);
+        }
     });
 Word.Paragraph#getRange:member(1):
   - >-
@@ -34376,6 +34494,24 @@ Word.Paragraph#getText:member(1):
       console.log(`Text: ${text.value}`);
       console.log(`Including hidden text: ${textIncludingHidden.value}`);
       console.log(`Including text marked as deleted: ${textIncludingDeleted.value}`);
+    });
+Word.Paragraph#getTextRanges:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Reads sentence ranges delimited by periods in the first paragraph.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const sentences: Word.RangeCollection = firstParagraph.getTextRanges(["."], true);
+        sentences.load("items/text");
+        await context.sync();
+        console.log(`Sentences found: ${sentences.items.length}`);
+        for (const sentence of sentences.items) {
+            console.log(`Sentence: ${sentence.text}`);
+        }
     });
 Word.Paragraph#insertAnnotations:member(1):
   - >-
@@ -34511,6 +34647,52 @@ Word.Paragraph#insertGeometricShape:member(1):
       lastParagraph.insertPictureFromBase64(getPictureBase64(), pictureOptions);
 
       await context.sync();
+    });
+Word.Paragraph#insertHtml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-and-read-paragraph-markup.yaml
+
+
+    // Replaces the first paragraph's content with bold and italic text from
+    HTML.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const insertedRange: Word.Range = firstParagraph.insertHtml(
+            "<b>Project update:</b> <i>ready for review.</i>",
+            Word.InsertLocation.replace
+        );
+        await context.sync();
+        console.log("Replaced the first paragraph's content with formatted HTML.");
+    });
+Word.Paragraph#insertOoxml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-and-read-paragraph-markup.yaml
+
+
+    // Replaces the first paragraph's content with a bold update from an OOXML
+    package.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const ooxml: string =
+            `<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+                <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+                    <pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+                    </Relationships></pkg:xmlData>
+                </pkg:part>
+                <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+                    <pkg:xmlData><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                        <w:body><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Project update from OOXML.</w:t></w:r></w:p></w:body>
+                    </w:document></pkg:xmlData>
+                </pkg:part>
+            </pkg:package>`;
+        const insertedRange: Word.Range = firstParagraph.insertOoxml(ooxml, Word.InsertLocation.replace);
+        await context.sync();
+        console.log("Replaced the first paragraph's content with a bold OOXML update.");
     });
 Word.Paragraph#insertParagraph:member(1):
   - >-
@@ -34690,9 +34872,12 @@ Word.Paragraph#alignment:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Centers the last paragraph between the document margins.
+
     await Word.run(async (context) => {
-      // Center last paragraph alignment.
-      context.document.body.paragraphs.getLast().alignment = "Centered";
+      const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+      const alignment: Word.Alignment = Word.Alignment.centered;
+      lastParagraph.alignment = alignment;
 
       await context.sync();
     });
@@ -34735,6 +34920,19 @@ Word.Paragraph#borders:member:
         `Applied the ${Word.BorderLineStyle.double} line style to ${borders.items.length} paragraph borders.`
       );
     });
+Word.Paragraph#firstLineIndent:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
+
+
+    // Indents only the first line of the first paragraph.
+
+    await Word.run(async (context) => {
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.firstLineIndent = 36;
+      await context.sync();
+    });
 Word.Paragraph#font:member:
   - >-
     // Link to full sample:
@@ -34776,11 +34974,13 @@ Word.Paragraph#leftIndent:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
-    await Word.run(async (context) => {
-      // Indent the first paragraph.
-      context.document.body.paragraphs.getFirst().leftIndent = 75; //units = points
+    // Indents the first paragraph from the left margin.
 
-      return context.sync();
+    await Word.run(async (context) => {
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.leftIndent = 75;
+
+      await context.sync();
     });
 Word.Paragraph#lineSpacing:member:
   - >-
@@ -34788,9 +34988,11 @@ Word.Paragraph#lineSpacing:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Adjusts the spacing between lines in the first paragraph.
+
     await Word.run(async (context) => {
-      // Adjust line spacing.
-      context.document.body.paragraphs.getFirst().lineSpacing = 20;
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.lineSpacing = 20;
 
       await context.sync();
     });
@@ -34800,9 +35002,11 @@ Word.Paragraph#lineUnitAfter:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Adds space after the first paragraph, measured in grid lines.
+
     await Word.run(async (context) => {
-      // Set the space (in line units) after the first paragraph.
-      context.document.body.paragraphs.getFirst().lineUnitAfter = 1;
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.lineUnitAfter = 1;
 
       await context.sync();
     });
@@ -34812,9 +35016,11 @@ Word.Paragraph#lineUnitBefore:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Adds space before the last paragraph, measured in grid lines.
+
     await Word.run(async (context) => {
-      // Set the space (in line units) before the first paragraph.
-      context.document.body.paragraphs.getFirst().lineUnitBefore = 1;
+      const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+      lastParagraph.lineUnitBefore = 1;
 
       await context.sync();
     });
@@ -34856,16 +35062,44 @@ Word.Paragraph#listItem:member:
 
       await context.sync();
     });
+Word.Paragraph#rightIndent:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
+
+
+    // Narrows the first paragraph by adding a right indent.
+
+    await Word.run(async (context) => {
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.rightIndent = 72;
+      await context.sync();
+    });
 Word.Paragraph#spaceAfter:member:
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
-    await Word.run(async (context) => {
-      // Set the space (in points) after the first paragraph.
-      context.document.body.paragraphs.getFirst().spaceAfter = 20;
+    // Adds space after the first paragraph, measured in points.
 
+    await Word.run(async (context) => {
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.spaceAfter = 20;
+
+      await context.sync();
+    });
+Word.Paragraph#spaceBefore:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
+
+
+    // Adds space before the last paragraph, measured in points.
+
+    await Word.run(async (context) => {
+      const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+      lastParagraph.spaceBefore = 24;
       await context.sync();
     });
 Word.Paragraph#style:member:

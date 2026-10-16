@@ -106,6 +106,7 @@ export function createOfficeCommonApiMock() {
 export interface ExcelMockOptions {
   rangeAddress?: string;
   rangeValues?: any[][];
+  rangeValuesAsJson?: unknown[][];
   rangeText?: string;
   worksheetName?: string;
   horizontalPageBreakCount?: number;
@@ -115,6 +116,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const {
     rangeAddress = 'A1:B2',
     rangeValues = [['value1', 'value2']],
+    rangeValuesAsJson = [],
     rangeText = 'Mock text',
     worksheetName = 'Sheet1',
     horizontalPageBreakCount = 2,
@@ -134,6 +136,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockRange = {
     address: rangeAddress,
     values: rangeValues,
+    valuesAsJson: rangeValuesAsJson,
     text: rangeText,
     numberFormat: [],
     format: {
@@ -241,8 +244,20 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     }),
   };
 
+  const mockObject = new OfficeMockObject(mockData, OfficeApp.Excel);
+  Object.assign(mockObject, {
+    CellValueType: {
+      double: 'Double',
+      entity: 'Entity',
+      function: 'Function',
+    },
+    FunctionCellValueType: {
+      javaScriptReference: 'JavaScriptReference',
+    },
+  });
+
   return {
-    mockObject: new OfficeMockObject(mockData, OfficeApp.Excel),
+    mockObject,
     mockContext,
     mockRange,
     mockWorksheet,
@@ -474,15 +489,39 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockPage = {
     index: 1,
+    height: 792,
+    width: 612,
+    isNullObject: false,
     breaks: mockBreaks,
+    getNext: jest.fn(),
+    getNextOrNullObject: jest.fn(),
     getRange: jest.fn(() => mockRange),
     load: jest.fn(),
+    toJSON: jest.fn(function() {
+      return { index: this.index, height: this.height, width: this.width };
+    }),
   };
 
-  const mockPages = {
-    items: [mockPage],
+  // Fixed pages exercise navigation without modeling Word's pagination.
+  const mockNullPage = { isNullObject: true };
+  const mockNextPage = {
+    ...mockPage,
+    index: 2,
+    breaks: { items: [], load: jest.fn() },
+    getNext: jest.fn(() => { throw new Error('ItemNotFound'); }),
+    getNextOrNullObject: jest.fn(() => mockNullPage),
     load: jest.fn(),
   };
+  mockPage.getNext.mockReturnValue(mockNextPage);
+  mockPage.getNextOrNullObject.mockReturnValue(mockNextPage);
+
+  const mockPages = {
+    items: [mockPage, mockNextPage],
+    getFirst: jest.fn(() => mockPage),
+    getFirstOrNullObject: jest.fn(() => mockPage),
+    load: jest.fn(),
+  };
+  Object.assign(mockRange, { pages: mockPages });
 
   const mockPane = {
     pages: mockPages,
@@ -568,6 +607,18 @@ export function createWordMock(options: WordMockOptions = {}) {
     reject: jest.fn(),
   };
   mockTrackedChange.getNext.mockReturnValue(mockTrackedChange);
+
+  const mockRevision = {
+    author: 'Mock Author',
+    date: new Date('2024-01-01'),
+    formatDescription: '',
+    index: 1,
+    type: 'Insert',
+    get range() { return mockRange; },
+    get movedRange() { return mockRange; },
+    accept: jest.fn(),
+    reject: jest.fn(),
+  };
 
   const mockTrackedChanges = {
     items: [mockTrackedChange],
@@ -803,7 +854,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     editors: mockEditors,
     endnotes: mockEndnotes,
     conflicts: mockConflictCollection,
-    revisions: { items: [{ author: 'Mock Author', date: new Date('2024-01-01'), type: 'Insert' }], load: jest.fn() },
+    revisions: { items: [mockRevision], load: jest.fn() },
     clear: jest.fn(),
     getRange: jest.fn(() => mockRange),
     compareLocationWith: jest.fn(() => ({ value: 'Before' })),
@@ -875,7 +926,10 @@ export function createWordMock(options: WordMockOptions = {}) {
     document: {
       body: mockBody,
       changeTrackingMode: 'Off',
+      trackMoves: false,
+      revisions: { items: [mockRevision], load: jest.fn() },
       activeWindow: mockWindow,
+      windows: { items: [mockWindow], load: jest.fn() },
       addStyle: jest.fn(() => mockStyle),
       getStyles: jest.fn(() => mockStyles),
       getSelection: jest.fn(() => mockRange),
@@ -918,6 +972,11 @@ export function createWordMock(options: WordMockOptions = {}) {
     off: 'Off',
     trackAll: 'TrackAll',
     trackMineOnly: 'TrackMineOnly',
+  };
+
+  wordMockObject.RevisionType = {
+    movedFrom: 'MovedFrom',
+    movedTo: 'MovedTo',
   };
 
   wordMockObject.CoauthoringLockType = {

@@ -165,6 +165,25 @@ describe('Runtime Execution Tests - Excel', () => {
     });
   });
 
+  test('Excel: function reference setup prepares the Sample worksheet', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-function-references.yaml'),
+      buttonId: 'setup',
+      assertions: ({ mockContext, mockRange, mockWorksheet }) => {
+        expect(mockContext.workbook.worksheets.getItemOrNullObject).toHaveBeenCalledWith('Sample');
+        expect(mockWorksheet.delete).toHaveBeenCalled();
+        expect(mockContext.workbook.worksheets.add).toHaveBeenCalledWith('Sample');
+        expect(mockRange.values).toEqual([
+          ['Entity', 'Purpose'],
+          ['Create the reference here', 'Store and inspect a custom-function reference'],
+        ]);
+        expect(mockWorksheet.activate).toHaveBeenCalled();
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
   test.each(['get-first-page-break', 'delete-first-page-break'])(
     'Excel: manage page breaks %s reports an empty collection',
     async (buttonId) => {
@@ -193,6 +212,77 @@ describe('Runtime Execution Tests - Excel', () => {
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
+  });
+
+  test('Excel: creates a typed custom-function reference inside an entity', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-function-references.yaml'),
+      buttonId: 'create-function-reference',
+      assertions: ({ mockContext, mockRange, mockWorksheet }) => {
+        expect(mockContext.workbook.worksheets.getItem).toHaveBeenCalledWith('Sample');
+        expect(mockWorksheet.getRange).toHaveBeenCalledWith('A2');
+        expect(mockRange.valuesAsJson).toEqual([[{
+          type: 'Entity',
+          text: 'Math value',
+          properties: {
+            Value: { type: 'Double', basicValue: 10 },
+            Get27: {
+              type: 'Function',
+              functionType: 'JavaScriptReference',
+              namespace: 'CONTOSO',
+              id: 'GET27',
+            },
+          },
+        }]]);
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('Excel: reads the stored custom-function identity', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-function-references.yaml'),
+      buttonId: 'get-function-reference',
+      mockOptions: {
+        rangeValuesAsJson: [[{
+          type: 'Entity',
+          properties: {
+            Get27: {
+              type: 'Function',
+              functionType: 'JavaScriptReference',
+              namespace: 'CONTOSO',
+              id: 'GET27',
+            },
+          },
+        }]],
+      },
+      assertions: ({ mockRange }) => {
+        expect(mockRange.load).toHaveBeenCalledWith('valuesAsJson');
+        expect(consoleSpy).toHaveBeenCalledWith('Function type:', 'JavaScriptReference');
+        expect(consoleSpy).toHaveBeenCalledWith('Custom-function namespace:', 'CONTOSO');
+        expect(consoleSpy).toHaveBeenCalledWith('Custom-function ID:', 'GET27');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each<[unknown, string]>([
+    [{ type: 'String', basicValue: 'Create the reference here' }, 'Create the function reference'],
+    [{ type: 'Entity', properties: {} }, "doesn't contain a Get27 function reference"],
+    [{ type: 'Entity', properties: { Get27: { type: 'Double', basicValue: 27 } } },
+      "doesn't contain a Get27 function reference"],
+  ])('Excel: reports an invalid function-reference cell (%#)', async (cellValue, message) => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-function-references.yaml'),
+      buttonId: 'get-function-reference',
+      mockOptions: { rangeValuesAsJson: [[cellValue]] },
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.objectContaining({
+      message: expect.stringContaining(message),
+    }));
+    expect(consoleSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -251,12 +341,115 @@ describe('Runtime Execution Tests - Word', () => {
 
   test('Word: get document breaks executes without runtime errors', async () => {
     await runWordSnippetTest({
-      snippetPath: path.join('samples', 'word', '35-ranges', 'get-pages.yaml'),
+      snippetPath: path.join('samples', 'word', '36-pages', 'get-pages.yaml'),
       buttonId: 'get-breaks',
       assertions: ({ mockContext }) => {
         const breaks = mockContext.document.activeWindow.activePane.pages.items[0].breaks;
         expect(breaks.load).toHaveBeenCalledWith('items/pageIndex');
         expect(consoleSpy).toHaveBeenCalledWith('Breaks found: 1');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    'setup',
+    'get-pages-selected-range',
+    'get-pages-enclosing-viewport',
+    'get-all-pages',
+    'get-page-dimensions',
+    'get-next-page',
+    'get-page-data',
+    'get-all-panes',
+    'get-all-windows',
+  ])('Word: pages %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '36-pages', 'get-pages.yaml'),
+      buttonId,
+      assertions: ({ mockContext, mockBody, mockRange }) => {
+        const pages = mockContext.document.activeWindow.activePane.pages;
+        if (buttonId === 'setup') {
+          expect(mockBody.insertText).toHaveBeenCalledWith(
+            'Page one: Introduction to the page sample.', 'Replace'
+          );
+          expect(mockBody.insertBreak).toHaveBeenCalledTimes(2);
+          expect(mockRange.select).toHaveBeenCalled();
+        } else if (buttonId === 'get-page-dimensions') {
+          expect(pages.items[0].load).toHaveBeenCalledWith('index,height,width');
+          expect(consoleSpy).toHaveBeenCalledWith('First page properties:', {
+            index: 1, heightInPoints: 792, widthInPoints: 612,
+          });
+        } else if (buttonId === 'get-next-page') {
+          expect(pages.items[0].getNext).toHaveBeenCalled();
+          expect(consoleSpy).toHaveBeenCalledWith('Next page index: 2');
+        } else if (buttonId === 'get-page-data') {
+          expect(pages.items[0].toJSON).toHaveBeenCalled();
+          expect(consoleSpy).toHaveBeenCalledWith('First page data:', {
+            index: 1, height: 792, width: 612,
+          });
+        }
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([true, false])('Word: third-paragraph pages handles paragraph availability (%s)', async (hasThirdParagraph) => {
+    const { mockObject, mockParagraphs, mockParagraph } = createWordMock();
+    if (hasThirdParagraph) {
+      mockParagraphs.items.push({ ...mockParagraph });
+    }
+    const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '36-pages', 'get-pages.yaml')));
+
+    await clickButton(buttonHandlers, 'get-pages-third-paragraph');
+
+    if (hasThirdParagraph) {
+      expect(consoleSpy).toHaveBeenCalledWith('Pages containing the third paragraph: 2');
+      expect(warningSpy).not.toHaveBeenCalled();
+    } else {
+      expect(warningSpy).toHaveBeenCalledWith('Run Set up to create at least three paragraphs.');
+    }
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Word: next page warns instead of calling getNext on a single-page document', async () => {
+    const { mockObject, mockPages, mockPage } = createWordMock();
+    mockPages.items.splice(1);
+    const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '36-pages', 'get-pages.yaml')));
+
+    await clickButton(buttonHandlers, 'get-next-page');
+
+    expect(mockPage.getNext).not.toHaveBeenCalled();
+    expect(warningSpy).toHaveBeenCalledWith('Run Set up to create multiple pages before getting the next page.');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each(['setup', 'iterate-pages'])('Word: page iteration %s action executes without runtime errors', async (buttonId) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '36-pages', 'iterate-pages.yaml'),
+      buttonId,
+      assertions: ({ mockContext, mockBody }) => {
+        const pages = mockContext.document.activeWindow.activePane.pages;
+        if (buttonId === 'setup') {
+          expect(mockBody.insertText).toHaveBeenCalledWith(
+            'Page one: Introduction to page iteration.', 'Replace'
+          );
+          expect(mockBody.insertBreak).toHaveBeenCalledTimes(2);
+        } else {
+          expect(pages.getFirstOrNullObject).toHaveBeenCalled();
+          expect(pages.items[0].getNextOrNullObject).toHaveBeenCalledTimes(1);
+          expect(pages.items[1].getNextOrNullObject).toHaveBeenCalledTimes(1);
+          expect(consoleSpy).toHaveBeenCalledWith('Reached the end of the pages in the active pane.');
+        }
+        expect(mockContext.sync).toHaveBeenCalled();
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
@@ -466,6 +659,131 @@ describe('Runtime Execution Tests - Word', () => {
       },
     });
   });
+
+  test('Word: revision metadata includes formatting and collection position', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'manage-tracked-changes.yaml'),
+      buttonId: 'get-range-revisions',
+      assertions: ({ mockRange }) => {
+        expect(mockRange.revisions.load).toHaveBeenCalledWith(
+          'items/author,items/date,items/type,items/index,items/formatDescription'
+        );
+        expect(consoleSpy).toHaveBeenCalledWith('Revision properties:', {
+          author: 'Mock Author',
+          date: new Date('2024-01-01'),
+          type: 'Insert',
+          index: 1,
+          formatDescription: '',
+        });
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['get-first-revision-range', true],
+    ['get-first-revision-range', false],
+    ['accept-first-revision', true],
+    ['accept-first-revision', false],
+    ['reject-first-revision', true],
+    ['reject-first-revision', false],
+  ] as const)('Word: %s handles revision availability (%s)', async (buttonId, hasRevision) => {
+    const { mockObject, mockContext, mockRange } = createWordMock();
+    const revision = mockRange.revisions.items[0];
+    if (!hasRevision) {
+      mockRange.revisions.items.length = 0;
+    }
+    const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '50-document', 'manage-tracked-changes.yaml')));
+
+    await clickButton(buttonHandlers, buttonId);
+
+    expect(mockRange.revisions.load).toHaveBeenCalledWith('items');
+    if (!hasRevision) {
+      expect(warningSpy).toHaveBeenCalledWith('No revisions were found. Run Set up to create tracked changes.');
+      expect(mockRange.select).not.toHaveBeenCalled();
+      expect(revision.accept).not.toHaveBeenCalled();
+      expect(revision.reject).not.toHaveBeenCalled();
+    } else if (buttonId === 'get-first-revision-range') {
+      expect(mockRange.load).toHaveBeenCalledWith('text');
+      expect(mockRange.select).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(`First revision range text: ${mockRange.text}`);
+    } else if (buttonId === 'accept-first-revision') {
+      expect(revision.accept).toHaveBeenCalledTimes(1);
+      expect(revision.reject).not.toHaveBeenCalled();
+    } else {
+      expect(revision.reject).toHaveBeenCalledTimes(1);
+      expect(revision.accept).not.toHaveBeenCalled();
+    }
+    expect(mockContext.sync).toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Word: tracked move setup creates two paragraphs and enables move tracking', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'track-moved-text.yaml'),
+      buttonId: 'setup',
+      assertions: ({ mockContext, mockBody, mockRange }) => {
+        expect(mockBody.clear).toHaveBeenCalled();
+        expect(mockBody.insertParagraph).toHaveBeenNthCalledWith(
+          1, 'This paragraph stays in place.', 'Start'
+        );
+        expect(mockBody.insertParagraph).toHaveBeenNthCalledWith(
+          2, 'Move this entire paragraph above the first paragraph.', 'End'
+        );
+        expect(mockContext.document.trackMoves).toBe(true);
+        expect(mockContext.document.changeTrackingMode).toBe('TrackAll');
+        expect(mockRange.select).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each(['MovedFrom', 'MovedTo', 'Insert', 'Empty'])(
+    'Word: moved revision range handles %s revisions',
+    async (revisionType) => {
+      const { mockObject, mockContext, mockRange } = createWordMock();
+      const revisions = mockContext.document.revisions;
+      const revision = revisions.items[0];
+      mockRange.revisions.items.length = 0;
+      revision.type = revisionType;
+      if (revisionType === 'Empty') {
+        revisions.items.length = 0;
+      }
+      const movedRange = { ...mockRange, text: 'Moved sample text', load: jest.fn(), select: jest.fn() };
+      const movedRangeGetter = jest.spyOn(revision, 'movedRange', 'get').mockReturnValue(movedRange);
+      const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      (global as any).Word = mockObject;
+      const buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '50-document', 'track-moved-text.yaml')));
+
+      await clickButton(buttonHandlers, 'get-moved-revision-range');
+
+      expect(revisions.load).toHaveBeenCalledWith('items/type');
+      expect(mockRange.revisions.load).not.toHaveBeenCalled();
+      if (revisionType === 'MovedFrom' || revisionType === 'MovedTo') {
+        expect(movedRangeGetter).toHaveBeenCalled();
+        expect(movedRange.load).toHaveBeenCalledWith('text');
+        expect(movedRange.select).toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith('Moved revision range text: Moved sample text');
+        expect(warningSpy).not.toHaveBeenCalled();
+      } else {
+        expect(movedRangeGetter).not.toHaveBeenCalled();
+        expect(movedRange.select).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'Revision types found:', revisionType === 'Empty' ? [] : ['Insert']
+        );
+        expect(warningSpy).toHaveBeenCalledWith(
+          'No tracked move was found. Move an entire paragraph as described in the task pane; moving a phrase may produce insertion and deletion revisions instead.'
+        );
+      }
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    }
+  );
 
   test.each([
     'setup',

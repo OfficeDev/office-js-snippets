@@ -212,6 +212,9 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
 
   const mockObject = new OfficeMockObject(mockData, OfficeApp.Excel);
   Object.assign(mockObject, {
+    RangeValueType: {
+      error: 'Error',
+    },
     CellValueType: {
       double: 'Double',
       entity: 'Entity',
@@ -223,11 +226,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   });
 
   return {
-    mockObject: Object.assign(new OfficeMockObject(mockData, OfficeApp.Excel), {
-      RangeValueType: {
-        error: 'Error',
-      },
-    }),
+    mockObject,
     mockContext,
     mockRange,
     mockWorksheet,

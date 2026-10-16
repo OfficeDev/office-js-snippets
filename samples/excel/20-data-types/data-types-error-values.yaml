@@ -1,7 +1,7 @@
-order: 4
+order: 7
 id: excel-data-types-error-values
 name: 'Data types: Set and change error values'
-description: This sample shows how to set a cell value to an error data type, and then update the value of cells that contain an error data type.
+description: Set and replace a busy error, and inspect a cell's value type with conditional handling for unavailable types.
 host: EXCEL
 api_set:
     ExcelApi: '1.16'
@@ -10,18 +10,21 @@ script:
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("set-busy-error").addEventListener("click", () => tryCatch(setBusyError));
         document.getElementById("change-busy-error").addEventListener("click", () => tryCatch(changeBusyError));
+        document.getElementById("inspect-unavailable-value").addEventListener("click", () => tryCatch(inspectUnavailableValue));
 
         async function setBusyError() {
           // This function sets the value of cell A1 to a #BUSY! error using data types.
           await Excel.run(async (context) => {
             // Retrieve the Sample worksheet and cell A1 on that sheet.
-            const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
-            const range = sheet.getRange("A1");
+            const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+            const range: Excel.Range = sheet.getRange("A1");
 
             // Get the error data type and set its type to `busy`.
+            const valueType: Excel.CellValueType = Excel.CellValueType.error;
+            const errorType: Excel.ErrorCellValueType = Excel.ErrorCellValueType.busy;
             const error: Excel.ErrorCellValue = {
-              type: Excel.CellValueType.error,
-              errorType: Excel.ErrorCellValueType.busy
+              type: valueType,
+              errorType: errorType
             };
 
             // Set cell A1 as the busy error.
@@ -31,25 +34,40 @@ script:
         }
 
         async function changeBusyError() {
-          // This function checks if the used range contains a #BUSY! error, and then updates all the cells in the range that contain the error.
+          // Replace the busy error in A1 without changing the value in B1.
           await Excel.run(async (context) => {
-            // Retrieve the Sample worksheet and the used range on that sheet.
-            const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
-            const usedRange = sheet.getUsedRange();
-
-            // Load the `valuesAsJson` property for comparison.
-            usedRange.load("valuesAsJson");
+            const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+            const range: Excel.Range = sheet.getRange("A1");
+            range.load("valuesAsJson");
             await context.sync();
 
-            // Check if the used range contains a #BUSY! error.
-            if (usedRange.valuesAsJson[0][0]["errorType"] == Excel.ErrorCellValueType.busy) {
-              // If the used range contains a #BUSY! error, load and change those values.
-              usedRange.load("values");
-              await context.sync();
-              usedRange.values = [["Process unavailable."]];
+            const cellValue: Excel.CellValue = range.valuesAsJson[0][0];
+            if (cellValue.type === Excel.CellValueType.error && cellValue.errorType === Excel.ErrorCellValueType.busy) {
+              range.values = [["Process unavailable."]];
             }
 
             await context.sync();
+          });
+        }
+
+        async function inspectUnavailableValue() {
+          // Read the fallback properties of a value that Excel can't serialize.
+          await Excel.run(async (context) => {
+            const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+            const range: Excel.Range = sheet.getRange("B1");
+            range.load("valuesAsJson");
+            await context.sync();
+
+            const cellValue: Excel.CellValue = range.valuesAsJson[0][0];
+            if (cellValue.type === Excel.CellValueType.notAvailable) {
+              const unavailableValue: Excel.ValueTypeNotAvailableCellValue = cellValue;
+              console.log("B1 value type:", unavailableValue.type);
+              console.log("B1 fallback type:", unavailableValue.basicType);
+              console.log("B1 fallback value:", unavailableValue.basicValue);
+            } else {
+              console.log("B1 value type:", cellValue.type);
+              console.log("B1's value type is supported. No unavailable-type fallback was returned.");
+            }
           });
         }
 
@@ -58,6 +76,8 @@ script:
             // Create a new worksheet called "Sample" and activate it.
             context.workbook.worksheets.getItemOrNullObject("Sample").delete();
             const sheet = context.workbook.worksheets.add("Sample");
+            sheet.getRange("A1:B1").values = [["Ready", "Sample text"]];
+            sheet.getRange("A:B").format.autofitColumns();
             sheet.activate();
             await context.sync();
           });
@@ -76,14 +96,20 @@ script:
 template:
     content: |-
         <section>
-          <p>This sample shows how to set the value of cell A1 to the #BUSY! error data type. The sample then checks to see if the worksheet contains a #BUSY! error, and then updates all cells that contain a #BUSY! error.</p>
+          <p>Set and replace a #BUSY! error in A1, and inspect the value type of B1 without changing its contents.</p>
         </section>
         <section class="setup">
           <h3>Set up</h3>
-          <button id="setup">Add worksheet</button>
+          <button id="setup">Set up</button>
+        </section>
+        <section>
           <h3>Try it out</h3>
           <button id="set-busy-error">Set A1 to #BUSY! error</button>
-          <button id="change-busy-error">Change output of cells with #BUSY! error</button>
+          <button id="change-busy-error">Replace #BUSY! error in A1</button>
+          <p>Inspect B1 to see its value type in the console. Setup creates a String value. You can replace it with another value: Stocks and Geography normally return LinkedEntity, and in-cell pictures can return LocalImage. These are supported results, not failed tests.</p>
+          <p>The inspection also includes conditional handling for NotAvailable, which Excel returns when it can't serialize a value type. For example, an unrecognized rich value may appear as #UNKNOWN!. This is a compatibility condition that setup can't create reproducibly; inserting a supported rich value doesn't cause it.</p>
+          <p>Fallback properties are logged only if Excel returns NotAvailable. This is different from a #N/A error. The unavailable-type case requires a workbook and Excel version that actually produce this condition and still needs verification in Excel.</p>
+          <button id="inspect-unavailable-value">Inspect value type in B1</button>
         </section>
     language: html
 style:

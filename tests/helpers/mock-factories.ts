@@ -106,6 +106,7 @@ export function createOfficeCommonApiMock() {
 export interface ExcelMockOptions {
   rangeAddress?: string;
   rangeValues?: any[][];
+  rangeValuesAsJson?: unknown[][];
   rangeText?: string;
   worksheetName?: string;
 }
@@ -114,6 +115,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const {
     rangeAddress = 'A1:B2',
     rangeValues = [['value1', 'value2']],
+    rangeValuesAsJson = [[{ type: 'String', basicValue: 'Mock value' }]],
     rangeText = 'Mock text',
     worksheetName = 'Sheet1',
   } = options;
@@ -132,6 +134,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockRange = {
     address: rangeAddress,
     values: rangeValues,
+    valuesAsJson: rangeValuesAsJson,
     text: rangeText,
     numberFormat: [],
     format: {
@@ -205,7 +208,15 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   };
 
   return {
-    mockObject: new OfficeMockObject(mockData, OfficeApp.Excel),
+    mockObject: Object.assign(new OfficeMockObject(mockData, OfficeApp.Excel), {
+      CellValueType: {
+        error: 'Error',
+        notAvailable: 'NotAvailable',
+      },
+      ErrorCellValueType: {
+        busy: 'Busy',
+      },
+    }),
     mockContext,
     mockRange,
     mockWorksheet,

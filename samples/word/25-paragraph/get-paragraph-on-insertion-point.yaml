@@ -1,11 +1,11 @@
-order: 1
+order: 3
 id: word-paragraph-get-paragraph-on-insertion-point
 name: Get paragraph from insertion point
 description: Gets the full paragraph containing the insertion point.
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: '1.1'
+    WordApi: '1.3'
 script:
     content: |-
         document.getElementById("get-paragraph").addEventListener("click", () => tryCatch(getParagraph));
@@ -19,32 +19,26 @@ script:
             paragraph.load("text");
 
             await context.sync();
-            console.log(paragraph.text);
+            console.log(`The first paragraph of the selected text: ${paragraph.text}`);
           });
         }
 
         async function getSentences() {
+          // Gets complete sentences from the insertion point to the end of its paragraph.
           await Word.run(async (context) => {
-            // Get the complete sentence (as range) associated with the insertion point.
-            const sentences: Word.RangeCollection = context.document
-              .getSelection()
-              .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+            const selection: Word.Range = context.document.getSelection();
+            const sentences: Word.RangeCollection = selection.getTextRanges(["."], false);
             sentences.load("$none");
             await context.sync();
 
-            // Expand the range to the end of the paragraph to get all the complete sentences.
-            const sentencesToTheEndOfParagraph: Word.RangeCollection = sentences.items[0]
-              .getRange()
-              .expandTo(
-                context.document
-                  .getSelection()
-                  .paragraphs.getFirst()
-                  .getRange(Word.RangeLocation.end)
-              )
-              .getTextRanges(["."], false /* Don't trim spaces*/);
+            const firstSentence: Word.Range = sentences.items[0];
+            const paragraphEnd: Word.Range = selection.paragraphs.getFirst().getRange(Word.RangeLocation.end);
+            const remainingRange: Word.Range = firstSentence.expandTo(paragraphEnd);
+            const sentencesToTheEndOfParagraph: Word.RangeCollection = remainingRange.getTextRanges(["."], false);
             sentencesToTheEndOfParagraph.load("text");
             await context.sync();
 
+            console.log("Sentences from the current sentence to the paragraph end:");
             for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
               console.log(sentencesToTheEndOfParagraph.items[i].text);
             }
@@ -65,6 +59,7 @@ script:
                 "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
                 "Replace"
               );
+            await context.sync();
           });
         }
 
@@ -81,7 +76,7 @@ script:
 template:
     content: |-
         <section>
-          This sample demonstrates how to get the paragraph and paragraph sentences associated with the current insertion point.
+          This sample demonstrates how to get the current paragraph and its sentences, starting with the sentence containing the insertion point.
         </section>
         <section class="setup">
             <h3>Set up</h3>

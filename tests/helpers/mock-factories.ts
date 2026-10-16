@@ -163,6 +163,7 @@ export interface WordMockOptions {
   selectionText?: string;
   paragraphText?: string;
   bodyText?: string;
+  pageBreakIndexes?: number[][];
 }
 
 export function createWordMock(options: WordMockOptions = {}) {
@@ -182,11 +183,13 @@ export function createWordMock(options: WordMockOptions = {}) {
     font: { color: '', bold: false },
     load: jest.fn(),
     getText: jest.fn(() => mockTextValue),
+    insertText: jest.fn(),
   };
 
   // Mock paragraph collection
   const mockParagraphs = {
     getFirst: jest.fn(() => mockParagraph),
+    getLast: jest.fn(() => mockParagraph),
     items: [mockParagraph],
   };
 
@@ -222,6 +225,8 @@ export function createWordMock(options: WordMockOptions = {}) {
     clear: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
     insertText: jest.fn(),
+    insertBreak: jest.fn(),
+    paragraphs: mockParagraphs,
     insertTable: jest.fn(() => mockTable),
     load: jest.fn(),
     tables: mockTables,
@@ -322,9 +327,30 @@ export function createWordMock(options: WordMockOptions = {}) {
     load: jest.fn(),
   };
 
+  const mockPages = {
+    items: (options.pageBreakIndexes ?? [[1], []]).map(pageBreakIndexes => ({
+      breaks: {
+        items: pageBreakIndexes.map(pageIndex => ({
+          pageIndex,
+          range: {
+            text: '\f',
+            load: jest.fn(),
+          },
+        })),
+        load: jest.fn(),
+      },
+    })),
+    load: jest.fn(),
+  };
+
   const mockContext = {
     document: {
       body: mockBody,
+      activeWindow: {
+        activePane: {
+          pages: mockPages,
+        },
+      },
       getSelection: jest.fn(() => mockRange),
       properties: mockProperties,
       coauthoring: mockCoauthoring,
@@ -346,6 +372,14 @@ export function createWordMock(options: WordMockOptions = {}) {
   wordMockObject.CompareTarget = {
     compareTargetCurrent: 'Current',
     compareTargetNew: 'New',
+  };
+
+  wordMockObject.BreakType = {
+    page: 'Page',
+  };
+
+  wordMockObject.InsertLocation = {
+    end: 'End',
   };
 
   wordMockObject.CoauthoringLockType = {

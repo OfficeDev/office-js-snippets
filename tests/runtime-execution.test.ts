@@ -97,6 +97,75 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
+  test('Word: page sample setup creates a repeatable document with a page break', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'get-pages.yaml'),
+      buttonId: 'setup',
+      assertions: ({ mockContext, mockBody }) => {
+        expect(mockBody.clear).toHaveBeenCalled();
+        expect(mockBody.insertBreak).toHaveBeenCalledWith('Page', 'End');
+        expect(mockBody.insertParagraph).toHaveBeenCalled();
+        expect(mockContext.sync).toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { label: 'multiple pages and breaks', pageBreakIndexes: [[1], [], [3, 3]] },
+    { label: 'pages without breaks', pageBreakIndexes: [[], []] },
+    { label: 'an empty page collection', pageBreakIndexes: [] },
+  ])('Word: get breaks handles $label', async ({ pageBreakIndexes }) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'get-pages.yaml'),
+      buttonId: 'get-breaks',
+      mockOptions: { pageBreakIndexes },
+      assertions: ({ mockContext }) => {
+        const pages = mockContext.document.activeWindow.activePane.pages;
+        expect(pages.load).toHaveBeenCalledWith('items');
+        for (const page of pages.items) {
+          expect(page.breaks.load).toHaveBeenCalledWith('items/pageIndex');
+        }
+        const breakIndexes = pageBreakIndexes.flat();
+        expect(consoleSpy.mock.calls).toEqual([
+          [`Breaks found: ${breakIndexes.length}`],
+          ...breakIndexes.map(pageIndex => [`Break on page ${pageIndex}.`]),
+        ]);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { label: 'multiple pages and breaks', pageBreakIndexes: [[1], [], [3, 3]] },
+    { label: 'pages without breaks', pageBreakIndexes: [[], []] },
+    { label: 'an empty page collection', pageBreakIndexes: [] },
+  ])('Word: get break ranges handles $label', async ({ pageBreakIndexes }) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '35-ranges', 'get-pages.yaml'),
+      buttonId: 'get-break-ranges',
+      mockOptions: { pageBreakIndexes },
+      assertions: ({ mockContext }) => {
+        const pages = mockContext.document.activeWindow.activePane.pages;
+        expect(pages.load).toHaveBeenCalledWith('items');
+        for (const page of pages.items) {
+          expect(page.breaks.load).toHaveBeenCalledWith('items');
+          for (const documentBreak of page.breaks.items) {
+            expect(documentBreak.range.load).toHaveBeenCalledWith('text');
+          }
+        }
+        const breakCount = pageBreakIndexes.flat().length;
+        expect(consoleSpy.mock.calls).toEqual([
+          [`Break ranges found: ${breakCount}`],
+          ...Array.from({ length: breakCount }, (_, index) => [
+            `Break ${index + 1} range text (escaped): "\\f"`,
+          ]),
+        ]);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
   test('Word: basic-common-api-call executes without runtime errors', async () => {
     await runCommonApiSnippetTest({
       snippetPath: path.join('samples', 'word', '01-basics', 'basic-common-api-call.yaml'),

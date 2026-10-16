@@ -63,6 +63,7 @@ Search both of these surfaces before editing:
    - `snippet-extractor-metadata/word.csv`
    - `snippet-extractor-metadata/powerpoint.csv`
    - `snippet-extractor-metadata/outlook.csv`
+
 2. All YAML files under `samples/` for the API namespace, class, member, related object-model access path, and nearby feature terminology.
 
 Treat these cases separately:
@@ -267,6 +268,7 @@ Before finalizing the CSV rows, audit each new or expanded mapped function for o
 3. Add another mapping when the extracted function is independently useful for an uncovered API page and makes that API's type and role obvious. For example, a function that explicitly gets a typed collection and iterates typed items may cover both the item class and its collection class.
 4. Apply this audit to both top-level type requests and member-level requests. A property or method sample can expose an uncovered return, parameter, options, or result type just as a class sample can expose its collection type.
 5. Do not add code or mappings merely to increase the row count. Skip setup plumbing, navigation, loading, synchronization, logging, and types that are only incidental to the scenario.
+6. Do not add dedicated functions or mappings for interfaces whose names end in `Data`, `LoadOptions`, or `UpdateData`, such as `Excel.Interfaces.PageBreakCollectionData`. Use these types only when needed by a meaningful API operation. Do not add serialization or export actions solely to demonstrate these interfaces.
 
 Apply these rules:
 

@@ -355,6 +355,17 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   const rangeScenarios = [
+    ['25-paragraph', 'basic-paragraph-operations.yaml', [
+      'setup', 'get-paragraph', 'get-next', 'get-previous', 'check-next', 'check-previous',
+      'get-sentences', 'clear-paragraph', 'delete-paragraph',
+    ]],
+    ['25-paragraph', 'insert-and-read-paragraph-markup.yaml', [
+      'setup', 'insert-html', 'insert-ooxml', 'get-html', 'get-ooxml',
+    ]],
+    ['25-paragraph', 'paragraph-properties.yaml', [
+      'setup', 'indent', 'indent-first-line', 'indent-right', 'spacing', 'space-before',
+      'space-after', 'line-unit-spacing-after', 'line-unit-spacing-before', 'align', 'get-formatting',
+    ]],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
       'search-range', 'set-style', 'clear-range', 'delete-range',
@@ -413,6 +424,14 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   test.each([
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'get-paragraph', expect.stringContaining('First paragraph: ')],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'check-next', 'There is no paragraph after the last paragraph.'],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'check-previous', 'There is no paragraph before the first paragraph.'],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'get-next', expect.stringContaining('Next paragraph: ')],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'get-previous', expect.stringContaining('Previous paragraph: ')],
+    ['25-paragraph', 'basic-paragraph-operations.yaml', 'get-sentences', 'Sentences found: 1'],
+    ['25-paragraph', 'insert-and-read-paragraph-markup.yaml', 'get-html', 'Paragraph HTML: <p>Mock paragraph</p>'],
+    ['25-paragraph', 'insert-and-read-paragraph-markup.yaml', 'get-ooxml', 'Paragraph OOXML: <w:p>Mock paragraph</w:p>'],
     ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Can coauthor: true'],
     ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Can merge: true'],
     ['05-coauthoring', 'manage-coauthors.yaml', 'get-coauthoring-status', 'Pending updates: false'],
@@ -459,6 +478,7 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   test.each([
+    ['25-paragraph', 'paragraph-properties.yaml', 'get-formatting', 'Paragraph:', { firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0 }],
     ['35-ranges', 'basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
     ['35-ranges', 'format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
     ['35-ranges', 'format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
@@ -472,6 +492,87 @@ describe('Runtime Execution Tests - Word', () => {
       buttonId,
       assertions: () => {
         expect(consoleSpy).toHaveBeenCalledWith(label, expect.objectContaining(properties));
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['clear-paragraph', 'clear', 'delete'],
+    ['delete-paragraph', 'delete', 'clear'],
+  ])('Word: %s invokes the paragraph operation, not a range operation', async (buttonId, method, otherMethod) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '25-paragraph', 'basic-paragraph-operations.yaml'),
+      buttonId,
+      assertions: ({ mockParagraph, mockRange }) => {
+        expect(mockParagraph[method]).toHaveBeenCalledTimes(1);
+        expect(mockParagraph[otherMethod]).not.toHaveBeenCalled();
+        expect(mockRange[method]).not.toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['indent-first-line', 'firstLineIndent', 36],
+    ['indent-right', 'rightIndent', 72],
+    ['space-before', 'spaceBefore', 24],
+  ])('Word: %s assigns the requested paragraph property', async (buttonId, property, value) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '25-paragraph', 'paragraph-properties.yaml'),
+      buttonId: String(buttonId),
+      assertions: ({ mockParagraph }) => {
+        expect(mockParagraph[property]).toBe(value);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['insert-html', 'insertHtml', expect.stringContaining('<b>Project update:</b>')],
+    ['insert-ooxml', 'insertOoxml', expect.stringContaining('<pkg:package')],
+  ])('Word: %s replaces content through the Paragraph API', async (buttonId, method, markup) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '25-paragraph', 'insert-and-read-paragraph-markup.yaml'),
+      buttonId,
+      assertions: ({ mockParagraph, mockRange }) => {
+        expect(mockParagraph[method]).toHaveBeenCalledWith(markup, 'Replace');
+        expect(mockRange[method]).not.toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    ['check-next', 'getNextOrNullObject', 'Next paragraph: Neighbor paragraph.'],
+    ['check-previous', 'getPreviousOrNullObject', 'Previous paragraph: Neighbor paragraph.'],
+  ])('Word: %s handles both null and non-null paragraphs', async (buttonId, method, message) => {
+    const { mockObject, mockParagraph } = createWordMock();
+    const neighbor = { isNullObject: false, text: 'Neighbor paragraph.', load: jest.fn() };
+    const getNeighbor = jest.fn(() => neighbor);
+    Object.assign(mockParagraph, { [method]: getNeighbor });
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '25-paragraph', 'basic-paragraph-operations.yaml')));
+    await clickButton(buttonHandlers, buttonId);
+    expect(consoleSpy).toHaveBeenCalledWith(message);
+
+    neighbor.isNullObject = true;
+    Object.defineProperty(neighbor, 'text', { get: () => { throw new Error('Null paragraph text is unavailable.'); } });
+    await clickButton(buttonHandlers, buttonId);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    expect(getNeighbor).toHaveBeenCalledTimes(2);
+  });
+
+  test('Word: paragraph sentences use the paragraph-specific argument order', async () => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '25-paragraph', 'basic-paragraph-operations.yaml'),
+      buttonId: 'get-sentences',
+      assertions: ({ mockParagraph }) => {
+        expect(mockParagraph.getTextRanges).toHaveBeenCalledWith(['.'], true);
+        const sentences = mockParagraph.getTextRanges.mock.results[0].value;
+        expect(sentences.load).toHaveBeenCalledWith('items/text');
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });

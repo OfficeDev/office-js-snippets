@@ -272,6 +272,15 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockParagraph = {
     text: paragraphText,
+    alignment: 'Left',
+    firstLineIndent: 0,
+    leftIndent: 0,
+    rightIndent: 0,
+    lineSpacing: 12,
+    spaceBefore: 0,
+    spaceAfter: 0,
+    lineUnitBefore: 0,
+    lineUnitAfter: 0,
     style: '',
     font: {
       color: '',
@@ -853,11 +862,21 @@ export function createWordMock(options: WordMockOptions = {}) {
   });
   mockRange.insertText.mockReturnValue(mockRange);
   Object.assign(mockParagraph, {
+    clear: jest.fn(),
+    delete: jest.fn(),
+    getHtml: jest.fn(() => ({ value: '<p>Mock paragraph</p>' })),
+    getOoxml: jest.fn(() => ({ value: '<w:p>Mock paragraph</w:p>' })),
+    insertHtml: jest.fn(() => mockRange),
+    insertOoxml: jest.fn(() => mockRange),
     insertText: jest.fn(() => mockRange),
     insertBreak: jest.fn(),
     insertInlinePictureFromBase64: jest.fn(() => mockInlinePicture),
     startNewList: jest.fn(() => mockList),
     getNext: jest.fn(() => mockParagraph),
+    getPrevious: jest.fn(() => mockParagraph),
+    getNextOrNullObject: jest.fn(() => ({ isNullObject: true, load: jest.fn() })),
+    getPreviousOrNullObject: jest.fn(() => ({ isNullObject: true, load: jest.fn() })),
+    getTextRanges: jest.fn(() => mockRanges),
   });
   // Two fixed paragraphs support location-comparison actions without modeling document mutation.
   mockParagraphs.items.push({ ...mockParagraph });

@@ -1602,7 +1602,7 @@ describe('Runtime Execution Tests - Word', () => {
 
 describe('Runtime Execution Tests - Linked entity load service', () => {
   test('uses the linked entity load service registration signature', () => {
-    const snippet = loadSnippetByPath(path.join('samples', 'excel', '20-data-types', 'linked-entity-load-service.yaml'));
+    const snippet = loadSnippetByPath(path.join('samples', 'excel', '20-data-types', 'data-types-linked-entity-load-service.yaml'));
     const source = ts.createSourceFile('snippet.ts', snippet.script.content, ts.ScriptTarget.Latest, true);
     const loadService = source.statements.find((statement): statement is ts.FunctionDeclaration =>
       ts.isFunctionDeclaration(statement) && statement.name?.text === 'contosoLoadService'
@@ -1627,7 +1627,7 @@ describe('Runtime Execution Tests - Linked entity load service', () => {
   });
 
   function createLoadService() {
-    const snippet = loadSnippetByPath(path.join('samples', 'excel', '20-data-types', 'linked-entity-load-service.yaml'));
+    const snippet = loadSnippetByPath(path.join('samples', 'excel', '20-data-types', 'data-types-linked-entity-load-service.yaml'));
     const code = ts.transpileModule(`${snippet.script.content}\ncontosoLoadService;`, {
       compilerOptions: { target: ts.ScriptTarget.ES2024, module: ts.ModuleKind.None },
     }).outputText;

@@ -5,6 +5,8 @@ import {
   runCommonApiSnippetTest,
 } from './helpers/snippet-test-runner';
 import * as path from 'path';
+import * as ts from 'typescript';
+import { runInNewContext } from 'vm';
 import { createWordMock } from './helpers/mock-factories';
 import { loadSnippetByPath } from './helpers/test-helpers';
 import { executeSnippetCode, createMockDocument, clickButton } from './helpers/snippet-runtime';
@@ -60,6 +62,97 @@ describe('Runtime Execution Tests - Excel', () => {
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
+  });
+
+  test.each([false, true])('Excel: registers linked entity domains (existing: %s)', async (exists) => {
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-linked-entities.yaml'),
+      buttonId: 'register-domains',
+      mockOptions: { linkedEntityDomainExists: exists },
+    });
+    const domains = mockContext.workbook.linkedEntityDataDomains;
+    expect(domains.add.mock.calls).toEqual([
+      [{
+        dataProvider: 'Contoso', id: 'products', name: 'Products',
+        loadFunctionId: 'LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE',
+        periodicRefreshInterval: 300, supportedRefreshModes: ['Manual', 'OnLoad', 'Periodic'],
+      }],
+      [{
+        dataProvider: 'Contoso', id: 'categories', name: 'Categories',
+        loadFunctionId: 'LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE',
+        periodicRefreshInterval: 300, supportedRefreshModes: ['Manual', 'OnLoad', 'Periodic'],
+      }],
+      [{
+        dataProvider: 'Contoso', id: 'suppliers', name: 'Suppliers',
+        loadFunctionId: 'LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE',
+      }],
+    ]);
+    domains.items.forEach((domain) => expect(domain.delete).toHaveBeenCalledTimes(exists ? 1 : 0));
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Excel: linked entity setup registers refresh notifications', async () => {
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-linked-entities.yaml'),
+      buttonId: 'setup',
+    });
+    const domains = mockContext.workbook.linkedEntityDataDomains;
+    expect(domains.onRefreshCompleted.add).toHaveBeenCalledTimes(1);
+    const handler = domains.onRefreshCompleted.add.mock.calls[0][0];
+    await handler({ id: 'products', serviceId: 268436224, refreshed: true });
+    expect(consoleSpy).toHaveBeenCalledWith('Domain refreshed: products; succeeded: true');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    await handler({ id: 'products', serviceId: 268436224, refreshed: false, errors: ['Provider unavailable'] });
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Linked entity refresh errors:', ['Provider unavailable']);
+  });
+
+  test.each(['setup', 'insert-product', 'get-product', 'get-domains', 'refresh-product', 'refresh-domains'])(
+    'Excel: linked entities %s action executes without runtime errors',
+    async (buttonId) => {
+      const { mockContext, mockRange, mockWorksheet } = await runExcelSnippetTest({
+        snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-linked-entities.yaml'),
+        buttonId,
+        mockOptions: { rangeValuesAsJson: [[{
+          type: 'LinkedEntity', text: 'Chai',
+          id: { entityId: 'P1', domainId: 'products', serviceId: 268436224, culture: 'en-US' },
+        }]] },
+      });
+      const domains = mockContext.workbook.linkedEntityDataDomains;
+      if (buttonId === 'insert-product') {
+        expect(mockWorksheet.getRange).toHaveBeenCalledWith('A2');
+        expect(mockRange.valuesAsJson).toEqual([[{
+          type: 'LinkedEntity', text: 'Chai', basicType: 'Error', basicValue: '#VALUE!',
+          id: { entityId: 'P1', domainId: 'products', serviceId: 268436224, culture: 'en-US' },
+        }]]);
+        expect(mockRange.formulas).toEqual([['=A2.[Unit Price]', '=A2.Category', '=A2.Supplier']]);
+      } else if (buttonId === 'get-product') {
+        expect(mockRange.load).toHaveBeenCalledWith('valuesAsJson');
+        expect(consoleSpy).toHaveBeenCalledWith('Chai linked entity:', mockRange.valuesAsJson[0][0]);
+      } else if (buttonId === 'refresh-product') {
+        expect(domains.getItem).toHaveBeenCalledWith('products');
+        expect(domains.items[0].refresh).toHaveBeenCalledTimes(1);
+      } else if (buttonId === 'refresh-domains') {
+        expect(domains.refreshAll).toHaveBeenCalledTimes(1);
+      } else if (buttonId === 'get-domains') {
+        expect(domains.load).toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith('Domain settings:', expect.objectContaining({ id: 'products' }));
+      } else {
+        expect(mockContext.workbook.worksheets.add).toHaveBeenCalledWith('Sample');
+        expect(mockWorksheet.activate).toHaveBeenCalledTimes(1);
+      }
+      expect(mockContext.sync).toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    }
+  );
+
+  test('Excel: linked entity inspection reports a missing product', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-linked-entities.yaml'),
+      buttonId: 'get-product',
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'A2 is not a linked entity. Register the domains and insert the product first.',
+    }));
   });
 
   test.each([
@@ -1436,6 +1529,116 @@ describe('Runtime Execution Tests - Word', () => {
       });
     }
   );
+});
+
+describe('Runtime Execution Tests - Linked entity load service', () => {
+  test('uses the linked entity load service registration signature', () => {
+    const snippet = loadSnippetByPath(path.join('samples', 'excel', '16-custom-functions', 'linked-entity-load-service.yaml'));
+    const source = ts.createSourceFile('snippet.ts', snippet.script.content, ts.ScriptTarget.Latest, true);
+    const loadService = source.statements.find((statement): statement is ts.FunctionDeclaration =>
+      ts.isFunctionDeclaration(statement) && statement.name?.text === 'contosoLoadService'
+    );
+    if (!loadService) {
+      throw new Error('The linked entity custom function was not found.');
+    }
+    const tags = ts.getJSDocTags(loadService).map((tag) => tag.tagName.text.toLowerCase());
+    expect(tags).toContain('linkedentityloadservice');
+    expect(tags).not.toContain('linkedentitydataprovider');
+    expect(loadService.parameters).toHaveLength(1);
+    const requestParameter = loadService.parameters[0];
+    expect(requestParameter.type?.kind).toBe(ts.SyntaxKind.UnknownKeyword);
+    expect(ts.getJSDocType(requestParameter)?.kind).toBe(ts.SyntaxKind.UnknownKeyword);
+    expect(requestParameter.questionToken).toBeUndefined();
+    expect(requestParameter.dotDotDotToken).toBeUndefined();
+    expect(requestParameter.initializer).toBeUndefined();
+    const returnType = ts.getJSDocReturnType(loadService);
+    expect(returnType?.kind).toBe(ts.SyntaxKind.AnyKeyword);
+    // Script Lab compares explicit TypeScript and JSDoc return syntax kinds, not their assignability.
+    expect(loadService.type?.kind ?? returnType?.kind).toBe(returnType?.kind);
+  });
+
+  function createLoadService() {
+    const snippet = loadSnippetByPath(path.join('samples', 'excel', '16-custom-functions', 'linked-entity-load-service.yaml'));
+    const code = ts.transpileModule(`${snippet.script.content}\ncontosoLoadService;`, {
+      compilerOptions: { target: ts.ScriptTarget.ES2024, module: ts.ModuleKind.None },
+    }).outputText;
+    class CustomFunctionError extends Error {
+      constructor(public code: string, message: string) {
+        super(message);
+      }
+    }
+    const errorSpy = jest.fn();
+    const loadService = runInNewContext(code, {
+      console: { log: jest.fn(), error: errorSpy },
+      CustomFunctions: { Error: CustomFunctionError, ErrorCode: { notAvailable: '#N/A' } },
+    }) as (request: unknown) => {
+      entities: Array<{
+        id: { entityId: string; domainId: string; serviceId: number; culture: string };
+        properties: Record<string, unknown>;
+      }>;
+    };
+    return { loadService, errorSpy };
+  }
+
+  test('returns a product card with deferred category and supplier links', () => {
+    const { loadService, errorSpy } = createLoadService();
+    const response = loadService(JSON.stringify({
+      domainId: 'products', entities: [{ entityId: 'P1', culture: 'en-US' }],
+    }));
+    expect(response.entities).toHaveLength(1);
+    expect(response.entities[0]).toMatchObject({
+      type: 'LinkedEntity', text: 'Chai', basicType: 'Error', basicValue: '#VALUE!',
+      id: { entityId: 'P1', domainId: 'products', serviceId: 268436224, culture: 'en-US' },
+      properties: { 'Unit Price': { type: 'FormattedNumber', basicValue: 18 } },
+      layouts: { card: { title: { property: 'Product Name' } } },
+    });
+    expect(response.entities[0].properties.Category).toEqual({
+      type: 'LinkedEntity', text: 'Beverages', basicType: 'Error', basicValue: '#VALUE!',
+      id: { entityId: 'C1', domainId: 'categories', serviceId: 268436224, culture: 'en-US' },
+    });
+    expect(response.entities[0].properties.Supplier).toEqual({
+      type: 'LinkedEntity', text: 'Exotic Liquids', basicType: 'Error', basicValue: '#VALUE!',
+      id: { entityId: 'S1', domainId: 'suppliers', serviceId: 268436224, culture: 'en-US' },
+    });
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    { domainId: 'products', entityId: 'P1', property: 'Product Name', value: 'Chai' },
+    { domainId: 'categories', entityId: 'C1', property: 'Category Name', value: 'Beverages' },
+    { domainId: 'suppliers', entityId: 'S1', property: 'Contact Name', value: 'Ema Vargova' },
+  ])('resolves $domainId in request order and preserves cultures', ({ domainId, entityId, property, value }) => {
+    const { loadService } = createLoadService();
+    const response = loadService(JSON.stringify({
+      domainId, entities: [{ entityId, culture: 'fr-FR' }, { entityId, culture: 'en-US' }],
+    }));
+    expect(response.entities.map((entity) => entity.id)).toEqual([
+      { entityId, domainId, serviceId: 268436224, culture: 'fr-FR' },
+      { entityId, domainId, serviceId: 268436224, culture: 'en-US' },
+    ]);
+    response.entities.forEach((entity) => expect(entity.properties[property]).toEqual({ type: 'String', basicValue: value }));
+  });
+
+  test.each([
+    undefined,
+    null,
+    42,
+    { domainId: 'products', entities: [{ entityId: 'P1', culture: 'en-US' }] },
+    'not JSON',
+    'null',
+    '{}',
+    JSON.stringify({ domainId: 'products', entities: [null] }),
+    JSON.stringify({ domainId: 'products', entities: [{ entityId: 'P1' }] }),
+    JSON.stringify({ domainId: 'unknown', entities: [{ entityId: 'P1', culture: 'en-US' }] }),
+    JSON.stringify({ domainId: 'products', entities: [{ entityId: 'missing', culture: 'en-US' }] }),
+    JSON.stringify({ domainId: 'categories', entities: [{ entityId: 'missing', culture: 'en-US' }] }),
+    JSON.stringify({ domainId: 'suppliers', entities: [{ entityId: 'missing', culture: 'en-US' }] }),
+  ])('reports an unavailable error for invalid request %s', (request) => {
+    const { loadService, errorSpy } = createLoadService();
+    expect(() => loadService(request)).toThrow('Unable to load the requested Contoso entity.');
+    expect(() => loadService(request)).toThrow(expect.objectContaining({ code: '#N/A' }));
+    expect(errorSpy).toHaveBeenCalledWith('Unable to load linked entities:', expect.anything());
+  });
 });
 
 describe('Runtime Execution Tests - PowerPoint', () => {

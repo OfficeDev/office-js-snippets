@@ -248,23 +248,18 @@ export class Dictionary<T> {
     constructor(items?: { [index: string]: T } | Array<[string, T]> | Map<string, T>) {
         if (items == null) {
             this._items = new Map();
-        }
-        else if (items instanceof Set) {
+        } else if (items instanceof Set) {
             throw new TypeError(`Invalid type of argument: Set`);
-        }
-        else if (items instanceof Map) {
+        } else if (items instanceof Map) {
             this._items = new Map(items);
-        }
-        else if (Array.isArray(items)) {
+        } else if (Array.isArray(items)) {
             this._items = new Map(items);
-        }
-        else if (typeof items === 'object') {
+        } else if (typeof items === 'object') {
             this._items = new Map();
             for (const key of Object.keys(items)) {
                 this._items.set(key, items[key]);
             }
-        }
-        else {
+        } else {
             throw new TypeError(`Invalid type of argument: ${typeof items}`);
         }
     }

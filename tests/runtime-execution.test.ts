@@ -432,6 +432,146 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
+  describe('Word: content control states (preview)', () => {
+    const snippetPath = path.join('samples', 'word', '99-preview-apis', 'insert-and-change-content-controls.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers focused actions and recreates the tagged control during setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual([
+        'setup', 'set-warning-state', 'set-error-state', 'reset-state',
+      ]);
+
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.clear).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockBody.insertParagraph.mock.calls).toEqual([
+        ['Project code: pending review.', 'Start'],
+        ['Project code: pending review.', 'Start'],
+      ]);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.insertContentControl).toHaveBeenCalledTimes(2);
+      const sampleControl = wordMock.mockRange.contentControls.items[0];
+      expect(sampleControl.tag).toBe('ContentControlStateSample');
+      expect(sampleControl.title).toBe('Project code');
+      expect(sampleControl.select).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      { buttonId: 'set-warning-state', state: 'Warning' },
+      { buttonId: 'set-error-state', state: 'Error' },
+      { buttonId: 'reset-state', state: null },
+    ])('$buttonId targets the sample control', async ({ buttonId, state }) => {
+      await clickButton(buttonHandlers, 'setup');
+      consoleSpy.mockClear();
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(wordMock.mockContext.document.contentControls.getByTag)
+        .toHaveBeenCalledWith('ContentControlStateSample');
+      const sampleControl = wordMock.mockRange.contentControls.items[0];
+      if (state === null) {
+        expect(sampleControl.resetState).toHaveBeenCalledTimes(1);
+        expect(sampleControl.setState).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith('Reset the sample content control state.');
+      } else {
+        expect(sampleControl.setState).toHaveBeenCalledWith(state);
+        expect(sampleControl.resetState).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith(`Set sample content control state to ${state}.`);
+      }
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(3);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['set-warning-state', 'set-error-state', 'reset-state'])(
+      '%s warns when the sample is absent instead of changing an unrelated control',
+      async (buttonId) => {
+        const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        await clickButton(buttonHandlers, buttonId);
+
+        expect(wordMock.mockContext.document.contentControls.getByTag)
+          .toHaveBeenCalledWith('ContentControlStateSample');
+        const unrelatedControl = wordMock.mockRange.contentControls.items[0];
+        expect(unrelatedControl.tag).toBe('RangeSampleSummary');
+        expect(unrelatedControl.setState).not.toHaveBeenCalled();
+        expect(unrelatedControl.resetState).not.toHaveBeenCalled();
+        expect(warningSpy).toHaveBeenCalledWith('Run Set up to create the sample content control.');
+        expect(consoleSpy).not.toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    test.each(['set-warning-state', 'set-error-state', 'reset-state'])(
+      '%s reports a failed Word request without logging success',
+      async (buttonId) => {
+        await clickButton(buttonHandlers, 'setup');
+        consoleSpy.mockClear();
+        const error = new Error('The Word client does not support content control states.');
+        wordMock.mockContext.sync.mockResolvedValueOnce(undefined).mockRejectedValueOnce(error);
+
+        await clickButton(buttonHandlers, buttonId);
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+        expect(consoleSpy).not.toHaveBeenCalled();
+      }
+    );
+  });
+
+  test.each([true, false])('Word: close document window checks desktop support (%s)', async (supported) => {
+    const isSetSupported = jest.fn(() => supported);
+    (global as any).Office = { context: { requirements: { isSetSupported } } };
+
+    const { mockContext } = await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'close-document-window.yaml'),
+      buttonId: 'close-with-save-prompt',
+    });
+
+    expect(isSetSupported).toHaveBeenCalledWith('WordApiDesktop', '1.4');
+    if (supported) {
+      expect(mockContext.document.activeWindow.close).toHaveBeenCalledWith({
+        saveChanges: 'PromptToSaveChanges',
+      });
+      expect(mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith('About to close the document window...');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    } else {
+      expect(mockContext.document.activeWindow.close).not.toHaveBeenCalled();
+      expect(mockContext.sync).not.toHaveBeenCalled();
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith('This sample requires WordApiDesktop 1.4 or later.');
+    }
+  });
+
+  test('Word: close document window reports a failed close request', async () => {
+    const { mockObject, mockContext } = createWordMock();
+    const error = new Error('The document window could not be closed.');
+    mockContext.sync.mockRejectedValueOnce(error);
+    (global as any).Office = { context: { requirements: { isSetSupported: jest.fn(() => true) } } };
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '50-document', 'close-document-window.yaml')));
+
+    await clickButton(buttonHandlers, 'close-with-save-prompt');
+
+    expect(mockContext.document.activeWindow.close).toHaveBeenCalledWith({
+      saveChanges: 'PromptToSaveChanges',
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+  });
+
   test('Word: basic-common-api-call executes without runtime errors', async () => {
     await runCommonApiSnippetTest({
       snippetPath: path.join('samples', 'word', '01-basics', 'basic-common-api-call.yaml'),

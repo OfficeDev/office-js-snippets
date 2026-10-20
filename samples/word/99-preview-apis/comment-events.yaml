@@ -1,5 +1,5 @@
 order: 1
-id: word-comment-events
+id: word-document-comment-events
 name: Comment events (preview)
 description: Registers comment event handlers and reports comment changes, selection, and event sources.
 host: WORD
@@ -38,6 +38,8 @@ script:
             await Word.run(async (context) => {
                 const body: Word.Body = context.document.body;
                 body.track();
+                // Resolve the tracked body's reference before subscribing.
+                await context.sync();
                 const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
                     body.onCommentAdded.add(onEventHandler);
                 eventRegistrations.push({ body, handler });
@@ -50,6 +52,8 @@ script:
             await Word.run(async (context) => {
                 const body: Word.Body = context.document.body;
                 body.track();
+                // Resolve the tracked body's reference before subscribing.
+                await context.sync();
                 const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
                     body.onCommentChanged.add(onChangedHandler);
                 eventRegistrations.push({ body, handler });
@@ -62,6 +66,8 @@ script:
             await Word.run(async (context) => {
                 const body: Word.Body = context.document.body;
                 body.track();
+                // Resolve the tracked body's reference before subscribing.
+                await context.sync();
                 const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
                     body.onCommentDeleted.add(onEventHandler);
                 eventRegistrations.push({ body, handler });
@@ -74,6 +80,8 @@ script:
             await Word.run(async (context) => {
                 const body: Word.Body = context.document.body;
                 body.track();
+                // Resolve the tracked body's reference before subscribing.
+                await context.sync();
                 const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
                     body.onCommentDeselected.add(onEventHandler);
                 eventRegistrations.push({ body, handler });
@@ -86,6 +94,8 @@ script:
             await Word.run(async (context) => {
                 const body: Word.Body = context.document.body;
                 body.track();
+                // Resolve the tracked body's reference before subscribing.
+                await context.sync();
                 const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
                     body.onCommentSelected.add(onEventHandler);
                 eventRegistrations.push({ body, handler });
@@ -94,6 +104,7 @@ script:
         }
 
         async function deregisterEventHandlers() {
+            console.log(`Number of event handlers to remove: ${eventRegistrations.length}`);
             while (eventRegistrations.length > 0) {
                 const registration = eventRegistrations[0];
                 await Word.run(registration.body, async (context) => {
@@ -231,7 +242,7 @@ template:
         <section>
             <p>This sample shows how to monitor comment creation, changes, deletion, selection, and deselection.
                 The console reports each event, its source, and the affected comment and reply IDs.</p>
-            <p><b>Note:</b> Comment events require a Word build that supports these preview APIs.</p>
+            <p><b>Note:</b> Comment events require a Word build that supports these preview APIs, e.g., Word on the web.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>

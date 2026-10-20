@@ -551,6 +551,37 @@ describe('Runtime Execution Tests - Word', () => {
       ]);
     });
 
+    const commentEvents = [
+      'onCommentAdded', 'onCommentChanged', 'onCommentDeleted', 'onCommentDeselected', 'onCommentSelected',
+    ] as const;
+
+    test.each(commentEvents)('%s waits for body tracking to synchronize before subscribing', async (eventName) => {
+      let completeTracking: () => void;
+      let notifyTrackingStarted: () => void;
+      const trackingSync = new Promise<void>(resolve => { completeTracking = resolve; });
+      const trackingStarted = new Promise<void>(resolve => { notifyTrackingStarted = resolve; });
+      wordMock.mockBody.track.mockImplementation(() => {
+        if (wordMock.mockBody.track.mock.calls.length === commentEvents.indexOf(eventName) + 1) {
+          wordMock.mockContext.sync.mockImplementationOnce(() => {
+            notifyTrackingStarted();
+            return trackingSync;
+          });
+        }
+      });
+
+      const registration = clickButton(buttonHandlers, 'register-event-handlers');
+      await trackingStarted;
+      try {
+        expect(wordMock.mockCommentEvents[eventName].add).not.toHaveBeenCalled();
+      } finally {
+        completeTracking();
+        await registration;
+      }
+
+      expect(wordMock.mockCommentEvents[eventName].add).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
     test('setup recreates the bookmarked paragraph and removes existing subscriptions', async () => {
       await clickButton(buttonHandlers, 'setup');
       await clickButton(buttonHandlers, 'register-event-handlers');
@@ -585,9 +616,11 @@ describe('Runtime Execution Tests - Word', () => {
       await clickButton(buttonHandlers, 'deregister-event-handlers');
       await clickButton(buttonHandlers, 'deregister-event-handlers');
 
+      expect(consoleSpy).toHaveBeenCalledWith('Number of event handlers to remove: 5');
+      expect(consoleSpy).toHaveBeenCalledWith('Number of event handlers to remove: 0');
       handlers.forEach(handler => expect(handler.remove).toHaveBeenCalledTimes(1));
       expect(wordMock.mockBody.untrack).toHaveBeenCalledTimes(5);
-      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(10);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(15);
 
       await clickButton(buttonHandlers, 'register-event-handlers');
       events.forEach(event => expect(event.add).toHaveBeenCalledTimes(2));
@@ -648,7 +681,7 @@ describe('Runtime Execution Tests - Word', () => {
 
     test('failed registration reports the error and retains the handle for cleanup', async () => {
       const error = new Error('Comment event registration failed.');
-      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+      wordMock.mockContext.sync.mockResolvedValueOnce(undefined).mockRejectedValueOnce(error);
 
       await clickButton(buttonHandlers, 'register-event-handlers');
 
@@ -659,8 +692,20 @@ describe('Runtime Execution Tests - Word', () => {
 
       await clickButton(buttonHandlers, 'deregister-event-handlers');
 
+      expect(consoleSpy).toHaveBeenCalledWith('Number of event handlers to remove: 1');
       expect(handler.remove).toHaveBeenCalledTimes(1);
       expect(wordMock.mockBody.untrack).toHaveBeenCalledTimes(1);
+    });
+
+    test('failed body tracking prevents subscriptions and success messages', async () => {
+      const error = new Error('Body tracking failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, 'register-event-handlers');
+
+      Object.values(wordMock.mockCommentEvents).forEach(event => expect(event.add).not.toHaveBeenCalled());
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
     });
 
     test('a failed deregistration stops setup before replacing the document', async () => {
@@ -673,7 +718,9 @@ describe('Runtime Execution Tests - Word', () => {
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(error);
       expect(wordMock.mockBody.clear).not.toHaveBeenCalled();
-      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith('Number of event handlers to remove: 5');
+      expect(consoleSpy).not.toHaveBeenCalledWith('Removed comment event handlers.');
+      expect(consoleSpy).not.toHaveBeenCalledWith('Created the sample paragraph. Register handlers before triggering events.');
       await clickButton(buttonHandlers, 'register-event-handlers');
       expect(warningSpy).toHaveBeenCalledWith('Deregister the existing handlers before registering again.');
       Object.values(wordMock.mockCommentEvents).forEach(event => expect(event.add).toHaveBeenCalledTimes(1));

@@ -110,6 +110,7 @@ export interface ExcelMockOptions {
   rangeText?: string;
   worksheetName?: string;
   horizontalPageBreakCount?: number;
+  linkedEntityDomainExists?: boolean;
 }
 
 export function createExcelMock(options: ExcelMockOptions = {}) {
@@ -120,6 +121,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     rangeText = 'Mock text',
     worksheetName = 'Sheet1',
     horizontalPageBreakCount = 2,
+    linkedEntityDomainExists = false,
   } = options;
 
   const mockFont = {
@@ -136,6 +138,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockRange = {
     address: rangeAddress,
     values: rangeValues,
+    formulas: [],
     valuesAsJson: rangeValuesAsJson,
     text: rangeText,
     numberFormat: [],
@@ -221,8 +224,42 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     activate: jest.fn(),
   };
 
+  const linkedEntityDomains = ['products', 'categories', 'suppliers'].map((id) => ({
+    id,
+    name: id,
+    dataProvider: 'Contoso',
+    loadFunctionId: 'LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE',
+    refreshMode: 'Manual',
+    lastRefreshed: undefined,
+    isNullObject: !linkedEntityDomainExists,
+    delete: jest.fn(),
+    refresh: jest.fn(),
+  }));
+  const mockLinkedEntityDataDomains = {
+    items: linkedEntityDomains,
+    load: jest.fn(),
+    add: jest.fn(),
+    getItem: jest.fn((id: string) => {
+      const domain = linkedEntityDomains.find((domain) => domain.id === id);
+      if (!domain) {
+        throw new Error(`Unknown mock linked entity domain: ${id}`);
+      }
+      return domain;
+    }),
+    getItemOrNullObject: jest.fn((id: string) => {
+      const domain = linkedEntityDomains.find((domain) => domain.id === id);
+      if (!domain) {
+        throw new Error(`Unknown mock linked entity domain: ${id}`);
+      }
+      return domain;
+    }),
+    refreshAll: jest.fn(),
+    onRefreshCompleted: { add: jest.fn() },
+  };
+
   const mockContext = {
     workbook: {
+      linkedEntityDataDomains: mockLinkedEntityDataDomains,
       getSelectedRange: jest.fn(() => mockRange),
       worksheets: {
         getActiveWorksheet: jest.fn(() => mockWorksheet),
@@ -257,7 +294,13 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
       entity: 'Entity',
       error: 'Error',
       function: 'Function',
+      linkedEntity: 'LinkedEntity',
       notAvailable: 'NotAvailable',
+    },
+    LinkedEntityDataDomainRefreshMode: {
+      manual: 'Manual',
+      onLoad: 'OnLoad',
+      periodic: 'Periodic',
     },
     ErrorCellValueType: {
       busy: 'Busy',

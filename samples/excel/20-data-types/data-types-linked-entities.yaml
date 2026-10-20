@@ -1,0 +1,277 @@
+order: 8
+id: excel-data-types-data-types-linked-entities
+name: 'Data types: Linked entities'
+description: Register linked entity data domains, insert a product with nested category and supplier cards, and refresh its data.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("register-domains").addEventListener("click", () => tryCatch(registerDomains));
+        document.getElementById("insert-product").addEventListener("click", () => tryCatch(insertProduct));
+        document.getElementById("get-product").addEventListener("click", () => tryCatch(getProduct));
+        document.getElementById("get-domains").addEventListener("click", () => tryCatch(getDomains));
+        document.getElementById("refresh-product").addEventListener("click", () => tryCatch(refreshProduct));
+        document.getElementById("refresh-domains").addEventListener("click", () => tryCatch(refreshDomains));
+
+        let refreshHandlerRegistered = false;
+
+        async function registerDomains() {
+            // Register the product, category, and supplier data sources with Excel.
+            await Excel.run(async (context) => {
+                const domains: Excel.LinkedEntityDataDomainCollection = context.workbook.linkedEntityDataDomains;
+                const refreshModes: Excel.LinkedEntityDataDomainRefreshMode[] = [
+                    Excel.LinkedEntityDataDomainRefreshMode.manual,
+                    Excel.LinkedEntityDataDomainRefreshMode.onLoad,
+                    Excel.LinkedEntityDataDomainRefreshMode.periodic
+                ];
+                // Script Lab prefixes the function ID with the companion sample's name, without spaces.
+                const loadFunctionId = "LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE";
+                const options: Excel.LinkedEntityDataDomainCreateOptions[] = [
+                    {
+                        dataProvider: "Contoso",
+                        id: "products",
+                        name: "Products",
+                        loadFunctionId,
+                        periodicRefreshInterval: 300,
+                        supportedRefreshModes: refreshModes
+                    },
+                    {
+                        dataProvider: "Contoso",
+                        id: "categories",
+                        name: "Categories",
+                        loadFunctionId,
+                        periodicRefreshInterval: 300,
+                        supportedRefreshModes: refreshModes
+                    },
+                    {
+                        dataProvider: "Contoso",
+                        id: "suppliers",
+                        name: "Suppliers",
+                        loadFunctionId
+                    }
+                ];
+
+                // Replace only this sample's domains so registration is repeatable.
+                const existingDomains: Excel.LinkedEntityDataDomain[] = options.map((options) =>
+                    domains.getItemOrNullObject(options.id)
+                );
+                await context.sync();
+                existingDomains.forEach((domain) => {
+                    if (!domain.isNullObject) {
+                        domain.delete();
+                    }
+                });
+                options.forEach((options) => domains.add(options));
+                await context.sync();
+                console.log("Registered Products, Categories, and Suppliers. Manual refresh is the default.");
+            });
+        }
+
+        async function insertProduct() {
+            // Insert a product identity that Excel resolves through the companion load service.
+            await Excel.run(async (context) => {
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                const productId: Excel.LinkedEntityId = {
+                    entityId: "P1",
+                    domainId: "products",
+                    serviceId: 268436224,
+                    culture: "en-US"
+                };
+                const product: Excel.LinkedEntityCellValue = {
+                    type: Excel.CellValueType.linkedEntity,
+                    id: productId,
+                    text: "Chai",
+                    basicType: "Error",
+                    basicValue: "#VALUE!"
+                };
+                const productRange: Excel.Range = sheet.getRange("A2");
+                productRange.valuesAsJson = [[product]];
+                sheet.getRange("B2:D2").formulas = [["=A2.[Unit Price]", "=A2.Category", "=A2.Supplier"]];
+                sheet.getRange("B2").numberFormat = [["$0.00"]];
+                await context.sync();
+                console.log("Inserted Chai in A2. Excel loads its properties asynchronously; open its card to explore.");
+            });
+        }
+
+        async function getProduct() {
+            await Excel.run(async (context) => {
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                const productRange: Excel.Range = sheet.getRange("A2");
+                productRange.load("valuesAsJson");
+                await context.sync();
+                const product: Excel.CellValue = productRange.valuesAsJson[0][0];
+                if (product.type !== Excel.CellValueType.linkedEntity) {
+                    throw new Error("A2 is not a linked entity. Register the domains and insert the product first.");
+                }
+                console.log("Chai linked entity:", product);
+            });
+        }
+
+        async function getDomains() {
+            // Inspect the registered sample domains and their refresh settings.
+            await Excel.run(async (context) => {
+                const domains: Excel.LinkedEntityDataDomainCollection = context.workbook.linkedEntityDataDomains;
+                domains.load("items/id,items/name,items/dataProvider,items/loadFunctionId,items/refreshMode,items/lastRefreshed");
+                await context.sync();
+                console.log("Contoso linked entity data domains:");
+                domains.items.forEach((domain: Excel.LinkedEntityDataDomain) => {
+                    if (domain.dataProvider === "Contoso") {
+                        console.log("Domain settings:", {
+                            id: domain.id,
+                            name: domain.name,
+                            loadFunctionId: domain.loadFunctionId,
+                            refreshMode: domain.refreshMode,
+                            lastRefreshed: domain.lastRefreshed
+                        });
+                    }
+                });
+            });
+        }
+
+        async function refreshProduct() {
+            // Request updated values for all products in the workbook.
+            await Excel.run(async (context) => {
+                const productsDomain: Excel.LinkedEntityDataDomain =
+                    context.workbook.linkedEntityDataDomains.getItem("products");
+                productsDomain.refresh();
+                await context.sync();
+                console.log("Requested a Products refresh. The refresh event reports completion or errors.");
+            });
+        }
+
+        async function refreshDomains() {
+            // Request updated values for every linked entity data domain in the workbook.
+            await Excel.run(async (context) => {
+                const domains: Excel.LinkedEntityDataDomainCollection = context.workbook.linkedEntityDataDomains;
+                domains.refreshAll();
+                await context.sync();
+                console.log("Requested a refresh of all domains, including domains not created by this sample.");
+            });
+        }
+
+        async function onDomainRefreshed(event: Excel.LinkedEntityDataDomainRefreshCompletedEventArgs) {
+            // Report whether Excel successfully refreshed a sample data domain.
+            if (event.serviceId !== 268436224 || !["products", "categories", "suppliers"].includes(event.id)) {
+                return;
+            }
+            console.log(`Domain refreshed: ${event.id}; succeeded: ${event.refreshed}`);
+            if (!event.refreshed || (event.errors && event.errors.length > 0)) {
+                console.error("Linked entity refresh errors:", event.errors || ["The refresh did not succeed."]);
+            }
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet: Excel.Worksheet = context.workbook.worksheets.add("Sample");
+                sheet.getRange("A1:D1").values = [["Product", "Unit Price", "Category", "Supplier"]];
+                sheet.getRange("A1:D1").format.font.bold = true;
+                sheet.getRange("A:D").format.columnWidth = 150;
+                sheet.activate();
+                if (!refreshHandlerRegistered) {
+                    context.workbook.linkedEntityDataDomains.onRefreshCompleted.add(onDomainRefreshed);
+                }
+                await context.sync();
+                refreshHandlerRegistered = true;
+                console.log("Created the Sample worksheet. Register the domains, then insert the product.");
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows a Chai product card with linked category and supplier cards. Excel loads the details through a companion service instead of storing the complete dataset in each cell.</p>
+            <p><strong>Note:</strong> Requires desktop Excel with ExcelApi 1.19 and custom functions support. Linked entity data domains aren't supported in Excel on the web.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Before running this sample, import the companion <strong>Linked entity load service</strong> from the <strong>Data Types</strong> samples and register it with Script Lab's custom functions interface. Keep its name unchanged, or update <code>loadFunctionId</code> in this sample to match its registered metadata ID.</p>
+            <p>The service uses fixed Contoso sample data; it doesn't require an external server. Keep the custom functions runtime running while using this sample.</p>
+            <button id="setup">Create worksheet</button>
+            <button id="register-domains">Register data domains</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="insert-product">Insert linked product</button>
+            <p>A2 contains Chai. Select its data type icon to open the card. Category and Supplier are nested links; Excel loads their details when referenced by the formulas in C2 and D2 or opened as cards.</p>
+            <button id="get-product">Inspect product JSON</button>
+            <button id="get-domains">Inspect data domains</button>
+            <button id="refresh-product">Refresh products</button>
+            <button id="refresh-domains">Refresh all domains</button>
+            <p>Refresh runs asynchronously. The console reports completion and errors; the load service console shows requests. The fixed sample values don't change after a refresh.</p>
+            <p>Products and Categories also support refresh on add-in load and every five minutes. Manual refresh is the default; refresh settings are available in Excel's Data Type Refresh Settings. Refresh all domains also refreshes other linked data in this workbook.</p>
+            <p>If a cell shows <code>#CONNECT!</code>, check that the companion service is registered and running, then refresh again.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

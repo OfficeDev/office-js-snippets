@@ -106,16 +106,20 @@ export function createOfficeCommonApiMock() {
 export interface ExcelMockOptions {
   rangeAddress?: string;
   rangeValues?: any[][];
+  rangeValuesAsJson?: unknown[][];
   rangeText?: string;
   worksheetName?: string;
+  horizontalPageBreakCount?: number;
 }
 
 export function createExcelMock(options: ExcelMockOptions = {}) {
   const {
     rangeAddress = 'A1:B2',
     rangeValues = [['value1', 'value2']],
+    rangeValuesAsJson = [[{ type: 'String', basicValue: 'Mock value' }]],
     rangeText = 'Mock text',
     worksheetName = 'Sheet1',
+    horizontalPageBreakCount = 2,
   } = options;
 
   const mockFont = {
@@ -132,12 +136,15 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockRange = {
     address: rangeAddress,
     values: rangeValues,
+    valuesAsJson: rangeValuesAsJson,
     text: rangeText,
     numberFormat: [],
     format: {
       fill: { color: '' },
       font: mockFont,
       autofitColumns: jest.fn(),
+      columnWidth: 0,
+      rowHeight: 0,
     },
     load: jest.fn(),
   };
@@ -161,11 +168,47 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockTable = {
     name: 'SalesTable',
     rows: mockTableRows,
+    onChanged: {
+      add: jest.fn(),
+    },
   };
+
+  function createPageBreakCollection(count: number, horizontal: boolean) {
+    const pageBreaks = Array.from({ length: count }, (_, index) => ({
+      rowIndex: horizontal ? 11 + index * 10 : 0,
+      columnIndex: horizontal ? 0 : 4,
+      load: jest.fn(),
+      delete: jest.fn(),
+      getCellAfterBreak: jest.fn(() => mockRange),
+    }));
+    return {
+      items: pageBreaks,
+      load: jest.fn(),
+      add: jest.fn(() => ({
+        load: jest.fn(),
+        delete: jest.fn(),
+        getCellAfterBreak: jest.fn(() => mockRange),
+      })),
+      getCount: jest.fn(() => ({ value: pageBreaks.length })),
+      getItem: jest.fn((index: number) => {
+        if (index < 0 || index >= pageBreaks.length) {
+          throw new RangeError('Page break index is out of range.');
+        }
+        return pageBreaks[index];
+      }),
+      removePageBreaks: jest.fn(),
+    };
+  }
 
   const mockWorksheet = {
     name: worksheetName,
     isNullObject: false,
+    horizontalPageBreaks: createPageBreakCollection(horizontalPageBreakCount, true),
+    verticalPageBreaks: createPageBreakCollection(1, false),
+    pageLayout: {
+      setPrintArea: jest.fn(),
+      zoom: { scale: 100 },
+    },
     getRange: jest.fn(() => mockRange),
     getRangeByIndexes: jest.fn(() => mockRange),
     getUsedRange: jest.fn(() => mockRange),
@@ -204,8 +247,28 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     }),
   };
 
+  const mockObject = new OfficeMockObject(mockData, OfficeApp.Excel);
+  Object.assign(mockObject, {
+    RangeValueType: {
+      error: 'Error',
+    },
+    CellValueType: {
+      double: 'Double',
+      entity: 'Entity',
+      error: 'Error',
+      function: 'Function',
+      notAvailable: 'NotAvailable',
+    },
+    ErrorCellValueType: {
+      busy: 'Busy',
+    },
+    FunctionCellValueType: {
+      javaScriptReference: 'JavaScriptReference',
+    },
+  });
+
   return {
-    mockObject: new OfficeMockObject(mockData, OfficeApp.Excel),
+    mockObject,
     mockContext,
     mockRange,
     mockWorksheet,
@@ -217,6 +280,7 @@ export interface WordMockOptions {
   selectionText?: string;
   paragraphText?: string;
   bodyText?: string;
+  bookmarkNames?: string[];
 }
 
 export function createWordMock(options: WordMockOptions = {}) {
@@ -224,6 +288,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     selectionText = 'Mock selected text',
     paragraphText = 'Mock paragraph',
     bodyText = 'Mock body text',
+    bookmarkNames = ['RangeSampleSummary'],
   } = options;
 
   // Mock for getText() return value
@@ -255,8 +320,28 @@ export function createWordMock(options: WordMockOptions = {}) {
     load: jest.fn(),
   };
 
+  const mockListItem = {
+    level: 1,
+    listString: 'b.',
+    siblingIndex: 1,
+    load: jest.fn(),
+    getAncestor: jest.fn(),
+    getAncestorOrNullObject: jest.fn(),
+    getDescendants: jest.fn(),
+  };
+
   const mockParagraph = {
     text: paragraphText,
+    listItem: mockListItem,
+    alignment: 'Left',
+    firstLineIndent: 0,
+    leftIndent: 0,
+    rightIndent: 0,
+    lineSpacing: 12,
+    spaceBefore: 0,
+    spaceAfter: 0,
+    lineUnitBefore: 0,
+    lineUnitAfter: 0,
     style: '',
     font: {
       color: '',
@@ -274,6 +359,17 @@ export function createWordMock(options: WordMockOptions = {}) {
     getFirst: jest.fn(() => mockParagraph),
     getLast: jest.fn(() => mockParagraph),
     items: [mockParagraph],
+    load: jest.fn(),
+  };
+
+  mockListItem.getAncestor.mockReturnValue(mockParagraph);
+  mockListItem.getAncestorOrNullObject.mockReturnValue({ isNullObject: true, load: jest.fn() });
+  mockListItem.getDescendants.mockReturnValue(mockParagraphs);
+  const mockList = {
+    id: 1,
+    paragraphs: mockParagraphs,
+    insertParagraph: jest.fn(() => mockParagraph),
+    setLevelNumbering: jest.fn(),
     load: jest.fn(),
   };
 
@@ -396,10 +492,20 @@ export function createWordMock(options: WordMockOptions = {}) {
   mockTableRowCollection.items = [mockTableRow];
   mockTableRowCollection.getFirst.mockReturnValue(mockTableRow);
 
+  const mockInsertedTable = {
+    styleBuiltIn: '',
+  };
+
   // Mock table
   const mockTable = {
     getCell: jest.fn(() => mockTableCell),
     getRange: jest.fn(),
+    addColumns: jest.fn(),
+    addRows: jest.fn(() => mockTableRowCollection),
+    deleteColumns: jest.fn(),
+    deleteRows: jest.fn(),
+    insertParagraph: jest.fn(() => mockParagraph),
+    insertTable: jest.fn(() => mockInsertedTable),
     rows: mockTableRowCollection,
     load: jest.fn(),
   };
@@ -408,11 +514,12 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockTables = {
     getFirst: jest.fn(() => mockTable),
     items: [mockTable],
+    load: jest.fn(),
   };
 
   const mockRange = {
     text: selectionText,
-    font: { color: '', bold: false },
+    font: { color: '', bold: false, highlightColor: '', underline: 'None' },
     delete: jest.fn(),
     load: jest.fn(),
     insertText: jest.fn(),
@@ -436,15 +543,39 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockPage = {
     index: 1,
+    height: 792,
+    width: 612,
+    isNullObject: false,
     breaks: mockBreaks,
+    getNext: jest.fn(),
+    getNextOrNullObject: jest.fn(),
     getRange: jest.fn(() => mockRange),
     load: jest.fn(),
+    toJSON: jest.fn(function() {
+      return { index: this.index, height: this.height, width: this.width };
+    }),
   };
 
-  const mockPages = {
-    items: [mockPage],
+  // Fixed pages exercise navigation without modeling Word's pagination.
+  const mockNullPage = { isNullObject: true };
+  const mockNextPage = {
+    ...mockPage,
+    index: 2,
+    breaks: { items: [], load: jest.fn() },
+    getNext: jest.fn(() => { throw new Error('ItemNotFound'); }),
+    getNextOrNullObject: jest.fn(() => mockNullPage),
     load: jest.fn(),
   };
+  mockPage.getNext.mockReturnValue(mockNextPage);
+  mockPage.getNextOrNullObject.mockReturnValue(mockNextPage);
+
+  const mockPages = {
+    items: [mockPage, mockNextPage],
+    getFirst: jest.fn(() => mockPage),
+    getFirstOrNullObject: jest.fn(() => mockPage),
+    load: jest.fn(),
+  };
+  Object.assign(mockRange, { pages: mockPages });
 
   const mockPane = {
     pages: mockPages,
@@ -531,6 +662,18 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
   mockTrackedChange.getNext.mockReturnValue(mockTrackedChange);
 
+  const mockRevision = {
+    author: 'Mock Author',
+    date: new Date('2024-01-01'),
+    formatDescription: '',
+    index: 1,
+    type: 'Insert',
+    get range() { return mockRange; },
+    get movedRange() { return mockRange; },
+    accept: jest.fn(),
+    reject: jest.fn(),
+  };
+
   const mockTrackedChanges = {
     items: [mockTrackedChange],
     acceptAll: jest.fn(),
@@ -542,6 +685,8 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockBody = {
     text: bodyText,
+    paragraphs: mockParagraphs,
+    lists: { items: [mockList], getFirst: jest.fn(() => mockList), load: jest.fn() },
     clear: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
     insertBreak: jest.fn(),
@@ -689,6 +834,154 @@ export function createWordMock(options: WordMockOptions = {}) {
     load: jest.fn(),
   };
 
+  const mockNullRange = { isNullObject: true, load: jest.fn() };
+  const mockRanges = {
+    items: [mockRange],
+    getFirst: jest.fn(() => mockRange),
+    getLast: jest.fn(() => mockRange),
+    load: jest.fn(),
+  };
+  const mockContentControl = { tag: 'RangeSampleSummary', title: 'Project summary', text: 'Project summary' };
+  const mockInlinePicture = { width: 90, height: 39 };
+  const mockShape = { name: 'RangeSamplePicture', type: 'Picture', width: 90, height: 39 };
+  const mockEditor = { name: 'Everyone', id: 'Everyone', load: jest.fn() };
+  const mockEditors = {
+    addByType: jest.fn(() => mockEditor),
+    getCount: jest.fn(() => ({ value: 1 })),
+    getItemAt: jest.fn(() => mockEditor),
+  };
+  const mockFrame = { width: 200, height: 50, range: mockRange };
+  const mockFrames = { items: [mockFrame], add: jest.fn(() => mockFrame), load: jest.fn() };
+  const mockNote = { body: { text: 'Sample endnote' } };
+  const mockEndnotes = { items: [mockNote], load: jest.fn() };
+  const mockBookmarks = {
+    items: bookmarkNames.map(name => ({
+      name,
+      start: 0,
+      end: 40,
+      isEmpty: false,
+      isColumn: false,
+      storyType: 'MainText',
+      range: mockRange,
+      copyTo: jest.fn((copyName: string) => ({ name: copyName, range: mockRange })),
+      select: jest.fn(),
+      delete: jest.fn(),
+    })),
+    load: jest.fn(),
+    exists: jest.fn((name: string) => ({ value: bookmarkNames.includes(name) })),
+  };
+  const extendedRange = Object.assign(mockRange, {
+    isNullObject: false,
+    isEmpty: false,
+    style: 'Normal',
+    start: 0,
+    end: 40,
+    id: 'range-1',
+    storyLength: 80,
+    storyType: 'MainText',
+    isEndOfRowMark: false,
+    isTextVisibleOnScreen: true,
+    bold: true,
+    italic: true,
+    boldBidirectional: false,
+    italicBidirectional: false,
+    case: 'TitleSentence',
+    characterWidth: 'Half',
+    combineCharacters: false,
+    disableCharacterSpaceGrid: false,
+    emphasisMark: 'None',
+    fitTextWidth: 100,
+    highlightColorIndex: 'Yellow',
+    horizontalInVertical: 'None',
+    kana: 'Katakana',
+    twoLinesInOne: 'None',
+    showAll: false,
+    languageId: 'EnglishUS',
+    languageIdFarEast: 'Japanese',
+    languageIdOther: 'EnglishUS',
+    languageDetected: false,
+    hasNoProofing: false,
+    spellingChecked: false,
+    grammarChecked: false,
+    underline: 'Single',
+    hyperlink: 'https://learn.microsoft.com/office/dev/add-ins/word/',
+    borders: mockBorders,
+    shading: mockShading,
+    contentControls: { items: [mockContentControl], load: jest.fn() },
+    fields: { items: [{ code: 'QUOTE "Ready for review."', result: mockRange }], load: jest.fn() },
+    inlinePictures: { items: [mockInlinePicture], load: jest.fn() },
+    lists: { items: [mockList], load: jest.fn() },
+    tables: mockTables,
+    parentTable: mockTable,
+    parentTableCell: mockTableCell,
+    parentTableOrNullObject: { isNullObject: true, load: jest.fn() },
+    parentTableCellOrNullObject: { isNullObject: true, load: jest.fn() },
+    bookmarks: mockBookmarks,
+    hyperlinks: { items: [{ address: 'https://learn.microsoft.com/office/dev/add-ins/word/', range: mockRange }], load: jest.fn() },
+    shapes: { items: [mockShape], load: jest.fn() },
+    sections: mockSections,
+    frames: mockFrames,
+    editors: mockEditors,
+    endnotes: mockEndnotes,
+    conflicts: mockConflictCollection,
+    revisions: { items: [mockRevision], load: jest.fn() },
+    clear: jest.fn(),
+    getRange: jest.fn(() => mockRange),
+    compareLocationWith: jest.fn(() => ({ value: 'Before' })),
+    expandTo: jest.fn(() => mockRange),
+    expandToOrNullObject: jest.fn(() => mockRange),
+    intersectWith: jest.fn(() => mockRange),
+    intersectWithOrNullObject: jest.fn(() => mockRange),
+    getTextRanges: jest.fn(() => mockRanges),
+    getNextTextRange: jest.fn(() => mockRange),
+    getNextTextRangeOrNullObject: jest.fn(() => mockNullRange),
+    split: jest.fn(() => mockRanges),
+    search: jest.fn(() => mockRanges),
+    select: jest.fn(),
+    highlight: jest.fn(),
+    removeHighlight: jest.fn(),
+    getHtml: jest.fn(() => ({ value: '<p>Mock paragraph</p>' })),
+    getOoxml: jest.fn(() => ({ value: '<w:p>Mock paragraph</w:p>' })),
+    insertHtml: jest.fn(() => mockRange),
+    insertOoxml: jest.fn(() => mockRange),
+    insertFileFromBase64: jest.fn(() => mockRange),
+    insertBreak: jest.fn(),
+    insertTable: jest.fn(() => mockTable),
+    insertBookmark: jest.fn(),
+    getBookmarks: jest.fn(() => ({ value: ['RangeSampleSummary'] })),
+    getHyperlinkRanges: jest.fn(() => mockRanges),
+    insertContentControl: jest.fn(() => mockContentControl),
+    insertField: jest.fn(),
+    insertEndnote: jest.fn(() => mockNote),
+    insertPictureFromBase64: jest.fn(() => mockShape),
+    insertComment: jest.fn(() => ({ content: 'Please review this project summary.' })),
+    getTrackedChanges: jest.fn(() => mockTrackedChanges),
+    detectLanguage: jest.fn(() => ({ value: true })),
+  });
+  mockRange.insertText.mockReturnValue(mockRange);
+  Object.assign(mockParagraph, {
+    clear: jest.fn(),
+    delete: jest.fn(),
+    getHtml: jest.fn(() => ({ value: '<p>Mock paragraph</p>' })),
+    getOoxml: jest.fn(() => ({ value: '<w:p>Mock paragraph</w:p>' })),
+    insertHtml: jest.fn(() => mockRange),
+    insertOoxml: jest.fn(() => mockRange),
+    insertText: jest.fn(() => mockRange),
+    insertBreak: jest.fn(),
+    insertInlinePictureFromBase64: jest.fn(() => mockInlinePicture),
+    startNewList: jest.fn(() => mockList),
+    getNext: jest.fn(() => mockParagraph),
+    getPrevious: jest.fn(() => mockParagraph),
+    getNextOrNullObject: jest.fn(() => ({ isNullObject: true, load: jest.fn() })),
+    getPreviousOrNullObject: jest.fn(() => ({ isNullObject: true, load: jest.fn() })),
+    getTextRanges: jest.fn(() => mockRanges),
+  });
+  // Two fixed paragraphs support location-comparison actions without modeling document mutation.
+  mockParagraphs.items.push({ ...mockParagraph });
+  Object.assign(mockTable, { rowCount: 2, values: [['Task', 'Status'], ['Review', 'Ready']] });
+  Object.assign(mockCellBody, { getRange: jest.fn(() => mockRange) });
+  Object.assign(mockBody, { font: { bold: false, color: '' }, styleBuiltIn: 'Normal', insertText: jest.fn(() => mockRange) });
+
   // Mock document properties
   const mockProperties = {
     author: 'Mock Author',
@@ -713,7 +1006,10 @@ export function createWordMock(options: WordMockOptions = {}) {
     document: {
       body: mockBody,
       changeTrackingMode: 'Off',
+      trackMoves: false,
+      revisions: { items: [mockRevision], load: jest.fn() },
       activeWindow: mockWindow,
+      windows: { items: [mockWindow], load: jest.fn() },
       addStyle: jest.fn(() => mockStyle),
       getStyles: jest.fn(() => mockStyles),
       getSelection: jest.fn(() => mockRange),
@@ -731,8 +1027,15 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   const mockData = {
-    run: jest.fn(async (callback: Function) => {
-      await callback(mockContext);
+    run: jest.fn(async (contextOrCallback: Function | object, callback?: Function) => {
+      if (typeof contextOrCallback !== 'function' && contextOrCallback !== mockRange && contextOrCallback !== mockContext) {
+        throw new Error('Word.run received an unsupported mock object or context.');
+      }
+      const action = typeof contextOrCallback === 'function' ? contextOrCallback : callback;
+      if (!action) {
+        throw new Error('Word.run requires a callback.');
+      }
+      await action(mockContext);
     }),
   };
 
@@ -749,6 +1052,11 @@ export function createWordMock(options: WordMockOptions = {}) {
     off: 'Off',
     trackAll: 'TrackAll',
     trackMineOnly: 'TrackMineOnly',
+  };
+
+  wordMockObject.RevisionType = {
+    movedFrom: 'MovedFrom',
+    movedTo: 'MovedTo',
   };
 
   wordMockObject.CoauthoringLockType = {
@@ -793,6 +1101,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   wordMockObject.BreakType = {
+    page: 'Page',
     sectionContinuous: 'SectionContinuous',
     sectionEven: 'SectionEven',
     sectionNext: 'SectionNext',
@@ -813,6 +1122,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   wordMockObject.RangeLocation = {
+    content: 'Content',
     start: 'Start',
     end: 'End',
     whole: 'Whole',
@@ -854,11 +1164,23 @@ export function createWordMock(options: WordMockOptions = {}) {
   wordMockObject.TabLeader = {
     dashes: 'Dashes',
   };
+  wordMockObject.SelectionMode = { end: 'End', start: 'Start', select: 'Select' };
+  wordMockObject.ListNumbering = { arabic: 'Arabic', lowerLetter: 'LowerLetter', lowerRoman: 'LowerRoman' };
+  wordMockObject.CharacterCase = { upper: 'Upper' };
+  wordMockObject.CharacterWidth = { full: 'Full' };
+  wordMockObject.HorizontalInVerticalType = { fitInLine: 'FitInLine' };
+  wordMockObject.Kana = { hiragana: 'Hiragana' };
+  wordMockObject.TwoLinesInOneType = { parentheses: 'Parentheses' };
+  wordMockObject.LanguageId = { englishUS: 'EnglishUS', japanese: 'Japanese' };
+  wordMockObject.EditorType = { everyone: 'Everyone' };
+  wordMockObject.FieldType = { quote: 'Quote' };
+  wordMockObject.UnderlineType = { single: 'Single' };
+  wordMockObject.SearchOptions = { newObject: jest.fn(() => ({ matchCase: false, matchWholeWord: false })) };
 
   return {
     mockObject: wordMockObject,
     mockContext,
-    mockRange,
+    mockRange: extendedRange,
     mockBody,
     mockParagraph,
     mockParagraphs,

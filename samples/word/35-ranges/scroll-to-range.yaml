@@ -1,33 +1,58 @@
-order: 1
+order: 9
 id: word-ranges-scroll-to-range
 name: Scroll to a range
-description: Scrolls to a range with and without selection.
+description: Scrolls to a range with and without selection and temporarily highlights it.
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: '1.2'
+    WordApi: '1.8'
 script:
     content: |-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("scroll").addEventListener("click", () => tryCatch(scroll));
         document.getElementById("scroll-end").addEventListener("click", () => tryCatch(scrollEnd));
+        document.getElementById("highlight-range").addEventListener("click", () => tryCatch(highlightRange));
+        document.getElementById("remove-highlight").addEventListener("click", () => tryCatch(removeHighlight));
 
         async function scroll() {
+          // Selects the final paragraph and scrolls it into view.
           await Word.run(async (context) => {
-            // If select is called with no parameters, it selects the object.
-            context.document.body.paragraphs.getLast().select();
+            const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+            lastRange.select();
 
             await context.sync();
           });
         }
 
         async function scrollEnd() {
+          // Moves the insertion point to the end of the final paragraph.
           await Word.run(async (context) => {
-            // Select can be at the start or end of a range; this by definition moves the insertion point without selecting the range.
-            context.document.body.paragraphs.getLast().select(Word.SelectionMode.end);
+            const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+            const selectionMode: Word.SelectionMode = Word.SelectionMode.end;
+            lastRange.select(selectionMode);
 
             await context.sync();
           });
+        }
+
+        async function highlightRange() {
+            // Temporarily highlights the final paragraph without changing its formatting.
+            await Word.run(async (context) => {
+                const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+                lastRange.highlight();
+                await context.sync();
+                console.log("Temporarily highlighted the final paragraph.");
+            });
+        }
+
+        async function removeHighlight() {
+            // Removes the temporary highlight from the final paragraph.
+            await Word.run(async (context) => {
+                const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+                lastRange.removeHighlight();
+                await context.sync();
+                console.log("Removed the temporary highlight.");
+            });
         }
 
         async function setup() {
@@ -45,6 +70,7 @@ script:
                 "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
                 "Replace"
               );
+            await context.sync();
           });
         }
 
@@ -61,7 +87,7 @@ script:
 template:
     content: |-
         <section>
-          This sample demonstrates how to scroll to a range.
+          This sample demonstrates how to bring the final paragraph into view and highlight it without changing its saved formatting.
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -71,6 +97,8 @@ template:
             <h3>Try it out</h3>
             <button id="scroll">Scroll with selection</button><p>
             <button id="scroll-end">Scroll without selection</button>
+            <button id="highlight-range">Temporarily highlight range</button>
+            <button id="remove-highlight">Remove temporary highlight</button>
         </section>
     language: html
 style:

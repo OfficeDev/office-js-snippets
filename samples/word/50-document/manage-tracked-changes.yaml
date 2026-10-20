@@ -5,6 +5,7 @@ description: Creates tracked changes and shows how to inspect, accept, and rejec
 host: WORD
 api_set:
     WordApi: '1.6'
+    WordApiDesktop: '1.4'
 script:
     content: |-
         document.getElementById("get-all-tracked-changes").addEventListener("click", () => tryCatch(getAllTrackedChanges));
@@ -16,6 +17,110 @@ script:
         document.getElementById("accept-all-tracked-changes").addEventListener("click", () => tryCatch(acceptAllTrackedChanges));
         document.getElementById("reject-all-tracked-changes").addEventListener("click", () => tryCatch(rejectAllTrackedChanges));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-range-tracked-changes").addEventListener("click", () => tryCatch(getRangeTrackedChanges));
+        document.getElementById("get-range-revisions").addEventListener("click", () => tryCatch(getRangeRevisions));
+        document.getElementById("get-first-revision-range").addEventListener("click", () => tryCatch(getFirstRevisionRange));
+        document.getElementById("accept-first-revision").addEventListener("click", () => tryCatch(acceptFirstRevision));
+        document.getElementById("reject-first-revision").addEventListener("click", () => tryCatch(rejectFirstRevision));
+
+        async function getRangeRevisions() {
+            // Reads revision metadata for the first paragraph on desktop Word.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const revisions: Word.RevisionCollection = paragraphRange.revisions;
+                revisions.load("items/author,items/date,items/type,items/index,items/formatDescription");
+                await context.sync();
+                console.log(`Revisions in the first paragraph: ${revisions.items.length}`);
+                revisions.items.forEach((revision: Word.Revision) => {
+                    console.log("Revision properties:", {
+                        author: revision.author,
+                        date: revision.date,
+                        type: revision.type,
+                        index: revision.index,
+                        formatDescription: revision.formatDescription,
+                    });
+                });
+            });
+        }
+
+        async function getFirstRevisionRange() {
+            // Reads and selects the text affected by the first revision.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const revisions: Word.RevisionCollection = paragraphRange.revisions;
+                revisions.load("items");
+                await context.sync();
+
+                if (revisions.items.length === 0) {
+                    console.warn("No revisions were found. Run Set up to create tracked changes.");
+                    return;
+                }
+
+                const firstRevision: Word.Revision = revisions.items[0];
+                const revisionRange: Word.Range = firstRevision.range;
+                revisionRange.load("text");
+                revisionRange.select();
+                await context.sync();
+
+                console.log(`First revision range text: ${revisionRange.text}`);
+            });
+        }
+
+        async function acceptFirstRevision() {
+            // Incorporates the first revision into the document.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const revisions: Word.RevisionCollection = paragraphRange.revisions;
+                revisions.load("items");
+                await context.sync();
+
+                if (revisions.items.length === 0) {
+                    console.warn("No revisions were found. Run Set up to create tracked changes.");
+                    return;
+                }
+
+                const firstRevision: Word.Revision = revisions.items[0];
+                firstRevision.accept();
+                await context.sync();
+
+                console.log("Accepted the first revision. Get revision metadata to inspect the remaining revisions.");
+            });
+        }
+
+        async function rejectFirstRevision() {
+            // Removes the first revision and restores the original content.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const revisions: Word.RevisionCollection = paragraphRange.revisions;
+                revisions.load("items");
+                await context.sync();
+
+                if (revisions.items.length === 0) {
+                    console.warn("No revisions were found. Run Set up to create tracked changes.");
+                    return;
+                }
+
+                const firstRevision: Word.Revision = revisions.items[0];
+                firstRevision.reject();
+                await context.sync();
+
+                console.log("Rejected the first revision. Get revision metadata to inspect the remaining revisions.");
+            });
+        }
+
+        async function getRangeTrackedChanges() {
+            // Gets the tracked changes inside the first paragraph.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const trackedChanges: Word.TrackedChangeCollection = paragraphRange.getTrackedChanges();
+                trackedChanges.load("items/author,items/text,items/type");
+                await context.sync();
+                console.log(`Tracked changes in the first paragraph: ${trackedChanges.items.length}`);
+                trackedChanges.items.forEach((change: Word.TrackedChange) => {
+                    console.log({ author: change.author, text: change.text, type: change.type });
+                });
+            });
+        }
 
         async function getAllTrackedChanges() {
           // Gets the tracked changes and logs their details.
@@ -75,7 +180,7 @@ script:
             range.load();
             await context.sync();
 
-            console.log("range.text: " + range.text);
+            console.log(`Tracked change range text: ${range.text}`);
           });
         }
 
@@ -95,7 +200,12 @@ script:
             nextTrackedChange.load(["author", "date", "text", "type"]);
             await context.sync();
 
-            console.log(nextTrackedChange);
+            console.log("Next tracked change:", {
+              author: nextTrackedChange.author,
+              date: nextTrackedChange.date,
+              text: nextTrackedChange.text,
+              type: nextTrackedChange.type,
+            });
           });
         }
 
@@ -150,7 +260,7 @@ script:
         }
 
         async function setup() {
-          // Replaces the document body and creates three tracked changes.
+          // Replaces the document body and tracks text and formatting edits.
           await Word.run(async (context) => {
             const document: Word.Document = context.document;
             const body: Word.Body = document.body;
@@ -169,12 +279,14 @@ script:
             adjective.insertText("swift", Word.InsertLocation.replace);
             animal.delete();
             ending.insertText("hound", Word.InsertLocation.replace);
+            const description: Word.Range = body.search("lazy").getFirst();
+            description.font.bold = true;
             await context.sync();
 
             document.changeTrackingMode = Word.ChangeTrackingMode.off;
             await context.sync();
 
-            console.log("Created three tracked changes.");
+            console.log("Created tracked text edits and applied bold formatting.");
           });
         }
 
@@ -191,15 +303,27 @@ script:
 template:
     content: |-
         <section>
-            Reset the document with sample text, then inspect or resolve its tracked changes.
+            This sample shows how to create, inspect, and resolve tracked changes in a document.
         </section>
         <section class="setup">
             <h3>Set up</h3>
             <button id="setup">Create tracked changes</button>
+            <p>Set up replaces the document body and turns off Track Changes when finished.
+            Run it again to reset the sample after accepting or rejecting changes.</p>
         </section>
         <section>
             <h3>Try it out</h3>
             <button id="get-all-tracked-changes">Get all tracked changes</button>
+            <button id="get-range-tracked-changes">Get tracked changes in first paragraph</button>
+            <button id="get-range-revisions">Get revision metadata (desktop)</button>
+            <button id="get-first-revision-range">Select the first revision's range (desktop)</button>
+            <button id="accept-first-revision">Accept the first revision (desktop)</button>
+            <button id="reject-first-revision">Reject the first revision (desktop)</button>
+            <p>Revision actions require WordApiDesktop 1.4 on Windows or Mac.
+            Other actions require WordApi 1.6.</p>
+            <p>Revision metadata includes the author, date, type, index, and formatting description.
+            To record the bold formatting edit, enable Track formatting in Word before Set up.
+            The formatting description can be empty for text revisions.</p>
             <button id="get-first-tracked-change-or-null">Safely get the first tracked change</button>
             <button id="get-first-tracked-change-range">Get the first tracked change's range</button>
             <button id="get-next-tracked-change">Get the next tracked change</button>

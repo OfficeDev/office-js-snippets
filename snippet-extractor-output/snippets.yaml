@@ -1226,19 +1226,46 @@ Excel.CellValueType:enum:
 
     await Excel.run(async (context) => {
       // Retrieve the Sample worksheet and cell A1 on that sheet.
-      const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
-      const range = sheet.getRange("A1");
+      const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+      const range: Excel.Range = sheet.getRange("A1");
 
       // Get the error data type and set its type to `busy`.
+      const valueType: Excel.CellValueType = Excel.CellValueType.error;
+      const errorType: Excel.ErrorCellValueType = Excel.ErrorCellValueType.busy;
       const error: Excel.ErrorCellValue = {
-        type: Excel.CellValueType.error,
-        errorType: Excel.ErrorCellValueType.busy
+        type: valueType,
+        errorType: errorType
       };
 
       // Set cell A1 as the busy error.
       range.valuesAsJson = [[error]];
       await context.sync();
     });
+Excel.ChangedEventDetail:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/data-change-event-details.yaml
+
+
+    async function onTableChanged(eventArgs: Excel.TableChangedEventArgs) {
+        // Inspect the values and basic types of an edited table cell, and identify errors.
+        await Excel.run(async (context) => {
+            const details: Excel.ChangedEventDetail = eventArgs.details;
+            const address = eventArgs.address;
+            if (!details) {
+                console.log("Edit one table cell at a time to inspect its value and type.");
+                return;
+            }
+
+            console.log(`Change at ${address}: was ${details.valueBefore}(${details.valueTypeBefore}),`
+              + ` now is ${details.valueAfter}(${details.valueTypeAfter})`);
+
+            const errorType: Excel.RangeValueType = Excel.RangeValueType.error;
+            if (details.valueTypeAfter === errorType) {
+                console.log("The updated cell contains an error:", details.valueAfter);
+            }
+        });
+    }
 Excel.Chart#getDataTableOrNullObject:member(1):
   - >-
     // Link to full sample:
@@ -5232,6 +5259,43 @@ Excel.EntityCardLayout:interface:
 
       return entity;
     }
+Excel.EntityCellValue:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-function-references.yaml
+
+
+    // Attach a reference to a JavaScript custom function as a method on a math
+    entity.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const entityRange: Excel.Range = sheet.getRange("A2");
+        const referenceType: Excel.FunctionCellValueType = Excel.FunctionCellValueType.javaScriptReference;
+        const customFunctionReference: Excel.JavaScriptCustomFunctionReferenceCellValue = {
+            type: Excel.CellValueType.function,
+            functionType: referenceType,
+            namespace: "CONTOSO",
+            id: "GET27"
+        };
+
+        // The namespace and ID identify a function; this value doesn't register its implementation.
+        const mathEntity: Excel.EntityCellValue = {
+            type: Excel.CellValueType.entity,
+            text: "Math value",
+            properties: {
+                Value: {
+                    type: Excel.CellValueType.double,
+                    basicValue: 10
+                },
+                Get27: customFunctionReference
+            }
+        };
+        entityRange.valuesAsJson = [[mathEntity]];
+        entityRange.format.autofitColumns();
+        await context.sync();
+        console.log("Created the Math value entity in Sample!A2. Read the reference to inspect its metadata.");
+    });
 Excel.EntityCompactLayoutIcons:enum:
   - >-
     // Link to full sample:
@@ -5426,13 +5490,15 @@ Excel.ErrorCellValue:type:
 
     await Excel.run(async (context) => {
       // Retrieve the Sample worksheet and cell A1 on that sheet.
-      const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
-      const range = sheet.getRange("A1");
+      const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+      const range: Excel.Range = sheet.getRange("A1");
 
       // Get the error data type and set its type to `busy`.
+      const valueType: Excel.CellValueType = Excel.CellValueType.error;
+      const errorType: Excel.ErrorCellValueType = Excel.ErrorCellValueType.busy;
       const error: Excel.ErrorCellValue = {
-        type: Excel.CellValueType.error,
-        errorType: Excel.ErrorCellValueType.busy
+        type: valueType,
+        errorType: errorType
       };
 
       // Set cell A1 as the busy error.
@@ -5450,13 +5516,15 @@ Excel.ErrorCellValueType:enum:
 
     await Excel.run(async (context) => {
       // Retrieve the Sample worksheet and cell A1 on that sheet.
-      const sheet = context.workbook.worksheets.getItemOrNullObject("Sample");
-      const range = sheet.getRange("A1");
+      const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+      const range: Excel.Range = sheet.getRange("A1");
 
       // Get the error data type and set its type to `busy`.
+      const valueType: Excel.CellValueType = Excel.CellValueType.error;
+      const errorType: Excel.ErrorCellValueType = Excel.ErrorCellValueType.busy;
       const error: Excel.ErrorCellValue = {
-        type: Excel.CellValueType.error,
-        errorType: Excel.ErrorCellValueType.busy
+        type: valueType,
+        errorType: errorType
       };
 
       // Set cell A1 as the busy error.
@@ -5640,6 +5708,72 @@ Excel.FilterOn:enum:
 
         await context.sync();
        });
+Excel.FunctionCellValue:type:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-function-references.yaml
+
+
+    // Read the custom-function identity stored in an entity's method property.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const entityRange: Excel.Range = sheet.getRange("A2");
+        entityRange.load("valuesAsJson");
+        await context.sync();
+
+        const cellValue: Excel.CellValue = entityRange.valuesAsJson[0][0];
+        if (cellValue.type !== Excel.CellValueType.entity) {
+            throw new Error("Create the function reference in Sample!A2 first.");
+        }
+
+        const methodValue: Excel.CellValue = cellValue.properties["Get27"];
+        if (!methodValue || methodValue.type !== Excel.CellValueType.function) {
+            throw new Error("The entity in Sample!A2 doesn't contain a Get27 function reference.");
+        }
+
+        const functionReference: Excel.FunctionCellValue = methodValue;
+        console.log("Function type:", functionReference.functionType);
+        console.log("Custom-function namespace:", functionReference.namespace);
+        console.log("Custom-function ID:", functionReference.id);
+    });
+Excel.FunctionCellValueType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-function-references.yaml
+
+
+    // Attach a reference to a JavaScript custom function as a method on a math
+    entity.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const entityRange: Excel.Range = sheet.getRange("A2");
+        const referenceType: Excel.FunctionCellValueType = Excel.FunctionCellValueType.javaScriptReference;
+        const customFunctionReference: Excel.JavaScriptCustomFunctionReferenceCellValue = {
+            type: Excel.CellValueType.function,
+            functionType: referenceType,
+            namespace: "CONTOSO",
+            id: "GET27"
+        };
+
+        // The namespace and ID identify a function; this value doesn't register its implementation.
+        const mathEntity: Excel.EntityCellValue = {
+            type: Excel.CellValueType.entity,
+            text: "Math value",
+            properties: {
+                Value: {
+                    type: Excel.CellValueType.double,
+                    basicValue: 10
+                },
+                Get27: customFunctionReference
+            }
+        };
+        entityRange.valuesAsJson = [[mathEntity]];
+        entityRange.format.autofitColumns();
+        await context.sync();
+        console.log("Created the Math value entity in Sample!A2. Read the reference to inspect its metadata.");
+    });
 Excel.Functions:class:
   - >-
     // Link to full sample:
@@ -6000,6 +6134,43 @@ Excel.InsertShiftDirection:enum:
         range.insert(Excel.InsertShiftDirection.down);
         
         await context.sync();
+    });
+Excel.JavaScriptCustomFunctionReferenceCellValue:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-function-references.yaml
+
+
+    // Attach a reference to a JavaScript custom function as a method on a math
+    entity.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const entityRange: Excel.Range = sheet.getRange("A2");
+        const referenceType: Excel.FunctionCellValueType = Excel.FunctionCellValueType.javaScriptReference;
+        const customFunctionReference: Excel.JavaScriptCustomFunctionReferenceCellValue = {
+            type: Excel.CellValueType.function,
+            functionType: referenceType,
+            namespace: "CONTOSO",
+            id: "GET27"
+        };
+
+        // The namespace and ID identify a function; this value doesn't register its implementation.
+        const mathEntity: Excel.EntityCellValue = {
+            type: Excel.CellValueType.entity,
+            text: "Math value",
+            properties: {
+                Value: {
+                    type: Excel.CellValueType.double,
+                    basicValue: 10
+                },
+                Get27: customFunctionReference
+            }
+        };
+        entityRange.valuesAsJson = [[mathEntity]];
+        entityRange.format.autofitColumns();
+        await context.sync();
+        console.log("Created the Math value entity in Sample!A2. Read the reference to inspect its metadata.");
     });
 Excel.KeyboardDirection:enum:
   - >-
@@ -6424,16 +6595,177 @@ Excel.NumberFormatInfo#numberGroupSeparator:member:
       resultRange.format.autofitColumns();
       await context.sync();
     });
+Excel.PageBreak:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/manage-page-breaks.yaml
+
+
+    // Inspect the first horizontal break and locate the cell immediately after
+    it.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const horizontalBreaks: Excel.PageBreakCollection = sheet.horizontalPageBreaks;
+        const horizontalCount: OfficeExtension.ClientResult<number> = horizontalBreaks.getCount();
+        await context.sync();
+
+        if (horizontalCount.value === 0) {
+            console.warn("No horizontal page breaks. Choose Add page breaks first.");
+            return;
+        }
+
+        const firstBreak: Excel.PageBreak = horizontalBreaks.getItem(0);
+        const cellAfterBreak: Excel.Range = firstBreak.getCellAfterBreak();
+        firstBreak.load("rowIndex, columnIndex");
+        cellAfterBreak.load("address");
+
+        await context.sync();
+        console.log("First horizontal page break (zero-based indexes):", {
+            rowIndex: firstBreak.rowIndex,
+            columnIndex: firstBreak.columnIndex,
+            cellAfterBreak: cellAfterBreak.address
+        });
+    });
+Excel.PageBreak#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/manage-page-breaks.yaml
+
+
+    // Delete a single horizontal break while leaving the other breaks
+    unchanged.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const horizontalBreaks: Excel.PageBreakCollection = sheet.horizontalPageBreaks;
+        const horizontalCount: OfficeExtension.ClientResult<number> = horizontalBreaks.getCount();
+        await context.sync();
+
+        if (horizontalCount.value === 0) {
+            console.warn("No horizontal page breaks. Choose Add page breaks first.");
+            return;
+        }
+
+        const firstBreak: Excel.PageBreak = horizontalBreaks.getItem(0);
+        firstBreak.delete();
+        await context.sync();
+        console.log("Deleted the first horizontal page break. Choose List page breaks to inspect the remaining breaks.");
+    });
+Excel.PageBreakCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/manage-page-breaks.yaml
+
+
+    // Load and inspect the page breaks in both worksheet collections.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const horizontalBreaks: Excel.PageBreakCollection = sheet.horizontalPageBreaks;
+        const verticalBreaks: Excel.PageBreakCollection = sheet.verticalPageBreaks;
+        horizontalBreaks.load("items/rowIndex, items/columnIndex");
+        verticalBreaks.load("items/rowIndex, items/columnIndex");
+
+        await context.sync();
+        console.log(`Horizontal page breaks: ${horizontalBreaks.items.length}`);
+        horizontalBreaks.items.forEach((pageBreak: Excel.PageBreak) => {
+            console.log("Horizontal break (zero-based indexes):", {
+                rowIndex: pageBreak.rowIndex,
+                columnIndex: pageBreak.columnIndex
+            });
+        });
+        console.log(`Vertical page breaks: ${verticalBreaks.items.length}`);
+        verticalBreaks.items.forEach((pageBreak: Excel.PageBreak) => {
+            console.log("Vertical break (zero-based indexes):", {
+                rowIndex: pageBreak.rowIndex,
+                columnIndex: pageBreak.columnIndex
+            });
+        });
+    });
 Excel.PageBreakCollection#add:member(1):
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/worksheet-page-layout.yaml
 
 
+    // Add a horizontal page break before the next group of farm sales.
+
     await Excel.run(async (context) => {
-        const farmSheet = context.workbook.worksheets.getItem("Print");
-        farmSheet.horizontalPageBreaks.add("A21:E21");
+        const farmSheet: Excel.Worksheet = context.workbook.worksheets.getItem("Print");
+        const horizontalBreaks: Excel.PageBreakCollection = farmSheet.horizontalPageBreaks;
+        horizontalBreaks.add("A21:E21");
         await context.sync();
+        console.log("Added a horizontal page break before row 21.");
+    });
+Excel.PageBreakCollection#getCount:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/manage-page-breaks.yaml
+
+
+    // Count page breaks without loading the collection's items.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const horizontalBreaks: Excel.PageBreakCollection = sheet.horizontalPageBreaks;
+        const verticalBreaks: Excel.PageBreakCollection = sheet.verticalPageBreaks;
+        const horizontalCount: OfficeExtension.ClientResult<number> = horizontalBreaks.getCount();
+        const verticalCount: OfficeExtension.ClientResult<number> = verticalBreaks.getCount();
+
+        await context.sync();
+        console.log(`Horizontal page breaks: ${horizontalCount.value}`);
+        console.log(`Vertical page breaks: ${verticalCount.value}`);
+    });
+Excel.PageBreakCollection#getItem:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/manage-page-breaks.yaml
+
+
+    // Inspect the first horizontal break and locate the cell immediately after
+    it.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const horizontalBreaks: Excel.PageBreakCollection = sheet.horizontalPageBreaks;
+        const horizontalCount: OfficeExtension.ClientResult<number> = horizontalBreaks.getCount();
+        await context.sync();
+
+        if (horizontalCount.value === 0) {
+            console.warn("No horizontal page breaks. Choose Add page breaks first.");
+            return;
+        }
+
+        const firstBreak: Excel.PageBreak = horizontalBreaks.getItem(0);
+        const cellAfterBreak: Excel.Range = firstBreak.getCellAfterBreak();
+        firstBreak.load("rowIndex, columnIndex");
+        cellAfterBreak.load("address");
+
+        await context.sync();
+        console.log("First horizontal page break (zero-based indexes):", {
+            rowIndex: firstBreak.rowIndex,
+            columnIndex: firstBreak.columnIndex,
+            cellAfterBreak: cellAfterBreak.address
+        });
+    });
+Excel.PageBreakCollection#removePageBreaks:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/manage-page-breaks.yaml
+
+
+    // Reset all manual page breaks in both worksheet collections.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const horizontalBreaks: Excel.PageBreakCollection = sheet.horizontalPageBreaks;
+        const verticalBreaks: Excel.PageBreakCollection = sheet.verticalPageBreaks;
+        horizontalBreaks.removePageBreaks();
+        verticalBreaks.removePageBreaks();
+
+        await context.sync();
+        console.log("Removed all manual page breaks. Choose Count page breaks to verify the collections.");
     });
 Excel.PageLayout#centerHorizontally:member:
   - >-
@@ -8680,6 +9012,31 @@ Excel.RangeUnderlineStyle:enum:
 
         await context.sync();
     });
+Excel.RangeValueType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/data-change-event-details.yaml
+
+
+    async function onTableChanged(eventArgs: Excel.TableChangedEventArgs) {
+        // Inspect the values and basic types of an edited table cell, and identify errors.
+        await Excel.run(async (context) => {
+            const details: Excel.ChangedEventDetail = eventArgs.details;
+            const address = eventArgs.address;
+            if (!details) {
+                console.log("Edit one table cell at a time to inspect its value and type.");
+                return;
+            }
+
+            console.log(`Change at ${address}: was ${details.valueBefore}(${details.valueTypeBefore}),`
+              + ` now is ${details.valueAfter}(${details.valueTypeAfter})`);
+
+            const errorType: Excel.RangeValueType = Excel.RangeValueType.error;
+            if (details.valueTypeAfter === errorType) {
+                console.log("The updated cell contains an error:", details.valueAfter);
+            }
+        });
+    }
 Excel.ReadingOrder:enum:
   - >-
     // Link to full sample:
@@ -10092,12 +10449,22 @@ Excel.TableChangedEventArgs#details:member:
 
 
     async function onTableChanged(eventArgs: Excel.TableChangedEventArgs) {
+        // Inspect the values and basic types of an edited table cell, and identify errors.
         await Excel.run(async (context) => {
-            const details = eventArgs.details;
+            const details: Excel.ChangedEventDetail = eventArgs.details;
             const address = eventArgs.address;
+            if (!details) {
+                console.log("Edit one table cell at a time to inspect its value and type.");
+                return;
+            }
 
             console.log(`Change at ${address}: was ${details.valueBefore}(${details.valueTypeBefore}),`
               + ` now is ${details.valueAfter}(${details.valueTypeAfter})`);
+
+            const errorType: Excel.RangeValueType = Excel.RangeValueType.error;
+            if (details.valueTypeAfter === errorType) {
+                console.log("The updated cell contains an error:", details.valueAfter);
+            }
         });
     }
 Excel.TableChangedEventArgs#tableId:member:
@@ -10504,6 +10871,31 @@ Excel.ValueFilterCondition:enum:
       field.applyFilter({ valueFilter: filter });
 
       await context.sync();
+    });
+Excel.ValueTypeNotAvailableCellValue:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-error-values.yaml
+
+
+    // Read the fallback properties of a value that Excel can't serialize.
+
+    await Excel.run(async (context) => {
+      const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+      const range: Excel.Range = sheet.getRange("B1");
+      range.load("valuesAsJson");
+      await context.sync();
+
+      const cellValue: Excel.CellValue = range.valuesAsJson[0][0];
+      if (cellValue.type === Excel.CellValueType.notAvailable) {
+        const unavailableValue: Excel.ValueTypeNotAvailableCellValue = cellValue;
+        console.log("B1 value type:", unavailableValue.type);
+        console.log("B1 fallback type:", unavailableValue.basicType);
+        console.log("B1 fallback value:", unavailableValue.basicValue);
+      } else {
+        console.log("B1 value type:", cellValue.type);
+        console.log("B1's value type is supported. No unavailable-type fallback was returned.");
+      }
     });
 Excel.VerticalAlignment:enum:
   - >-
@@ -11037,6 +11429,37 @@ Excel.Worksheet#freezePanes:member:
 
         await context.sync();
     });
+Excel.Worksheet#horizontalPageBreaks:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/manage-page-breaks.yaml
+
+
+    // Load and inspect the page breaks in both worksheet collections.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const horizontalBreaks: Excel.PageBreakCollection = sheet.horizontalPageBreaks;
+        const verticalBreaks: Excel.PageBreakCollection = sheet.verticalPageBreaks;
+        horizontalBreaks.load("items/rowIndex, items/columnIndex");
+        verticalBreaks.load("items/rowIndex, items/columnIndex");
+
+        await context.sync();
+        console.log(`Horizontal page breaks: ${horizontalBreaks.items.length}`);
+        horizontalBreaks.items.forEach((pageBreak: Excel.PageBreak) => {
+            console.log("Horizontal break (zero-based indexes):", {
+                rowIndex: pageBreak.rowIndex,
+                columnIndex: pageBreak.columnIndex
+            });
+        });
+        console.log(`Vertical page breaks: ${verticalBreaks.items.length}`);
+        verticalBreaks.items.forEach((pageBreak: Excel.PageBreak) => {
+            console.log("Vertical break (zero-based indexes):", {
+                rowIndex: pageBreak.rowIndex,
+                columnIndex: pageBreak.columnIndex
+            });
+        });
+    });
 Excel.Worksheet#name:member:
   - >-
     // Link to full sample:
@@ -11477,6 +11900,27 @@ Excel.Worksheet#tabColor:member:
         activeSheet.tabColor = "#FF0000";
 
         await context.sync();
+    });
+Excel.Worksheet#verticalPageBreaks:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/54-worksheet/manage-page-breaks.yaml
+
+
+    // Add horizontal and vertical breaks before the specified cells.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const horizontalBreaks: Excel.PageBreakCollection = sheet.horizontalPageBreaks;
+        const verticalBreaks: Excel.PageBreakCollection = sheet.verticalPageBreaks;
+
+        horizontalBreaks.add("A12");
+        horizontalBreaks.add("A22");
+        const columnBoundary: Excel.Range = sheet.getRange("E1");
+        verticalBreaks.add(columnBoundary);
+
+        await context.sync();
+        console.log("Added horizontal breaks before rows 12 and 22, and a vertical break before column E.");
     });
 Excel.Worksheet#visibility:member:
   - >-
@@ -24523,21 +24967,14 @@ Word.Alignment:enum:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Centers the last paragraph between the document margins.
+
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.clear();
-      body.insertParagraph(
-        "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
-        "Start"
-      );
-      body.paragraphs
-        .getLast()
-        .insertText(
-          "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
-          "Replace"
-        );
-      body.paragraphs.getFirst().alignment = "Left";
-      body.paragraphs.getLast().alignment = Word.Alignment.left;
+      const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+      const alignment: Word.Alignment = Word.Alignment.centered;
+      lastParagraph.alignment = alignment;
+
+      await context.sync();
     });
 Word.ApplyQuickStyleSet:enum:
   - >-
@@ -25621,7 +26058,7 @@ Word.Body#footnotes:member:
       footnotes.load("length");
       await context.sync();
 
-      console.log("Number of footnotes in the document body: " + footnotes.items.length);
+      console.log(`Number of footnotes in the document body: ${footnotes.items.length}`);
     });
 Word.Body#inlinePictures:member:
   - >-
@@ -25918,7 +26355,7 @@ Word.Body#paragraphs:member:
       allSearchResults.forEach((result) => {
         let length = result.hits.items.length;
 
-        console.log("Search term: " + result.searchTerm + " => Count: " + length);
+        console.log(`Search term: ${result.searchTerm} => Count: ${length}`);
       });
     });
 Word.Body#shapes:member:
@@ -26312,6 +26749,213 @@ Word.BorderType:enum:
         `- Width: ${border.width} points`,
       );
     });
+Word.Bookmark:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Read bookmark properties and the text enclosed by each bookmark.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+        bookmarks.load("items/name,items/start,items/end,items/isEmpty,items/isColumn,items/storyType,items/range/text");
+        await context.sync();
+        console.log(`Bookmarks found: ${bookmarks.items.length}`);
+        bookmarks.items.forEach((bookmark: Word.Bookmark) => {
+            console.log("Bookmark details:", {
+                name: bookmark.name,
+                start: bookmark.start,
+                end: bookmark.end,
+                isEmpty: bookmark.isEmpty,
+                isColumn: bookmark.isColumn,
+                storyType: bookmark.storyType,
+                text: bookmark.range.text
+            });
+        });
+    });
+Word.Bookmark#end:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Move the bookmark's end before the summary's final period.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+        bookmarks.load("items/name,items/start");
+        paragraphRange.load("end");
+        await context.sync();
+
+        const summaryBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleSummary");
+        if (!summaryBookmark) {
+            console.warn("RangeSampleSummary was not found. Choose Insert bookmark first.");
+            return;
+        }
+
+        const newEnd = paragraphRange.end - 1;
+        if (newEnd <= summaryBookmark.start) {
+            console.warn("The bookmark is too short. Run Set up and Insert bookmark again.");
+            return;
+        }
+
+        summaryBookmark.end = newEnd;
+        await context.sync();
+        console.log("Moved the bookmark end before the final period. Get bookmark details to verify the enclosed text.");
+    });
+Word.Bookmark#start:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Move the bookmark's start past the word "Project" without changing the
+    document text.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+        bookmarks.load("items/name,items/end");
+        paragraphRange.load("start");
+        await context.sync();
+
+        const summaryBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleSummary");
+        if (!summaryBookmark) {
+            console.warn("RangeSampleSummary was not found. Choose Insert bookmark first.");
+            return;
+        }
+
+        const newStart = paragraphRange.start + "Project ".length;
+        if (newStart >= summaryBookmark.end) {
+            console.warn("The bookmark is too short. Run Set up and Insert bookmark again.");
+            return;
+        }
+
+        summaryBookmark.start = newStart;
+        await context.sync();
+        console.log("Moved the bookmark start past 'Project '. Get bookmark details to verify the enclosed text.");
+    });
+Word.Bookmark#copyTo:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Create another named bookmark over the same text as the summary bookmark.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+        bookmarks.load("items/name");
+        await context.sync();
+
+        const summaryBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleSummary");
+        if (!summaryBookmark) {
+            console.warn("RangeSampleSummary was not found. Choose Insert bookmark first.");
+            return;
+        }
+        if (bookmarks.items.some((bookmark) => bookmark.name === "RangeSampleCopy")) {
+            console.warn("RangeSampleCopy already exists. Delete the copied bookmark before copying again.");
+            return;
+        }
+
+        summaryBookmark.copyTo("RangeSampleCopy");
+        await context.sync();
+        console.log("Created RangeSampleCopy over the same text. Get bookmark details to inspect both names.");
+    });
+Word.Bookmark#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Delete the copied bookmark without deleting its text or the original
+    bookmark.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+        bookmarks.load("items/name");
+        await context.sync();
+
+        const copiedBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleCopy");
+        if (!copiedBookmark) {
+            console.warn("RangeSampleCopy was not found. Choose Copy bookmark first.");
+            return;
+        }
+
+        copiedBookmark.delete();
+        await context.sync();
+        console.log("Deleted RangeSampleCopy. Its text and RangeSampleSummary remain. Check copied bookmark to verify.");
+    });
+Word.Bookmark#select:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Select the summary bookmark's current text in the document.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+        bookmarks.load("items/name");
+        await context.sync();
+
+        const summaryBookmark: Word.Bookmark = bookmarks.items.find((bookmark) => bookmark.name === "RangeSampleSummary");
+        if (!summaryBookmark) {
+            console.warn("RangeSampleSummary was not found. Choose Insert bookmark first.");
+            return;
+        }
+
+        summaryBookmark.select();
+        await context.sync();
+        console.log("Selected RangeSampleSummary in the document.");
+    });
+Word.BookmarkCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Read bookmark properties and the text enclosed by each bookmark.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+        bookmarks.load("items/name,items/start,items/end,items/isEmpty,items/isColumn,items/storyType,items/range/text");
+        await context.sync();
+        console.log(`Bookmarks found: ${bookmarks.items.length}`);
+        bookmarks.items.forEach((bookmark: Word.Bookmark) => {
+            console.log("Bookmark details:", {
+                name: bookmark.name,
+                start: bookmark.start,
+                end: bookmark.end,
+                isEmpty: bookmark.isEmpty,
+                isColumn: bookmark.isColumn,
+                storyType: bookmark.storyType,
+                text: bookmark.range.text
+            });
+        });
+    });
+Word.BookmarkCollection#exists:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Check whether the copied bookmark exists within the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+        const copyExists: OfficeExtension.ClientResult<boolean> = bookmarks.exists("RangeSampleCopy");
+        await context.sync();
+        console.log(`RangeSampleCopy exists: ${copyExists.value}`);
+    });
 Word.BorderUniversal:class:
   - >-
     // Link to full sample:
@@ -26472,13 +27116,13 @@ Word.BorderWidth:enum:
 
       console.log("Set the Sample Style outside border width to 2.25 points.");
     });
-Word.Break:class:
+Word.Break#pageIndex:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
-    // Gets every page, column, and section break in the active document pane.
+    // Gets the page number of every break in the active document pane.
 
     await Word.run(async (context) => {
       const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
@@ -26500,13 +27144,47 @@ Word.Break:class:
         console.log(`Break on page ${documentBreak.pageIndex}.`);
       });
     });
+Word.Break#range:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
+
+
+    // Gets the text of each break's range in the active document pane.
+
+    await Word.run(async (context) => {
+      const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+      pages.load("items");
+      await context.sync();
+
+      const breakCollections: Word.BreakCollection[] = [];
+      pages.items.forEach((page: Word.Page) => {
+        const breaks: Word.BreakCollection = page.breaks;
+        breaks.load("items");
+        breakCollections.push(breaks);
+      });
+      await context.sync();
+
+      const documentBreaks: Word.Break[] = breakCollections.flatMap((breaks) => breaks.items);
+      const breakRanges: Word.Range[] = documentBreaks.map((documentBreak: Word.Break) => {
+        const breakRange: Word.Range = documentBreak.range;
+        breakRange.load("text");
+        return breakRange;
+      });
+      await context.sync();
+
+      console.log(`Break ranges found: ${breakRanges.length}`);
+      breakRanges.forEach((breakRange: Word.Range, index: number) => {
+        console.log(`Break ${index + 1} range text (escaped): ${JSON.stringify(breakRange.text)}`);
+      });
+    });
 Word.BreakCollection:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
-    // Gets every page, column, and section break in the active document pane.
+    // Gets the page number of every break in the active document pane.
 
     await Word.run(async (context) => {
       const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
@@ -26538,7 +27216,7 @@ Word.BreakType:enum:
       context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.page, "After");
 
       await context.sync();
-      console.log("success");
+      console.log("Inserted a page break after the first paragraph.");
     });
 Word.BuiltInStyleName:enum:
   - >-
@@ -26696,6 +27374,36 @@ Word.ChangeTrackingVersion:enum:
       await context.sync();
 
       console.log("Reviewed text (before):", before.value, "Reviewed text (after):", after.value);
+    });
+Word.CharacterCase:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Converts the first paragraph's text to uppercase.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const characterCase: Word.CharacterCase = Word.CharacterCase.upper;
+        paragraphRange.case = characterCase;
+        await context.sync();
+        console.log("Converted the text to uppercase.");
+    });
+Word.CharacterWidth:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Converts the first paragraph's characters to full width.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const characterWidth: Word.CharacterWidth = Word.CharacterWidth.full;
+        paragraphRange.characterWidth = characterWidth;
+        await context.sync();
+        console.log("Applied full-width characters.");
     });
 Word.CheckboxContentControl:class:
   - >-
@@ -26855,9 +27563,9 @@ Word.Coauthoring:class:
       coauthoring.load("canCoauthor,canMerge,pendingUpdates");
       await context.sync();
 
-      console.log("Can coauthor:", coauthoring.canCoauthor);
-      console.log("Can merge:", coauthoring.canMerge);
-      console.log("Pending updates:", coauthoring.pendingUpdates);
+      console.log(`Can coauthor: ${coauthoring.canCoauthor}`);
+      console.log(`Can merge: ${coauthoring.canMerge}`);
+      console.log(`Pending updates: ${coauthoring.pendingUpdates}`);
     });
 Word.Coauthoring#conflicts:member:
   - >-
@@ -26921,9 +27629,9 @@ Word.Coauthoring#me:member:
       me.load("name,emailAddress,id");
       await context.sync();
 
-      console.log("Current user:", me.name);
-      console.log("Email:", me.emailAddress);
-      console.log("ID:", me.id);
+      console.log(`Current user: ${me.name}`);
+      console.log(`Email: ${me.emailAddress}`);
+      console.log(`ID: ${me.id}`);
     });
 Word.Coauthoring#updates:member:
   - >-
@@ -30401,7 +31109,7 @@ Word.Document#save:member(1):
 Word.Document#activeWindow:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {
@@ -30432,7 +31140,7 @@ Word.Document#activeWindow:member:
         pagesIndexes.push(page);
 
         const paragraphs = page.getRange().paragraphs;
-        paragraphs.load("items/length");
+        paragraphs.load("items");
         pagesNumberOfParagraphs.push(paragraphs);
 
         const firstParagraph = paragraphs.getFirst();
@@ -30445,7 +31153,7 @@ Word.Document#activeWindow:member:
       for (let i = 0; i < pagesIndexes.length; i++) {
         console.log(`Page index: ${pagesIndexes[i].index}`);
         console.log(`Number of paragraphs: ${pagesNumberOfParagraphs[i].items.length}`);
-        console.log("First paragraph's text:", pagesFirstParagraphText[i].text);
+        console.log(`First paragraph's text: ${pagesFirstParagraphText[i].text}`);
       }
     });
 Word.Document#body:member:
@@ -30506,9 +31214,9 @@ Word.Document#coauthoring:member:
       coauthoring.load("canCoauthor,canMerge,pendingUpdates");
       await context.sync();
 
-      console.log("Can coauthor:", coauthoring.canCoauthor);
-      console.log("Can merge:", coauthoring.canMerge);
-      console.log("Pending updates:", coauthoring.pendingUpdates);
+      console.log(`Can coauthor: ${coauthoring.canCoauthor}`);
+      console.log(`Can merge: ${coauthoring.canMerge}`);
+      console.log(`Pending updates: ${coauthoring.pendingUpdates}`);
     });
 Word.Document#contentControls:member:
   - >-
@@ -30916,6 +31624,38 @@ Word.Document#properties:member:
         await context.sync();
         console.log(JSON.stringify(builtInProperties, null, 4));
     });
+Word.Document#revisions:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/track-moved-text.yaml
+
+
+    // Reads and selects the text associated with a tracked move.
+
+    await Word.run(async (context) => {
+        const document: Word.Document = context.document;
+        const revisions: Word.RevisionCollection = document.revisions;
+        revisions.load("items/type");
+        await context.sync();
+
+        const movedFrom: Word.RevisionType = Word.RevisionType.movedFrom;
+        const movedTo: Word.RevisionType = Word.RevisionType.movedTo;
+        const movedRevision: Word.Revision | undefined = revisions.items.find(
+            (revision: Word.Revision) => revision.type === movedFrom || revision.type === movedTo
+        );
+        if (!movedRevision) {
+            console.log("Revision types found:", revisions.items.map((revision: Word.Revision) => revision.type));
+            console.warn("No tracked move was found. Move an entire paragraph as described in the task pane; moving a phrase may produce insertion and deletion revisions instead.");
+            return;
+        }
+
+        const movedRange: Word.Range = movedRevision.movedRange;
+        movedRange.load("text");
+        movedRange.select();
+        await context.sync();
+
+        console.log(`Moved revision range text: ${movedRange.text}`);
+    });
 Word.Document#selection:member:
   - >-
     // Link to full sample:
@@ -31057,7 +31797,7 @@ Word.Document#tablesOfFigures:member:
 Word.Document#windows:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {
@@ -31891,6 +32631,69 @@ Word.FieldType:enum:
         console.log("Code of the field: " + field.code, "Result of the field: " + JSON.stringify(field.result));
       }
     });
+Word.Editor:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-editing-permissions-desktop.yaml
+
+
+    // Reads editing-permission entries for the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const editors: Word.EditorCollection = paragraphRange.editors;
+        const editorCount: OfficeExtension.ClientResult<number> = editors.getCount();
+        await context.sync();
+        const editorEntries: Word.Editor[] = [];
+        for (let index = 0; index < editorCount.value; index++) {
+            const editor: Word.Editor = editors.getItemAt(index);
+            editor.load("name,id");
+            editorEntries.push(editor);
+        }
+        await context.sync();
+        console.log(`Editing-permission entries: ${editorCount.value}`);
+        editorEntries.forEach((editor: Word.Editor) => console.log({ name: editor.name, id: editor.id }));
+    });
+Word.EditorCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-editing-permissions-desktop.yaml
+
+
+    // Reads editing-permission entries for the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const editors: Word.EditorCollection = paragraphRange.editors;
+        const editorCount: OfficeExtension.ClientResult<number> = editors.getCount();
+        await context.sync();
+        const editorEntries: Word.Editor[] = [];
+        for (let index = 0; index < editorCount.value; index++) {
+            const editor: Word.Editor = editors.getItemAt(index);
+            editor.load("name,id");
+            editorEntries.push(editor);
+        }
+        await context.sync();
+        console.log(`Editing-permission entries: ${editorCount.value}`);
+        editorEntries.forEach((editor: Word.Editor) => console.log({ name: editor.name, id: editor.id }));
+    });
+Word.EditorType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-editing-permissions-desktop.yaml
+
+
+    // Grants everyone permission to edit the first paragraph when editing
+    restrictions apply.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const editors: Word.EditorCollection = paragraphRange.editors;
+        const editorType: Word.EditorType = Word.EditorType.everyone;
+        const editor: Word.Editor = editors.addByType(editorType);
+        await context.sync();
+        console.log("Granted Everyone permission on the summary. Get editors to verify it.");
+    });
 Word.Font:class:
   - >-
     // Link to full sample:
@@ -32020,6 +32823,42 @@ Word.FontBias:enum:
 
       console.log("Inserted Wingdings checkmark (character 252).");
     });
+Word.Frame:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Reads the text and dimensions of frames in the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const frames: Word.FrameCollection = bodyRange.frames;
+        frames.load("items/width,items/height,items/range/text");
+        await context.sync();
+        console.log(`Frames found: ${frames.items.length}`);
+        frames.items.forEach((frame: Word.Frame) => {
+            console.log({ width: frame.width, height: frame.height, text: frame.range.text });
+        });
+    });
+Word.FrameCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Reads the text and dimensions of frames in the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const frames: Word.FrameCollection = bodyRange.frames;
+        frames.load("items/width,items/height,items/range/text");
+        await context.sync();
+        console.log(`Frames found: ${frames.items.length}`);
+        frames.items.forEach((frame: Word.Frame) => {
+            console.log({ width: frame.width, height: frame.height, text: frame.range.text });
+        });
+    });
 Word.GeometricShapeType:enum:
   - >-
     // Link to full sample:
@@ -32038,6 +32877,60 @@ Word.GeometricShapeType:enum:
 
       console.log("Inserted a heptagon.");
     });
+Word.HorizontalInVerticalType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Keeps the first paragraph's characters horizontal when the document uses
+    vertical text.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const horizontalLayout: Word.HorizontalInVerticalType = Word.HorizontalInVerticalType.fitInLine;
+        paragraphRange.horizontalInVertical = horizontalLayout;
+        await context.sync();
+        console.log("Enabled horizontal text within vertical text. Get formatting to verify the setting.");
+    });
+Word.Hyperlink:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Reads hyperlink objects and their destinations in the document body
+    range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const hyperlinks: Word.HyperlinkCollection = bodyRange.hyperlinks;
+        hyperlinks.load("items/address,items/range/text");
+        await context.sync();
+        console.log(`Hyperlinks found: ${hyperlinks.items.length}`);
+        hyperlinks.items.forEach((hyperlink: Word.Hyperlink) => {
+            console.log({ address: hyperlink.address, text: hyperlink.range.text });
+        });
+    });
+Word.HyperlinkCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Reads hyperlink objects and their destinations in the document body
+    range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const hyperlinks: Word.HyperlinkCollection = bodyRange.hyperlinks;
+        hyperlinks.load("items/address,items/range/text");
+        await context.sync();
+        console.log(`Hyperlinks found: ${hyperlinks.items.length}`);
+        hyperlinks.items.forEach((hyperlink: Word.Hyperlink) => {
+            console.log({ address: hyperlink.address, text: hyperlink.range.text });
+        });
+    });
 Word.GetTextOptions:interface:
   - >-
     // Link to full sample:
@@ -32053,7 +32946,9 @@ Word.GetTextOptions:interface:
 
       await context.sync();
 
-      console.log("Text:- " + text.value, "Including hidden text:- " + textIncludingHidden.value, "Including text marked as deleted:- " + textIncludingDeleted.value);
+      console.log(`Text: ${text.value}`);
+      console.log(`Including hidden text: ${textIncludingHidden.value}`);
+      console.log(`Including text marked as deleted: ${textIncludingDeleted.value}`);
     });
 Word.GutterPosition:enum:
   - >-
@@ -32287,6 +33182,21 @@ Word.InsertShapeOptions:interface:
 
       console.log("Inserted a text box at the beginning of the current selection.");
     });
+Word.Kana:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Converts the Japanese sample paragraph to hiragana.
+
+    await Word.run(async (context) => {
+        const japaneseRange: Word.Range = context.document.body.paragraphs.getLast().getRange(Word.RangeLocation.content);
+        const kana: Word.Kana = Word.Kana.hiragana;
+        japaneseRange.kana = kana;
+        await context.sync();
+        console.log("Converted the Japanese text to hiragana.");
+    });
 Word.LanguageId:enum:
   - >-
     // Link to full sample:
@@ -32361,7 +33271,8 @@ Word.List:class:
       const paragraph: Word.Paragraph = list.insertParagraph("New list item at the end of the list (set to list level 5)", "End");
 
       // Set up list level for the list item.
-      paragraph.listItem.level = 4;
+      const listItem: Word.ListItem = paragraph.listItem;
+      listItem.level = 4;
 
       // To add paragraphs outside the list, use Before or After.
       list.insertParagraph("New paragraph goes after (not part of the list)", "After");
@@ -32393,7 +33304,8 @@ Word.List#insertParagraph:member(1):
       const paragraph: Word.Paragraph = list.insertParagraph("New list item at the end of the list (set to list level 5)", "End");
 
       // Set up list level for the list item.
-      paragraph.listItem.level = 4;
+      const listItem: Word.ListItem = paragraph.listItem;
+      listItem.level = 4;
 
       // To add paragraphs outside the list, use Before or After.
       list.insertParagraph("New paragraph goes after (not part of the list)", "After");
@@ -32751,44 +33663,126 @@ Word.ListItem:class:
       const paragraph: Word.Paragraph = list.insertParagraph("New list item at the end of the list (set to list level 5)", "End");
 
       // Set up list level for the list item.
-      paragraph.listItem.level = 4;
+      const listItem: Word.ListItem = paragraph.listItem;
+      listItem.level = 4;
 
       // To add paragraphs outside the list, use Before or After.
       list.insertParagraph("New paragraph goes after (not part of the list)", "After");
 
       await context.sync();
     });
+Word.ListItem#getAncestor:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/manage-list-items.yaml
+
+
+    // Gets the parent paragraph of the last list item.
+
+    await Word.run(async (context) => {
+        const lastParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getLast();
+        const listItem: Word.ListItem = lastParagraph.listItem;
+        const parentParagraph: Word.Paragraph = listItem.getAncestor(true);
+        parentParagraph.load("text");
+        await context.sync();
+
+        console.log(`Parent of the last list item: ${parentParagraph.text}`);
+    });
+Word.ListItem#getAncestorOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/manage-list-items.yaml
+
+
+    // Checks whether the top-level list item has an ancestor without throwing
+    an error.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getFirst();
+        const listItem: Word.ListItem = firstParagraph.listItem;
+        const ancestorParagraph: Word.Paragraph = listItem.getAncestorOrNullObject();
+        ancestorParagraph.load("text");
+        await context.sync();
+
+        if (ancestorParagraph.isNullObject) {
+            console.log("The first list item has no ancestor because it is at the top level.");
+        } else {
+            console.log(`Ancestor of the first list item: ${ancestorParagraph.text}`);
+        }
+    });
+Word.ListItem#getDescendants:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/manage-list-items.yaml
+
+
+    // Compares direct children with all descendants of the first list item.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getFirst();
+        const listItem: Word.ListItem = firstParagraph.listItem;
+        const children: Word.ParagraphCollection = listItem.getDescendants(true);
+        const descendants: Word.ParagraphCollection = listItem.getDescendants(false);
+        children.load("items/text");
+        descendants.load("items/text");
+        await context.sync();
+
+        console.log(`Direct children (${children.items.length}):`);
+        for (const childParagraph of children.items) {
+            console.log(`- ${childParagraph.text}`);
+        }
+        console.log(`All descendants (${descendants.items.length}):`);
+        for (const descendantParagraph of descendants.items) {
+            console.log(`- ${descendantParagraph.text}`);
+        }
+    });
 Word.ListItem#level:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/insert-list.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/manage-list-items.yaml
 
 
-    // This example starts a new list with the second paragraph.
+    // Moves the last list item to the third level of the hierarchy.
 
     await Word.run(async (context) => {
-      const paragraphs: Word.ParagraphCollection = context.document.body.paragraphs;
-      paragraphs.load("$none");
+        const lastParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getLast();
+        const listItem: Word.ListItem = lastParagraph.listItem;
+        listItem.level = 2;
+        await context.sync();
 
-      await context.sync();
+        console.log("The last list item is now at level 2 (the third level).");
+    });
+Word.ListItem#listString:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/manage-list-items.yaml
 
-      // Start new list using the second paragraph.
-      const list: Word.List = paragraphs.items[1].startNewList();
-      list.load("$none");
 
-      await context.sync();
+    // Reads the number or bullet displayed before the last list item.
 
-      // To add new items to the list, use Start or End on the insertLocation parameter.
-      list.insertParagraph("New list item at the start of the list", "Start");
-      const paragraph: Word.Paragraph = list.insertParagraph("New list item at the end of the list (set to list level 5)", "End");
+    await Word.run(async (context) => {
+        const lastParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getLast();
+        const listItem: Word.ListItem = lastParagraph.listItem;
+        listItem.load("listString");
+        await context.sync();
 
-      // Set up list level for the list item.
-      paragraph.listItem.level = 4;
+        console.log(`Last list item marker: ${listItem.listString}`);
+    });
+Word.ListItem#siblingIndex:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/20-lists/manage-list-items.yaml
 
-      // To add paragraphs outside the list, use Before or After.
-      list.insertParagraph("New paragraph goes after (not part of the list)", "After");
 
-      await context.sync();
+    // Reads the last list item's position among items at the same level.
+
+    await Word.run(async (context) => {
+        const lastParagraph: Word.Paragraph = context.document.body.lists.getFirst().paragraphs.getLast();
+        const listItem: Word.ListItem = lastParagraph.listItem;
+        listItem.load("siblingIndex");
+        await context.sync();
+
+        console.log(`Last list item sibling index: ${listItem.siblingIndex}`);
     });
 Word.ListLevel:class:
   - >-
@@ -32990,7 +33984,8 @@ Word.LocationRelation:enum:
       const firstParagraphAsRange: Word.Range = paragraphs.items[0].getRange();
       const secondParagraphAsRange: Word.Range = paragraphs.items[1].getRange();
 
-      const comparedLocation = firstParagraphAsRange.compareLocationWith(secondParagraphAsRange);
+      const comparedLocation: OfficeExtension.ClientResult<Word.LocationRelation> =
+        firstParagraphAsRange.compareLocationWith(secondParagraphAsRange);
 
       await context.sync();
 
@@ -33055,7 +34050,7 @@ Word.NoteItem#getNext:member(1):
       const mark = Number.parseInt(referenceNumber, 10) - 1;
       const reference: Word.Range = footnotes.items[mark].getNext().reference;
       reference.select();
-      console.log("Selected is the next footnote: " + (mark + 2));
+      console.log(`Selected the next footnote: ${mark + 2}`);
     });
 Word.NoteItem#body:member:
   - >-
@@ -33239,43 +34234,30 @@ Word.OutlineLevel:enum:
 Word.Page:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
+
+    // Reads the first page's paper dimensions in points and its 1-based index.
 
     await Word.run(async (context) => {
-      // Gets pages of the selection.
-      const pages: Word.PageCollection = context.document.getSelection().pages;
-      pages.load();
+      const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+      const firstPage: Word.Page = pages.getFirst();
+      firstPage.load("index,height,width");
       await context.sync();
 
-      // Log info for pages included in selection.
-      console.log(pages);
-      const pagesIndexes = [];
-      const pagesText = [];
-      for (let i = 0; i < pages.items.length; i++) {
-        const page = pages.items[i];
-        page.load("index");
-        pagesIndexes.push(page);
-
-        const range = page.getRange();
-        range.load("text");
-        pagesText.push(range);
-      }
-
-      await context.sync();
-
-      for (let i = 0; i < pagesIndexes.length; i++) {
-        console.log(`Index info for page ${i + 1} in the selection: ${pagesIndexes[i].index}`);
-        console.log("Text of that page in the selection:", pagesText[i].text);
-      }
+      console.log("First page properties:", {
+        index: firstPage.index,
+        heightInPoints: firstPage.height,
+        widthInPoints: firstPage.width
+      });
     });
 Word.Page#breaks:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
-    // Gets every page, column, and section break in the active document pane.
+    // Gets the page number of every break in the active document pane.
 
     await Word.run(async (context) => {
       const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
@@ -33297,109 +34279,160 @@ Word.Page#breaks:member:
         console.log(`Break on page ${documentBreak.pageIndex}.`);
       });
     });
+Word.Page#getNext:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
+
+
+    // Reads the page following the first page when the document has multiple
+    pages.
+
+    await Word.run(async (context) => {
+      const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+      pages.load("items");
+      await context.sync();
+
+      if (pages.items.length < 2) {
+        console.warn("Run Set up to create multiple pages before getting the next page.");
+        return;
+      }
+
+      const firstPage: Word.Page = pages.getFirst();
+      const nextPage: Word.Page = firstPage.getNext();
+      nextPage.load("index");
+      const nextPageRange: Word.Range = nextPage.getRange();
+      nextPageRange.load("text");
+      await context.sync();
+
+      console.log(`Next page index: ${nextPage.index}`);
+      console.log(`Next page text: ${nextPageRange.text}`);
+    });
+Word.Page#getNextOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/iterate-pages.yaml
+
+
+    // Visits each page and stops safely when there is no next page.
+
+    await Word.run(async (context) => {
+        const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+        let currentPage: Word.Page = pages.getFirstOrNullObject();
+        await context.sync();
+
+        while (!currentPage.isNullObject) {
+            currentPage.load("index");
+            const pageRange: Word.Range = currentPage.getRange();
+            pageRange.load("text");
+            await context.sync();
+
+            console.log(`Page ${currentPage.index} text: ${pageRange.text}`);
+            currentPage = currentPage.getNextOrNullObject();
+            await context.sync();
+        }
+
+        console.log("Reached the end of the pages in the active pane.");
+    });
 Word.Page#getRange:member(1):
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
+
+    // Reads the index and text of each page intersecting the selection.
 
     await Word.run(async (context) => {
-      // Gets pages of the selection.
-      const pages: Word.PageCollection = context.document.getSelection().pages;
-      pages.load();
+      const selectedRange: Word.Range = context.document.getSelection();
+      const pages: Word.PageCollection = selectedRange.pages;
+      pages.load("items/index");
       await context.sync();
 
-      // Log info for pages included in selection.
-      console.log(pages);
-      const pagesIndexes = [];
-      const pagesText = [];
+      console.log(`Pages in the selection: ${pages.items.length}`);
+      const pageRanges: Word.Range[] = [];
+      pages.items.forEach((page: Word.Page) => {
+        const pageRange: Word.Range = page.getRange(Word.RangeLocation.whole);
+        pageRange.load("text");
+        pageRanges.push(pageRange);
+      });
+
+      await context.sync();
+
       for (let i = 0; i < pages.items.length; i++) {
-        const page = pages.items[i];
-        page.load("index");
-        pagesIndexes.push(page);
-
-        const range = page.getRange();
-        range.load("text");
-        pagesText.push(range);
-      }
-
-      await context.sync();
-
-      for (let i = 0; i < pagesIndexes.length; i++) {
-        console.log(`Index info for page ${i + 1} in the selection: ${pagesIndexes[i].index}`);
-        console.log("Text of that page in the selection:", pagesText[i].text);
+        console.log(`Page ${pages.items[i].index} text: ${pageRanges[i].text}`);
       }
     });
 Word.Page#index:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
+
+    // Reads the page indexes for the third paragraph.
 
     await Word.run(async (context) => {
-      // Gets the pages that contain the third paragraph.
       const paragraphs: Word.ParagraphCollection = context.document.body.paragraphs;
-      paragraphs.load();
+      paragraphs.load("items");
       await context.sync();
 
-      const paraThree = paragraphs.items[2];
-      const rangeOfParagraph = paraThree.getRange();
+      if (paragraphs.items.length < 3) {
+        console.warn("Run Set up to create at least three paragraphs.");
+        return;
+      }
+
+      const thirdParagraph: Word.Paragraph = paragraphs.items[2];
+      const rangeOfParagraph: Word.Range = thirdParagraph.getRange();
       const pages: Word.PageCollection = rangeOfParagraph.pages;
-      pages.load();
+      pages.load("items/index");
       await context.sync();
 
-      // Log info for pages in range.
-      console.log(pages);
-      const pagesIndexes = [];
-      const pagesText = [];
-      for (let i = 0; i < pages.items.length; i++) {
-        const page = pages.items[i];
-        page.load("index");
-        pagesIndexes.push(page);
+      console.log(`Pages containing the third paragraph: ${pages.items.length}`);
+      pages.items.forEach((page: Word.Page) => {
+        console.log(`Page index: ${page.index}`);
+      });
+    });
+Word.Page#toJSON:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
-        const range = page.getRange();
-        range.load("text");
-        pagesText.push(range);
-      }
 
+    // Copies the first page's loaded properties into a plain JavaScript object.
+
+    await Word.run(async (context) => {
+      const firstPage: Word.Page = context.document.activeWindow.activePane.pages.getFirst();
+      firstPage.load("index,height,width");
       await context.sync();
 
-      for (let i = 0; i < pagesIndexes.length; i++) {
-        console.log(`Index of page ${i + 1} that contains the third paragraph: ${pagesIndexes[i].index}`);
-        console.log("Text of that page:", pagesText[i].text);
-      }
+      const pageData: Word.Interfaces.PageData = firstPage.toJSON();
+      console.log("First page data:", pageData);
     });
 Word.PageCollection:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
+
+    // Reads the index and text of each page intersecting the selection.
 
     await Word.run(async (context) => {
-      // Gets pages of the selection.
-      const pages: Word.PageCollection = context.document.getSelection().pages;
-      pages.load();
+      const selectedRange: Word.Range = context.document.getSelection();
+      const pages: Word.PageCollection = selectedRange.pages;
+      pages.load("items/index");
       await context.sync();
 
-      // Log info for pages included in selection.
-      console.log(pages);
-      const pagesIndexes = [];
-      const pagesText = [];
+      console.log(`Pages in the selection: ${pages.items.length}`);
+      const pageRanges: Word.Range[] = [];
+      pages.items.forEach((page: Word.Page) => {
+        const pageRange: Word.Range = page.getRange(Word.RangeLocation.whole);
+        pageRange.load("text");
+        pageRanges.push(pageRange);
+      });
+
+      await context.sync();
+
       for (let i = 0; i < pages.items.length; i++) {
-        const page = pages.items[i];
-        page.load("index");
-        pagesIndexes.push(page);
-
-        const range = page.getRange();
-        range.load("text");
-        pagesText.push(range);
-      }
-
-      await context.sync();
-
-      for (let i = 0; i < pagesIndexes.length; i++) {
-        console.log(`Index info for page ${i + 1} in the selection: ${pagesIndexes[i].index}`);
-        console.log("Text of that page in the selection:", pagesText[i].text);
+        console.log(`Page ${pages.items[i].index} text: ${pageRanges[i].text}`);
       }
     });
 Word.PageOrientation:enum:
@@ -33543,7 +34576,7 @@ Word.PaperSize:enum:
 Word.Pane:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {
@@ -33574,7 +34607,7 @@ Word.Pane:class:
         pagesIndexes.push(page);
 
         const paragraphs = page.getRange().paragraphs;
-        paragraphs.load("items/length");
+        paragraphs.load("items");
         pagesNumberOfParagraphs.push(paragraphs);
 
         const firstParagraph = paragraphs.getFirst();
@@ -33587,13 +34620,13 @@ Word.Pane:class:
       for (let i = 0; i < pagesIndexes.length; i++) {
         console.log(`Page index: ${pagesIndexes[i].index}`);
         console.log(`Number of paragraphs: ${pagesNumberOfParagraphs[i].items.length}`);
-        console.log("First paragraph's text:", pagesFirstParagraphText[i].text);
+        console.log(`First paragraph's text: ${pagesFirstParagraphText[i].text}`);
       }
     });
 Word.Pane#pages:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {
@@ -33624,7 +34657,7 @@ Word.Pane#pages:member:
         pagesIndexes.push(page);
 
         const paragraphs = page.getRange().paragraphs;
-        paragraphs.load("items/length");
+        paragraphs.load("items");
         pagesNumberOfParagraphs.push(paragraphs);
 
         const firstParagraph = paragraphs.getFirst();
@@ -33637,13 +34670,13 @@ Word.Pane#pages:member:
       for (let i = 0; i < pagesIndexes.length; i++) {
         console.log(`Page index: ${pagesIndexes[i].index}`);
         console.log(`Number of paragraphs: ${pagesNumberOfParagraphs[i].items.length}`);
-        console.log("First paragraph's text:", pagesFirstParagraphText[i].text);
+        console.log(`First paragraph's text: ${pagesFirstParagraphText[i].text}`);
       }
     });
 Word.Pane#pagesEnclosingViewport:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {
@@ -33684,7 +34717,7 @@ Word.Pane#pagesEnclosingViewport:member:
 Word.PaneCollection:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {
@@ -33702,16 +34735,141 @@ Word.PaneCollection:class:
 Word.Paragraph:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
 
+
+    // Reads the first paragraph's text.
 
     await Word.run(async (context) => {
-      // The collection of paragraphs of the current selection returns the full paragraphs contained in it.
-      const paragraph: Word.Paragraph = context.document.getSelection().paragraphs.getFirst();
-      paragraph.load("text");
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        firstParagraph.load("text");
+        await context.sync();
+        console.log(`First paragraph: ${firstParagraph.text}`);
+    });
+Word.Paragraph#clear:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
 
-      await context.sync();
-      console.log(paragraph.text);
+
+    // Removes the first paragraph's content but keeps the paragraph.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        firstParagraph.clear();
+        await context.sync();
+        console.log("Cleared the first paragraph. Its empty paragraph remains.");
+    });
+Word.Paragraph#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Removes the first paragraph and its content from the document.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        firstParagraph.delete();
+        await context.sync();
+        console.log("Deleted the first paragraph and its content.");
+    });
+Word.Paragraph#getHtml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-and-read-paragraph-markup.yaml
+
+
+    // Reads an HTML representation of the first paragraph.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const html: OfficeExtension.ClientResult<string> = firstParagraph.getHtml();
+        await context.sync();
+        console.log(`Paragraph HTML: ${html.value}`);
+    });
+Word.Paragraph#getNext:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Reads the paragraph immediately after the first paragraph.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const nextParagraph: Word.Paragraph = firstParagraph.getNext();
+        nextParagraph.load("text");
+        await context.sync();
+        console.log(`Next paragraph: ${nextParagraph.text}`);
+    });
+Word.Paragraph#getNextOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Checks for a following paragraph without throwing at the end of the body.
+
+    await Word.run(async (context) => {
+        const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+        const nextParagraph: Word.Paragraph = lastParagraph.getNextOrNullObject();
+        nextParagraph.load("text");
+        await context.sync();
+        if (nextParagraph.isNullObject) {
+            console.log("There is no paragraph after the last paragraph.");
+        } else {
+            console.log(`Next paragraph: ${nextParagraph.text}`);
+        }
+    });
+Word.Paragraph#getOoxml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-and-read-paragraph-markup.yaml
+
+
+    // Reads the first paragraph's Office Open XML representation.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const ooxml: OfficeExtension.ClientResult<string> = firstParagraph.getOoxml();
+        await context.sync();
+        console.log(`Paragraph OOXML: ${ooxml.value}`);
+    });
+Word.Paragraph#getPrevious:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Reads the paragraph immediately before the last paragraph.
+
+    await Word.run(async (context) => {
+        const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+        const previousParagraph: Word.Paragraph = lastParagraph.getPrevious();
+        previousParagraph.load("text");
+        await context.sync();
+        console.log(`Previous paragraph: ${previousParagraph.text}`);
+    });
+Word.Paragraph#getPreviousOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Checks for a preceding paragraph without throwing at the start of the
+    body.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const previousParagraph: Word.Paragraph = firstParagraph.getPreviousOrNullObject();
+        previousParagraph.load("text");
+        await context.sync();
+        if (previousParagraph.isNullObject) {
+            console.log("There is no paragraph before the first paragraph.");
+        } else {
+            console.log(`Previous paragraph: ${previousParagraph.text}`);
+        }
     });
 Word.Paragraph#getRange:member(1):
   - >-
@@ -33719,27 +34877,23 @@ Word.Paragraph#getRange:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
 
 
+    // Gets complete sentences from the insertion point to the end of its
+    paragraph.
+
     await Word.run(async (context) => {
-      // Get the complete sentence (as range) associated with the insertion point.
-      const sentences: Word.RangeCollection = context.document
-        .getSelection()
-        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+      const selection: Word.Range = context.document.getSelection();
+      const sentences: Word.RangeCollection = selection.getTextRanges(["."], false);
       sentences.load("$none");
       await context.sync();
 
-      // Expand the range to the end of the paragraph to get all the complete sentences.
-      const sentencesToTheEndOfParagraph: Word.RangeCollection = sentences.items[0]
-        .getRange()
-        .expandTo(
-          context.document
-            .getSelection()
-            .paragraphs.getFirst()
-            .getRange(Word.RangeLocation.end)
-        )
-        .getTextRanges(["."], false /* Don't trim spaces*/);
+      const firstSentence: Word.Range = sentences.items[0];
+      const paragraphEnd: Word.Range = selection.paragraphs.getFirst().getRange(Word.RangeLocation.end);
+      const remainingRange: Word.Range = firstSentence.expandTo(paragraphEnd);
+      const sentencesToTheEndOfParagraph: Word.RangeCollection = remainingRange.getTextRanges(["."], false);
       sentencesToTheEndOfParagraph.load("text");
       await context.sync();
 
+      console.log("Sentences from the current sentence to the paragraph end:");
       for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
@@ -33759,7 +34913,27 @@ Word.Paragraph#getText:member(1):
 
       await context.sync();
 
-      console.log("Text:- " + text.value, "Including hidden text:- " + textIncludingHidden.value, "Including text marked as deleted:- " + textIncludingDeleted.value);
+      console.log(`Text: ${text.value}`);
+      console.log(`Including hidden text: ${textIncludingHidden.value}`);
+      console.log(`Including text marked as deleted: ${textIncludingDeleted.value}`);
+    });
+Word.Paragraph#getTextRanges:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/basic-paragraph-operations.yaml
+
+
+    // Reads sentence ranges delimited by periods in the first paragraph.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const sentences: Word.RangeCollection = firstParagraph.getTextRanges(["."], true);
+        sentences.load("items/text");
+        await context.sync();
+        console.log(`Sentences found: ${sentences.items.length}`);
+        for (const sentence of sentences.items) {
+            console.log(`Sentence: ${sentence.text}`);
+        }
     });
 Word.Paragraph#insertAnnotations:member(1):
   - >-
@@ -33827,7 +35001,7 @@ Word.Paragraph#insertBreak:member(1):
       context.document.body.paragraphs.getFirst().insertBreak(Word.BreakType.line, "After");
 
       await context.sync();
-      console.log("success");
+      console.log("Inserted a line break after the first paragraph.");
     });
 Word.Paragraph#insertContentControl:member(1):
   - >-
@@ -33896,6 +35070,52 @@ Word.Paragraph#insertGeometricShape:member(1):
 
       await context.sync();
     });
+Word.Paragraph#insertHtml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-and-read-paragraph-markup.yaml
+
+
+    // Replaces the first paragraph's content with bold and italic text from
+    HTML.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const insertedRange: Word.Range = firstParagraph.insertHtml(
+            "<b>Project update:</b> <i>ready for review.</i>",
+            Word.InsertLocation.replace
+        );
+        await context.sync();
+        console.log("Replaced the first paragraph's content with formatted HTML.");
+    });
+Word.Paragraph#insertOoxml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/insert-and-read-paragraph-markup.yaml
+
+
+    // Replaces the first paragraph's content with a bold update from an OOXML
+    package.
+
+    await Word.run(async (context) => {
+        const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+        const ooxml: string =
+            `<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+                <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+                    <pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+                    </Relationships></pkg:xmlData>
+                </pkg:part>
+                <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+                    <pkg:xmlData><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                        <w:body><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Project update from OOXML.</w:t></w:r></w:p></w:body>
+                    </w:document></pkg:xmlData>
+                </pkg:part>
+            </pkg:package>`;
+        const insertedRange: Word.Range = firstParagraph.insertOoxml(ooxml, Word.InsertLocation.replace);
+        await context.sync();
+        console.log("Replaced the first paragraph's content with a bold OOXML update.");
+    });
 Word.Paragraph#insertParagraph:member(1):
   - >-
     // Link to full sample:
@@ -33955,9 +35175,11 @@ Word.Paragraph#select:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/scroll-to-range.yaml
 
 
+    // Selects the final paragraph and scrolls it into view.
+
     await Word.run(async (context) => {
-      // If select is called with no parameters, it selects the object.
-      context.document.body.paragraphs.getLast().select();
+      const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+      lastRange.select();
 
       await context.sync();
     });
@@ -33966,9 +35188,12 @@ Word.Paragraph#select:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/scroll-to-range.yaml
 
 
+    // Moves the insertion point to the end of the final paragraph.
+
     await Word.run(async (context) => {
-      // Select can be at the start or end of a range; this by definition moves the insertion point without selecting the range.
-      context.document.body.paragraphs.getLast().select(Word.SelectionMode.end);
+      const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+      const selectionMode: Word.SelectionMode = Word.SelectionMode.end;
+      lastRange.select(selectionMode);
 
       await context.sync();
     });
@@ -34012,9 +35237,11 @@ Word.Paragraph#split:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/split-words-of-first-paragraph.yaml
 
 
+    // Splits the first paragraph into words and highlights them in sequence.
+
     await Word.run(async (context) => {
-      const paragraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
-      const words = paragraph.split([" "], true /* trimDelimiters*/, true /* trimSpaces */);
+      const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+      const words: Word.RangeCollection = paragraphRange.split([" "], false, true, true);
       words.load("text");
 
       await context.sync();
@@ -34026,7 +35253,7 @@ Word.Paragraph#split:member(1):
         words.items[i].font.highlightColor = "#FFFF00";
 
         await context.sync();
-        await pause(200);
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
     });
 Word.Paragraph#startNewList:member(1):
@@ -34054,7 +35281,8 @@ Word.Paragraph#startNewList:member(1):
       const paragraph: Word.Paragraph = list.insertParagraph("New list item at the end of the list (set to list level 5)", "End");
 
       // Set up list level for the list item.
-      paragraph.listItem.level = 4;
+      const listItem: Word.ListItem = paragraph.listItem;
+      listItem.level = 4;
 
       // To add paragraphs outside the list, use Before or After.
       list.insertParagraph("New paragraph goes after (not part of the list)", "After");
@@ -34067,9 +35295,12 @@ Word.Paragraph#alignment:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Centers the last paragraph between the document margins.
+
     await Word.run(async (context) => {
-      // Center last paragraph alignment.
-      context.document.body.paragraphs.getLast().alignment = "Centered";
+      const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+      const alignment: Word.Alignment = Word.Alignment.centered;
+      lastParagraph.alignment = alignment;
 
       await context.sync();
     });
@@ -34112,6 +35343,19 @@ Word.Paragraph#borders:member:
         `Applied the ${Word.BorderLineStyle.double} line style to ${borders.items.length} paragraph borders.`
       );
     });
+Word.Paragraph#firstLineIndent:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
+
+
+    // Indents only the first line of the first paragraph.
+
+    await Word.run(async (context) => {
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.firstLineIndent = 36;
+      await context.sync();
+    });
 Word.Paragraph#font:member:
   - >-
     // Link to full sample:
@@ -34153,11 +35397,13 @@ Word.Paragraph#leftIndent:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
-    await Word.run(async (context) => {
-      // Indent the first paragraph.
-      context.document.body.paragraphs.getFirst().leftIndent = 75; //units = points
+    // Indents the first paragraph from the left margin.
 
-      return context.sync();
+    await Word.run(async (context) => {
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.leftIndent = 75;
+
+      await context.sync();
     });
 Word.Paragraph#lineSpacing:member:
   - >-
@@ -34165,9 +35411,11 @@ Word.Paragraph#lineSpacing:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Adjusts the spacing between lines in the first paragraph.
+
     await Word.run(async (context) => {
-      // Adjust line spacing.
-      context.document.body.paragraphs.getFirst().lineSpacing = 20;
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.lineSpacing = 20;
 
       await context.sync();
     });
@@ -34177,9 +35425,11 @@ Word.Paragraph#lineUnitAfter:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Adds space after the first paragraph, measured in grid lines.
+
     await Word.run(async (context) => {
-      // Set the space (in line units) after the first paragraph.
-      context.document.body.paragraphs.getFirst().lineUnitAfter = 1;
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.lineUnitAfter = 1;
 
       await context.sync();
     });
@@ -34189,9 +35439,11 @@ Word.Paragraph#lineUnitBefore:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
+    // Adds space before the last paragraph, measured in grid lines.
+
     await Word.run(async (context) => {
-      // Set the space (in line units) before the first paragraph.
-      context.document.body.paragraphs.getFirst().lineUnitBefore = 1;
+      const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+      lastParagraph.lineUnitBefore = 1;
 
       await context.sync();
     });
@@ -34233,16 +35485,44 @@ Word.Paragraph#listItem:member:
 
       await context.sync();
     });
+Word.Paragraph#rightIndent:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
+
+
+    // Narrows the first paragraph by adding a right indent.
+
+    await Word.run(async (context) => {
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.rightIndent = 72;
+      await context.sync();
+    });
 Word.Paragraph#spaceAfter:member:
   - >-
     // Link to full sample:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
 
 
-    await Word.run(async (context) => {
-      // Set the space (in points) after the first paragraph.
-      context.document.body.paragraphs.getFirst().spaceAfter = 20;
+    // Adds space after the first paragraph, measured in points.
 
+    await Word.run(async (context) => {
+      const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+      firstParagraph.spaceAfter = 20;
+
+      await context.sync();
+    });
+Word.Paragraph#spaceBefore:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/paragraph-properties.yaml
+
+
+    // Adds space before the last paragraph, measured in points.
+
+    await Word.run(async (context) => {
+      const lastParagraph: Word.Paragraph = context.document.body.paragraphs.getLast();
+      lastParagraph.spaceBefore = 24;
       await context.sync();
     });
 Word.Paragraph#style:member:
@@ -34328,7 +35608,7 @@ Word.Paragraph#text:member:
       paragraph.load("text");
 
       await context.sync();
-      console.log(paragraph.text);
+      console.log(`The first paragraph of the selected text: ${paragraph.text}`);
     });
 Word.Paragraph#uniqueLocalId:member:
   - >-
@@ -34525,7 +35805,8 @@ Word.ParagraphCollection#items:member:
       const paragraph: Word.Paragraph = list.insertParagraph("New list item at the end of the list (set to list level 5)", "End");
 
       // Set up list level for the list item.
-      paragraph.listItem.level = 4;
+      const listItem: Word.ListItem = paragraph.listItem;
+      listItem.level = 4;
 
       // To add paragraphs outside the list, use Before or After.
       list.insertParagraph("New paragraph goes after (not part of the list)", "After");
@@ -34663,26 +35944,30 @@ Word.ParagraphFormat#lineSpacing:member:
 Word.Range:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/basic-range-operations.yaml
 
 
-    // Gets the range of the first comment in the selected content.
+    // Reads the text and checks whether the first paragraph range is empty.
 
     await Word.run(async (context) => {
-      const comment: Word.Comment = context.document.getSelection().getComments().getFirstOrNullObject();
-      comment.load("contentRange");
-      const range: Word.Range = comment.getRange();
-      range.load("text");
-      await context.sync();
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        paragraphRange.load("text,isEmpty,style");
+        await context.sync();
+        console.log("First paragraph's properties:", { text: paragraphRange.text, isEmpty: paragraphRange.isEmpty, style: paragraphRange.style });
+    });
+Word.Range#clear:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/basic-range-operations.yaml
 
-      if (comment.isNullObject) {
-        console.warn("No comments in the selection, so no range to get.");
-        return;
-      }
 
-      console.log(`Comment location: ${range.text}`);
-      const contentRange: Word.CommentContentRange = comment.contentRange;
-      console.log("Comment content range:", contentRange);
+    // Removes the first paragraph's text while preserving the paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.clear();
+        await context.sync();
+        console.log("Cleared the summary text. The paragraph remains.");
     });
 Word.Range#compareLocationWith:member(1):
   - >-
@@ -34701,43 +35986,91 @@ Word.Range#compareLocationWith:member(1):
       const firstParagraphAsRange: Word.Range = paragraphs.items[0].getRange();
       const secondParagraphAsRange: Word.Range = paragraphs.items[1].getRange();
 
-      const comparedLocation = firstParagraphAsRange.compareLocationWith(secondParagraphAsRange);
+      const comparedLocation: OfficeExtension.ClientResult<Word.LocationRelation> =
+        firstParagraphAsRange.compareLocationWith(secondParagraphAsRange);
 
       await context.sync();
 
       const locationValue: Word.LocationRelation = comparedLocation.value;
       console.log(`Location of the first paragraph in relation to the second paragraph: ${locationValue}`);
     });
+Word.Range#delete:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/basic-range-operations.yaml
+
+
+    // Deletes the first paragraph range, including its paragraph mark.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        paragraphRange.delete();
+        await context.sync();
+        console.log("Deleted the first paragraph range.");
+    });
+Word.Range#detectLanguage:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Detects the language of the first paragraph's text.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const detection: OfficeExtension.ClientResult<boolean> = paragraphRange.detectLanguage();
+        await context.sync();
+        console.log(`Language detected: ${detection.value}`);
+    });
 Word.Range#expandTo:member(1):
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/compare-location.yaml
 
+
+    // Gets the text spanning the first two paragraphs.
 
     await Word.run(async (context) => {
-      // Get the complete sentence (as range) associated with the insertion point.
-      const sentences: Word.RangeCollection = context.document
-        .getSelection()
-        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
-      sentences.load("$none");
-      await context.sync();
+        const firstRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const secondRange: Word.Range = context.document.body.paragraphs.getFirst().getNext().getRange();
+        const expandedRange: Word.Range = firstRange.expandTo(secondRange);
+        expandedRange.load("text");
+        await context.sync();
+        console.log(`Expanded text: ${expandedRange.text}`);
+    });
+Word.Range#expandToOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/compare-location.yaml
 
-      // Expand the range to the end of the paragraph to get all the complete sentences.
-      const sentencesToTheEndOfParagraph: Word.RangeCollection = sentences.items[0]
-        .getRange()
-        .expandTo(
-          context.document
-            .getSelection()
-            .paragraphs.getFirst()
-            .getRange(Word.RangeLocation.end)
-        )
-        .getTextRanges(["."], false /* Don't trim spaces*/);
-      sentencesToTheEndOfParagraph.load("text");
-      await context.sync();
 
-      for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
-        console.log(sentencesToTheEndOfParagraph.items[i].text);
-      }
+    // Expands to the selection when both ranges belong to the same story.
+
+    await Word.run(async (context) => {
+        const firstRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const selection: Word.Range = context.document.getSelection();
+        const expandedRange: Word.Range = firstRange.expandToOrNullObject(selection);
+        expandedRange.load("text");
+        await context.sync();
+        if (expandedRange.isNullObject) {
+            console.warn("The ranges cannot be combined. Select text in the main document body.");
+            return;
+        }
+        console.log(`Expanded text: ${expandedRange.text}`);
+    });
+Word.Range#getBookmarks:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Gets the names of bookmarks within or overlapping the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const bookmarkNames: OfficeExtension.ClientResult<string[]> = paragraphRange.getBookmarks(false, true);
+        await context.sync();
+        console.log("Bookmark names:", bookmarkNames.value);
     });
 Word.Range#getComments:member(1):
   - >-
@@ -34794,6 +36127,87 @@ Word.Range#getContentControls:member(1):
 
       console.log("Deleted checkbox content control.");
     });
+Word.Range#getHtml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/insert-and-read-formatted-content.yaml
+
+
+    // Reads an HTML representation of the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const html: OfficeExtension.ClientResult<string> = paragraphRange.getHtml();
+        await context.sync();
+        console.log(`Range HTML: ${html.value}`);
+    });
+Word.Range#getHyperlinkRanges:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Reads the text and destinations of hyperlinks in the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const hyperlinkRanges: Word.RangeCollection = bodyRange.getHyperlinkRanges();
+        hyperlinkRanges.load("items/text,items/hyperlink");
+        await context.sync();
+        console.log(`Hyperlinks found: ${hyperlinkRanges.items.length}`);
+        hyperlinkRanges.items.forEach((hyperlinkRange: Word.Range) => {
+            console.log({ text: hyperlinkRange.text, hyperlink: hyperlinkRange.hyperlink });
+        });
+    });
+Word.Range#getNextTextRange:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/split-words-of-first-paragraph.yaml
+
+
+    // Gets the sentence following the first sentence in the document.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const firstSentence: Word.Range = paragraphRange.getTextRanges(["?", "."], true).getFirst();
+        const nextSentence: Word.Range = firstSentence.getNextTextRange(["?", "."], true);
+        nextSentence.load("text");
+        await context.sync();
+        console.log(`Next sentence: ${nextSentence.text}`);
+    });
+Word.Range#getNextTextRangeOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/split-words-of-first-paragraph.yaml
+
+
+    // Checks for a sentence after the end of the document without throwing.
+
+    await Word.run(async (context) => {
+        const endRange: Word.Range = context.document.body.getRange(Word.RangeLocation.end);
+        const nextSentence: Word.Range = endRange.getNextTextRangeOrNullObject([".", "?"], true);
+        nextSentence.load("text");
+        await context.sync();
+        if (nextSentence.isNullObject) {
+            console.warn("There is no sentence after the end of the document.");
+            return;
+        }
+        console.log(`Next sentence: ${nextSentence.text}`);
+    });
+Word.Range#getOoxml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/insert-and-read-formatted-content.yaml
+
+
+    // Reads the OOXML representation of the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const ooxml: OfficeExtension.ClientResult<string> = paragraphRange.getOoxml();
+        await context.sync();
+        console.log(`Range OOXML: ${ooxml.value}`);
+    });
 Word.Range#getRange:member(1):
   - >-
     // Link to full sample:
@@ -34832,64 +36246,88 @@ Word.Range#getTextRanges:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
 
 
+    // Gets complete sentences from the insertion point to the end of its
+    paragraph.
+
     await Word.run(async (context) => {
-      // Get the complete sentence (as range) associated with the insertion point.
-      const sentences: Word.RangeCollection = context.document
-        .getSelection()
-        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+      const selection: Word.Range = context.document.getSelection();
+      const sentences: Word.RangeCollection = selection.getTextRanges(["."], false);
       sentences.load("$none");
       await context.sync();
 
-      // Expand the range to the end of the paragraph to get all the complete sentences.
-      const sentencesToTheEndOfParagraph: Word.RangeCollection = sentences.items[0]
-        .getRange()
-        .expandTo(
-          context.document
-            .getSelection()
-            .paragraphs.getFirst()
-            .getRange(Word.RangeLocation.end)
-        )
-        .getTextRanges(["."], false /* Don't trim spaces*/);
+      const firstSentence: Word.Range = sentences.items[0];
+      const paragraphEnd: Word.Range = selection.paragraphs.getFirst().getRange(Word.RangeLocation.end);
+      const remainingRange: Word.Range = firstSentence.expandTo(paragraphEnd);
+      const sentencesToTheEndOfParagraph: Word.RangeCollection = remainingRange.getTextRanges(["."], false);
       sentencesToTheEndOfParagraph.load("text");
       await context.sync();
 
+      console.log("Sentences from the current sentence to the paragraph end:");
       for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
     });
+Word.Range#getTrackedChanges:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Gets the tracked changes inside the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const trackedChanges: Word.TrackedChangeCollection = paragraphRange.getTrackedChanges();
+        trackedChanges.load("items/author,items/text,items/type");
+        await context.sync();
+        console.log(`Tracked changes in the first paragraph: ${trackedChanges.items.length}`);
+        trackedChanges.items.forEach((change: Word.TrackedChange) => {
+            console.log({ author: change.author, text: change.text, type: change.type });
+        });
+    });
+Word.Range#highlight:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/scroll-to-range.yaml
+
+
+    // Temporarily highlights the final paragraph without changing its
+    formatting.
+
+    await Word.run(async (context) => {
+        const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+        lastRange.highlight();
+        await context.sync();
+        console.log("Temporarily highlighted the final paragraph.");
+    });
 Word.Range#insertBookmark:member(1):
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/export.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
 
+
+    // Names the first paragraph range, replacing any existing bookmark with
+    this name.
 
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.clear();
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.insertBookmark("RangeSampleSummary");
+        await context.sync();
+        console.log("Inserted the RangeSampleSummary bookmark. Get bookmark names to verify it.");
+    });
+Word.Range#insertBreak:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/basic-range-operations.yaml
 
-      // Apply built-in heading styles so the Headings export mode can create PDF bookmarks.
-      const title: Word.Paragraph = body.insertParagraph("Extend Word with Office Add-ins", Word.InsertLocation.end);
-      title.styleBuiltIn = Word.BuiltInStyleName.heading1;
 
-      const overview: Word.Paragraph = body.insertParagraph(
-        "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
-        Word.InsertLocation.end,
-      );
-      overview.styleBuiltIn = Word.BuiltInStyleName.normal;
+    // Inserts a page break after the first paragraph range.
 
-      const detailsHeading: Word.Paragraph = body.insertParagraph("How Word add-ins work", Word.InsertLocation.end);
-      detailsHeading.styleBuiltIn = Word.BuiltInStyleName.heading2;
-      const details: Word.Paragraph = body.insertParagraph(
-        "Use add-in commands to extend the Word UI. Launch task panes that run JavaScript to interact with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
-        Word.InsertLocation.end,
-      );
-      details.styleBuiltIn = Word.BuiltInStyleName.normal;
-
-      // Add a named Word bookmark that the WordBookmarks export mode can include in the PDF.
-      details.getRange(Word.RangeLocation.whole).insertBookmark("named_bookmark");
-
-      await context.sync();
-      console.log("Sample document created with headings and bookmark 'named_bookmark'.");
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        paragraphRange.insertBreak(Word.BreakType.page, Word.InsertLocation.after);
+        await context.sync();
+        console.log("Inserted a page break after the summary.");
     });
 Word.Range#insertCanvas:member(1):
   - >-
@@ -34964,6 +36402,20 @@ Word.Range#insertContentControl:member(1):
       }
         await context.sync();
     });
+Word.Range#insertEndnote:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-footnotes.yaml
+
+
+    // Adds an endnote to the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const endnote: Word.NoteItem = paragraphRange.insertEndnote("Source: the sample document.");
+        await context.sync();
+        console.log("Inserted an endnote. Its text appears at the end of the document.");
+    });
 Word.Range#insertField:member(1):
   - >-
     // Link to full sample:
@@ -34986,6 +36438,23 @@ Word.Range#insertField:member(1):
         console.log("Code of the field: " + field.code, "Result of the field: " + JSON.stringify(field.result));
       }
     });
+Word.Range#insertFileFromBase64:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/insert-and-read-formatted-content.yaml
+
+
+    // Replaces the first paragraph with the contents of a small embedded DOCX
+    file.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        // The DOCX contains one paragraph: "Imported project update."
+        const base64File: string = "UEsDBBQAAAAIAAAAIVD3S4B1wgAAAHYBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbH2QuQ7CMAyGX6XKiqgRAwOiLMAKDLyAlbptRC7FLsfbk3INCBjt//gsLw7XSFxcnPVcqU4kzgFYd+SQyxDJZ6UJyaHkMbUQUR+xJZhOJjPQwQt5GcvQoZaLNTXYWyk2l7xmE3ylEllWxephHFiVwhit0ShZh5OvPyjjJ6HMybuHOxN5lA0KvhIG5TfgmdudKCVTU7HHJFt02QXnkGqog+5dTpb/a77cGZrGaHrnh7aYgiZm41tny7fi0PjX/XB/9/IGUEsDBBQAAAAIAAAAIVBhey9DiQAAAPIAAAALAAAAX3JlbHMvLnJlbHONzzsOAiEQBuCrEA6ws1pYGKCy2dZ4AQLDIy6PDBj19lJYrMbCcuaffH9GnHHVPZbcQqyNPdKam+Sh93oEaCZg0m0qFfNIXKGk+xjJQ9Xmqj3Cfp4PQFuDK7E12WIlp8XuOLs8K/5jF+eiwVMxt4S5/6j4uhiyJo9d8nshC/a9ngbLQQn4eFG9AFBLAwQUAAAACAAAACFQZhg8uIUAAAC1AAAAEQAAAHdvcmQvZG9jdW1lbnQueG1sRY47DsIwDIavUvUAdcXAEIXubFwhJKYtquPIcZVye5IysHyW/T9kW0xgvxNG7Q7aYjbl1i+qyQBkvyC5PHDCWLUXCzmtq8xQWEIS9pjzGmfa4DKOVyC3xn6yxTw5fNpMDdKg050Si2Loau6NXrs9Bac4WGhqo5w8M7kaHgLn4VcG/0enL1BLAQIUABQAAAAIAAAAIVD3S4B1wgAAAHYBAAATAAAAAAAAAAAAAACAAQAAAABbQ29udGVudF9UeXBlc10ueG1sUEsBAhQAFAAAAAgAAAAhUGF7L0OJAAAA8gAAAAsAAAAAAAAAAAAAAIAB8wAAAF9yZWxzLy5yZWxzUEsBAhQAFAAAAAgAAAAhUGYYPLiFAAAAtQAAABEAAAAAAAAAAAAAAIABpQEAAHdvcmQvZG9jdW1lbnQueG1sUEsFBgAAAAADAAMAuQAAAFkCAAAAAA==";
+        const insertedRange: Word.Range = paragraphRange.insertFileFromBase64(base64File, Word.InsertLocation.replace);
+        await context.sync();
+        console.log("Inserted the embedded document's project update.");
+    });
 Word.Range#insertFootnote:member(1):
   - >-
     // Link to full sample:
@@ -35000,6 +36469,39 @@ Word.Range#insertFootnote:member(1):
       await context.sync();
 
       console.log("Inserted footnote.");
+    });
+Word.Range#insertGeometricShape:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-geometric-shapes.yaml
+
+
+    await Word.run(async (context) => {
+      // Inserts a moon geometric shape at the beginning of the selection.
+      const selection: Word.Range = context.document.getSelection();
+      const shapeOptions: Word.InsertShapeOptions = {
+        height: 120,
+        width: 120,
+        left: 120,
+      };
+      selection.insertGeometricShape(Word.GeometricShapeType.moon, shapeOptions);
+      await context.sync();
+
+      console.log("Inserted a moon.");
+    });
+Word.Range#insertHtml:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/insert-and-read-formatted-content.yaml
+
+
+    // Replaces the first paragraph's content with formatted HTML.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const insertedRange: Word.Range = paragraphRange.insertHtml("<b>Project update:</b> <i>ready for review.</i>", Word.InsertLocation.replace);
+        await context.sync();
+        console.log("Inserted bold and italic text from HTML.");
     });
 Word.Range#insertInlinePictureFromBase64:member(1):
   - >-
@@ -35025,34 +36527,96 @@ Word.Range#insertInlinePictureFromBase64:member(1):
 
       console.log("New inline picture properties:", newPic);
     });
+Word.Range#insertOoxml:member(1):
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-shapes-text-boxes.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/insert-and-read-formatted-content.yaml
 
 
-    // Returns Base64-encoded image data for a sample picture.
-
-    const pictureBase64 =
-      "iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAABblBMVEX+7tEYMFlyg5v8zHXVgof///+hrL77qRnIWmBEWXq6MDgAF0/i1b//8dP+79QKJ1MAIFL8yWpugZz/+O/VzLwzTXR+jaP/z3PHzdjNaWvuxrLFT1n8znmMj5fFTFP25OHlsa2wqqJGW3z7pgCbqsH936oAJlWnssRzdoLTd1HTfINbY3a7tar90IxJVG0AH1ecmJH//90gN14AFU/nxInHVFL80YQAD03qv3LUrm7cwJLWjoLenpPRdXTQgoj15sz+57/7szr93KPbiWjUvZj95LnwzLmMX3L8wmz7rib8xnP8vVz91JT8ukvTz8i8vsORkJKvsLIAD1YwPViWnKZVYHbKuqHjwo3ur2/Pa2O+OTvHVETfj1tybm9qdYlsYlnkmmC0DSPirpvAq4bj5uuono7tu5vgpannnX3ksbSKg5bv0tTclJNFSlyZgpPqwsW4go2giWdbWV+3mmuWgpRcbolURmReS2embHkiRHBcZ6c8AAALcElEQVR4nO3di1cTVx4H8AyThmC484ghFzSxEDRhIRBIMEFQA1qoVhAqYBVd3UXcri1dd7fLdv3vdybJZF73zr2TufPyzPccew49hc6H331nZkylkiRJkiRJkiRJkiRJkiRJkiRJkiRJkiQJ6wj2hH1JLKNo9p/sPB3X8rRUau/f2f56kML2k/n5+XFDSjzPQ7l95+swCqkfzDy1hnwvsLT9FRCF1I7Fpwt5Xt6PfRmF1LgNaBAqZdyNOVGwV9AkVMq4HOshR3iCAJqFalONr1HYRQGtQsXYvrONmjKj7xae0QnVuaO0/OiOlv3lfqI/1G4jgShhnzkIfzA/SNgAUoR9d0I9g/9wfjtsAiHocWZ8fIckLA1ad/SFB0jg+AGxhgNi9FvpU7TwGVHIl+QdtR9GfaTBCOdlIlA18vIzPqZC8kCjZT+mQnI31HInpkKqRqpGDhtADFpInCuGaUe9hBghrY+Xo7+xQgnn6Xth9EuIFNIPpDDsy6cISvg1tVGkkB4Y+ZlCjU34lBrIx6GCitAyyOzQ8mA7+nvfXixCigV33xf9tYwWg3B+/ICnAsbrKFwY8nae0figwnsUq3M34aCXZ3KphPa12+2SWjYZ8v0Pa1Jx4ikRSv1ga2Y8MIzH6aElAqFlRn/vQApRuB32FXoNSRiTad0hgkxI5E8piLlOStgX6DnfkBL7GhKFsS8iUfhN2FfoNWRh3ItIFsa9iBTCmBeRQhjz4ZRGGG8ilfB6jInEVVs/MTj5xUWwbSbUQNs2sZ2Kq9EilNup60qj3LUReT4mR2u2mIXyrtbx2nbjI/P+HpgTFoAYAQlU0rYJYXt3aASg+/zw8HBlkKWFuW5UkSbhsnH4RHxIKmtG8Lx2O5PJ1DhxkKqUW+hGk2gUyoJxhniE6Ivq3W0pAXQPVZ8ibHJ6qrl6JImmGppnecwn3XK7kBnEJOS4zlEUiUZh2zzLI4UQrv94GyPkOnMRJBqFyzghHKa0qfvsQk6KYF90bqUb93pZ72fz5Y+3DT6EsFqOtlC+bh1pXjSUtCq3tWTMsQm5VrSF/L6lkW7k1KsWM7jUjq3CXCFyRPOMb9hpLCtfb7TUvlWsYYUrVqG0Gm2hgbjfG2c61erxCRaYqS2J1o4YvQnDuvJeFtSV9zbfm+7hSTGD9ykpVq3ChagL1d1T/09PWLeOLdZYW2kchKbpfZMgrJ2K8RbyPKGEmRMp5kL40mURYyckFzHTjLkQrpPGmhMx3kIe/kRqp0Ux3kKlihlnY+2EE6MuhIYgiPxL25LbTMysSFEWQvjq8evs3Wu9nL15+4MdCdsvM47IWvG42q9j9c+RE4JXr29ms5pQzVtkHX9S94aG2JrquxVRqlZz7yN2Og5SW6rPJLz2BtkdlbTXN797qeS7zXX7YqdWq2VOTk7monTzBgDgPNsHmoTX3qBO2TRmP9hJpA7lRyESzafUe/c1n0V47S/EARa3YL1dh2He/Q26W2ruq9l6kL059FmFZ7giDoW41Zwq5PmwgClw/lf1+hWaEYcQXntFEMrPpzEpqBuv0EabvjCLikX4liA0n6zazpFhWLdIK8KzW0hgNmsW/sm5mcrbzsLQnjQBXWvj1HPmRshjgdpnAaFNGVhg9pYLofFDOIxQDunzVHAfX0QXwhIeOPw8J6TBBnRx3dAy1jgKzUfjGGEUi3hGKZSBA1D/TC6sngjSVEQHIfxQdMqq9p2hPbgHtvAN9YxCCD/mxwzJ54tF5R/617owtOUpuDGDLeMZSQhLRybg2LTaMi/G8nYhXwpvdQpupO3LtsFwc+YkhHBzzAzUel8RIQzzOQYAUnvnWw9mZlTUayvy7q2zM5QQ8ptlsy9/oQkv8nZhyE+3DW/zAfAtopaPrUJlR/jRUr+xsaI+hBYRwohshQX4mCyEGx+KeatvLF/ThYd5uzC8jmiKAO/esscoVMq3auepmkNdOI0QRuSRKaH0LSJd/TrhehnpUzQZXVhDCGFEHijadVyZwPUjjE/l6N+AGEvD2yVaglxkDoRww8FnLGINNZaGN+ebIqCAg506/9HJZ+iJ06gZPyqDKRLYE9qmdxSxOH1xMV1ErdqULEdAiNsmCDLkV4m+HilvqrNJGIHjbzD76dMsKn+D6+QCIsGREgJwf1HPw59/1r/4+4eRfBETgu7lYlrL4rdq4/yk/YtfRgSahaEuagDozuq+AVAjPhyRFyEhAHuzi0bgJ22IWfQGtAoBMv7zurNpo08R/qoJL70BLUJQL6Pi72226kdOZp5F6AloERZazQlbpqqnPgoV36XNZ26lnoAWIcdxUxWrsMk1/LuBUfXZeL0MgJ8Xf2Eo/E20EyvqHUadgj+9EqTuY3zp9GUP+OuDf4w6TdiF8H3/Dg0TsTK4hao+TIGdEewh2qehoX7+fLn4T49A42nivxqDO1AmKjYgJw2TqzJ6EMWpgH2i4vc2ypiE8J4GNBArtjvfuX6bZQF0LKAWj53QKNxoGAwTlUpF+TOBBHLiCgMhuEHhS3tuowbhsemGvuaUOk0gfeptRl3vQEILZVZCTQj/bb0B3CmSZyElkEEJB0J9lKHKsddWCnCTIPsS9oXw95YboOe7/SgrmH7IoIR94T1XFeQ6k96EYJYOmPY62Q+FJVc+ruPxMRtlmqADMmmkPeFv1gdpHJuo5PmZRUpfOs2ihKrwvUR2aRE7np8epu2EbEZSVfh7jt7XWimseQVSt1FGwrF3tBNhVWotMVh1g0vqRvofJsA8uQ9WG51WQ1wp11k8we+ihGwGmjH0ytPYMnPlgrqEYbQxpO+FaY97+0GwS88h8HiS7UkUPZCJcILYRptsT6HcNFIWwisisMX4MWHq5QwbIRnI/HkTFyMpCyHJx2QjaBG6KKH3AwziMMrlmL9UohukcIrYRpmcVpjiaqDxKqyQp3rWw0ywQvIo48djbQEKKRZrnMTa51boZeGdJ48yXMOHd9eMKLyqTDVFlyEDOebDzIjCqymqy3UfyY+XSNEdAxuFFc4fnpIOe59bIdWAP3o8n4l6F141/QSKvjwB7Ur4vZ8+LgI1/K/PQC4XstB3INfw4wVS9EL/gf50RGrhH/4DlWbq8dMJL0K/B5l+/HifBKXwf4EAlTmf9QafWkixamYSH17lRicMpo1yfmzxKYVBAZWxhnkzpRIGVkI/3qlIJQzMp3RE5ntgGmFQA6ka9u9UpBH+ERzQh9e3gm52BpMh3c2NPZ6FPhy2YZ9pzmYfBN5IfRGe4x9Nz84EPJL69B4whyL2iEF2Q39Wpnv4h+97RNt7gOMmVIZTh3aaDW5N2k9zjb1QqSL+/QLZmYeBApVlmy9HGeD8wU1MsotBDjT+vShafb/ADXT2XNygxSKiL8A+Ep1uwMLqgh890SlBC7ncasDErqt7eVmkVQ70L2sBddc11J8EaeRGWtNKTfVvpAnqmT3gfsJfG6ZbKEujGTunC6tz1tQ93g2G/qUtub/CJS0LR3WQKo/WysWqZE/reG5Uo4qZLNh+aXNlcYQS6B/7VhvS0Vqd/nZZchrHIx0aK7q5dxNThoiDX5r3raF0nKqzHKtEyf1JDgD1d1+m7A8Asrqk47VyR29o3n9nbtd1im/CzMMLR1u/SUdAb/ar5aa7By0QV+HuTBVMXtl8GGGzezraxXXMQ3+96bGOru6bAnNf7D608EUBgNXWKGW0nJ8BsOCtY4or1Ise5f+FKCBa2HtqBUwujWK0LqbBXMfThqVFO56CbgUNtAulwa0uYK2wkHM9WtiOecHkqRcj7UEAqH+ZwkVq5fS0ctzRcPxSNhtzC5yUc5NO03pFABQWRFc/w5jWC7oSpgr4TJoDLB0JdCfdBfH7VSbh0UPbSqnj5XvxK2aXP4P485IkSZIkSZIkSZIkSZIkSZIkSZIk8Tv/B3bBREdOWYS3AAAAAElFTkSuQmCC";
-    return pictureBase64;
-Word.Range#insertGeometricShape:member(1):
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/45-shapes/manage-geometric-shapes.yaml
-
+    // Replaces the first paragraph with a bold paragraph from an OOXML package.
 
     await Word.run(async (context) => {
-      // Inserts a moon geometric shape at the beginning of the selection.
-      const selection: Word.Range = context.document.getSelection();
-      const shapeOptions: Word.InsertShapeOptions = {
-        height: 120,
-        width: 120,
-        left: 120,
-      };
-      selection.insertGeometricShape(Word.GeometricShapeType.moon, shapeOptions);
-      await context.sync();
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const ooxml: string =
+            `<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+                <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+                    <pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                        <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+                    </Relationships></pkg:xmlData>
+                </pkg:part>
+                <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+                    <pkg:xmlData><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                        <w:body><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Project update from OOXML.</w:t></w:r></w:p></w:body>
+                    </w:document></pkg:xmlData>
+                </pkg:part>
+            </pkg:package>`;
+        const insertedRange: Word.Range = paragraphRange.insertOoxml(ooxml, Word.InsertLocation.replace);
+        await context.sync();
+        console.log("Inserted a bold paragraph from OOXML.");
+    });
+Word.Range#insertParagraph:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/basic-range-operations.yaml
 
-      console.log("Inserted a moon.");
+
+    // Adds a paragraph after the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const newParagraph: Word.Paragraph = paragraphRange.insertParagraph("Additional project details.", Word.InsertLocation.after);
+        await context.sync();
+        console.log("Inserted a paragraph after the summary.");
+    });
+Word.Range#insertPictureFromBase64:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Anchors a floating picture at the start of the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const pictureOptions: Word.InsertShapeOptions = { left: 20, top: 20, width: 90, height: 39 };
+        const picture: Word.Shape = paragraphRange.insertPictureFromBase64(
+            "iVBORw0KGgoAAAANSUhEUgAAAB4AAAANCAIAAAAxEEnAAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACFSURBVDhPtY1BEoQwDMP6/0+XgIMTBAeYoTqso9Rkx1zG+tNj1H94jgGzeNSjteO5vtQQuG2seO0av8LzGbe3anzRoJ4ybm/VeKEerAEbAUpW4aWQCmrGFWykRzGBCnYy2ha3oAIq2MloW9yCCqhgJ6NtcQsqoIKdjLbFLaiACnYyf2fODbrjZcXfr2F4AAAAAElFTkSuQmCC",
+            pictureOptions
+        );
+        picture.name = "RangeSamplePicture";
+        await context.sync();
+        console.log("Inserted a floating picture. Get shapes to inspect it.");
+    });
+Word.Range#insertTable:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Adds a project status table after the last paragraph range.
+
+    await Word.run(async (context) => {
+        const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+        const projectTable: Word.Table = lastRange.insertTable(2, 2, Word.InsertLocation.after, [
+            ["Task", "Status"],
+            ["Review", "Ready"]
+        ]);
+        await context.sync();
+        console.log("Inserted a project status table.");
+    });
+Word.Range#insertText:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/basic-range-operations.yaml
+
+
+    // Replaces the first paragraph's text without replacing its paragraph mark.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const insertedRange: Word.Range = paragraphRange.insertText("Updated project summary.", Word.InsertLocation.replace);
+        await context.sync();
+        console.log("Replaced the first paragraph's text.");
     });
 Word.Range#insertTextBox:member(1):
   - >-
@@ -35074,6 +36638,356 @@ Word.Range#insertTextBox:member(1):
       await context.sync();
 
       console.log("Inserted a text box at the beginning of the current selection.");
+    });
+Word.Range#intersectWith:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/compare-location.yaml
+
+
+    // Gets the overlap between the document body and its first paragraph.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const firstRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const overlap: Word.Range = bodyRange.intersectWith(firstRange);
+        overlap.load("text");
+        await context.sync();
+        console.log(`Overlapping text: ${overlap.text}`);
+    });
+Word.Range#intersectWithOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/compare-location.yaml
+
+
+    // Checks whether the selection overlaps the first paragraph.
+
+    await Word.run(async (context) => {
+        const firstRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const selection: Word.Range = context.document.getSelection();
+        const overlap: Word.Range = firstRange.intersectWithOrNullObject(selection);
+        overlap.load("text");
+        await context.sync();
+        if (overlap.isNullObject) {
+            console.warn("The selection does not overlap or adjoin the first paragraph.");
+            return;
+        }
+        console.log(`Overlapping text: ${overlap.text}`);
+    });
+Word.Range#removeHighlight:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/scroll-to-range.yaml
+
+
+    // Removes the temporary highlight from the final paragraph.
+
+    await Word.run(async (context) => {
+        const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+        lastRange.removeHighlight();
+        await context.sync();
+        console.log("Removed the temporary highlight.");
+    });
+Word.Range#search:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/basic-range-operations.yaml
+
+
+    // Finds whole-word matches within the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const searchOptions: Word.SearchOptions = Word.SearchOptions.newObject(context);
+        searchOptions.matchCase = false;
+        searchOptions.matchWholeWord = true;
+        const matches: Word.RangeCollection = paragraphRange.search("project", searchOptions);
+        matches.load("items/text");
+        await context.sync();
+        console.log(`Matches found: ${matches.items.length}`);
+        matches.items.forEach((match: Word.Range) => console.log(match.text));
+    });
+Word.Range#select:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/scroll-to-range.yaml
+
+
+    // Selects the final paragraph and scrolls it into view.
+
+    await Word.run(async (context) => {
+      const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+      lastRange.select();
+
+      await context.sync();
+    });
+Word.Range#split:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/split-words-of-first-paragraph.yaml
+
+
+    // Splits the first paragraph into words and highlights them in sequence.
+
+    await Word.run(async (context) => {
+      const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+      const words: Word.RangeCollection = paragraphRange.split([" "], false, true, true);
+      words.load("text");
+
+      await context.sync();
+
+      for (let i = 0; i < words.items.length; i++) {
+        if (i >= 1) {
+          words.items[i - 1].font.highlightColor = "#FFFFFF";
+        }
+        words.items[i].font.highlightColor = "#FFFF00";
+
+        await context.sync();
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    });
+Word.Range#bold:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Reads character formatting and layout settings on the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.load("bold,italic,boldBidirectional,italicBidirectional,case,characterWidth,combineCharacters,disableCharacterSpaceGrid,emphasisMark,fitTextWidth,highlightColorIndex,horizontalInVertical,kana,twoLinesInOne,showAll");
+        await context.sync();
+        console.log("First paragraph's formatting:", {
+            bold: paragraphRange.bold,
+            italic: paragraphRange.italic,
+            boldBidirectional: paragraphRange.boldBidirectional,
+            italicBidirectional: paragraphRange.italicBidirectional,
+            case: paragraphRange.case,
+            characterWidth: paragraphRange.characterWidth,
+            combineCharacters: paragraphRange.combineCharacters,
+            disableCharacterSpaceGrid: paragraphRange.disableCharacterSpaceGrid,
+            emphasisMark: paragraphRange.emphasisMark,
+            fitTextWidth: paragraphRange.fitTextWidth,
+            highlightColorIndex: paragraphRange.highlightColorIndex,
+            horizontalInVertical: paragraphRange.horizontalInVertical,
+            kana: paragraphRange.kana,
+            twoLinesInOne: paragraphRange.twoLinesInOne,
+            showAll: paragraphRange.showAll
+        });
+    });
+Word.Range#bookmarks:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-bookmarks.yaml
+
+
+    // Read bookmark properties and the text enclosed by each bookmark.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const bookmarks: Word.BookmarkCollection = paragraphRange.bookmarks;
+        bookmarks.load("items/name,items/start,items/end,items/isEmpty,items/isColumn,items/storyType,items/range/text");
+        await context.sync();
+        console.log(`Bookmarks found: ${bookmarks.items.length}`);
+        bookmarks.items.forEach((bookmark: Word.Bookmark) => {
+            console.log("Bookmark details:", {
+                name: bookmark.name,
+                start: bookmark.start,
+                end: bookmark.end,
+                isEmpty: bookmark.isEmpty,
+                isColumn: bookmark.isColumn,
+                storyType: bookmark.storyType,
+                text: bookmark.range.text
+            });
+        });
+    });
+Word.Range#borders:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Reads the border formatting of the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const borders: Word.BorderUniversalCollection = paragraphRange.borders;
+        borders.load("items/color,items/lineStyle,items/lineWidth,items/isVisible");
+        await context.sync();
+        console.log("First paragraph's border formatting:");
+        borders.items.forEach((border: Word.BorderUniversal) => {
+            console.log({ color: border.color, lineStyle: border.lineStyle, lineWidth: border.lineWidth, isVisible: border.isVisible });
+        });
+    });
+Word.Range#case:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Converts the first paragraph's text to uppercase.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const characterCase: Word.CharacterCase = Word.CharacterCase.upper;
+        paragraphRange.case = characterCase;
+        await context.sync();
+        console.log("Converted the text to uppercase.");
+    });
+Word.Range#characterWidth:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Converts the first paragraph's characters to full width.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const characterWidth: Word.CharacterWidth = Word.CharacterWidth.full;
+        paragraphRange.characterWidth = characterWidth;
+        await context.sync();
+        console.log("Applied full-width characters.");
+    });
+Word.Range#combineCharacters:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Combines the characters in the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.combineCharacters = true;
+        await context.sync();
+        console.log("Enabled combined characters. Get formatting to inspect the setting.");
+    });
+Word.Range#conflicts:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/05-coauthoring/manage-coauthoring-conflicts.yaml
+
+
+    // Gets coauthoring conflicts associated with the selected range.
+
+    await Word.run(async (context) => {
+        const selectedRange: Word.Range = context.document.getSelection();
+        const conflicts: Word.ConflictCollection = selectedRange.conflicts;
+        conflicts.load("items/type");
+        await context.sync();
+        console.log(`Conflicts in the selection: ${conflicts.items.length}`);
+        conflicts.items.forEach((conflict: Word.Conflict) => console.log(`Conflict type: ${conflict.type}`));
+    });
+Word.Range#contentControls:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Gets the content controls contained in the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const contentControls: Word.ContentControlCollection = bodyRange.contentControls;
+        contentControls.load("items/tag,items/title,items/text");
+        await context.sync();
+        console.log(`Content controls found: ${contentControls.items.length}`);
+        contentControls.items.forEach((control: Word.ContentControl) => {
+            console.log({ tag: control.tag, title: control.title, text: control.text });
+        });
+    });
+Word.Range#editors:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/manage-range-editing-permissions-desktop.yaml
+
+
+    // Reads editing-permission entries for the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const editors: Word.EditorCollection = paragraphRange.editors;
+        const editorCount: OfficeExtension.ClientResult<number> = editors.getCount();
+        await context.sync();
+        const editorEntries: Word.Editor[] = [];
+        for (let index = 0; index < editorCount.value; index++) {
+            const editor: Word.Editor = editors.getItemAt(index);
+            editor.load("name,id");
+            editorEntries.push(editor);
+        }
+        await context.sync();
+        console.log(`Editing-permission entries: ${editorCount.value}`);
+        editorEntries.forEach((editor: Word.Editor) => console.log({ name: editor.name, id: editor.id }));
+    });
+Word.Range#end:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Selects the first paragraph's text except its last character.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.load("start,end");
+        await context.sync();
+        if (paragraphRange.start === paragraphRange.end) {
+            console.warn("The paragraph is empty. Run Set up again.");
+            return;
+        }
+        paragraphRange.end = paragraphRange.end - 1;
+        paragraphRange.select();
+        await context.sync();
+        console.log("Selected the range with its ending position reduced by one character.");
+    });
+Word.Range#endnotes:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-footnotes.yaml
+
+
+    // Gets the text of every endnote in the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const endnotes: Word.NoteItemCollection = bodyRange.endnotes;
+        endnotes.load("items/body/text");
+        await context.sync();
+        console.log(`Endnotes found: ${endnotes.items.length}`);
+        endnotes.items.forEach((endnote: Word.NoteItem) => console.log(endnote.body.text));
+    });
+Word.Range#fields:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Gets field codes and displayed results in the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const fields: Word.FieldCollection = bodyRange.fields;
+        fields.load("items/code,items/result/text");
+        await context.sync();
+        console.log(`Fields found: ${fields.items.length}`);
+        fields.items.forEach((field: Word.Field) => console.log({ code: field.code, text: field.result.text }));
+    });
+Word.Range#fitTextWidth:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Fits the first paragraph's text into a specified width.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.fitTextWidth = 100;
+        await context.sync();
+        console.log("Fitted the text into 100 current measurement units.");
     });
 Word.Range#font:member:
   - >-
@@ -35110,7 +37024,214 @@ Word.Range#footnotes:member:
       footnotes.load("length");
       await context.sync();
 
-      console.log("Number of footnotes in the selected range: " + footnotes.items.length);
+      console.log(`Number of footnotes in the selected range: ${footnotes.items.length}`);
+    });
+Word.Range#frames:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Reads the text and dimensions of frames in the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const frames: Word.FrameCollection = bodyRange.frames;
+        frames.load("items/width,items/height,items/range/text");
+        await context.sync();
+        console.log(`Frames found: ${frames.items.length}`);
+        frames.items.forEach((frame: Word.Frame) => {
+            console.log({ width: frame.width, height: frame.height, text: frame.range.text });
+        });
+    });
+Word.Range#grammarChecked:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Marks the first paragraph as needing another grammar check.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.grammarChecked = false;
+        await context.sync();
+        console.log("Reset the grammar-checked flag. Get proofing settings to inspect it.");
+    });
+Word.Range#hasNoProofing:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Disables spelling and grammar checking for the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.hasNoProofing = true;
+        await context.sync();
+        console.log("Disabled proofing. Get proofing settings to verify it.");
+    });
+Word.Range#horizontalInVertical:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Keeps the first paragraph's characters horizontal when the document uses
+    vertical text.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const horizontalLayout: Word.HorizontalInVerticalType = Word.HorizontalInVerticalType.fitInLine;
+        paragraphRange.horizontalInVertical = horizontalLayout;
+        await context.sync();
+        console.log("Enabled horizontal text within vertical text. Get formatting to verify the setting.");
+    });
+Word.Range#hyperlink:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Links the first paragraph's text to the Word add-in documentation.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.hyperlink = "https://learn.microsoft.com/office/dev/add-ins/word/";
+        await context.sync();
+        console.log("Linked the summary text to the Word add-in documentation.");
+    });
+Word.Range#hyperlinks:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Reads hyperlink objects and their destinations in the document body
+    range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const hyperlinks: Word.HyperlinkCollection = bodyRange.hyperlinks;
+        hyperlinks.load("items/address,items/range/text");
+        await context.sync();
+        console.log(`Hyperlinks found: ${hyperlinks.items.length}`);
+        hyperlinks.items.forEach((hyperlink: Word.Hyperlink) => {
+            console.log({ address: hyperlink.address, text: hyperlink.range.text });
+        });
+    });
+Word.Range#id:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Reads the range's character positions and the story containing it.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.load("id,start,end,storyLength,storyType,isEndOfRowMark,isTextVisibleOnScreen");
+        await context.sync();
+        console.log("First paragraph's position and story:", {
+            id: paragraphRange.id,
+            start: paragraphRange.start,
+            end: paragraphRange.end,
+            storyLength: paragraphRange.storyLength,
+            storyType: paragraphRange.storyType,
+            isEndOfRowMark: paragraphRange.isEndOfRowMark,
+            isTextVisibleOnScreen: paragraphRange.isTextVisibleOnScreen
+        });
+    });
+Word.Range#inlinePictures:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Reads the dimensions of inline pictures in the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const pictures: Word.InlinePictureCollection = bodyRange.inlinePictures;
+        pictures.load("items/width,items/height");
+        await context.sync();
+        console.log(`Inline pictures found: ${pictures.items.length}`);
+        pictures.items.forEach((picture: Word.InlinePicture) => console.log({ width: picture.width, height: picture.height }));
+    });
+Word.Range#kana:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Converts the Japanese sample paragraph to hiragana.
+
+    await Word.run(async (context) => {
+        const japaneseRange: Word.Range = context.document.body.paragraphs.getLast().getRange(Word.RangeLocation.content);
+        const kana: Word.Kana = Word.Kana.hiragana;
+        japaneseRange.kana = kana;
+        await context.sync();
+        console.log("Converted the Japanese text to hiragana.");
+    });
+Word.Range#languageDetected:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Marks the first paragraph's language as not yet detected.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.languageDetected = false;
+        await context.sync();
+        console.log("Reset language detection. Get proofing settings to inspect the flag.");
+    });
+Word.Range#languageId:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Sets the first paragraph's proofing language to US English.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const language: Word.LanguageId = Word.LanguageId.englishUS;
+        paragraphRange.languageId = language;
+        await context.sync();
+        console.log("Set the proofing language to US English.");
+    });
+Word.Range#languageIdFarEast:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Sets the Japanese paragraph's East Asian language.
+
+    await Word.run(async (context) => {
+        const japaneseRange: Word.Range = context.document.body.paragraphs.getLast().getRange(Word.RangeLocation.content);
+        const language: Word.LanguageId = Word.LanguageId.japanese;
+        japaneseRange.languageIdFarEast = language;
+        await context.sync();
+        console.log("Set the East Asian language to Japanese.");
+    });
+Word.Range#languageIdOther:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Sets the first paragraph's non-East-Asian language to US English.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const language: Word.LanguageId = Word.LanguageId.englishUS;
+        paragraphRange.languageIdOther = language;
+        await context.sync();
+        console.log("Set the non-East-Asian language to US English.");
     });
 Word.Range#listFormat:member:
   - >-
@@ -35134,37 +37255,48 @@ Word.Range#listFormat:member:
       console.log(`- List string (first paragraph): "${listFormat.listString}"`);
       console.log(`- List value (first paragraph): ${listFormat.listValue}`);
     });
+Word.Range#lists:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Reads the identifiers of lists in the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const lists: Word.ListCollection = bodyRange.lists;
+        lists.load("items/id");
+        await context.sync();
+        console.log(`Lists found: ${lists.items.length}`);
+        lists.items.forEach((list: Word.List) => console.log(`List ID: ${list.id}`));
+    });
 Word.Range#pages:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
+
+    // Reads the index and text of each page intersecting the selection.
 
     await Word.run(async (context) => {
-      // Gets pages of the selection.
-      const pages: Word.PageCollection = context.document.getSelection().pages;
-      pages.load();
+      const selectedRange: Word.Range = context.document.getSelection();
+      const pages: Word.PageCollection = selectedRange.pages;
+      pages.load("items/index");
       await context.sync();
 
-      // Log info for pages included in selection.
-      console.log(pages);
-      const pagesIndexes = [];
-      const pagesText = [];
+      console.log(`Pages in the selection: ${pages.items.length}`);
+      const pageRanges: Word.Range[] = [];
+      pages.items.forEach((page: Word.Page) => {
+        const pageRange: Word.Range = page.getRange(Word.RangeLocation.whole);
+        pageRange.load("text");
+        pageRanges.push(pageRange);
+      });
+
+      await context.sync();
+
       for (let i = 0; i < pages.items.length; i++) {
-        const page = pages.items[i];
-        page.load("index");
-        pagesIndexes.push(page);
-
-        const range = page.getRange();
-        range.load("text");
-        pagesText.push(range);
-      }
-
-      await context.sync();
-
-      for (let i = 0; i < pagesIndexes.length; i++) {
-        console.log(`Index info for page ${i + 1} in the selection: ${pagesIndexes[i].index}`);
-        console.log("Text of that page in the selection:", pagesText[i].text);
+        console.log(`Page ${pages.items[i].index} text: ${pageRanges[i].text}`);
       }
     });
 Word.Range#paragraphs:member:
@@ -35300,6 +37432,210 @@ Word.Range#parentContentControlOrNullObject:member:
 
       console.log("Deleted date picker content control.");
     });
+Word.Range#parentTable:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Reads the table containing the first table cell's range.
+
+    await Word.run(async (context) => {
+        const cellRange: Word.Range = context.document.body.tables.getFirst().getCell(0, 0).body.getRange();
+        const parentTable: Word.Table = cellRange.parentTable;
+        parentTable.load("rowCount,values");
+        await context.sync();
+        console.log("Parent table:", { rowCount: parentTable.rowCount, values: parentTable.values });
+    });
+Word.Range#parentTableCell:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Reads the cell containing the first table cell's range.
+
+    await Word.run(async (context) => {
+        const cellRange: Word.Range = context.document.body.tables.getFirst().getCell(0, 0).body.getRange();
+        const parentCell: Word.TableCell = cellRange.parentTableCell;
+        parentCell.load("rowIndex,cellIndex,value");
+        await context.sync();
+        console.log("Parent cell:", { rowIndex: parentCell.rowIndex, cellIndex: parentCell.cellIndex, value: parentCell.value });
+    });
+Word.Range#parentTableCellOrNullObject:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Checks whether the first paragraph is inside a table cell.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const parentCell: Word.TableCell = paragraphRange.parentTableCellOrNullObject;
+        parentCell.load("value");
+        await context.sync();
+        if (parentCell.isNullObject) {
+            console.warn("The first paragraph is not inside a table cell.");
+            return;
+        }
+        console.log(`Parent cell text: ${parentCell.value}`);
+    });
+Word.Range#parentTableOrNullObject:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-structure.yaml
+
+
+    // Checks whether the first paragraph is inside a table.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const parentTable: Word.Table = paragraphRange.parentTableOrNullObject;
+        parentTable.load("rowCount");
+        await context.sync();
+        if (parentTable.isNullObject) {
+            console.warn("The first paragraph is not inside a table.");
+            return;
+        }
+        console.log(`Parent table rows: ${parentTable.rowCount}`);
+    });
+Word.Range#revisions:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Reads revision metadata for the first paragraph on desktop Word.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const revisions: Word.RevisionCollection = paragraphRange.revisions;
+        revisions.load("items/author,items/date,items/type,items/index,items/formatDescription");
+        await context.sync();
+        console.log(`Revisions in the first paragraph: ${revisions.items.length}`);
+        revisions.items.forEach((revision: Word.Revision) => {
+            console.log("Revision properties:", {
+                author: revision.author,
+                date: revision.date,
+                type: revision.type,
+                index: revision.index,
+                formatDescription: revision.formatDescription,
+            });
+        });
+    });
+Word.Range#sections:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Reads the text of sections intersecting the document body range.
+
+    await Word.run(async (context) => {
+        const bodyRange: Word.Range = context.document.body.getRange();
+        const sections: Word.SectionCollection = bodyRange.sections;
+        sections.load("items/body/text");
+        await context.sync();
+        console.log(`Sections found: ${sections.items.length}`);
+        sections.items.forEach((section: Word.Section) => console.log(section.body.text));
+    });
+Word.Range#shading:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Adds a pale blue background to the first paragraph's text.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const shading: Word.ShadingUniversal = paragraphRange.shading;
+        shading.backgroundPatternColor = "#DDEBF7";
+        await context.sync();
+        console.log("Applied pale blue shading.");
+    });
+Word.Range#shapes:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Reads shapes anchored within the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const shapes: Word.ShapeCollection = paragraphRange.shapes;
+        shapes.load("items/name,items/type,items/width,items/height");
+        await context.sync();
+        console.log(`Shapes found: ${shapes.items.length}`);
+        shapes.items.forEach((shape: Word.Shape) => {
+            console.log({ name: shape.name, type: shape.type, width: shape.width, height: shape.height });
+        });
+    });
+Word.Range#showAll:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Displays nonprinting characters such as spaces and paragraph marks.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        paragraphRange.showAll = true;
+        await context.sync();
+        console.log("Enabled nonprinting characters. Get formatting to inspect the setting.");
+    });
+Word.Range#spellingChecked:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Marks the first paragraph as needing another spelling check.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.spellingChecked = false;
+        await context.sync();
+        console.log("Reset the spelling-checked flag. Get proofing settings to inspect it.");
+    });
+Word.Range#start:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Selects the first paragraph's text except its first character.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.load("start,end");
+        await context.sync();
+        if (paragraphRange.start === paragraphRange.end) {
+            console.warn("The paragraph is empty. Run Set up again.");
+            return;
+        }
+        paragraphRange.start = paragraphRange.start + 1;
+        paragraphRange.select();
+        await context.sync();
+        console.log("Selected the range with its starting position advanced by one character.");
+    });
+Word.Range#style:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/basic-range-operations.yaml
+
+
+    // Applies the sample's custom paragraph style to the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        paragraphRange.style = "RangeSampleStyle";
+        await context.sync();
+        console.log("Applied the sample's custom style.");
+    });
 Word.Range#styleBuiltIn:member:
   - >-
     // Link to full sample:
@@ -35366,6 +37702,37 @@ Word.Range#text:member:
         console.log(`  Update ${i + 1}: "${range.text}"`);
       });
     });
+Word.Range#twoLinesInOne:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Displays the first paragraph's text as two lines enclosed in parentheses.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const twoLineLayout: Word.TwoLinesInOneType = Word.TwoLinesInOneType.parentheses;
+        paragraphRange.twoLinesInOne = twoLineLayout;
+        await context.sync();
+        console.log("Applied two-line text with parentheses.");
+    });
+Word.Range#underline:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/read-range-underline.yaml
+
+
+    // Reads the underline applied to the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.load("underline");
+        await context.sync();
+        const singleUnderline: Word.UnderlineType = Word.UnderlineType.single;
+        console.log(`Underline type: ${paragraphRange.underline}`);
+        console.log(`Has a single underline: ${paragraphRange.underline === singleUnderline}`);
+    });
 Word.RangeCollection:class:
   - >-
     // Link to full sample:
@@ -35393,7 +37760,7 @@ Word.RangeCollection#getFirst:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
 
 
-    // Replaces the document body and creates three tracked changes.
+    // Replaces the document body and tracks text and formatting edits.
 
     await Word.run(async (context) => {
       const document: Word.Document = context.document;
@@ -35413,12 +37780,14 @@ Word.RangeCollection#getFirst:member(1):
       adjective.insertText("swift", Word.InsertLocation.replace);
       animal.delete();
       ending.insertText("hound", Word.InsertLocation.replace);
+      const description: Word.Range = body.search("lazy").getFirst();
+      description.font.bold = true;
       await context.sync();
 
       document.changeTrackingMode = Word.ChangeTrackingMode.off;
       await context.sync();
 
-      console.log("Created three tracked changes.");
+      console.log("Created tracked text edits and applied bold formatting.");
     });
 Word.RangeCollection#items:member:
   - >-
@@ -35426,27 +37795,23 @@ Word.RangeCollection#items:member:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
 
 
+    // Gets complete sentences from the insertion point to the end of its
+    paragraph.
+
     await Word.run(async (context) => {
-      // Get the complete sentence (as range) associated with the insertion point.
-      const sentences: Word.RangeCollection = context.document
-        .getSelection()
-        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+      const selection: Word.Range = context.document.getSelection();
+      const sentences: Word.RangeCollection = selection.getTextRanges(["."], false);
       sentences.load("$none");
       await context.sync();
 
-      // Expand the range to the end of the paragraph to get all the complete sentences.
-      const sentencesToTheEndOfParagraph: Word.RangeCollection = sentences.items[0]
-        .getRange()
-        .expandTo(
-          context.document
-            .getSelection()
-            .paragraphs.getFirst()
-            .getRange(Word.RangeLocation.end)
-        )
-        .getTextRanges(["."], false /* Don't trim spaces*/);
+      const firstSentence: Word.Range = sentences.items[0];
+      const paragraphEnd: Word.Range = selection.paragraphs.getFirst().getRange(Word.RangeLocation.end);
+      const remainingRange: Word.Range = firstSentence.expandTo(paragraphEnd);
+      const sentencesToTheEndOfParagraph: Word.RangeCollection = remainingRange.getTextRanges(["."], false);
       sentencesToTheEndOfParagraph.load("text");
       await context.sync();
 
+      console.log("Sentences from the current sentence to the paragraph end:");
       for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
@@ -35457,27 +37822,23 @@ Word.RangeLocation:enum:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/25-paragraph/get-paragraph-on-insertion-point.yaml
 
 
+    // Gets complete sentences from the insertion point to the end of its
+    paragraph.
+
     await Word.run(async (context) => {
-      // Get the complete sentence (as range) associated with the insertion point.
-      const sentences: Word.RangeCollection = context.document
-        .getSelection()
-        .getTextRanges(["."] /* Using the "." as delimiter */, false /*means without trimming spaces*/);
+      const selection: Word.Range = context.document.getSelection();
+      const sentences: Word.RangeCollection = selection.getTextRanges(["."], false);
       sentences.load("$none");
       await context.sync();
 
-      // Expand the range to the end of the paragraph to get all the complete sentences.
-      const sentencesToTheEndOfParagraph: Word.RangeCollection = sentences.items[0]
-        .getRange()
-        .expandTo(
-          context.document
-            .getSelection()
-            .paragraphs.getFirst()
-            .getRange(Word.RangeLocation.end)
-        )
-        .getTextRanges(["."], false /* Don't trim spaces*/);
+      const firstSentence: Word.Range = sentences.items[0];
+      const paragraphEnd: Word.Range = selection.paragraphs.getFirst().getRange(Word.RangeLocation.end);
+      const remainingRange: Word.Range = firstSentence.expandTo(paragraphEnd);
+      const sentencesToTheEndOfParagraph: Word.RangeCollection = remainingRange.getTextRanges(["."], false);
       sentencesToTheEndOfParagraph.load("text");
       await context.sync();
 
+      console.log("Sentences from the current sentence to the paragraph end:");
       for (let i = 0; i < sentencesToTheEndOfParagraph.items.length; i++) {
         console.log(sentencesToTheEndOfParagraph.items[i].text);
       }
@@ -35564,6 +37925,195 @@ Word.RelativeVerticalPosition:enum:
 
       console.log("Changed the position of the first shape group.");
     });
+Word.Revision:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Reads revision metadata for the first paragraph on desktop Word.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const revisions: Word.RevisionCollection = paragraphRange.revisions;
+        revisions.load("items/author,items/date,items/type,items/index,items/formatDescription");
+        await context.sync();
+        console.log(`Revisions in the first paragraph: ${revisions.items.length}`);
+        revisions.items.forEach((revision: Word.Revision) => {
+            console.log("Revision properties:", {
+                author: revision.author,
+                date: revision.date,
+                type: revision.type,
+                index: revision.index,
+                formatDescription: revision.formatDescription,
+            });
+        });
+    });
+Word.Revision#accept:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Incorporates the first revision into the document.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const revisions: Word.RevisionCollection = paragraphRange.revisions;
+        revisions.load("items");
+        await context.sync();
+
+        if (revisions.items.length === 0) {
+            console.warn("No revisions were found. Run Set up to create tracked changes.");
+            return;
+        }
+
+        const firstRevision: Word.Revision = revisions.items[0];
+        firstRevision.accept();
+        await context.sync();
+
+        console.log("Accepted the first revision. Get revision metadata to inspect the remaining revisions.");
+    });
+Word.Revision#movedRange:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/track-moved-text.yaml
+
+
+    // Reads and selects the text associated with a tracked move.
+
+    await Word.run(async (context) => {
+        const document: Word.Document = context.document;
+        const revisions: Word.RevisionCollection = document.revisions;
+        revisions.load("items/type");
+        await context.sync();
+
+        const movedFrom: Word.RevisionType = Word.RevisionType.movedFrom;
+        const movedTo: Word.RevisionType = Word.RevisionType.movedTo;
+        const movedRevision: Word.Revision | undefined = revisions.items.find(
+            (revision: Word.Revision) => revision.type === movedFrom || revision.type === movedTo
+        );
+        if (!movedRevision) {
+            console.log("Revision types found:", revisions.items.map((revision: Word.Revision) => revision.type));
+            console.warn("No tracked move was found. Move an entire paragraph as described in the task pane; moving a phrase may produce insertion and deletion revisions instead.");
+            return;
+        }
+
+        const movedRange: Word.Range = movedRevision.movedRange;
+        movedRange.load("text");
+        movedRange.select();
+        await context.sync();
+
+        console.log(`Moved revision range text: ${movedRange.text}`);
+    });
+Word.Revision#range:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Reads and selects the text affected by the first revision.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const revisions: Word.RevisionCollection = paragraphRange.revisions;
+        revisions.load("items");
+        await context.sync();
+
+        if (revisions.items.length === 0) {
+            console.warn("No revisions were found. Run Set up to create tracked changes.");
+            return;
+        }
+
+        const firstRevision: Word.Revision = revisions.items[0];
+        const revisionRange: Word.Range = firstRevision.range;
+        revisionRange.load("text");
+        revisionRange.select();
+        await context.sync();
+
+        console.log(`First revision range text: ${revisionRange.text}`);
+    });
+Word.Revision#reject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Removes the first revision and restores the original content.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const revisions: Word.RevisionCollection = paragraphRange.revisions;
+        revisions.load("items");
+        await context.sync();
+
+        if (revisions.items.length === 0) {
+            console.warn("No revisions were found. Run Set up to create tracked changes.");
+            return;
+        }
+
+        const firstRevision: Word.Revision = revisions.items[0];
+        firstRevision.reject();
+        await context.sync();
+
+        console.log("Rejected the first revision. Get revision metadata to inspect the remaining revisions.");
+    });
+Word.RevisionCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/manage-tracked-changes.yaml
+
+
+    // Reads revision metadata for the first paragraph on desktop Word.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const revisions: Word.RevisionCollection = paragraphRange.revisions;
+        revisions.load("items/author,items/date,items/type,items/index,items/formatDescription");
+        await context.sync();
+        console.log(`Revisions in the first paragraph: ${revisions.items.length}`);
+        revisions.items.forEach((revision: Word.Revision) => {
+            console.log("Revision properties:", {
+                author: revision.author,
+                date: revision.date,
+                type: revision.type,
+                index: revision.index,
+                formatDescription: revision.formatDescription,
+            });
+        });
+    });
+Word.RevisionType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/track-moved-text.yaml
+
+
+    // Reads and selects the text associated with a tracked move.
+
+    await Word.run(async (context) => {
+        const document: Word.Document = context.document;
+        const revisions: Word.RevisionCollection = document.revisions;
+        revisions.load("items/type");
+        await context.sync();
+
+        const movedFrom: Word.RevisionType = Word.RevisionType.movedFrom;
+        const movedTo: Word.RevisionType = Word.RevisionType.movedTo;
+        const movedRevision: Word.Revision | undefined = revisions.items.find(
+            (revision: Word.Revision) => revision.type === movedFrom || revision.type === movedTo
+        );
+        if (!movedRevision) {
+            console.log("Revision types found:", revisions.items.map((revision: Word.Revision) => revision.type));
+            console.warn("No tracked move was found. Move an entire paragraph as described in the task pane; moving a phrase may produce insertion and deletion revisions instead.");
+            return;
+        }
+
+        const movedRange: Word.Range = movedRevision.movedRange;
+        movedRange.load("text");
+        movedRange.select();
+        await context.sync();
+
+        console.log(`Moved revision range text: ${movedRange.text}`);
+    });
 Word.SaveBehavior:enum:
   - >-
     // Link to full sample:
@@ -35590,6 +38140,25 @@ Word.SaveConfiguration:enum:
       const closeOptions: Word.WindowCloseOptions = { saveChanges: Word.SaveConfiguration.promptToSaveChanges };
       console.log("About to close the document window...");
       window.close(closeOptions);
+    });
+Word.SearchOptions:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/basic-range-operations.yaml
+
+
+    // Finds whole-word matches within the first paragraph.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+        const searchOptions: Word.SearchOptions = Word.SearchOptions.newObject(context);
+        searchOptions.matchCase = false;
+        searchOptions.matchWholeWord = true;
+        const matches: Word.RangeCollection = paragraphRange.search("project", searchOptions);
+        matches.load("items/text");
+        await context.sync();
+        console.log(`Matches found: ${matches.items.length}`);
+        matches.items.forEach((match: Word.Range) => console.log(match.text));
     });
 Word.SearchOptions#newObject:member(1):
   - >-
@@ -36134,9 +38703,12 @@ Word.SelectionMode:enum:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/scroll-to-range.yaml
 
 
+    // Moves the insertion point to the end of the final paragraph.
+
     await Word.run(async (context) => {
-      // Select can be at the start or end of a range; this by definition moves the insertion point without selecting the range.
-      context.document.body.paragraphs.getLast().select(Word.SelectionMode.end);
+      const lastRange: Word.Range = context.document.body.paragraphs.getLast().getRange();
+      const selectionMode: Word.SelectionMode = Word.SelectionMode.end;
+      lastRange.select(selectionMode);
 
       await context.sync();
     });
@@ -36397,6 +38969,21 @@ Word.ShadingTextureType:enum:
       await context.sync();
 
       console.log("Set the Sample Style shading texture to dark trellis.");
+    });
+Word.ShadingUniversal:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/inspect-range-layout-desktop.yaml
+
+
+    // Adds a pale blue background to the first paragraph's text.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const shading: Word.ShadingUniversal = paragraphRange.shading;
+        shading.backgroundPatternColor = "#DDEBF7";
+        await context.sync();
+        console.log("Applied pale blue shading.");
     });
 Word.Shape:class:
   - >-
@@ -37884,6 +40471,81 @@ Word.StyleType:enum:
         console.log(`Applied '${styleName}' to the sample paragraph.`);
       }
     });
+Word.Table#addColumns:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-table-structure.yaml
+
+
+    // Adds a column to the end of the first table.
+
+    await Word.run(async (context) => {
+      const salesTable: Word.Table = context.document.body.tables.getFirst();
+      salesTable.addColumns(Word.InsertLocation.end, 1);
+
+      await context.sync();
+      console.log("Added a column to the end of the sales table.");
+    });
+Word.Table#addRows:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-table-structure.yaml
+
+
+    // Adds a row to the end of the first table.
+
+    await Word.run(async (context) => {
+      const salesTable: Word.Table = context.document.body.tables.getFirst();
+      salesTable.addRows(Word.InsertLocation.end, 1);
+
+      await context.sync();
+      console.log("Added a row to the end of the sales table.");
+    });
+Word.Table#deleteColumns:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-table-structure.yaml
+
+
+    // Deletes the last column while keeping at least one column in the table.
+
+    await Word.run(async (context) => {
+      const salesTable: Word.Table = context.document.body.tables.getFirst();
+      const firstRow: Word.TableRow = salesTable.rows.getFirst();
+      firstRow.load("cellCount");
+      await context.sync();
+
+      if (firstRow.cellCount <= 1) {
+        console.warn("Keep at least one column. Add a column or choose Set up to reset the sample.");
+        return;
+      }
+
+      salesTable.deleteColumns(firstRow.cellCount - 1, 1);
+      await context.sync();
+      console.log("Deleted the last column of the sales table.");
+    });
+Word.Table#deleteRows:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-table-structure.yaml
+
+
+    // Deletes the last row while keeping the table's header row.
+
+    await Word.run(async (context) => {
+      const salesTable: Word.Table = context.document.body.tables.getFirst();
+      salesTable.load("rowCount");
+      await context.sync();
+
+      if (salesTable.rowCount <= 1) {
+        console.warn("Keep the header row. Add a row or choose Set up to reset the sample.");
+        return;
+      }
+
+      salesTable.deleteRows(salesTable.rowCount - 1, 1);
+      await context.sync();
+      console.log("Deleted the last row of the sales table.");
+    });
 Word.Table#getBorder:member(1):
   - >-
     // Link to full sample:
@@ -37938,6 +40600,41 @@ Word.Table#getCellPadding:member(1):
       console.log(
         `Cell padding details about the ${cellPaddingLocation} border of the first table: ${cellPadding.value} points`,
       );
+    });
+Word.Table#insertParagraph:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-table-structure.yaml
+
+
+    // Inserts a heading before the first table.
+
+    await Word.run(async (context) => {
+      const salesTable: Word.Table = context.document.body.tables.getFirst();
+      const heading: Word.Paragraph = salesTable.insertParagraph("Quarterly sales", Word.InsertLocation.before);
+      heading.font.bold = true;
+
+      await context.sync();
+      console.log("Inserted a heading before the sales table.");
+    });
+Word.Table#insertTable:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/40-tables/manage-table-structure.yaml
+
+
+    // Inserts a notes table after the first table.
+
+    await Word.run(async (context) => {
+      const salesTable: Word.Table = context.document.body.tables.getFirst();
+      const notesTable: Word.Table = salesTable.insertTable(2, 2, Word.InsertLocation.after, [
+        ["Item", "Note"],
+        ["Sales", "Review quarterly totals."]
+      ]);
+      notesTable.styleBuiltIn = Word.BuiltInStyleName.gridTable5Dark_Accent2;
+
+      await context.sync();
+      console.log("Inserted a notes table after the sales table.");
     });
 Word.Table#alignment:member:
   - >-
@@ -39413,7 +42110,12 @@ Word.TrackedChange:class:
       nextTrackedChange.load(["author", "date", "text", "type"]);
       await context.sync();
 
-      console.log(nextTrackedChange);
+      console.log("Next tracked change:", {
+        author: nextTrackedChange.author,
+        date: nextTrackedChange.date,
+        text: nextTrackedChange.text,
+        type: nextTrackedChange.type,
+      });
     });
 Word.TrackedChange#accept:member(1):
   - >-
@@ -39454,7 +42156,12 @@ Word.TrackedChange#getNext:member(1):
       nextTrackedChange.load(["author", "date", "text", "type"]);
       await context.sync();
 
-      console.log(nextTrackedChange);
+      console.log("Next tracked change:", {
+        author: nextTrackedChange.author,
+        date: nextTrackedChange.date,
+        text: nextTrackedChange.text,
+        type: nextTrackedChange.type,
+      });
     });
 Word.TrackedChange#getRange:member(1):
   - >-
@@ -39474,7 +42181,7 @@ Word.TrackedChange#getRange:member(1):
       range.load();
       await context.sync();
 
-      console.log("range.text: " + range.text);
+      console.log(`Tracked change range text: ${range.text}`);
     });
 Word.TrackedChange#reject:member(1):
   - >-
@@ -39555,7 +42262,7 @@ Word.TrackedChangeCollection#getFirst:member(1):
       range.load();
       await context.sync();
 
-      console.log("range.text: " + range.text);
+      console.log(`Tracked change range text: ${range.text}`);
     });
 Word.TrackedChangeCollection#getFirstOrNullObject:member(1):
   - >-
@@ -39622,7 +42329,43 @@ Word.TrackedChangeType:enum:
       nextTrackedChange.load(["author", "date", "text", "type"]);
       await context.sync();
 
-      console.log(nextTrackedChange);
+      console.log("Next tracked change:", {
+        author: nextTrackedChange.author,
+        date: nextTrackedChange.date,
+        text: nextTrackedChange.text,
+        type: nextTrackedChange.type,
+      });
+    });
+Word.TwoLinesInOneType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+
+
+    // Displays the first paragraph's text as two lines enclosed in parentheses.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        const twoLineLayout: Word.TwoLinesInOneType = Word.TwoLinesInOneType.parentheses;
+        paragraphRange.twoLinesInOne = twoLineLayout;
+        await context.sync();
+        console.log("Applied two-line text with parentheses.");
+    });
+Word.UnderlineType:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/read-range-underline.yaml
+
+
+    // Reads the underline applied to the first paragraph range.
+
+    await Word.run(async (context) => {
+        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+        paragraphRange.load("underline");
+        await context.sync();
+        const singleUnderline: Word.UnderlineType = Word.UnderlineType.single;
+        console.log(`Underline type: ${paragraphRange.underline}`);
+        console.log(`Has a single underline: ${paragraphRange.underline === singleUnderline}`);
     });
 Word.TrailingCharacter:enum:
   - >-
@@ -39684,7 +42427,7 @@ Word.VerticalAlignment:enum:
 Word.Window:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {
@@ -39715,7 +42458,7 @@ Word.Window:class:
         pagesIndexes.push(page);
 
         const paragraphs = page.getRange().paragraphs;
-        paragraphs.load("items/length");
+        paragraphs.load("items");
         pagesNumberOfParagraphs.push(paragraphs);
 
         const firstParagraph = paragraphs.getFirst();
@@ -39728,7 +42471,7 @@ Word.Window:class:
       for (let i = 0; i < pagesIndexes.length; i++) {
         console.log(`Page index: ${pagesIndexes[i].index}`);
         console.log(`Number of paragraphs: ${pagesNumberOfParagraphs[i].items.length}`);
-        console.log("First paragraph's text:", pagesFirstParagraphText[i].text);
+        console.log(`First paragraph's text: ${pagesFirstParagraphText[i].text}`);
       }
     });
 Word.Window#close:member(1):
@@ -39747,7 +42490,7 @@ Word.Window#close:member(1):
 Word.Window#activePane:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {
@@ -39788,7 +42531,7 @@ Word.Window#activePane:member:
 Word.Window#panes:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {
@@ -39819,7 +42562,7 @@ Word.WindowCloseOptions:interface:
 Word.WindowCollection:class:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/get-pages.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/36-pages/get-pages.yaml
 
 
     await Word.run(async (context) => {

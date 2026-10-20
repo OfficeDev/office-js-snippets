@@ -530,6 +530,17 @@ export function createWordMock(options: WordMockOptions = {}) {
   mockTable.getRange.mockReturnValue(mockRange);
   mockParagraph.getRange.mockReturnValue(mockRange);
 
+  const mockComment = {
+    isNullObject: false,
+    content: 'Please verify the launch date.',
+    resolved: false,
+    load: jest.fn(),
+    delete: jest.fn(),
+  };
+  const mockComments = {
+    getFirstOrNullObject: jest.fn(() => mockComment),
+  };
+
   const mockBreak = {
     pageIndex: 1,
     range: mockRange,
@@ -695,6 +706,8 @@ export function createWordMock(options: WordMockOptions = {}) {
     insertTable: jest.fn(() => mockTable),
     getRange: jest.fn(() => mockRange),
     getTrackedChanges: jest.fn(() => mockTrackedChanges),
+    track: jest.fn(),
+    untrack: jest.fn(),
     load: jest.fn(),
     search: jest.fn(() => ({
       getFirst: jest.fn(() => mockRange),
@@ -973,6 +986,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     insertEndnote: jest.fn(() => mockNote),
     insertPictureFromBase64: jest.fn(() => mockShape),
     insertComment: jest.fn(() => ({ content: 'Please review this project summary.' })),
+    getComments: jest.fn(() => mockComments),
     getTrackedChanges: jest.fn(() => mockTrackedChanges),
     detectLanguage: jest.fn(() => ({ value: true })),
   });
@@ -1032,6 +1046,7 @@ export function createWordMock(options: WordMockOptions = {}) {
       addStyle: jest.fn(() => mockStyle),
       getStyles: jest.fn(() => mockStyles),
       getSelection: jest.fn(() => mockRange),
+      getBookmarkRangeOrNullObject: jest.fn((name: string) => bookmarkNames.includes(name) ? mockRange : mockNullRange),
       applyQuickStyleSet: jest.fn(),
       properties: mockProperties,
       coauthoring: mockCoauthoring,
@@ -1045,9 +1060,22 @@ export function createWordMock(options: WordMockOptions = {}) {
     sync: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockCommentEvents = {
+    onCommentAdded: { add: jest.fn() },
+    onCommentChanged: { add: jest.fn() },
+    onCommentDeleted: { add: jest.fn() },
+    onCommentDeselected: { add: jest.fn() },
+    onCommentSelected: { add: jest.fn() },
+  };
+  for (const event of Object.values(mockCommentEvents)) {
+    event.add.mockImplementation(() => ({ context: mockContext, remove: jest.fn() }));
+  }
+  Object.assign(mockBody, mockCommentEvents);
+
   const mockData = {
     run: jest.fn(async (contextOrCallback: Function | object, callback?: Function) => {
-      if (typeof contextOrCallback !== 'function' && contextOrCallback !== mockRange && contextOrCallback !== mockContext) {
+      if (typeof contextOrCallback !== 'function' && contextOrCallback !== mockRange
+        && contextOrCallback !== mockBody && contextOrCallback !== mockContext) {
         throw new Error('Word.run received an unsupported mock object or context.');
       }
       const action = typeof contextOrCallback === 'function' ? contextOrCallback : callback;
@@ -1076,6 +1104,15 @@ export function createWordMock(options: WordMockOptions = {}) {
   wordMockObject.ContentControlState = {
     warning: 'Warning',
     error: 'Error',
+  };
+
+  wordMockObject.EventSource = {
+    local: 'Local',
+    remote: 'Remote',
+  };
+
+  wordMockObject.CommentChangeType = {
+    edited: 'edited',
   };
 
   wordMockObject.SaveConfiguration = {
@@ -1210,6 +1247,9 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockContext,
     mockRange: extendedRange,
     mockBody,
+    mockComment,
+    mockComments,
+    mockCommentEvents,
     mockParagraph,
     mockParagraphs,
     mockParagraphFormat,

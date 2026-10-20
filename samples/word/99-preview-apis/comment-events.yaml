@@ -1,0 +1,317 @@
+order: 1
+id: word-comment-events
+name: Comment events (preview)
+description: Registers comment event handlers and reports comment changes, selection, and event sources.
+host: WORD
+api_set:
+    WordApi: preview
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("register-event-handlers").addEventListener("click", () => tryCatch(registerEventHandlers));
+        document.getElementById("create-comment").addEventListener("click", () => tryCatch(createComment));
+        document.getElementById("edit-comment").addEventListener("click", () => tryCatch(editComment));
+        document.getElementById("delete-comment").addEventListener("click", () => tryCatch(deleteComment));
+        document.getElementById("deregister-event-handlers").addEventListener("click", () => tryCatch(deregisterEventHandlers));
+
+        const eventRegistrations: {
+            body: Word.Body;
+            handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs>;
+        }[] = [];
+
+        async function registerEventHandlers() {
+            if (eventRegistrations.length > 0) {
+                console.warn("Deregister the existing handlers before registering again.");
+                return;
+            }
+
+            await registerCommentAdded();
+            await registerCommentChanged();
+            await registerCommentDeleted();
+            await registerCommentDeselected();
+            await registerCommentSelected();
+            console.log("Registered all five comment event handlers.");
+        }
+
+        async function registerCommentAdded() {
+            // Listen for new comments anywhere in the document body.
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.track();
+                const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+                    body.onCommentAdded.add(onEventHandler);
+                eventRegistrations.push({ body, handler });
+                await context.sync();
+            });
+        }
+
+        async function registerCommentChanged() {
+            // Listen for changes to comments and replies in the document body.
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.track();
+                const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+                    body.onCommentChanged.add(onChangedHandler);
+                eventRegistrations.push({ body, handler });
+                await context.sync();
+            });
+        }
+
+        async function registerCommentDeleted() {
+            // Listen for comments deleted from the document body.
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.track();
+                const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+                    body.onCommentDeleted.add(onEventHandler);
+                eventRegistrations.push({ body, handler });
+                await context.sync();
+            });
+        }
+
+        async function registerCommentDeselected() {
+            // Listen for comments losing selection in the document body.
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.track();
+                const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+                    body.onCommentDeselected.add(onEventHandler);
+                eventRegistrations.push({ body, handler });
+                await context.sync();
+            });
+        }
+
+        async function registerCommentSelected() {
+            // Listen for comments being selected in the document body.
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.track();
+                const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+                    body.onCommentSelected.add(onEventHandler);
+                eventRegistrations.push({ body, handler });
+                await context.sync();
+            });
+        }
+
+        async function deregisterEventHandlers() {
+            while (eventRegistrations.length > 0) {
+                const registration = eventRegistrations[0];
+                await Word.run(registration.body, async (context) => {
+                    registration.handler.remove();
+                    registration.body.untrack();
+                    await context.sync();
+                });
+                eventRegistrations.shift();
+            }
+            console.log("Removed comment event handlers.");
+        }
+
+        async function onEventHandler(event: Word.CommentEventArgs) {
+            // Report the event source and the IDs of affected comments and replies.
+            const remoteSource: Word.EventSource = Word.EventSource.remote;
+            console.log(`${event.type} event. Source: ${event.source}.`);
+            if (event.source === remoteSource) {
+                console.log("A coauthor triggered this event.");
+            }
+            event.commentDetails.forEach((comment: Word.CommentDetail) => {
+                console.log("Affected comment:", { id: comment.id, replyIds: comment.replyIds });
+            });
+        }
+
+        async function onChangedHandler(event: Word.CommentEventArgs) {
+            // Report how a comment changed, including edits to its text.
+            const edited: Word.CommentChangeType = Word.CommentChangeType.edited;
+            console.log(`Comment change: ${event.changeType}.`);
+            if (event.changeType === edited) {
+                console.log("The comment text was edited.");
+            }
+            await onEventHandler(event);
+        }
+
+        async function createComment() {
+            await Word.run(async (context) => {
+                const sampleRange: Word.Range = context.document.getBookmarkRangeOrNullObject("CommentEventsSample");
+                await context.sync();
+                if (sampleRange.isNullObject) {
+                    console.warn("Run Set up to create the sample paragraph.");
+                    return;
+                }
+
+                const existingComment: Word.Comment = sampleRange.getComments().getFirstOrNullObject();
+                await context.sync();
+                if (!existingComment.isNullObject) {
+                    console.warn("The sample paragraph already has a comment. Edit or delete it first.");
+                    return;
+                }
+
+                sampleRange.insertComment("Please verify the launch date.");
+                await context.sync();
+                console.log("Created the sample comment. Look for a CommentAdded event.");
+            });
+        }
+
+        async function editComment() {
+            await Word.run(async (context) => {
+                const sampleRange: Word.Range = context.document.getBookmarkRangeOrNullObject("CommentEventsSample");
+                await context.sync();
+                if (sampleRange.isNullObject) {
+                    console.warn("Run Set up to create the sample paragraph.");
+                    return;
+                }
+
+                const comment: Word.Comment = sampleRange.getComments().getFirstOrNullObject();
+                comment.load("content,resolved");
+                await context.sync();
+                if (comment.isNullObject) {
+                    console.warn("Create the sample comment before editing it.");
+                    return;
+                }
+                if (comment.resolved) {
+                    console.warn("Reopen the sample comment in Word before editing it.");
+                    return;
+                }
+
+                comment.content = comment.content === "Please verify the launch date."
+                    ? "The launch date is confirmed."
+                    : "Please verify the launch date.";
+                await context.sync();
+                console.log("Edited the sample comment. Look for a CommentChanged event.");
+            });
+        }
+
+        async function deleteComment() {
+            await Word.run(async (context) => {
+                const sampleRange: Word.Range = context.document.getBookmarkRangeOrNullObject("CommentEventsSample");
+                await context.sync();
+                if (sampleRange.isNullObject) {
+                    console.warn("Run Set up to create the sample paragraph.");
+                    return;
+                }
+
+                const comment: Word.Comment = sampleRange.getComments().getFirstOrNullObject();
+                await context.sync();
+                if (comment.isNullObject) {
+                    console.warn("Create the sample comment before deleting it.");
+                    return;
+                }
+
+                comment.delete();
+                await context.sync();
+                console.log("Deleted the sample comment. Look for a CommentDeleted event.");
+            });
+        }
+
+        async function setup() {
+            if (eventRegistrations.length > 0) {
+                await deregisterEventHandlers();
+            }
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                const paragraph: Word.Paragraph = body.insertParagraph("The project launches on October 30.", Word.InsertLocation.start);
+                const sampleRange: Word.Range = paragraph.getRange(Word.RangeLocation.content);
+                sampleRange.insertBookmark("CommentEventsSample");
+                await context.sync();
+                console.log("Created the sample paragraph. Register handlers before triggering events.");
+            });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to monitor comment creation, changes, deletion, selection, and deselection.
+                The console reports each event, its source, and the affected comment and reply IDs.</p>
+            <p><b>Note:</b> Comment events require a Word build that supports these preview APIs.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Set up replaces the document body with a sample paragraph and removes any handlers registered by this sample.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Register handlers, then use the comment actions and watch the console.
+                The handlers monitor the entire document body, not just the sample paragraph.</p>
+            <button id="register-event-handlers">Register event handlers</button>
+            <button id="create-comment">Create sample comment</button>
+            <button id="edit-comment">Edit sample comment</button>
+            <p>Editing switches between two comment texts so repeated clicks continue to trigger changes.</p>
+            <p>For selection events, open Word's Comments pane, select the sample comment,
+                then click elsewhere in the document to deselect it. Watch for CommentSelected and CommentDeselected events.</p>
+            <button id="delete-comment">Delete sample comment</button>
+            <p>After deregistering, comment actions still work but no longer produce event messages from this sample.</p>
+            <button id="deregister-event-handlers">Deregister event handlers</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/beta/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts

@@ -1,22 +1,29 @@
-order: 2
+order: 1
 id: word-close-document-window
 name: Close document window
-description: Shows how to close document window.
+description: Closes the active document window with the prompt-to-save option.
 host: WORD
 api_set:
-    WordApi: '1.10'
+    WordApiDesktop: '1.4'
 script:
     content: |
         document.getElementById("close-with-save-prompt").addEventListener("click", () => tryCatch(closeWithSavePrompt));
 
         async function closeWithSavePrompt() {
-          await Word.run(async (context) => {
-            // Closes the document window, prompting to save if this is a new document.
-            const window: Word.Window = context.document.activeWindow;
-            const closeOptions: Word.WindowCloseOptions = { saveChanges: Word.SaveConfiguration.promptToSaveChanges };
-            console.log("About to close the document window...");
-            window.close(closeOptions);
-          });
+            // Closes the active document window with Word's prompt-to-save option.
+            if (!Office.context.requirements.isSetSupported("WordApiDesktop", "1.4")) {
+                console.error("This sample requires WordApiDesktop 1.4 or later.");
+                return;
+            }
+
+            await Word.run(async (context) => {
+                const window: Word.Window = context.document.activeWindow;
+                const saveChanges: Word.SaveConfiguration = Word.SaveConfiguration.promptToSaveChanges;
+                const closeOptions: Word.WindowCloseOptions = { saveChanges };
+                console.log("About to close the document window...");
+                window.close(closeOptions);
+                await context.sync();
+            });
         }
 
         // Default helper for invoking an action and handling errors.
@@ -32,11 +39,14 @@ script:
 template:
     content: |-
         <section>
-            This sample demonstrates how to close the document window.
+            <p>This sample closes the active document window with Word's prompt-to-save option.</p>
+            <p><b>Support:</b> Requires Word on Windows or Mac with WordApiDesktop 1.4.
+                This sample isn't supported in Word on the web.</p>
         </section>
         <section>
             <h3>Try it out</h3>
-            <button id="close-with-save-prompt">Close document</button>
+            <p>Use a document you can safely close. Closing its window may also close this task pane.</p>
+            <button id="close-with-save-prompt">Close document window</button>
         </section>
     language: html
 style:
@@ -99,5 +109,5 @@ style:
         }
     language: css
 libraries: |-
-    https://officeapis.public.onecdn.static.microsoft/beta/office.js
-    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

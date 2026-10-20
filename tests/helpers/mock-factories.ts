@@ -585,6 +585,7 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockWindow = {
     activePane: mockPane,
+    close: jest.fn(),
     panes: {
       items: [mockPane],
       load: jest.fn(),
@@ -841,7 +842,24 @@ export function createWordMock(options: WordMockOptions = {}) {
     getLast: jest.fn(() => mockRange),
     load: jest.fn(),
   };
-  const mockContentControl = { tag: 'RangeSampleSummary', title: 'Project summary', text: 'Project summary' };
+  const mockContentControl = {
+    tag: 'RangeSampleSummary',
+    title: 'Project summary',
+    text: 'Project summary',
+    isNullObject: false,
+    select: jest.fn(),
+    setState: jest.fn(),
+    resetState: jest.fn(),
+  };
+  const mockContentControls = {
+    items: [mockContentControl],
+    getByTag: jest.fn((tag: string) => ({
+      getFirstOrNullObject: jest.fn(() => mockContentControl.tag === tag
+        ? mockContentControl
+        : { isNullObject: true }),
+    })),
+    load: jest.fn(),
+  };
   const mockInlinePicture = { width: 90, height: 39 };
   const mockShape = { name: 'RangeSamplePicture', type: 'Picture', width: 90, height: 39 };
   const mockEditor = { name: 'Everyone', id: 'Everyone', load: jest.fn() };
@@ -907,7 +925,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     hyperlink: 'https://learn.microsoft.com/office/dev/add-ins/word/',
     borders: mockBorders,
     shading: mockShading,
-    contentControls: { items: [mockContentControl], load: jest.fn() },
+    contentControls: mockContentControls,
     fields: { items: [{ code: 'QUOTE "Ready for review."', result: mockRange }], load: jest.fn() },
     inlinePictures: { items: [mockInlinePicture], load: jest.fn() },
     lists: { items: [mockList], load: jest.fn() },
@@ -1005,6 +1023,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockContext = {
     document: {
       body: mockBody,
+      contentControls: mockContentControls,
       changeTrackingMode: 'Off',
       trackMoves: false,
       revisions: { items: [mockRevision], load: jest.fn() },
@@ -1052,6 +1071,15 @@ export function createWordMock(options: WordMockOptions = {}) {
     off: 'Off',
     trackAll: 'TrackAll',
     trackMineOnly: 'TrackMineOnly',
+  };
+
+  wordMockObject.ContentControlState = {
+    warning: 'Warning',
+    error: 'Error',
+  };
+
+  wordMockObject.SaveConfiguration = {
+    promptToSaveChanges: 'PromptToSaveChanges',
   };
 
   wordMockObject.RevisionType = {

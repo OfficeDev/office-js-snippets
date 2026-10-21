@@ -1198,7 +1198,7 @@ describe('Runtime Execution Tests - Word', () => {
     ]],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', [
       'setup', 'set-language', 'set-east-asian-language', 'set-other-language',
-      'reset-language-detection', 'detect-language', 'disable-proofing',
+      'reset-language-detection', 'disable-proofing',
       'reset-spelling', 'reset-grammar', 'get-proofing',
     ]],
     ['35-ranges', 'basic-range-operations.yaml', [
@@ -1278,7 +1278,6 @@ describe('Runtime Execution Tests - Word', () => {
     ['35-ranges', 'basic-range-operations.yaml', 'search-range', 'Matches found: 1'],
     ['35-ranges', 'compare-location.yaml', 'expand-ranges', expect.stringContaining('Expanded text: ')],
     ['35-ranges', 'compare-location.yaml', 'intersect-ranges', expect.stringContaining('Overlapping text: ')],
-    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'detect-language', "English paragraph's language detected: true"],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'set-language', "Set the English paragraph's proofing language to US English."],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'set-east-asian-language', "Set the Japanese paragraph's East Asian language to Japanese."],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'set-other-language', "Set the English paragraph's non-East-Asian language to US English."],
@@ -1427,18 +1426,12 @@ describe('Runtime Execution Tests - Word', () => {
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
-    test.each([true, false])('language detection logs the synchronized result (%s)', async (detected) => {
-      const detection = { value: !detected };
-      wordMock.mockRange.detectLanguage.mockReturnValue(detection);
-      wordMock.mockContext.sync.mockImplementation(async () => {
-        detection.value = detected;
-      });
-
-      await clickButton(buttonHandlers, 'detect-language');
-
-      expect(wordMock.mockRange.detectLanguage).toHaveBeenCalledTimes(1);
-      expect(consoleSpy).toHaveBeenCalledWith(`English paragraph's language detected: ${detected}`);
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    test('registers only the supported sample actions', () => {
+      expect([...buttonHandlers.keys()]).toEqual([
+        'setup', 'set-language', 'set-east-asian-language', 'set-other-language',
+        'reset-language-detection', 'disable-proofing', 'reset-spelling', 'reset-grammar', 'get-proofing',
+      ]);
+      expect(wordMock.mockRange.detectLanguage).not.toHaveBeenCalled();
     });
 
     test('surfaces synchronization errors without logging success', async () => {

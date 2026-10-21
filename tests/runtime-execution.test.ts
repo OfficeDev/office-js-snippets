@@ -1196,6 +1196,11 @@ describe('Runtime Execution Tests - Word', () => {
       'setup', 'indent', 'indent-first-line', 'indent-right', 'spacing', 'space-before',
       'space-after', 'line-unit-spacing-after', 'line-unit-spacing-before', 'align', 'get-formatting',
     ]],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', [
+      'setup', 'set-language', 'set-east-asian-language', 'set-other-language',
+      'reset-language-detection', 'detect-language', 'disable-proofing',
+      'reset-spelling', 'reset-grammar', 'get-proofing',
+    ]],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
       'search-range', 'set-style', 'clear-range', 'delete-range',
@@ -1226,9 +1231,7 @@ describe('Runtime Execution Tests - Word', () => {
     ['35-ranges', 'format-range-text-desktop.yaml', [
       'setup', 'get-formatting', 'get-position', 'move-start', 'move-end', 'set-case',
       'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
-      'set-kana', 'set-two-lines', 'set-language', 'set-east-asian-language',
-      'set-other-language', 'detect-language', 'reset-language-detection',
-      'disable-proofing', 'reset-spelling', 'reset-grammar', 'get-proofing', 'show-marks',
+      'set-kana', 'set-two-lines', 'show-marks',
     ]],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', [
       'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames',
@@ -1275,7 +1278,14 @@ describe('Runtime Execution Tests - Word', () => {
     ['35-ranges', 'basic-range-operations.yaml', 'search-range', 'Matches found: 1'],
     ['35-ranges', 'compare-location.yaml', 'expand-ranges', expect.stringContaining('Expanded text: ')],
     ['35-ranges', 'compare-location.yaml', 'intersect-ranges', expect.stringContaining('Overlapping text: ')],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'detect-language', 'Language detected: true'],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'detect-language', "English paragraph's language detected: true"],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'set-language', "Set the English paragraph's proofing language to US English."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'set-east-asian-language', "Set the Japanese paragraph's East Asian language to Japanese."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'set-other-language', "Set the English paragraph's non-East-Asian language to US English."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'reset-language-detection', "Reset the English paragraph's language-detected flag. Get language and proofing settings to inspect it."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'disable-proofing', "Disabled spelling and grammar checking for the English paragraph. Get language and proofing settings to verify it."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'reset-spelling', "Reset the English paragraph's spelling-checked flag. Get language and proofing settings to inspect it."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'reset-grammar', "Reset the English paragraph's grammar-checked flag. Get language and proofing settings to inspect it."],
     ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-html', expect.stringContaining('Range HTML: ')],
     ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-ooxml', expect.stringContaining('Range OOXML: ')],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-borders', "First paragraph's border formatting:"],
@@ -1314,7 +1324,8 @@ describe('Runtime Execution Tests - Word', () => {
     ['35-ranges', 'basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
     ['35-ranges', 'format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
     ['35-ranges', 'format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'get-proofing', "First paragraph's proofing settings:", { languageId: 'EnglishUS', languageDetected: false }],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "English paragraph's proofing settings:", { languageId: 'EnglishUS', languageDetected: false }],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "Japanese paragraph's proofing settings:", { languageIdFarEast: 'Japanese', languageDetected: false }],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-table', 'Parent table:', { rowCount: 2, values: expect.any(Array) }],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-cell', 'Parent cell:', { rowIndex: expect.any(Number), cellIndex: expect.any(Number), value: expect.any(String) }],
     ['50-document', 'manage-tracked-changes.yaml', 'get-next-tracked-change', 'Next tracked change:', { author: expect.any(String), date: expect.any(Date), text: expect.any(String), type: expect.any(String) }],
@@ -1326,6 +1337,118 @@ describe('Runtime Execution Tests - Word', () => {
         expect(consoleSpy).toHaveBeenCalledWith(label, expect.objectContaining(properties));
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
+    });
+  });
+
+  describe('Word: language and proofing (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'manage-language-and-proofing-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let japaneseRange: ReturnType<typeof createWordMock>['mockRange'];
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      japaneseRange = { ...wordMock.mockRange, text: 'Japanese sample text', load: jest.fn() };
+      wordMock.mockBody.paragraphs.getLast.mockReturnValue({
+        ...wordMock.mockParagraph,
+        getRange: jest.fn(() => japaneseRange),
+      });
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('setup replaces sample text and re-enables proofing on repeated runs', async () => {
+      wordMock.mockRange.hasNoProofing = true;
+
+      await clickButton(buttonHandlers, 'setup');
+      wordMock.mockRange.hasNoProofing = true;
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['The project summarry is ready for reveiw. The team will discuss the launch schedule tomorrow.', 'Replace'],
+        ['The project summarry is ready for reveiw. The team will discuss the launch schedule tomorrow.', 'Replace'],
+      ]);
+      expect(wordMock.mockBody.insertParagraph).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockBody.insertParagraph).toHaveBeenCalledWith(
+        '\u3053\u306e\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u306f\u6765\u9031\u958b\u59cb\u4e88\u5b9a\u3067\u3059\u3002',
+        'End'
+      );
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.hasNoProofing).toBe(false);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ['set-language', 'languageId', 'Unassigned', 'EnglishUS'],
+      ['set-east-asian-language', 'languageIdFarEast', 'Unassigned', 'Japanese'],
+      ['set-other-language', 'languageIdOther', 'Unassigned', 'EnglishUS'],
+      ['reset-language-detection', 'languageDetected', true, false],
+      ['disable-proofing', 'hasNoProofing', false, true],
+      ['reset-spelling', 'spellingChecked', true, false],
+      ['reset-grammar', 'grammarChecked', true, false],
+    ] as const)('%s changes the intended paragraph property', async (buttonId, property, initialValue, value) => {
+      Object.assign(wordMock.mockRange, { [property]: initialValue });
+      Object.assign(japaneseRange, { [property]: initialValue });
+
+      await clickButton(buttonHandlers, buttonId);
+
+      const targetRange = buttonId === 'set-east-asian-language' ? japaneseRange : wordMock.mockRange;
+      const otherRange = buttonId === 'set-east-asian-language' ? wordMock.mockRange : japaneseRange;
+      expect(targetRange[property]).toBe(value);
+      expect(otherRange[property]).toBe(initialValue);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback labels the two paragraphs and loads every reported property', async () => {
+      await clickButton(buttonHandlers, 'get-proofing');
+
+      for (const range of [wordMock.mockRange, japaneseRange]) {
+        expect(range.load).toHaveBeenCalledWith(
+          'text,languageId,languageIdFarEast,languageIdOther,languageDetected,hasNoProofing,spellingChecked,grammarChecked'
+        );
+      }
+      expect(consoleSpy.mock.calls).toEqual([
+        ["English paragraph's proofing settings:", {
+          text: wordMock.mockRange.text,
+          languageId: 'EnglishUS', languageIdFarEast: 'Japanese', languageIdOther: 'EnglishUS',
+          languageDetected: false, hasNoProofing: false, spellingChecked: false, grammarChecked: false,
+        }],
+        ["Japanese paragraph's proofing settings:", {
+          text: 'Japanese sample text',
+          languageId: 'EnglishUS', languageIdFarEast: 'Japanese', languageIdOther: 'EnglishUS',
+          languageDetected: false, hasNoProofing: false, spellingChecked: false, grammarChecked: false,
+        }],
+      ]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([true, false])('language detection logs the synchronized result (%s)', async (detected) => {
+      const detection = { value: !detected };
+      wordMock.mockRange.detectLanguage.mockReturnValue(detection);
+      wordMock.mockContext.sync.mockImplementation(async () => {
+        detection.value = detected;
+      });
+
+      await clickButton(buttonHandlers, 'detect-language');
+
+      expect(wordMock.mockRange.detectLanguage).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith(`English paragraph's language detected: ${detected}`);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('surfaces synchronization errors without logging success', async () => {
+      const error = new Error('Proofing operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, 'disable-proofing');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
     });
   });
 

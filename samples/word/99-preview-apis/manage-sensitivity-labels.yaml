@@ -12,8 +12,8 @@ script:
         document.getElementById("set-document-label").addEventListener("click", () => tryCatch(setDocumentLabel));
 
         async function getCatalogStatus() {
+          // Check whether sensitivity labeling is available for the current user.
           await Word.run(async (context) => {
-            // Check whether sensitivity labeling is available for the current user.
             const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
             if (!labelCatalog) {
               console.warn("The sensitivity label catalog isn't available.");
@@ -23,7 +23,23 @@ script:
             labelCatalog.load("getLabelingCapability");
             await context.sync();
 
-            console.log(`Sensitivity label catalog status: ${labelCatalog.getLabelingCapability}`);
+            switch (labelCatalog.getLabelingCapability) {
+              case Word.LabelingCapability.labelingEnabled:
+                console.log("Sensitivity labeling is enabled.");
+                break;
+              case Word.LabelingCapability.labelingDisabled:
+                console.log("Sensitivity labeling is disabled.");
+                break;
+              case Word.LabelingCapability.labelingPolicyNotFound:
+                console.log("No sensitivity labeling policy was found.");
+                break;
+              case Word.LabelingCapability.noLicense:
+                console.log("The current user doesn't have a valid sensitivity labeling license.");
+                break;
+              default:
+                console.log(`Unknown labeling capability: ${labelCatalog.getLabelingCapability}`);
+                break;
+            }
           });
         }
 
@@ -129,12 +145,7 @@ script:
               await context.sync();
 
               abacAttributeValues = currentLabel.abacAttributeValues;
-              // Load the properties of each ABAC attribute value returned by the label.
-              abacAttributeValues.forEach((attributeValue: Word.SensitivityLabelAbacAttributeValue) => {
-                attributeValue.load("displayName,displayOrder,id,isActive");
-              });
             }
-            await context.sync();
 
             // Display the loaded properties of the current label.
             const attributeValues = abacAttributeValues.length
@@ -162,8 +173,8 @@ script:
         }
 
         async function setDocumentLabel() {
+          // Apply the selected sensitivity label to the document.
           await Word.run(async (context) => {
-            // Apply the selected sensitivity label to the document.
             const labelId = (document.getElementById("label-id") as HTMLSelectElement).value;
             if (!labelId) {
               console.warn("Get the available labels, and then select a label to apply.");

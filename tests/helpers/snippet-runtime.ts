@@ -76,10 +76,11 @@ export function createMockButton(handler: Function) {
 /**
  * Create a mock document with getElementById support
  */
-export function createMockDocument(buttonHandlers: Map<string, Function>) {
+export function createMockDocument(buttonHandlers: Map<string, Function>, elementValues: Record<string, string> = {}) {
   return {
     getElementById: (id: string) => {
       return {
+        value: elementValues[id] ?? '',
         addEventListener: (event: string, callback: Function) => {
           if (event === 'click') {
             // Store the handler so tests can trigger it

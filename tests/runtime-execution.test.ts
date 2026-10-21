@@ -75,6 +75,100 @@ describe('Runtime Execution Tests - Word', () => {
     jest.restoreAllMocks();
   });
 
+  test.each([
+    ['LabelingEnabled', 'Sensitivity labeling is enabled.'],
+    ['LabelingDisabled', 'Sensitivity labeling is disabled.'],
+    ['LabelingPolicyNotFound', 'No sensitivity labeling policy was found.'],
+    ['NoLicense', "The current user doesn't have a valid sensitivity labeling license."],
+    ['FutureCapability', 'Unknown labeling capability: FutureCapability'],
+  ])('Word: catalog status %s displays the expected message', async (labelingCapability, expectedMessage) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '99-preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-status',
+      mockOptions: { labelingCapability },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sensitivityLabelsCatalog.load).toHaveBeenCalledWith('getLabelingCapability');
+        expect(mockContext.sync).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledWith(expectedMessage);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { abacEnabled: true, isNullObject: false },
+    { abacEnabled: false, isNullObject: false },
+    { abacEnabled: true, isNullObject: true },
+  ])('Word: getting a label handles ABAC $abacEnabled and null label $isNullObject', async ({
+    abacEnabled, isNullObject,
+  }) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '99-preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-document-label',
+      mockOptions: {
+        sensitivityLabelAbacEnabled: abacEnabled,
+        sensitivityLabelIsNullObject: isNullObject,
+      },
+      assertions: ({ mockContext }) => {
+        const getCurrentLabel = mockContext.document.sensitivityLabel.getCurrentOrNullObject;
+        expect(getCurrentLabel).toHaveBeenCalledTimes(1);
+        const currentLabel = getCurrentLabel.mock.results[0].value;
+        expect(currentLabel.load).toHaveBeenCalledWith(
+          'color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip'
+        );
+        if (isNullObject) {
+          expect(consoleSpy).toHaveBeenCalledWith("The document doesn't have a sensitivity label.");
+        } else if (abacEnabled) {
+          expect(currentLabel.load).toHaveBeenCalledWith('abacAttributeValues');
+          expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(
+            'ABAC attribute values: Engineering (ID: engineering, order: 1, active: Yes), ' +
+            'Finance (ID: finance, order: 2, active: No)'
+          ));
+        } else {
+          expect(currentLabel.load).not.toHaveBeenCalledWith('abacAttributeValues');
+          expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('ABAC attribute values: None'));
+        }
+        expect(mockContext.sync).toHaveBeenCalledTimes(abacEnabled && !isNullObject ? 2 : 1);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { updateResult: 'Success', successful: false },
+    {
+      updateResult: {
+        '@odata.type': 'Microsoft.WordServices.SensitivityLabelUpdateResult',
+        status: 'Success',
+      },
+      successful: true,
+    },
+    { updateResult: 'DocumentReadOnly', successful: false },
+    { updateResult: { status: 'DocumentReadOnly' }, successful: false },
+    { updateResult: { unexpected: 'Success' }, successful: false },
+    { updateResult: null, successful: false },
+  ])('Word: setting a label handles update result $updateResult', async ({ updateResult, successful }) => {
+    await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '99-preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'set-document-label',
+      elementValues: { 'label-id': 'sample-label' },
+      mockOptions: { sensitivityLabelUpdateResult: updateResult },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.document.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith('sample-label');
+        expect(mockContext.sync).toHaveBeenCalledTimes(1);
+        if (successful) {
+          expect(consoleSpy).toHaveBeenCalledWith('Applied the sensitivity label to the document.');
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        } else {
+          expect(consoleErrorSpy).toHaveBeenCalledWith(
+            `Sensitivity label update returned a non-success result: ${JSON.stringify(updateResult)}`
+          );
+          expect(consoleSpy).not.toHaveBeenCalled();
+        }
+      },
+    });
+  });
+
   test('Word: basic-api-call executes without runtime errors', async () => {
     await runWordSnippetTest({
       snippetPath: path.join('samples', 'word', '01-basics', 'basic-api-call.yaml'),
@@ -147,6 +241,34 @@ describe('Runtime Execution Tests - PowerPoint', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  test.each([
+    { updateResult: { status: 'Success' }, successful: true },
+    { updateResult: { status: 'DocumentReadOnly' }, successful: false },
+    { updateResult: 'Success', successful: false },
+    { updateResult: { unexpected: 'Success' }, successful: false },
+    { updateResult: null, successful: false },
+  ])('PowerPoint: setting a label handles update result $updateResult without the runtime enum', async ({ updateResult, successful }) => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'set-presentation-label',
+      elementValues: { 'label-id': 'sample-label' },
+      mockOptions: { sensitivityLabelUpdateResult: updateResult },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.presentation.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith('sample-label');
+        expect(mockContext.sync).toHaveBeenCalledTimes(1);
+        if (successful) {
+          expect(consoleSpy).toHaveBeenCalledWith('Applied the sensitivity label to the presentation.');
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        } else {
+          expect(consoleErrorSpy).toHaveBeenCalledWith(
+            `Sensitivity label update returned a non-success result: ${JSON.stringify(updateResult)}`
+          );
+          expect(consoleSpy).not.toHaveBeenCalled();
+        }
+      },
+    });
   });
 
   test('PowerPoint: basic-api-call-ts executes without runtime errors', async () => {

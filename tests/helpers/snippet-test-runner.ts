@@ -32,6 +32,7 @@ export interface RunSnippetTestOptions {
   mockOptions?: any;
   assertions?: (context: any) => void;
   skipButtonClick?: boolean;
+  elementValues?: Record<string, string>;
 }
 
 /**
@@ -65,7 +66,8 @@ export async function runExcelSnippetTest(options: RunSnippetTestOptions) {
   const { mockObject, mockContext, mockRange, mockWorksheet } = createExcelMock(mockOptions as ExcelMockOptions);
 
   (global as any).Excel = mockObject;
-  (global as any).document = createMockDocument(buttonHandlers);
+  const mockDocument = createMockDocument(buttonHandlers, options.elementValues);
+  (global as any).document = mockDocument;
 
   // Execute snippet
   executeSnippetCode(snippet);
@@ -77,10 +79,10 @@ export async function runExcelSnippetTest(options: RunSnippetTestOptions) {
 
   // Run custom assertions
   if (assertions) {
-    assertions({ mockContext, mockRange, mockWorksheet });
+    assertions({ mockContext, mockRange, mockWorksheet, mockDocument });
   }
 
-  return { mockContext, mockRange, mockWorksheet };
+  return { mockContext, mockRange, mockWorksheet, mockDocument, buttonHandlers };
 }
 
 /**
@@ -108,7 +110,7 @@ export async function runWordSnippetTest(options: RunSnippetTestOptions) {
   );
 
   (global as any).Word = mockObject;
-  (global as any).document = createMockDocument(buttonHandlers);
+  (global as any).document = createMockDocument(buttonHandlers, options.elementValues);
 
   // Execute snippet
   executeSnippetCode(snippet);
@@ -159,7 +161,7 @@ export async function runPowerPointSnippetTest(options: RunSnippetTestOptions) {
   );
 
   (global as any).PowerPoint = mockObject;
-  (global as any).document = createMockDocument(buttonHandlers);
+  (global as any).document = createMockDocument(buttonHandlers, options.elementValues);
 
   // Execute snippet
   executeSnippetCode(snippet);
@@ -192,7 +194,7 @@ export async function runOneNoteSnippetTest(options: RunSnippetTestOptions) {
   );
 
   (global as any).OneNote = mockObject;
-  (global as any).document = createMockDocument(buttonHandlers);
+  (global as any).document = createMockDocument(buttonHandlers, options.elementValues);
 
   // Execute snippet
   executeSnippetCode(snippet);
@@ -223,7 +225,7 @@ export async function runOutlookSnippetTest(options: RunSnippetTestOptions) {
   const { Office: OutlookOffice, mockMailbox, mockItem } = createOutlookMock(mockOptions as OutlookMockOptions);
 
   (global as any).Office = OutlookOffice;
-  (global as any).document = createMockDocument(buttonHandlers);
+  (global as any).document = createMockDocument(buttonHandlers, options.elementValues);
 
   // Execute snippet
   executeSnippetCode(snippet);
@@ -252,7 +254,7 @@ export async function runCommonApiSnippetTest(options: RunSnippetTestOptions) {
 
   // Create Common API mock
   (global as any).Office = createOfficeCommonApiMock();
-  (global as any).document = createMockDocument(buttonHandlers);
+  (global as any).document = createMockDocument(buttonHandlers, options.elementValues);
 
   // Execute snippet
   executeSnippetCode(snippet);

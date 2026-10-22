@@ -1,0 +1,171 @@
+order: 7
+id: word-paragraph-insert-and-read-paragraph-markup
+name: Insert and read paragraph markup
+description: Replaces a paragraph with HTML or OOXML and reads its markup.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.1'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("insert-html").addEventListener("click", () => tryCatch(insertHtml));
+        document.getElementById("insert-ooxml").addEventListener("click", () => tryCatch(insertOoxml));
+        document.getElementById("get-html").addEventListener("click", () => tryCatch(getHtml));
+        document.getElementById("get-ooxml").addEventListener("click", () => tryCatch(getOoxml));
+
+        async function insertHtml() {
+            // Replaces the first paragraph's content with bold and italic text from HTML.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                const insertedRange: Word.Range = firstParagraph.insertHtml(
+                    "<b>Project update:</b> <i>ready for review.</i>",
+                    Word.InsertLocation.replace
+                );
+                await context.sync();
+                console.log("Replaced the first paragraph's content with formatted HTML.");
+            });
+        }
+
+        async function insertOoxml() {
+            // Replaces the first paragraph's content with a bold update from an OOXML package.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                const ooxml: string =
+                    `<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+                        <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+                            <pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                                <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+                            </Relationships></pkg:xmlData>
+                        </pkg:part>
+                        <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+                            <pkg:xmlData><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                <w:body><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Project update from OOXML.</w:t></w:r></w:p></w:body>
+                            </w:document></pkg:xmlData>
+                        </pkg:part>
+                    </pkg:package>`;
+                const insertedRange: Word.Range = firstParagraph.insertOoxml(ooxml, Word.InsertLocation.replace);
+                await context.sync();
+                console.log("Replaced the first paragraph's content with a bold OOXML update.");
+            });
+        }
+
+        async function getHtml() {
+            // Reads an HTML representation of the first paragraph.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                const html: OfficeExtension.ClientResult<string> = firstParagraph.getHtml();
+                await context.sync();
+                console.log(`Paragraph HTML: ${html.value}`);
+            });
+        }
+
+        async function getOoxml() {
+            // Reads the first paragraph's Office Open XML representation.
+            await Word.run(async (context) => {
+                const firstParagraph: Word.Paragraph = context.document.body.paragraphs.getFirst();
+                const ooxml: OfficeExtension.ClientResult<string> = firstParagraph.getOoxml();
+                await context.sync();
+                console.log(`Paragraph OOXML: ${ooxml.value}`);
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                body.insertParagraph("Project update placeholder.", Word.InsertLocation.start);
+                body.insertParagraph("This paragraph stays below the update.", Word.InsertLocation.end);
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to replace a paragraph's content with formatted markup and read its HTML or OOXML in the console.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with two sample paragraphs.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="insert-html">Replace paragraph with HTML</button>
+            <button id="insert-ooxml">Replace paragraph with OOXML</button>
+            <button id="get-html">Get paragraph HTML</button>
+            <button id="get-ooxml">Get paragraph OOXML</button>
+            <p>HTML output can differ across platforms and might not preserve exact formatting. OOXML preserves the document's formatting more faithfully.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

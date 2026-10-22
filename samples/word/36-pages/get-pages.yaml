@@ -1,0 +1,408 @@
+order: 2
+id: word-ranges-get-pages
+name: Work with pages, panes, and windows
+description: Inspects page content, dimensions, and breaks, navigates pages, and lists panes and windows.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApiDesktop: '1.3'
+script:
+    content: |
+        document.getElementById("get-pages-selected-range").addEventListener("click", () => tryCatch(getPagesOfSelectedRange));
+        document
+          .getElementById("get-pages-third-paragraph")
+          .addEventListener("click", () => tryCatch(getPagesOfThirdParagraph));
+        document
+          .getElementById("get-pages-enclosing-viewport")
+          .addEventListener("click", () => tryCatch(getPagesEnclosingViewport));
+        document.getElementById("get-all-pages").addEventListener("click", () => tryCatch(getAllPages));
+        document.getElementById("get-page-dimensions").addEventListener("click", () => tryCatch(getPageDimensions));
+        document.getElementById("get-next-page").addEventListener("click", () => tryCatch(getNextPage));
+        document.getElementById("get-page-data").addEventListener("click", () => tryCatch(getPageData));
+        document.getElementById("get-breaks").addEventListener("click", () => tryCatch(getBreaks));
+        document.getElementById("get-break-ranges").addEventListener("click", () => tryCatch(getBreakRanges));
+        document.getElementById("get-all-panes").addEventListener("click", () => tryCatch(getAllPanes));
+        document.getElementById("get-all-windows").addEventListener("click", () => tryCatch(getAllWindows));
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+
+        async function getPagesOfSelectedRange() {
+          // Reads the index and text of each page intersecting the selection.
+          await Word.run(async (context) => {
+            const selectedRange: Word.Range = context.document.getSelection();
+            const pages: Word.PageCollection = selectedRange.pages;
+            pages.load("items/index");
+            await context.sync();
+
+            console.log(`Pages in the selection: ${pages.items.length}`);
+            const pageRanges: Word.Range[] = [];
+            pages.items.forEach((page: Word.Page) => {
+              const pageRange: Word.Range = page.getRange(Word.RangeLocation.whole);
+              pageRange.load("text");
+              pageRanges.push(pageRange);
+            });
+
+            await context.sync();
+
+            for (let i = 0; i < pages.items.length; i++) {
+              console.log(`Page ${pages.items[i].index} text: ${pageRanges[i].text}`);
+            }
+          });
+        }
+
+        async function getPagesOfThirdParagraph() {
+          // Reads the page indexes for the third paragraph.
+          await Word.run(async (context) => {
+            const paragraphs: Word.ParagraphCollection = context.document.body.paragraphs;
+            paragraphs.load("items");
+            await context.sync();
+
+            if (paragraphs.items.length < 3) {
+              console.warn("Run Set up to create at least three paragraphs.");
+              return;
+            }
+
+            const thirdParagraph: Word.Paragraph = paragraphs.items[2];
+            const rangeOfParagraph: Word.Range = thirdParagraph.getRange();
+            const pages: Word.PageCollection = rangeOfParagraph.pages;
+            pages.load("items/index");
+            await context.sync();
+
+            console.log(`Pages containing the third paragraph: ${pages.items.length}`);
+            pages.items.forEach((page: Word.Page) => {
+              console.log(`Page index: ${page.index}`);
+            });
+          });
+        }
+
+        async function getPageDimensions() {
+          // Reads the first page's paper dimensions in points and its 1-based index.
+          await Word.run(async (context) => {
+            const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+            const firstPage: Word.Page = pages.getFirst();
+            firstPage.load("index,height,width");
+            await context.sync();
+
+            console.log("First page properties:", {
+              index: firstPage.index,
+              heightInPoints: firstPage.height,
+              widthInPoints: firstPage.width
+            });
+          });
+        }
+
+        async function getNextPage() {
+          // Reads the page following the first page when the document has multiple pages.
+          await Word.run(async (context) => {
+            const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+            pages.load("items");
+            await context.sync();
+
+            if (pages.items.length < 2) {
+              console.warn("Run Set up to create multiple pages before getting the next page.");
+              return;
+            }
+
+            const firstPage: Word.Page = pages.getFirst();
+            const nextPage: Word.Page = firstPage.getNext();
+            nextPage.load("index");
+            const nextPageRange: Word.Range = nextPage.getRange();
+            nextPageRange.load("text");
+            await context.sync();
+
+            console.log(`Next page index: ${nextPage.index}`);
+            console.log(`Next page text: ${nextPageRange.text}`);
+          });
+        }
+
+        async function getPageData() {
+          // Copies the first page's loaded properties into a plain JavaScript object.
+          await Word.run(async (context) => {
+            const firstPage: Word.Page = context.document.activeWindow.activePane.pages.getFirst();
+            firstPage.load("index,height,width");
+            await context.sync();
+
+            const pageData: Word.Interfaces.PageData = firstPage.toJSON();
+            console.log("First page data:", pageData);
+          });
+        }
+
+        async function getPagesEnclosingViewport() {
+          await Word.run(async (context) => {
+            // Gets the pages enclosing the viewport.
+
+            // Get the active window.
+            const activeWindow: Word.Window = context.document.activeWindow;
+            activeWindow.load();
+
+            // Get the active pane.
+            const activePane: Word.Pane = activeWindow.activePane;
+            activePane.load();
+
+            // Get pages enclosing the viewport.
+            const pages: Word.PageCollection = activePane.pagesEnclosingViewport;
+            pages.load();
+
+            await context.sync();
+
+            // Log the number of pages.
+            const pageCount = pages.items.length;
+            console.log(`Number of pages enclosing the viewport: ${pageCount}`);
+
+            // Log index info of these pages.
+            const pagesIndexes = [];
+            for (let i = 0; i < pageCount; i++) {
+              const page = pages.items[i];
+              page.load("index");
+              pagesIndexes.push(page);
+            }
+
+            await context.sync();
+
+            for (let i = 0; i < pagesIndexes.length; i++) {
+              console.log(`Page index: ${pagesIndexes[i].index}`);
+            }
+          });
+        }
+
+        async function getAllPages() {
+          await Word.run(async (context) => {
+            // Gets the first paragraph of each page.
+            console.log("Getting first paragraph of each page...");
+
+            // Get the active window.
+            const activeWindow: Word.Window = context.document.activeWindow;
+            activeWindow.load();
+
+            // Get the active pane.
+            const activePane: Word.Pane = activeWindow.activePane;
+            activePane.load();
+
+            // Get all pages.
+            const pages: Word.PageCollection = activePane.pages;
+            pages.load();
+
+            await context.sync();
+
+            // Get page index and paragraphs of each page.
+            const pagesIndexes = [];
+            const pagesNumberOfParagraphs = [];
+            const pagesFirstParagraphText = [];
+            for (let i = 0; i < pages.items.length; i++) {
+              const page = pages.items[i];
+              page.load("index");
+              pagesIndexes.push(page);
+
+              const paragraphs = page.getRange().paragraphs;
+              paragraphs.load("items");
+              pagesNumberOfParagraphs.push(paragraphs);
+
+              const firstParagraph = paragraphs.getFirst();
+              firstParagraph.load("text");
+              pagesFirstParagraphText.push(firstParagraph);
+            }
+
+            await context.sync();
+
+            for (let i = 0; i < pagesIndexes.length; i++) {
+              console.log(`Page index: ${pagesIndexes[i].index}`);
+              console.log(`Number of paragraphs: ${pagesNumberOfParagraphs[i].items.length}`);
+              console.log(`First paragraph's text: ${pagesFirstParagraphText[i].text}`);
+            }
+          });
+        }
+
+        async function getBreaks() {
+          // Gets the page number of every break in the active document pane.
+          await Word.run(async (context) => {
+            const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+            pages.load("items");
+            await context.sync();
+
+            const breakCollections: Word.BreakCollection[] = [];
+            pages.items.forEach((page: Word.Page) => {
+              const breaks: Word.BreakCollection = page.breaks;
+              breaks.load("items/pageIndex");
+              breakCollections.push(breaks);
+            });
+
+            await context.sync();
+
+            const documentBreaks: Word.Break[] = breakCollections.flatMap((breaks) => breaks.items);
+            console.log(`Breaks found: ${documentBreaks.length}`);
+            documentBreaks.forEach((documentBreak: Word.Break) => {
+              console.log(`Break on page ${documentBreak.pageIndex}.`);
+            });
+          });
+        }
+
+        async function getBreakRanges() {
+          // Gets the text of each break's range in the active document pane.
+          await Word.run(async (context) => {
+            const pages: Word.PageCollection = context.document.activeWindow.activePane.pages;
+            pages.load("items");
+            await context.sync();
+
+            const breakCollections: Word.BreakCollection[] = [];
+            pages.items.forEach((page: Word.Page) => {
+              const breaks: Word.BreakCollection = page.breaks;
+              breaks.load("items");
+              breakCollections.push(breaks);
+            });
+            await context.sync();
+
+            const documentBreaks: Word.Break[] = breakCollections.flatMap((breaks) => breaks.items);
+            const breakRanges: Word.Range[] = documentBreaks.map((documentBreak: Word.Break) => {
+              const breakRange: Word.Range = documentBreak.range;
+              breakRange.load("text");
+              return breakRange;
+            });
+            await context.sync();
+
+            console.log(`Break ranges found: ${breakRanges.length}`);
+            breakRanges.forEach((breakRange: Word.Range, index: number) => {
+              console.log(`Break ${index + 1} range text (escaped): ${JSON.stringify(breakRange.text)}`);
+            });
+          });
+        }
+
+        async function getAllPanes() {
+          await Word.run(async (context) => {
+            // Gets all the panes in the active document window.
+
+            // Get the active window.
+            const activeWindow: Word.Window = context.document.activeWindow;
+            activeWindow.load("panes/items/length");
+
+            await context.sync();
+
+            const panes: Word.PaneCollection = activeWindow.panes;
+            console.log(`Number of panes in the current document window: ${panes.items.length}`);
+          });
+        }
+
+        async function getAllWindows() {
+          await Word.run(async (context) => {
+            // Gets the document windows.
+            const windows: Word.WindowCollection = context.document.windows;
+            windows.load("windows/items/length");
+
+            await context.sync();
+
+            console.log(`Number of windows for this document: ${windows.items.length}`);
+          });
+        }
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.insertText("Page one: Introduction to the page sample.", Word.InsertLocation.replace);
+            body.insertBreak(Word.BreakType.page, Word.InsertLocation.end);
+            body.insertParagraph("Page two: Details for next-page navigation.", Word.InsertLocation.end);
+            body.insertBreak(Word.BreakType.page, Word.InsertLocation.end);
+            body.insertParagraph("Page three: The final paragraph and the end of the sample.", Word.InsertLocation.end);
+            body.getRange().select();
+            await context.sync();
+            console.log("Replaced the document body with three paragraphs separated by page breaks and selected the content.");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows page content, paper dimensions, and breaks, navigates between pages, and lists document panes and windows.</p>
+            <p><b>Note:</b> Requires Word on Windows or Mac with WordApiDesktop 1.3.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Set up replaces the document body with three sample paragraphs on separate pages and selects the content.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="get-pages-selected-range">Get page info for selection</button>
+            <button id="get-pages-third-paragraph">Get the third paragraph's page info</button>
+            <button id="get-pages-enclosing-viewport">Get pages enclosing viewport</button>
+            <button id="get-all-pages">Get all pages</button>
+            <button id="get-page-dimensions">Get first page dimensions</button>
+            <button id="get-next-page">Get next page</button>
+            <button id="get-page-data">Get first page as plain data</button>
+            <button id="get-breaks">Get breaks</button>
+            <p>Get breaks logs the number of breaks and the page number of each break.</p>
+            <button id="get-break-ranges">Get break ranges</button>
+            <p>Get break ranges logs each break's range text with special characters escaped so they are visible in the console.</p>
+            <button id="get-all-panes">Get all panes</button>
+            <button id="get-all-windows">Get all windows</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

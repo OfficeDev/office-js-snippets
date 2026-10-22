@@ -1,172 +1,119 @@
+order: 2
 id: word-insert-and-change-content-controls
-name: Content control basics
-description: Inserts, updates, and retrieves content controls.
+name: Content control states (preview)
+description: Sets warning and error states on a sample content control and resets its state.
 author: OfficeDev
 host: WORD
 api_set:
-    WordApi: '1.10'
+    WordApi: preview
 script:
     content: |
-        document.getElementById("insert-controls").addEventListener("click", () => tryCatch(insertContentControls));
-        document.getElementById("change-controls").addEventListener("click", () => tryCatch(modifyContentControls));
-        document.getElementById("set-state").addEventListener("click", () => tryCatch(setState));
-        document.getElementById("reset-state").addEventListener("click", () => tryCatch(resetState));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("set-warning-state").addEventListener("click", () => tryCatch(setWarningState));
+        document.getElementById("set-error-state").addEventListener("click", () => tryCatch(setErrorState));
+        document.getElementById("reset-state").addEventListener("click", () => tryCatch(resetState));
 
-        async function insertContentControls() {
-          // Traverses each paragraph of the document and wraps a content control on each with either a even or odd tags.
-          await Word.run(async (context) => {
-            let paragraphs = context.document.body.paragraphs;
-            paragraphs.load("$none"); // Don't need any properties; just wrap each paragraph with a content control.
+        async function setWarningState() {
+            // Marks the sample content control with a warning.
+            await Word.run(async (context) => {
+                const sampleControl: Word.ContentControl = context.document.contentControls
+                    .getByTag("ContentControlStateSample").getFirstOrNullObject();
+                await context.sync();
 
-            await context.sync();
+                if (sampleControl.isNullObject) {
+                    console.warn("Run Set up to create the sample content control.");
+                    return;
+                }
 
-            for (let i = 0; i < paragraphs.items.length; i++) {
-              let contentControl = paragraphs.items[i].insertContentControl();
-              // For even, tag "even".
-              if (i % 2 === 0) {
-                contentControl.tag = "even";
-              } else {
-                contentControl.tag = "odd";
-              }
-            }
-            console.log("Content controls inserted: " + paragraphs.items.length);
-
-            await context.sync();
-          });
+                const state: Word.ContentControlState = Word.ContentControlState.warning;
+                sampleControl.setState(state);
+                await context.sync();
+                console.log(`Set sample content control state to ${state}.`);
+            });
         }
 
-        async function modifyContentControls() {
-          // Adds title and colors to odd and even content controls and changes their appearance.
-          await Word.run(async (context) => {
-            // Get the complete sentence (as range) associated with the insertion point.
-            let evenContentControls = context.document.contentControls.getByTag("even");
-            let oddContentControls = context.document.contentControls.getByTag("odd");
-            evenContentControls.load("length");
-            oddContentControls.load("length");
+        async function setErrorState() {
+            // Marks the sample content control with an error.
+            await Word.run(async (context) => {
+                const sampleControl: Word.ContentControl = context.document.contentControls
+                    .getByTag("ContentControlStateSample").getFirstOrNullObject();
+                await context.sync();
 
-            await context.sync();
+                if (sampleControl.isNullObject) {
+                    console.warn("Run Set up to create the sample content control.");
+                    return;
+                }
 
-            for (let i = 0; i < evenContentControls.items.length; i++) {
-              // Change a few properties and append a paragraph.
-              evenContentControls.items[i].set({
-                color: "red",
-                title: "Odd ContentControl #" + (i + 1),
-                appearance: Word.ContentControlAppearance.tags
-              });
-              evenContentControls.items[i].insertParagraph("This is an odd content control", "End");
-            }
-
-            for (let j = 0; j < oddContentControls.items.length; j++) {
-              // Change a few properties and append a paragraph.
-              oddContentControls.items[j].set({
-                color: "green",
-                title: "Even ContentControl #" + (j + 1),
-                appearance: "Tags"
-              });
-              oddContentControls.items[j].insertHtml("This is an <b>even</b> content control", "End");
-            }
-
-            await context.sync();
-          });
-        }
-
-        async function setState() {
-          // Sets the state of the first content control.
-          await Word.run(async (context) => {
-            const state = ((document.getElementById("state-to-set") as HTMLSelectElement)
-              .value as unknown) as Word.ContentControlState;
-            let firstContentControl = context.document.contentControls.getFirstOrNullObject();
-            await context.sync();
-
-            if (firstContentControl.isNullObject) {
-              console.warn("There are no content controls in this document.");
-              return;
-            }
-
-            firstContentControl.setState(state);
-            firstContentControl.load("id");
-            await context.sync();
-
-            console.log(`Set state of first content control with ID ${firstContentControl.id} to ${state}.`);
-          });
+                const state: Word.ContentControlState = Word.ContentControlState.error;
+                sampleControl.setState(state);
+                await context.sync();
+                console.log(`Set sample content control state to ${state}.`);
+            });
         }
 
         async function resetState() {
-          // Resets the state of the first content control.
-          await Word.run(async (context) => {
-            let firstContentControl = context.document.contentControls.getFirstOrNullObject();
-            await context.sync();
+            // Clears the sample content control's warning or error state without deleting its text.
+            await Word.run(async (context) => {
+                const sampleControl: Word.ContentControl = context.document.contentControls
+                    .getByTag("ContentControlStateSample").getFirstOrNullObject();
+                await context.sync();
 
-            if (firstContentControl.isNullObject) {
-              console.warn("There are no content controls in this document.");
-              return;
-            }
+                if (sampleControl.isNullObject) {
+                    console.warn("Run Set up to create the sample content control.");
+                    return;
+                }
 
-            firstContentControl.resetState();
-            firstContentControl.load("id");
-            await context.sync();
-
-            console.log(`Reset state of first content control with ID: ${firstContentControl.id}`);
-          });
+                sampleControl.resetState();
+                await context.sync();
+                console.log("Reset the sample content control state.");
+            });
         }
 
         async function setup() {
-          await Word.run(async (context) => {
-            const body: Word.Body = context.document.body;
-            body.clear();
-            body.insertParagraph("One more paragraph.", "Start");
-            body.insertParagraph("Inserting another paragraph.", "Start");
-            body.insertParagraph(
-              "Do you want to create a solution that extends the functionality of Word? You can use the Office Add-ins platform to extend Word clients running on the web, on a Windows desktop, or on a Mac.",
-              "Start"
-            );
-            body.paragraphs
-              .getLast()
-              .insertText(
-                "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
-                "Replace"
-              );
-          });
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                const sampleParagraph: Word.Paragraph = body.insertParagraph(
+                    "Project code: pending review.", Word.InsertLocation.start
+                );
+                const sampleControl: Word.ContentControl = sampleParagraph
+                    .getRange(Word.RangeLocation.content).insertContentControl();
+                sampleControl.tag = "ContentControlStateSample";
+                sampleControl.title = "Project code";
+                sampleControl.select();
+                await context.sync();
+                console.log("Created and selected the sample content control.");
+            });
         }
 
-        // Default helper for invoking an action and handling errors.
         async function tryCatch(callback) {
-          try {
-            await callback();
-          } catch (error) {
-            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
-            console.error(error);
-          }
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
         }
     language: typescript
 template:
     content: |-
         <section>
-            This sample demonstrates how to insert content controls and change their properties.
+            <p>This sample shows how to flag a project code with a warning or error and reset the content control's state.</p>
+            <p><b>Support:</b> Content control state APIs are in preview and aren't supported on all Word clients.
+                They aren't intended for production use.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
-            <button id="setup">Setup</button>
+            <p>Set up replaces the document body with one sample content control and selects it.
+                Run it again to restore the starting content.</p>
+            <button id="setup">Create sample content control</button>
         </section>
         <section>
             <h3>Try it out</h3>
-            <span>Insert content controls on each paragraph.</span>
-            <button id="insert-controls">Insert</button>
-            <p />
-            <span>Modify content control appearance and content.</span>
-            <button id="change-controls">Modify content controls</button>
-          <h4>Preview features</h4>
-            <span>Set state of first content control.</span>
-            <br/>
-            <label style="margin-left: 20px">State:</label>
-            <select id="state-to-set">
-                <option>Warning</option>
-                <option>Error</option>
-            </select>
-            <button id="set-state">Set state</button>
-            <p />
-            <span>Reset state of first content control.</span>
+            <p>Compare the sample control's appearance after setting each state.
+                The console reports completed actions or errors from Word.</p>
+            <button id="set-warning-state">Set warning state</button>
+            <button id="set-error-state">Set error state</button>
+            <p>Reset clears the warning or error state without deleting the control or its text.</p>
             <button id="reset-state">Reset state</button>
         </section>
     language: html

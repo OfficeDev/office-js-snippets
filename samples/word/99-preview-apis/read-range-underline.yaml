@@ -1,0 +1,118 @@
+order: 4
+id: word-read-range-underline
+name: Read range underline
+description: Reads the underline type applied to a paragraph range.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: preview
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-underline").addEventListener("click", () => tryCatch(getUnderline));
+
+        async function getUnderline() {
+            // Reads the underline applied to the first paragraph range.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                paragraphRange.load("underline");
+                await context.sync();
+                const singleUnderline: Word.UnderlineType = Word.UnderlineType.single;
+                console.log(`Underline type: ${paragraphRange.underline}`);
+                console.log(`Has a single underline: ${paragraphRange.underline === singleUnderline}`);
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                context.document.body.clear();
+                const summary: Word.Paragraph = context.document.body.insertParagraph("Underlined project summary.", Word.InsertLocation.start);
+                summary.font.underline = Word.UnderlineType.single;
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section><p>This sample shows how to inspect the underline applied to a project summary.</p>
+        <p><b>Support:</b> Reading underline directly from a range is a preview API.</p></section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with an underlined sample paragraph.</p>
+            <button id="setup">Add underlined summary</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="get-underline">Get range underline</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/beta/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts

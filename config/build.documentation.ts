@@ -206,8 +206,7 @@ function getExtractedDataFromSnippet(
                     }
                 })
                 .join('\n');
-        }
-        catch (exception) {
+        } catch (exception) {
             accumulatedErrors.push(`${row.snippetId}: ${(exception as any).message || exception}`);
         }
     } else {

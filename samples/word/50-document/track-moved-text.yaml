@@ -1,0 +1,162 @@
+order: 18
+id: word-document-track-moved-text
+name: Track moved text
+description: Inspects and selects the text associated with a tracked move.
+host: WORD
+api_set:
+    WordApi: '1.4'
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-moved-revision-range").addEventListener("click", () => tryCatch(getMovedRevisionRange));
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const document: Word.Document = context.document;
+                const body: Word.Body = document.body;
+                document.changeTrackingMode = Word.ChangeTrackingMode.off;
+                body.clear();
+                body.insertParagraph("This paragraph stays in place.", Word.InsertLocation.start);
+                const secondParagraph: Word.Paragraph = body.insertParagraph(
+                    "Move this entire paragraph above the first paragraph.", Word.InsertLocation.end
+                );
+                await context.sync();
+
+                document.trackMoves = true;
+                document.changeTrackingMode = Word.ChangeTrackingMode.trackAll;
+                secondParagraph.getRange().select();
+                await context.sync();
+
+                console.log("Created two sample paragraphs and enabled Track Changes and Track moves. Move the second paragraph as described in the task pane.");
+            });
+        }
+
+        async function getMovedRevisionRange() {
+            // Reads and selects the text associated with a tracked move.
+            await Word.run(async (context) => {
+                const document: Word.Document = context.document;
+                const revisions: Word.RevisionCollection = document.revisions;
+                revisions.load("items/type");
+                await context.sync();
+
+                const movedFrom: Word.RevisionType = Word.RevisionType.movedFrom;
+                const movedTo: Word.RevisionType = Word.RevisionType.movedTo;
+                const movedRevision: Word.Revision | undefined = revisions.items.find(
+                    (revision: Word.Revision) => revision.type === movedFrom || revision.type === movedTo
+                );
+                if (!movedRevision) {
+                    console.log("Revision types found:", revisions.items.map((revision: Word.Revision) => revision.type));
+                    console.warn("No tracked move was found. Move an entire paragraph as described in the task pane; moving a phrase may produce insertion and deletion revisions instead.");
+                    return;
+                }
+
+                const movedRange: Word.Range = movedRevision.movedRange;
+                movedRange.load("text");
+                movedRange.select();
+                await context.sync();
+
+                console.log(`Moved revision range text: ${movedRange.text}`);
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample shows how to inspect a tracked move by selecting its associated text
+            and logging that text in the console.</p>
+            <p>Requires WordApiDesktop 1.4 on Windows or Mac.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <button id="setup">Set up</button>
+            <p>Set up replaces the document body with two sample paragraphs, selects the second paragraph,
+            and enables Track Changes and Track moves. Run it again to reset the sample.</p>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>The sample requires a whole-paragraph move created in Word.
+            Use a .docx document rather than Compatibility Mode:</p>
+            <ol>
+                <li>After Set up, click inside the second paragraph in Word.</li>
+                <li>On Windows, press Alt+Shift+Up Arrow to move the entire paragraph above the first.
+                On Mac, select the entire second paragraph, including its paragraph mark,
+                and drag it before the first paragraph.</li>
+                <li>Turn off Track Changes in Word.</li>
+            </ol>
+            <button id="get-moved-revision-range">Select a moved revision's range</button>
+            <p>This action searches revisions throughout the document. If Word records only an insertion
+            and deletion, it logs the revision types instead of treating them as a move.
+            In Word's All Markup view, a tracked move has "Moved from" and "Moved to" markup.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

@@ -1,0 +1,288 @@
+order: 3
+id: word-tables-manage-table-rows-columns-cells
+name: Manage table rows, columns, and cells
+description: Gets and updates table rows, columns, and cells, and inserts and deletes rows.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApiDesktop: '1.3'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-row-properties").addEventListener("click", () => tryCatch(getRowProperties));
+        document.getElementById("update-row-data").addEventListener("click", () => tryCatch(updateRowData));
+        document.getElementById("update-row-formatting").addEventListener("click", () => tryCatch(updateRowFormatting));
+        document.getElementById("insert-row").addEventListener("click", () => tryCatch(insertRow));
+        document.getElementById("delete-row").addEventListener("click", () => tryCatch(deleteRow));
+        document.getElementById("get-column-properties").addEventListener("click", () => tryCatch(getColumnProperties));
+        document.getElementById("update-column-formatting").addEventListener("click", () => tryCatch(updateColumnFormatting));
+        document.getElementById("get-cell-properties").addEventListener("click", () => tryCatch(getCellProperties));
+        document.getElementById("update-cell-data").addEventListener("click", () => tryCatch(updateCellData));
+        document.getElementById("update-cell-formatting").addEventListener("click", () => tryCatch(updateCellFormatting));
+
+        async function setup() {
+          await Word.run(async (context) => {
+            const body: Word.Body = context.document.body;
+            body.clear();
+
+            const tableData = [
+              ["Region", "Sales", "Status"],
+              ["North", "$125,000", "On track"],
+              ["South", "$98,000", "Needs review"],
+              ["West", "$143,000", "On track"]
+            ];
+            const salesTable: Word.Table = body.insertTable(4, 3, Word.InsertLocation.start, tableData);
+            salesTable.headerRowCount = 1;
+            salesTable.styleBuiltIn = Word.BuiltInStyleName.gridTable5Dark_Accent2;
+
+            await context.sync();
+          });
+        }
+
+        async function getRowProperties() {
+          // Gets properties of the first data row in the first table.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstDataRow: Word.TableRow = firstTable.rows.getFirst().getNext();
+            firstDataRow.load(["cellCount", "isHeader", "rowIndex", "values"]);
+            await context.sync();
+
+            console.log(
+              "First data row:",
+              `- Index: ${firstDataRow.rowIndex}`,
+              `- Cell count: ${firstDataRow.cellCount}`,
+              `- Is header: ${firstDataRow.isHeader}`,
+              `- Values: ${firstDataRow.values[0].join(", ")}`
+            );
+          });
+        }
+
+        async function updateRowData() {
+          // Updates the values of the first data row.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstDataRow: Word.TableRow = firstTable.rows.getFirst().getNext();
+
+            firstDataRow.values = [["North", "$132,000", "Above target"]];
+
+            await context.sync();
+            console.log("Updated the values of the first data row.");
+          });
+        }
+
+        async function updateRowFormatting() {
+          // Updates the formatting of the first data row.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstDataRow: Word.TableRow = firstTable.rows.getFirst().getNext();
+            const rowFont: Word.Font = firstDataRow.font;
+            const horizontalAlignment: Word.Alignment = Word.Alignment.centered;
+            const verticalAlignment: Word.VerticalAlignment = Word.VerticalAlignment.center;
+
+            firstDataRow.shadingColor = "#E2F0D9";
+            firstDataRow.preferredHeight = 24;
+            firstDataRow.horizontalAlignment = horizontalAlignment;
+            firstDataRow.verticalAlignment = verticalAlignment;
+            rowFont.color = "#000000";
+
+            await context.sync();
+            console.log("Updated the formatting of the first data row.");
+          });
+        }
+
+        async function insertRow() {
+          // Inserts a new row after the first data row.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstDataRow: Word.TableRow = firstTable.rows.getFirst().getNext();
+            const insertLocation: Word.InsertLocation = Word.InsertLocation.after;
+            const insertedRows: Word.TableRowCollection = firstDataRow.insertRows(insertLocation, 1, [
+              ["Central", "$117,000", "On track"]
+            ]);
+
+            insertedRows.load("items");
+            await context.sync();
+            console.log("Inserted a new data row.");
+          });
+        }
+
+        async function deleteRow() {
+          // Deletes the first data row from the first table.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstDataRow: Word.TableRow = firstTable.rows.getFirst().getNext();
+            firstDataRow.delete();
+
+            await context.sync();
+            console.log("Deleted the first data row.");
+          });
+        }
+
+        async function getColumnProperties() {
+          // Gets properties of the first column in the sample table.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const tableRange: Word.Range = firstTable.getRange();
+            const tableColumns: Word.TableColumnCollection = tableRange.tableColumns;
+            tableColumns.load("items/columnIndex,items/isFirst,items/isLast,items/width");
+            await context.sync();
+
+            const firstColumn: Word.TableColumn = tableColumns.items[0];
+            console.log(
+              "First table column:",
+              `- Index: ${firstColumn.columnIndex}`,
+              `- Is first: ${firstColumn.isFirst}`,
+              `- Is last: ${firstColumn.isLast}`,
+              `- Width: ${firstColumn.width} points`
+            );
+          });
+        }
+
+        async function updateColumnFormatting() {
+          // Updates the width of the first column in the sample table.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const tableRange: Word.Range = firstTable.getRange();
+            const tableColumns: Word.TableColumnCollection = tableRange.tableColumns;
+            tableColumns.load("items");
+            await context.sync();
+
+            const firstColumn: Word.TableColumn = tableColumns.items[0];
+            firstColumn.width = 90;
+            await context.sync();
+
+            console.log("Set the first table column's width to 90 points.");
+          });
+        }
+
+        async function getCellProperties() {
+          // Gets properties of the first data cell in the sample table.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstDataCell: Word.TableCell = firstTable.getCell(1, 0);
+            firstDataCell.load(["cellIndex", "columnWidth", "rowIndex", "value", "width"]);
+            await context.sync();
+
+            console.log(
+              "First data cell:",
+              `- Row index: ${firstDataCell.rowIndex}`,
+              `- Cell index: ${firstDataCell.cellIndex}`,
+              `- Value: ${firstDataCell.value}`,
+              `- Cell width: ${firstDataCell.width} points`,
+              `- Column width: ${firstDataCell.columnWidth} points`
+            );
+          });
+        }
+
+        async function updateCellData() {
+          // Updates the value of the first data cell in the sample table.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstDataCell: Word.TableCell = firstTable.getCell(1, 0);
+            firstDataCell.value = "Northeast";
+
+            await context.sync();
+            console.log("Updated the value of the first data cell.");
+          });
+        }
+
+        async function updateCellFormatting() {
+          // Updates the formatting of the first data cell in the sample table.
+          await Word.run(async (context) => {
+            const firstTable: Word.Table = context.document.body.tables.getFirst();
+            const firstDataCell: Word.TableCell = firstTable.getCell(1, 0);
+            const cellFont: Word.Font = firstDataCell.body.font;
+            const horizontalAlignment: Word.Alignment = Word.Alignment.centered;
+            const verticalAlignment: Word.VerticalAlignment = Word.VerticalAlignment.center;
+
+            firstDataCell.shadingColor = "#FFF2CC";
+            firstDataCell.horizontalAlignment = horizontalAlignment;
+            firstDataCell.verticalAlignment = verticalAlignment;
+            cellFont.color = "#000000";
+
+            await context.sync();
+            console.log("Updated the formatting of the first data cell.");
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            This sample shows how to manage rows, columns, and cells in a table.
+            <p><b>Important:</b> The column actions require Word on Windows or Mac.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <button id="setup">Create sample table</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <h4>Table rows</h4>
+            <button id="get-row-properties">Get row properties</button>
+            <button id="update-row-data">Update row data</button>
+            <button id="update-row-formatting">Update row formatting</button>
+            <button id="insert-row">Insert row</button>
+            <button id="delete-row">Delete row</button>
+            <h4>Table columns</h4>
+            <button id="get-column-properties">Get column properties</button>
+            <button id="update-column-formatting">Update column formatting</button>
+            <h4>Table cells</h4>
+            <button id="get-cell-properties">Get cell properties</button>
+            <button id="update-cell-data">Update cell data</button>
+            <button id="update-cell-formatting">Update cell formatting</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

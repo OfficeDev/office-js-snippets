@@ -1,7 +1,7 @@
-order: 3
+order: 2
 id: word-ranges-compare-location
 name: Compare range locations
-description: This sample shows how to compare the locations of two ranges.
+description: Compares, expands, and intersects document ranges.
 author: OfficeDev
 host: WORD
 api_set:
@@ -10,6 +10,10 @@ script:
     content: |-
         document.getElementById("compare").addEventListener("click", () => tryCatch(compareLocations));
         document.getElementById("compare-to-selection").addEventListener("click", () => tryCatch(compareWithSelection));
+        document.getElementById("expand-ranges").addEventListener("click", () => tryCatch(expandRanges));
+        document.getElementById("expand-ranges-safely").addEventListener("click", () => tryCatch(expandRangesSafely));
+        document.getElementById("intersect-ranges").addEventListener("click", () => tryCatch(intersectRanges));
+        document.getElementById("intersect-ranges-safely").addEventListener("click", () => tryCatch(intersectRangesSafely));
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
 
         async function compareLocations() {
@@ -23,7 +27,8 @@ script:
             const firstParagraphAsRange: Word.Range = paragraphs.items[0].getRange();
             const secondParagraphAsRange: Word.Range = paragraphs.items[1].getRange();
 
-            const comparedLocation = firstParagraphAsRange.compareLocationWith(secondParagraphAsRange);
+            const comparedLocation: OfficeExtension.ClientResult<Word.LocationRelation> =
+              firstParagraphAsRange.compareLocationWith(secondParagraphAsRange);
 
             await context.sync();
 
@@ -66,7 +71,64 @@ script:
                 "Use add-in commands to extend the Word UI and launch task panes that run JavaScript that interacts with the content in a Word document. Any code that you can run in a browser can run in a Word add-in. Add-ins that interact with content in a Word document create requests to act on Word objects and synchronize object state.",
                 "Replace"
               );
+            await context.sync();
           });
+        }
+
+        async function expandRanges() {
+            // Gets the text spanning the first two paragraphs.
+            await Word.run(async (context) => {
+                const firstRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const secondRange: Word.Range = context.document.body.paragraphs.getFirst().getNext().getRange();
+                const expandedRange: Word.Range = firstRange.expandTo(secondRange);
+                expandedRange.load("text");
+                await context.sync();
+                console.log(`Expanded text: ${expandedRange.text}`);
+            });
+        }
+
+        async function expandRangesSafely() {
+            // Expands to the selection when both ranges belong to the same story.
+            await Word.run(async (context) => {
+                const firstRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const selection: Word.Range = context.document.getSelection();
+                const expandedRange: Word.Range = firstRange.expandToOrNullObject(selection);
+                expandedRange.load("text");
+                await context.sync();
+                if (expandedRange.isNullObject) {
+                    console.warn("The ranges cannot be combined. Select text in the main document body.");
+                    return;
+                }
+                console.log(`Expanded text: ${expandedRange.text}`);
+            });
+        }
+
+        async function intersectRanges() {
+            // Gets the overlap between the document body and its first paragraph.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const firstRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const overlap: Word.Range = bodyRange.intersectWith(firstRange);
+                overlap.load("text");
+                await context.sync();
+                console.log(`Overlapping text: ${overlap.text}`);
+            });
+        }
+
+        async function intersectRangesSafely() {
+            // Checks whether the selection overlaps the first paragraph.
+            await Word.run(async (context) => {
+                const firstRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const selection: Word.Range = context.document.getSelection();
+                const overlap: Word.Range = firstRange.intersectWithOrNullObject(selection);
+                overlap.load("text");
+                await context.sync();
+                if (overlap.isNullObject) {
+                    console.warn("The selection does not overlap or adjoin the first paragraph.");
+                    return;
+                }
+                console.log(`Overlapping text: ${overlap.text}`);
+            });
         }
 
         async function tryCatch(callback) {
@@ -81,7 +143,7 @@ script:
 template:
     content: |-
         <section>
-            This sample demonstrates how to compare locations of ranges.
+            This sample demonstrates how to compare two paragraphs, combine their text, and find the text shared by two ranges.
         </section>
         <section class="setup">
             <h3>Set up</h3>
@@ -91,10 +153,14 @@ template:
             <h3>Try it out</h3>
             <h4>Compare location of first paragraph with location of second paragraph</h4>
             <button id="compare">Compare range locations</button>
+            <button id="expand-ranges">Expand across two paragraphs</button>
+            <button id="intersect-ranges">Get overlapping text</button>
             <h4>Compare location of second paragraph with cursor's location</h4>
             <p>
                 <div>Move cursor or select text in the document.</div>
                 <button id="compare-to-selection">Compare with cursor's location</button>
+                <button id="expand-ranges-safely">Safely expand to selection</button>
+                <button id="intersect-ranges-safely">Safely intersect with selection</button>
             </p>
         </section>
     language: html

@@ -1,0 +1,219 @@
+order: 5
+id: word-ranges-inspect-range-layout-desktop
+name: Inspect range layout (desktop)
+description: Inspects range borders, shading, sections, frames, hyperlinks, and shapes.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.3'
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("get-borders").addEventListener("click", () => tryCatch(getBorders));
+        document.getElementById("set-shading").addEventListener("click", () => tryCatch(setShading));
+        document.getElementById("get-sections").addEventListener("click", () => tryCatch(getSections));
+        document.getElementById("get-frames").addEventListener("click", () => tryCatch(getFrames));
+        document.getElementById("get-hyperlinks").addEventListener("click", () => tryCatch(getHyperlinks));
+        document.getElementById("insert-picture").addEventListener("click", () => tryCatch(insertPicture));
+        document.getElementById("get-shapes").addEventListener("click", () => tryCatch(getShapes));
+
+        async function getBorders() {
+            // Reads the border formatting of the first paragraph range.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const borders: Word.BorderUniversalCollection = paragraphRange.borders;
+                borders.load("items/color,items/lineStyle,items/lineWidth,items/isVisible");
+                await context.sync();
+                console.log("First paragraph's border formatting:");
+                borders.items.forEach((border: Word.BorderUniversal) => {
+                    console.log({ color: border.color, lineStyle: border.lineStyle, lineWidth: border.lineWidth, isVisible: border.isVisible });
+                });
+            });
+        }
+
+        async function setShading() {
+            // Adds a pale blue background to the first paragraph's text.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const shading: Word.ShadingUniversal = paragraphRange.shading;
+                shading.backgroundPatternColor = "#DDEBF7";
+                await context.sync();
+                console.log("Applied pale blue shading.");
+            });
+        }
+
+        async function getSections() {
+            // Reads the text of sections intersecting the document body range.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const sections: Word.SectionCollection = bodyRange.sections;
+                sections.load("items/body/text");
+                await context.sync();
+                console.log(`Sections found: ${sections.items.length}`);
+                sections.items.forEach((section: Word.Section) => console.log(section.body.text));
+            });
+        }
+
+        async function getFrames() {
+            // Reads the text and dimensions of frames in the document body range.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const frames: Word.FrameCollection = bodyRange.frames;
+                frames.load("items/width,items/height,items/range/text");
+                await context.sync();
+                console.log(`Frames found: ${frames.items.length}`);
+                frames.items.forEach((frame: Word.Frame) => {
+                    console.log({ width: frame.width, height: frame.height, text: frame.range.text });
+                });
+            });
+        }
+
+        async function getHyperlinks() {
+            // Reads hyperlink objects and their destinations in the document body range.
+            await Word.run(async (context) => {
+                const bodyRange: Word.Range = context.document.body.getRange();
+                const hyperlinks: Word.HyperlinkCollection = bodyRange.hyperlinks;
+                hyperlinks.load("items/address,items/range/text");
+                await context.sync();
+                console.log(`Hyperlinks found: ${hyperlinks.items.length}`);
+                hyperlinks.items.forEach((hyperlink: Word.Hyperlink) => {
+                    console.log({ address: hyperlink.address, text: hyperlink.range.text });
+                });
+            });
+        }
+
+        async function insertPicture() {
+            // Anchors a floating picture at the start of the first paragraph.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const pictureOptions: Word.InsertShapeOptions = { left: 20, top: 20, width: 90, height: 39 };
+                const picture: Word.Shape = paragraphRange.insertPictureFromBase64(
+                    "iVBORw0KGgoAAAANSUhEUgAAAB4AAAANCAIAAAAxEEnAAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACFSURBVDhPtY1BEoQwDMP6/0+XgIMTBAeYoTqso9Rkx1zG+tNj1H94jgGzeNSjteO5vtQQuG2seO0av8LzGbe3anzRoJ4ybm/VeKEerAEbAUpW4aWQCmrGFWykRzGBCnYy2ha3oAIq2MloW9yCCqhgJ6NtcQsqoIKdjLbFLaiACnYyf2fODbrjZcXfr2F4AAAAAElFTkSuQmCC",
+                    pictureOptions
+                );
+                picture.name = "RangeSamplePicture";
+                await context.sync();
+                console.log("Inserted a floating picture. Get shapes to inspect it.");
+            });
+        }
+
+        async function getShapes() {
+            // Reads shapes anchored within the first paragraph range.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
+                const shapes: Word.ShapeCollection = paragraphRange.shapes;
+                shapes.load("items/name,items/type,items/width,items/height");
+                await context.sync();
+                console.log(`Shapes found: ${shapes.items.length}`);
+                shapes.items.forEach((shape: Word.Shape) => {
+                    console.log({ name: shape.name, type: shape.type, width: shape.width, height: shape.height });
+                });
+            });
+        }
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.clear();
+                const summary: Word.Paragraph = body.insertParagraph("Project summary", Word.InsertLocation.start);
+                summary.getRange(Word.RangeLocation.content).hyperlink = "https://learn.microsoft.com/office/dev/add-ins/word/";
+                const frameParagraph: Word.Paragraph = body.insertParagraph("Framed project note.", Word.InsertLocation.end);
+                const frameRange: Word.Range = frameParagraph.getRange();
+                const frame: Word.Frame = body.getRange().frames.add(frameRange);
+                frame.width = 200;
+                body.insertParagraph("Additional project details.", Word.InsertLocation.end);
+                await context.sync();
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>This sample shows how to inspect a report's layout and add a floating picture.</section>
+        <section><p><b>Support:</b> Requires WordApiDesktop 1.4 on Windows or Mac.</p></section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with sample text, a hyperlink, and a frame.</p>
+            <button id="setup">Create sample report</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="get-borders">Get range borders</button>
+            <button id="set-shading">Apply pale blue shading</button>
+            <button id="get-sections">Get sections</button>
+            <button id="get-frames">Get frames</button>
+            <button id="get-hyperlinks">Get hyperlink objects</button>
+            <button id="insert-picture">Insert floating picture</button>
+            <button id="get-shapes">Get shapes anchored in summary</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

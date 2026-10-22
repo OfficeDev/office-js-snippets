@@ -63,6 +63,7 @@ Search both of these surfaces before editing:
    - `snippet-extractor-metadata/word.csv`
    - `snippet-extractor-metadata/powerpoint.csv`
    - `snippet-extractor-metadata/outlook.csv`
+
 2. All YAML files under `samples/` for the API namespace, class, member, related object-model access path, and nearby feature terminology.
 
 Treat these cases separately:
@@ -110,11 +111,15 @@ Outlook does not provide a general equivalent of creating a sample workbook, doc
 
 Use one clearly named function per focused operation. Split a workflow into as many meaningful, independently runnable actions as the API supports, such as prepare or mark entries, create, get properties, set properties, update, and delete. Give each action its own clearly labeled button and present the buttons in workflow order.
 
+When demonstrating writable properties, prefer targeted set actions that change one property at a time or a small, cohesive group of properties. Give each action its own button and assign the properties directly, such as `object.property = value`, instead of using the object's `set` method. Use `set` only when the requested API is the `set` method itself or when an atomic multi-property update is essential to the scenario. Ensure each targeted action creates an independently visible or otherwise verifiable change.
+
 Always keep get and set operations in separate functions. A create or mutation function may log a short completion message, but move property loading and detailed console output into a dedicated get function. Do not combine steps merely to reduce the number of functions; discrete functions are easier to understand and can provide distinct reference-documentation examples.
 
 A successful action must give the user an unambiguous way to verify its effect. When an API changes hidden document state, such as inserting field codes, explain that the visible document might not change and identify the next action or host setting that proves the operation succeeded. Keep this guidance in the task pane when it is necessary to understand the workflow.
 
 Do not log an Office.js client object directly. An unloaded proxy commonly appears as an empty object in the console and does not help the user verify the action. Mutation functions should log a concise completion message. Dedicated get functions should explicitly load the relevant properties, synchronize, and then log those values.
+
+Keep scalar labels and values together in a single console argument using a template string, such as ``console.log(`Matches found: ${matches.items.length}`);``, so Script Lab displays them together. Add descriptive labels to text and property output, and introduce collection output with a clear heading. For multiple properties, log a descriptive label alongside a plain object of loaded values; preserve the object's structure rather than interpolating or stringifying it.
 
 A function may support multiple CSV rows only when it genuinely demonstrates closely related APIs on different reference pages.
 
@@ -153,14 +158,79 @@ Before writing code, inspect the closest samples in the same host and group and 
 - Create a new group only if no existing group fits. Preserve that host's numbering convention.
 - Do not manually invent a new snippet `id`; let the build generate it.
 - Use TypeScript, four-space indentation after YAML block indentation, double quotes in snippet code, and semicolons.
+- Use the standard CSS below so fonts, spacing, controls, and hover/active states match the existing snippets. Intentionally styled "for fun" samples are exceptions, not templates for ordinary samples.
 - For Excel, Word, and PowerPoint, register buttons with `document.getElementById(...).addEventListener("click", () => tryCatch(...))` and include the repository's standard `tryCatch` helper.
 - For Outlook, follow neighboring samples by registering callback-based actions directly, such as `document.getElementById("get").addEventListener("click", get)`. Use `Office.onReady` for initialization and event registration when required.
 - Use lowercase hyphenated HTML IDs. Give every new action button a meaningful ID that describes its operation, such as `create-table-of-contents`, `mark-citations`, or `update-page-numbers`; do not use a generic ID such as `run`. When expanding an existing sample, preserve an established `run` ID unless renaming it is necessary to keep the updated workflow clear and all references are updated. For document hosts, include a separate **Set up** section followed by **Try it out** actions. For Outlook, include **Set up** only when the sample can safely prepare its current item.
 - Do not add visible step numbers to task-pane instructions or action labels when button order already makes the workflow clear. Use a numbered procedure only when the user must perform a strict sequence outside the task pane.
+- Write the opening task-pane text as a description of the sample, not as commands to the user. Use wording such as "This sample demonstrates..." or "This sample shows..." to describe the scenario and intended outcome. Keep API support requirements or platform limitations in a separate note when needed.
 - Keep the name and description concise and specific to the demonstrated behavior.
 - Use the canonical stable or beta Office.js URL and matching type definitions already used by neighboring snippets.
 - For Outlook, use the canonical `https://officeapis.public.onecdn.static.microsoft/1/office.js` library used by neighboring samples.
 - Do not introduce unrelated libraries or abstractions.
+
+### Standard snippet CSS
+
+Use this CSS as the `style.content` of ordinary snippets, with `style.language: css`. Preserve intentional custom styling in "for fun" snippets.
+
+```css
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 10px;
+}
+
+section {
+    margin-bottom: 20px;
+}
+
+h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+p {
+    margin: 0 0 10px 0;
+}
+
+button {
+    background-color: #f0f0f0;
+    color: #333333;
+    border: 1px solid #8a8a8a;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    margin-left: 20px;
+    margin-bottom: 5px;
+    min-width: 80px;
+    display: block;
+}
+
+button:hover {
+    background-color: #e0e0e0;
+}
+
+button:active {
+    background-color: #d0d0d0;
+}
+
+input {
+    padding: 8px;
+    margin: 5px 0;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    font-size: 14px;
+}
+
+.header {
+    text-align: center;
+    background-color: #f3f2f1;
+    padding: 10px;
+}
+```
 
 ### Order snippets within the group
 
@@ -189,6 +259,17 @@ Excel,CalculationMode,,enum,excel-workbook-calculation,switchToManualCalculation
 Office,MessageCompose,subject,,outlook-other-item-apis-get-set-subject-compose,get
 ```
 
+### Check for adjacent API coverage
+
+Before finalizing the CSV rows, audit each new or expanded mapped function for other focal Office.js APIs that it now demonstrates and that still need sample coverage.
+
+1. List the non-incidental API surfaces that are explicit and important to the function's scenario. Check the focal class, interface, enum, or type; the owning property or method; and closely related return, parameter, options, result, collection, and item types.
+2. Search the host CSV for useful existing coverage of each surface. Do not assume that coverage of the originally requested API also covers a related API reference page.
+3. Add another mapping when the extracted function is independently useful for an uncovered API page and makes that API's type and role obvious. For example, a function that explicitly gets a typed collection and iterates typed items may cover both the item class and its collection class.
+4. Apply this audit to both top-level type requests and member-level requests. A property or method sample can expose an uncovered return, parameter, options, or result type just as a class sample can expose its collection type.
+5. Do not add code or mappings merely to increase the row count. Skip setup plumbing, navigation, loading, synchronization, logging, and types that are only incidental to the scenario.
+6. Do not add dedicated functions or mappings for interfaces whose names end in `Data`, `LoadOptions`, or `UpdateData`, such as `Excel.Interfaces.PageBreakCollectionData`. Use these types only when needed by a meaningful API operation. Do not add serialization or export actions solely to demonstrate these interfaces.
+
 Apply these rules:
 
 - Preserve the CSV header, UTF-8 BOM if present, line endings, quoting, and existing sort order.
@@ -198,12 +279,12 @@ Apply these rules:
 - For a top-level class, interface, enum, or type mapping, leave `Member Name` empty and put the category in `Member ID or top-level category`.
 - Use the exact generated snippet `id`.
 - Use the exact TypeScript function name; mapped functions must use a `function name(...)` declaration that `config/build.documentation.ts` can extract.
-- Map a function at most once to any single API reference webpage. Do not map the same function to a class and several of that class's properties or methods, because those mappings repeat identical code on the same class page.
+- Map at most one function to each exact API target: a top-level class, interface, enum, or type, or a specific property or method overload. Do not add multiple examples for the same target, even when the functions demonstrate distinct scenarios.
+- Do not map the same function to a class and several of that class's properties or methods, because those mappings repeat identical code on the same class page.
 - If one function demonstrates several members on the same page, choose the single row that best represents its purpose. For a requested class, prefer the top-level `class` row. For a requested member, prefer that exact member row.
 - The same function may appear in multiple rows only when each row targets a genuinely different API page, such as a class page, its collection page, and an options-interface page.
-- Different functions may map to the same API page when they provide distinct, useful examples rather than duplicated code.
 - Do not map incidental APIs used only for setup, navigation, loading, synchronization, logging, or cleanup.
-- Do not add duplicate rows for coverage already provided by the same function.
+- Do not add duplicate rows for coverage already provided by another function.
 
 If a mapped function is renamed or moved to another snippet, update every affected CSV row in the same change.
 

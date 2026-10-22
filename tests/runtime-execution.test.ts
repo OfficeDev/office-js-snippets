@@ -1206,6 +1206,7 @@ describe('Runtime Execution Tests - Word', () => {
       'set-two-lines', 'get-layout',
     ]],
     ['28-formatting', 'convert-japanese-kana-desktop.yaml', ['setup', 'set-kana', 'get-kana']],
+    ['28-formatting', 'character-formatting-and-case-desktop.yaml', ['setup', 'get-formatting', 'set-case', 'show-marks']],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
       'search-range', 'set-style', 'clear-range', 'delete-range',
@@ -1233,9 +1234,8 @@ describe('Runtime Execution Tests - Word', () => {
       'get-tables', 'get-parent-table', 'get-parent-cell', 'check-parent-table',
       'check-parent-cell', 'set-hyperlink', 'get-hyperlink-ranges',
     ]],
-    ['35-ranges', 'format-range-text-desktop.yaml', [
-      'setup', 'get-formatting', 'get-position', 'move-start', 'move-end', 'set-case',
-      'show-marks',
+    ['35-ranges', 'inspect-and-adjust-range-boundaries-desktop.yaml', [
+      'setup', 'get-position', 'move-start', 'move-end',
     ]],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', [
       'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames',
@@ -1325,8 +1325,8 @@ describe('Runtime Execution Tests - Word', () => {
   test.each([
     ['25-paragraph', 'paragraph-properties.yaml', 'get-formatting', 'Paragraph:', { firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0 }],
     ['35-ranges', 'basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
+    ['28-formatting', 'character-formatting-and-case-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
+    ['35-ranges', 'inspect-and-adjust-range-boundaries-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "English paragraph's proofing settings:", { languageId: 'EnglishUS', languageDetected: false }],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "Japanese paragraph's proofing settings:", { languageIdFarEast: 'Japanese', languageDetected: false }],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-table', 'Parent table:', { rowCount: 2, values: expect.any(Array) }],
@@ -1496,16 +1496,179 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
-  test('Word: remaining desktop range sample keeps its original focused actions', async () => {
-    const buttonHandlers = new Map<string, Function>();
-    (global as any).Word = createWordMock().mockObject;
-    (global as any).document = createMockDocument(buttonHandlers);
-    executeSnippetCode(loadSnippetByPath(
-      path.join('samples', 'word', '35-ranges', 'format-range-text-desktop.yaml')
-    ));
-    expect([...buttonHandlers.keys()]).toEqual([
-      'setup', 'get-formatting', 'get-position', 'move-start', 'move-end', 'set-case', 'show-marks',
-    ]);
+  describe('Word: character formatting and case (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'character-formatting-and-case-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers only formatting actions and restores sample content and formatting', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'get-formatting', 'set-case', 'show-marks']);
+
+      for (let i = 0; i < 2; i++) {
+        wordMock.mockRange.showAll = true;
+        wordMock.mockRange.font.bold = false;
+        await clickButton(buttonHandlers, 'setup');
+        expect(wordMock.mockRange.showAll).toBe(false);
+        expect(wordMock.mockRange.font).toEqual(expect.objectContaining({
+          bold: true, italic: true, highlightColor: '#FFFF00',
+        }));
+      }
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: the team is ready for review.', 'Replace'],
+        ['Project summary: the team is ready for review.', 'Replace'],
+      ]);
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.font.reset).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.font.reset.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads and labels the text and all reported formatting properties', async () => {
+      await clickButton(buttonHandlers, 'get-formatting');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith(
+        'text,bold,italic,boldBidirectional,italicBidirectional,case,highlightColorIndex,showAll'
+      );
+      expect(consoleSpy).toHaveBeenCalledWith("First paragraph's formatting:", {
+        text: wordMock.mockRange.text,
+        bold: true, italic: true, boldBidirectional: false, italicBidirectional: false,
+        case: 'TitleSentence', highlightColorIndex: 'Yellow', showAll: false,
+      });
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('uppercase conversion targets the sample paragraph', async () => {
+      await clickButton(buttonHandlers, 'set-case');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.case).toBe('Upper');
+      expect(consoleSpy).toHaveBeenCalledWith("Converted the first paragraph's text to uppercase.");
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('nonprinting-character display targets the full paragraph range', async () => {
+      await clickButton(buttonHandlers, 'show-marks');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith();
+      expect(wordMock.mockRange.showAll).toBe(true);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Enabled nonprinting characters for the first paragraph. Get character formatting to inspect the setting.'
+      );
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'get-formatting', 'set-case', 'show-marks'])('%s surfaces errors without success output', async (buttonId) => {
+      const error = new Error('Character formatting failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Word: range boundaries (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '35-ranges', 'inspect-and-adjust-range-boundaries-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers only boundary actions and replaces sample text during setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'get-position', 'move-start', 'move-end']);
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: the team is ready for review.', 'Replace'],
+        ['Project summary: the team is ready for review.', 'Replace'],
+      ]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('position readback loads all reported properties', async () => {
+      await clickButton(buttonHandlers, 'get-position');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith(
+        'id,start,end,storyLength,storyType,isEndOfRowMark,isTextVisibleOnScreen'
+      );
+      expect(consoleSpy).toHaveBeenCalledWith("First paragraph's position and story:", {
+        id: 'range-1', start: 0, end: 40, storyLength: 80, storyType: 'MainText',
+        isEndOfRowMark: false, isTextVisibleOnScreen: true,
+      });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['move-start', 'move-end'])('%s loads boundaries before modifying and selecting the range', async (buttonId) => {
+      wordMock.mockRange.start = 10;
+      wordMock.mockRange.end = 20;
+      wordMock.mockContext.sync.mockImplementationOnce(async () => {
+        expect(wordMock.mockRange.start).toBe(10);
+        expect(wordMock.mockRange.end).toBe(20);
+        expect(wordMock.mockRange.select).not.toHaveBeenCalled();
+      });
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith('start,end');
+      expect(wordMock.mockRange.start).toBe(buttonId === 'move-start' ? 11 : 10);
+      expect(wordMock.mockRange.end).toBe(buttonId === 'move-end' ? 19 : 20);
+      expect(wordMock.mockRange.select).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockRange.insertText).not.toHaveBeenCalled();
+      expect(wordMock.mockRange.delete).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['move-start', 'move-end'])('%s warns instead of selecting an empty range', async (buttonId) => {
+      wordMock.mockRange.start = 10;
+      wordMock.mockRange.end = 10;
+      const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(warningSpy).toHaveBeenCalledWith('The paragraph is empty. Run Set up again.');
+      expect(wordMock.mockRange.start).toBe(10);
+      expect(wordMock.mockRange.end).toBe(10);
+      expect(wordMock.mockRange.select).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'get-position', 'move-start', 'move-end'])('%s surfaces errors without success output', async (buttonId) => {
+      const error = new Error('Range-boundary operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('Word: language and proofing (desktop)', () => {

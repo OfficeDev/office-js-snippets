@@ -1,0 +1,203 @@
+order: 1
+id: word-formatting-apply-character-layout-desktop
+name: Apply character layout (desktop)
+description: Applies character width, combined and fitted text, horizontal-in-vertical layout, and two-line text.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.3'
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("set-width").addEventListener("click", () => tryCatch(setCharacterWidth));
+        document.getElementById("combine-characters").addEventListener("click", () => tryCatch(combineCharacters));
+        document.getElementById("fit-text").addEventListener("click", () => tryCatch(fitText));
+        document.getElementById("set-horizontal-in-vertical").addEventListener("click", () => tryCatch(setHorizontalInVertical));
+        document.getElementById("set-two-lines").addEventListener("click", () => tryCatch(setTwoLines));
+        document.getElementById("get-layout").addEventListener("click", () => tryCatch(getLayout));
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.insertText("AB12", Word.InsertLocation.replace);
+                const sampleRange: Word.Range = body.getRange(Word.RangeLocation.content);
+                sampleRange.font.reset();
+                await context.sync();
+                console.log("Created a short Latin-and-digit paragraph and cleared direct character formatting.");
+            });
+        }
+
+        async function setCharacterWidth() {
+            // Converts the first paragraph's Latin characters and digits to full width.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const characterWidth: Word.CharacterWidth = Word.CharacterWidth.full;
+                paragraphRange.characterWidth = characterWidth;
+                await context.sync();
+                console.log("Converted the first paragraph's Latin characters and digits to full width.");
+            });
+        }
+
+        async function combineCharacters() {
+            // Combines the first paragraph's short group of characters.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                paragraphRange.combineCharacters = true;
+                await context.sync();
+                console.log("Enabled combined characters on the first paragraph. Get layout settings to inspect the flag.");
+            });
+        }
+
+        async function fitText() {
+            // Fits the first paragraph's text into a specified width.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                paragraphRange.fitTextWidth = 100;
+                await context.sync();
+                console.log("Fitted the first paragraph's text into 100 current measurement units.");
+            });
+        }
+
+        async function setHorizontalInVertical() {
+            // Keeps the first paragraph's characters horizontal within vertical text.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const horizontalLayout: Word.HorizontalInVerticalType = Word.HorizontalInVerticalType.fitInLine;
+                paragraphRange.horizontalInVertical = horizontalLayout;
+                await context.sync();
+                console.log("Enabled horizontal-in-vertical layout on the first paragraph. Get layout settings to verify it.");
+            });
+        }
+
+        async function setTwoLines() {
+            // Displays the first paragraph's text as two lines enclosed in parentheses.
+            await Word.run(async (context) => {
+                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const twoLineLayout: Word.TwoLinesInOneType = Word.TwoLinesInOneType.parentheses;
+                paragraphRange.twoLinesInOne = twoLineLayout;
+                await context.sync();
+                console.log("Applied two-line text with parentheses to the first paragraph.");
+            });
+        }
+
+        async function getLayout() {
+            await Word.run(async (context) => {
+                const firstRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                firstRange.load("text,characterWidth,combineCharacters,disableCharacterSpaceGrid,emphasisMark,fitTextWidth,horizontalInVertical,twoLinesInOne");
+                await context.sync();
+                console.log("First paragraph's character layout:", {
+                    text: firstRange.text,
+                    characterWidth: firstRange.characterWidth,
+                    combineCharacters: firstRange.combineCharacters,
+                    disableCharacterSpaceGrid: firstRange.disableCharacterSpaceGrid,
+                    emphasisMark: firstRange.emphasisMark,
+                    fitTextWidth: firstRange.fitTextWidth,
+                    horizontalInVertical: firstRange.horizontalInVertical,
+                    twoLinesInOne: firstRange.twoLinesInOne
+                });
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample demonstrates full-width characters, combined and fitted text, horizontal-in-vertical
+                layout, and two-line text using a short Latin-and-digit paragraph.</p>
+            <p><b>Support:</b> Requires WordApiDesktop 1.4 in Word on Windows or Mac, not Word on the web.
+                Some layout effects depend on Word's language support and text-direction settings.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with AB12.
+                Set up restores the sample text and clears direct character formatting between actions
+                so their effects can be compared independently.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>All actions target the sample paragraph.</p>
+            <button id="set-width">Use full-width characters</button>
+            <button id="combine-characters">Combine characters</button>
+            <button id="fit-text">Fit text to width</button>
+            <p>The fitted width is 100 in Word's current measurement units.</p>
+            <button id="set-horizontal-in-vertical">Keep characters horizontal in vertical text</button>
+            <p>The horizontal-in-vertical effect is visible only with vertical text direction.
+                This sample doesn't change the document's text direction.
+                Get layout settings reports the assigned value even in a horizontal document.</p>
+            <button id="set-two-lines">Use two lines in parentheses</button>
+            <button id="get-layout">Get layout settings</button>
+            <p>Get layout settings reports the sample paragraph's text and character layout.
+                Reading these settings back helps verify values whose visual effects depend on the document configuration.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

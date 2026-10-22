@@ -1201,6 +1201,11 @@ describe('Runtime Execution Tests - Word', () => {
       'reset-language-detection', 'disable-proofing',
       'reset-spelling', 'reset-grammar', 'get-proofing',
     ]],
+    ['28-formatting', 'apply-character-layout-desktop.yaml', [
+      'setup', 'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
+      'set-two-lines', 'get-layout',
+    ]],
+    ['28-formatting', 'convert-japanese-kana-desktop.yaml', ['setup', 'set-kana', 'get-kana']],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
       'search-range', 'set-style', 'clear-range', 'delete-range',
@@ -1230,8 +1235,7 @@ describe('Runtime Execution Tests - Word', () => {
     ]],
     ['35-ranges', 'format-range-text-desktop.yaml', [
       'setup', 'get-formatting', 'get-position', 'move-start', 'move-end', 'set-case',
-      'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
-      'set-kana', 'set-two-lines', 'show-marks',
+      'show-marks',
     ]],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', [
       'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames',
@@ -1337,6 +1341,171 @@ describe('Runtime Execution Tests - Word', () => {
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
+  });
+
+  describe('Word: character layout (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'apply-character-layout-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      wordMock.mockRange.text = 'AB12';
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers focused actions and replaces sample content on repeated setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual([
+        'setup', 'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
+        'set-two-lines', 'get-layout',
+      ]);
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([['AB12', 'Replace'], ['AB12', 'Replace']]);
+      expect(wordMock.mockBody.insertParagraph).not.toHaveBeenCalled();
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.font.reset).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.font.reset.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ['set-width', 'characterWidth', 'Half', 'Full',
+        "Converted the first paragraph's Latin characters and digits to full width."],
+      ['combine-characters', 'combineCharacters', false, true,
+        'Enabled combined characters on the first paragraph. Get layout settings to inspect the flag.'],
+      ['fit-text', 'fitTextWidth', 0, 100,
+        "Fitted the first paragraph's text into 100 current measurement units."],
+      ['set-horizontal-in-vertical', 'horizontalInVertical', 'None', 'FitInLine',
+        'Enabled horizontal-in-vertical layout on the first paragraph. Get layout settings to verify it.'],
+      ['set-two-lines', 'twoLinesInOne', 'None', 'Parentheses',
+        'Applied two-line text with parentheses to the first paragraph.'],
+    ] as const)('%s targets the correct paragraph and labels its result', async (buttonId, property, initialValue, value, message) => {
+      Object.assign(wordMock.mockRange, { [property]: initialValue });
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(wordMock.mockRange[property]).toBe(value);
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockBody.paragraphs.getLast).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith(message);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads layout only on the sample paragraph', async () => {
+      await clickButton(buttonHandlers, 'get-layout');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith(
+        'text,characterWidth,combineCharacters,disableCharacterSpaceGrid,emphasisMark,fitTextWidth,horizontalInVertical,twoLinesInOne'
+      );
+      expect(wordMock.mockBody.paragraphs.getLast).not.toHaveBeenCalled();
+      expect(consoleSpy.mock.calls).toEqual([
+        ["First paragraph's character layout:", {
+          text: 'AB12', characterWidth: 'Half', combineCharacters: false,
+          disableCharacterSpaceGrid: wordMock.mockRange.disableCharacterSpaceGrid,
+          emphasisMark: wordMock.mockRange.emphasisMark,
+          fitTextWidth: 100, horizontalInVertical: 'None', twoLinesInOne: 'None',
+        }],
+      ]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'set-width', 'combine-characters', 'fit-text',
+      'set-horizontal-in-vertical', 'set-two-lines', 'get-layout'
+    ])('%s surfaces synchronization errors without logging success', async (buttonId) => {
+      const error = new Error('Character layout operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Word: Japanese kana conversion (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'convert-japanese-kana-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      wordMock.mockRange.text = '\u30ab\u30bf\u30ab\u30ca';
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers only kana actions and recreates katakana text during setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'set-kana', 'get-kana']);
+
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['\u30ab\u30bf\u30ab\u30ca', 'Replace'], ['\u30ab\u30bf\u30ab\u30ca', 'Replace'],
+      ]);
+      expect(wordMock.mockBody.insertParagraph).not.toHaveBeenCalled();
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.font.reset).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.font.reset.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('conversion assigns hiragana to the independent sample paragraph', async () => {
+      await clickButton(buttonHandlers, 'set-kana');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.kana).toBe('Hiragana');
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("Converted the Japanese paragraph's text to hiragana.");
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads text and kana and logs a labeled plain object', async () => {
+      await clickButton(buttonHandlers, 'get-kana');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith('text,kana');
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("Japanese paragraph's kana settings:", {
+        text: '\u30ab\u30bf\u30ab\u30ca', kana: 'Katakana',
+      });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'set-kana', 'get-kana'])('%s surfaces errors without logging success', async (buttonId) => {
+      const error = new Error('Kana operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  test('Word: remaining desktop range sample keeps its original focused actions', async () => {
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).Word = createWordMock().mockObject;
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(
+      path.join('samples', 'word', '35-ranges', 'format-range-text-desktop.yaml')
+    ));
+    expect([...buttonHandlers.keys()]).toEqual([
+      'setup', 'get-formatting', 'get-position', 'move-start', 'move-end', 'set-case', 'show-marks',
+    ]);
   });
 
   describe('Word: language and proofing (desktop)', () => {

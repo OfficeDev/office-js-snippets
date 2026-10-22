@@ -1,0 +1,141 @@
+order: 4
+id: word-formatting-convert-japanese-kana-desktop
+name: Convert Japanese kana (desktop)
+description: Converts Japanese katakana text to hiragana and reads the paragraph's kana setting.
+author: OfficeDev
+host: WORD
+api_set:
+    WordApi: '1.3'
+    WordApiDesktop: '1.4'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("set-kana").addEventListener("click", () => tryCatch(setKana));
+        document.getElementById("get-kana").addEventListener("click", () => tryCatch(getKana));
+
+        async function setup() {
+            await Word.run(async (context) => {
+                const body: Word.Body = context.document.body;
+                body.insertText("\u30ab\u30bf\u30ab\u30ca", Word.InsertLocation.replace);
+                const sampleRange: Word.Range = body.getRange(Word.RangeLocation.content);
+                sampleRange.font.reset();
+                await context.sync();
+                console.log("Created a Japanese katakana paragraph and cleared direct character formatting.");
+            });
+        }
+
+        async function setKana() {
+            // Converts the sample paragraph's Japanese katakana text to hiragana.
+            await Word.run(async (context) => {
+                const japaneseRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                const kana: Word.Kana = Word.Kana.hiragana;
+                japaneseRange.kana = kana;
+                await context.sync();
+                console.log("Converted the Japanese paragraph's text to hiragana.");
+            });
+        }
+
+        async function getKana() {
+            await Word.run(async (context) => {
+                const japaneseRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
+                japaneseRange.load("text,kana");
+                await context.sync();
+                console.log("Japanese paragraph's kana settings:", {
+                    text: japaneseRange.text,
+                    kana: japaneseRange.kana
+                });
+            });
+        }
+
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample demonstrates how to convert Japanese katakana text to hiragana and
+                inspect the converted text and its kana setting.</p>
+            <p><b>Support:</b> Requires WordApiDesktop 1.4 in Word on Windows or Mac, not Word on the web.
+                Japanese text rendering depends on the fonts and language support installed in Word.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Replaces the document body with the katakana characters &#x30AB;&#x30BF;&#x30AB;&#x30CA;.
+                Set up restores the original text and clears direct character formatting for another comparison.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="set-kana">Convert Japanese text to hiragana</button>
+            <button id="get-kana">Get text and kana setting</button>
+            <p>After conversion, the paragraph contains &#x304B;&#x305F;&#x304B;&#x306A;.
+                Get text and kana setting reports the paragraph's current text and kana value in the console.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

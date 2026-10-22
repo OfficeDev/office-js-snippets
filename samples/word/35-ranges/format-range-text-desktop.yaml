@@ -1,7 +1,7 @@
 order: 3
 id: word-ranges-format-range-text-desktop
 name: Format range text (desktop)
-description: Changes text case, character layout, and range boundaries and inspects formatting.
+description: Changes text case and range boundaries and inspects character formatting.
 author: OfficeDev
 host: WORD
 api_set:
@@ -15,19 +15,13 @@ script:
         document.getElementById("move-start").addEventListener("click", () => tryCatch(moveStart));
         document.getElementById("move-end").addEventListener("click", () => tryCatch(moveEnd));
         document.getElementById("set-case").addEventListener("click", () => tryCatch(setCase));
-        document.getElementById("set-width").addEventListener("click", () => tryCatch(setCharacterWidth));
-        document.getElementById("combine-characters").addEventListener("click", () => tryCatch(combineCharacters));
-        document.getElementById("fit-text").addEventListener("click", () => tryCatch(fitText));
-        document.getElementById("set-horizontal-in-vertical").addEventListener("click", () => tryCatch(setHorizontalInVertical));
-        document.getElementById("set-kana").addEventListener("click", () => tryCatch(setKana));
-        document.getElementById("set-two-lines").addEventListener("click", () => tryCatch(setTwoLines));
         document.getElementById("show-marks").addEventListener("click", () => tryCatch(showMarks));
 
         async function getFormatting() {
-            // Reads character formatting and layout settings on the first paragraph.
+            // Reads character formatting on the first paragraph.
             await Word.run(async (context) => {
                 const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                paragraphRange.load("bold,italic,boldBidirectional,italicBidirectional,case,characterWidth,combineCharacters,disableCharacterSpaceGrid,emphasisMark,fitTextWidth,highlightColorIndex,horizontalInVertical,kana,twoLinesInOne,showAll");
+                paragraphRange.load("bold,italic,boldBidirectional,italicBidirectional,case,highlightColorIndex,showAll");
                 await context.sync();
                 console.log("First paragraph's formatting:", {
                     bold: paragraphRange.bold,
@@ -35,15 +29,7 @@ script:
                     boldBidirectional: paragraphRange.boldBidirectional,
                     italicBidirectional: paragraphRange.italicBidirectional,
                     case: paragraphRange.case,
-                    characterWidth: paragraphRange.characterWidth,
-                    combineCharacters: paragraphRange.combineCharacters,
-                    disableCharacterSpaceGrid: paragraphRange.disableCharacterSpaceGrid,
-                    emphasisMark: paragraphRange.emphasisMark,
-                    fitTextWidth: paragraphRange.fitTextWidth,
                     highlightColorIndex: paragraphRange.highlightColorIndex,
-                    horizontalInVertical: paragraphRange.horizontalInVertical,
-                    kana: paragraphRange.kana,
-                    twoLinesInOne: paragraphRange.twoLinesInOne,
                     showAll: paragraphRange.showAll
                 });
             });
@@ -112,70 +98,6 @@ script:
             });
         }
 
-        async function setCharacterWidth() {
-            // Converts the first paragraph's characters to full width.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                const characterWidth: Word.CharacterWidth = Word.CharacterWidth.full;
-                paragraphRange.characterWidth = characterWidth;
-                await context.sync();
-                console.log("Applied full-width characters.");
-            });
-        }
-
-        async function combineCharacters() {
-            // Combines the characters in the first paragraph.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                paragraphRange.combineCharacters = true;
-                await context.sync();
-                console.log("Enabled combined characters. Get formatting to inspect the setting.");
-            });
-        }
-
-        async function fitText() {
-            // Fits the first paragraph's text into a specified width.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                paragraphRange.fitTextWidth = 100;
-                await context.sync();
-                console.log("Fitted the text into 100 current measurement units.");
-            });
-        }
-
-        async function setHorizontalInVertical() {
-            // Keeps the first paragraph's characters horizontal when the document uses vertical text.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                const horizontalLayout: Word.HorizontalInVerticalType = Word.HorizontalInVerticalType.fitInLine;
-                paragraphRange.horizontalInVertical = horizontalLayout;
-                await context.sync();
-                console.log("Enabled horizontal text within vertical text. Get formatting to verify the setting.");
-            });
-        }
-
-        async function setKana() {
-            // Converts the Japanese sample paragraph to hiragana.
-            await Word.run(async (context) => {
-                const japaneseRange: Word.Range = context.document.body.paragraphs.getLast().getRange(Word.RangeLocation.content);
-                const kana: Word.Kana = Word.Kana.hiragana;
-                japaneseRange.kana = kana;
-                await context.sync();
-                console.log("Converted the Japanese text to hiragana.");
-            });
-        }
-
-        async function setTwoLines() {
-            // Displays the first paragraph's text as two lines enclosed in parentheses.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                const twoLineLayout: Word.TwoLinesInOneType = Word.TwoLinesInOneType.parentheses;
-                paragraphRange.twoLinesInOne = twoLineLayout;
-                await context.sync();
-                console.log("Applied two-line text with parentheses.");
-            });
-        }
-
         async function showMarks() {
             // Displays nonprinting characters such as spaces and paragraph marks.
             await Word.run(async (context) => {
@@ -194,7 +116,6 @@ script:
                 summary.font.bold = true;
                 summary.font.italic = true;
                 summary.font.highlightColor = "#FFFF00";
-                body.insertParagraph("\u30ab\u30bf\u30ab\u30ca", Word.InsertLocation.end);
                 await context.sync();
             });
         }
@@ -209,15 +130,14 @@ script:
     language: typescript
 template:
     content: |-
-        <section>This sample demonstrates how to adjust a summary's character layout, inspect and adjust range boundaries, and convert Japanese text between scripts.</section>
+        <section>This sample demonstrates how to inspect a summary's character formatting, convert its text to uppercase, and inspect and adjust range boundaries.</section>
         <section>
             <p><b>Support:</b> Requires WordApiDesktop 1.4 on Windows or Mac.
-            East Asian layout effects depend on the client's language and text-direction settings.</p>
+            These APIs aren't available in Word on the web.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
-            <p>Replaces the document body with an English summary and Japanese katakana text.
-            Reset between character-layout actions to compare their effects.</p>
+            <p>Replaces the document body with an English summary formatted in bold, italic, and yellow highlighting.</p>
             <button id="setup">Add sample text</button>
         </section>
         <section>
@@ -227,14 +147,6 @@ template:
             <button id="move-start">Select without first character</button>
             <button id="move-end">Select without last character</button>
             <button id="set-case">Convert summary to uppercase</button>
-            <button id="set-width">Use full-width characters</button>
-            <button id="combine-characters">Combine characters</button>
-            <button id="fit-text">Fit summary to width</button>
-            <button id="set-horizontal-in-vertical">Keep characters horizontal in vertical text</button>
-            <p>The horizontal-in-vertical effect is visible only with vertical text direction.
-            Get character formatting verifies the setting even in a horizontal document.</p>
-            <button id="set-kana">Convert Japanese text to hiragana</button>
-            <button id="set-two-lines">Use two lines in parentheses</button>
             <button id="show-marks">Show nonprinting characters</button>
         </section>
     language: html

@@ -562,7 +562,7 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockRange = {
     text: selectionText,
-    font: { color: '', bold: false, highlightColor: '', underline: 'None' },
+    font: { color: '', bold: false, highlightColor: '', underline: 'None', reset: jest.fn() },
     delete: jest.fn(),
     load: jest.fn(),
     insertText: jest.fn(),

@@ -5,6 +5,8 @@ import {
   runCommonApiSnippetTest,
 } from './helpers/snippet-test-runner';
 import * as path from 'path';
+import * as ts from 'typescript';
+import { runInNewContext } from 'vm';
 import { createWordMock } from './helpers/mock-factories';
 import { loadSnippetByPath } from './helpers/test-helpers';
 import { executeSnippetCode, createMockDocument, clickButton } from './helpers/snippet-runtime';
@@ -60,6 +62,97 @@ describe('Runtime Execution Tests - Excel', () => {
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
+  });
+
+  test.each([false, true])('Excel: registers linked entity domains (existing: %s)', async (exists) => {
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-linked-entities.yaml'),
+      buttonId: 'register-domains',
+      mockOptions: { linkedEntityDomainExists: exists },
+    });
+    const domains = mockContext.workbook.linkedEntityDataDomains;
+    expect(domains.add.mock.calls).toEqual([
+      [{
+        dataProvider: 'Contoso', id: 'products', name: 'Products',
+        loadFunctionId: 'LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE',
+        periodicRefreshInterval: 300, supportedRefreshModes: ['Manual', 'OnLoad', 'Periodic'],
+      }],
+      [{
+        dataProvider: 'Contoso', id: 'categories', name: 'Categories',
+        loadFunctionId: 'LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE',
+        periodicRefreshInterval: 300, supportedRefreshModes: ['Manual', 'OnLoad', 'Periodic'],
+      }],
+      [{
+        dataProvider: 'Contoso', id: 'suppliers', name: 'Suppliers',
+        loadFunctionId: 'LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE',
+      }],
+    ]);
+    domains.items.forEach((domain) => expect(domain.delete).toHaveBeenCalledTimes(exists ? 1 : 0));
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Excel: linked entity setup registers refresh notifications', async () => {
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-linked-entities.yaml'),
+      buttonId: 'setup',
+    });
+    const domains = mockContext.workbook.linkedEntityDataDomains;
+    expect(domains.onRefreshCompleted.add).toHaveBeenCalledTimes(1);
+    const handler = domains.onRefreshCompleted.add.mock.calls[0][0];
+    await handler({ id: 'products', serviceId: 268436224, refreshed: true });
+    expect(consoleSpy).toHaveBeenCalledWith('Domain refreshed: products; succeeded: true');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    await handler({ id: 'products', serviceId: 268436224, refreshed: false, errors: ['Provider unavailable'] });
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Linked entity refresh errors:', ['Provider unavailable']);
+  });
+
+  test.each(['setup', 'insert-product', 'get-product', 'get-domains', 'refresh-product', 'refresh-domains'])(
+    'Excel: linked entities %s action executes without runtime errors',
+    async (buttonId) => {
+      const { mockContext, mockRange, mockWorksheet } = await runExcelSnippetTest({
+        snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-linked-entities.yaml'),
+        buttonId,
+        mockOptions: { rangeValuesAsJson: [[{
+          type: 'LinkedEntity', text: 'Chai',
+          id: { entityId: 'P1', domainId: 'products', serviceId: 268436224, culture: 'en-US' },
+        }]] },
+      });
+      const domains = mockContext.workbook.linkedEntityDataDomains;
+      if (buttonId === 'insert-product') {
+        expect(mockWorksheet.getRange).toHaveBeenCalledWith('A2');
+        expect(mockRange.valuesAsJson).toEqual([[{
+          type: 'LinkedEntity', text: 'Chai', basicType: 'Error', basicValue: '#VALUE!',
+          id: { entityId: 'P1', domainId: 'products', serviceId: 268436224, culture: 'en-US' },
+        }]]);
+        expect(mockRange.formulas).toEqual([['=A2.[Unit Price]', '=A2.Category', '=A2.Supplier']]);
+      } else if (buttonId === 'get-product') {
+        expect(mockRange.load).toHaveBeenCalledWith('valuesAsJson');
+        expect(consoleSpy).toHaveBeenCalledWith('Chai linked entity:', mockRange.valuesAsJson[0][0]);
+      } else if (buttonId === 'refresh-product') {
+        expect(domains.getItem).toHaveBeenCalledWith('products');
+        expect(domains.items[0].refresh).toHaveBeenCalledTimes(1);
+      } else if (buttonId === 'refresh-domains') {
+        expect(domains.refreshAll).toHaveBeenCalledTimes(1);
+      } else if (buttonId === 'get-domains') {
+        expect(domains.load).toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith('Domain settings:', expect.objectContaining({ id: 'products' }));
+      } else {
+        expect(mockContext.workbook.worksheets.add).toHaveBeenCalledWith('Sample');
+        expect(mockWorksheet.activate).toHaveBeenCalledTimes(1);
+      }
+      expect(mockContext.sync).toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    }
+  );
+
+  test('Excel: linked entity inspection reports a missing product', async () => {
+    await runExcelSnippetTest({
+      snippetPath: path.join('samples', 'excel', '20-data-types', 'data-types-linked-entities.yaml'),
+      buttonId: 'get-product',
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'A2 is not a linked entity. Register the domains and insert the product first.',
+    }));
   });
 
   test.each([
@@ -432,6 +525,433 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
+  describe('Word: content control states (preview)', () => {
+    const snippetPath = path.join('samples', 'word', '99-preview-apis', 'insert-and-change-content-controls.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers focused actions and recreates the tagged control during setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual([
+        'setup', 'set-warning-state', 'set-error-state', 'reset-state',
+      ]);
+
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.clear).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockBody.insertParagraph.mock.calls).toEqual([
+        ['Project code: pending review.', 'Start'],
+        ['Project code: pending review.', 'Start'],
+      ]);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.insertContentControl).toHaveBeenCalledTimes(2);
+      const sampleControl = wordMock.mockRange.contentControls.items[0];
+      expect(sampleControl.tag).toBe('ContentControlStateSample');
+      expect(sampleControl.title).toBe('Project code');
+      expect(sampleControl.select).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      { buttonId: 'set-warning-state', state: 'Warning' },
+      { buttonId: 'set-error-state', state: 'Error' },
+      { buttonId: 'reset-state', state: null },
+    ])('$buttonId targets the sample control', async ({ buttonId, state }) => {
+      await clickButton(buttonHandlers, 'setup');
+      consoleSpy.mockClear();
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(wordMock.mockContext.document.contentControls.getByTag)
+        .toHaveBeenCalledWith('ContentControlStateSample');
+      const sampleControl = wordMock.mockRange.contentControls.items[0];
+      if (state === null) {
+        expect(sampleControl.resetState).toHaveBeenCalledTimes(1);
+        expect(sampleControl.setState).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith('Reset the sample content control state.');
+      } else {
+        expect(sampleControl.setState).toHaveBeenCalledWith(state);
+        expect(sampleControl.resetState).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith(`Set sample content control state to ${state}.`);
+      }
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(3);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['set-warning-state', 'set-error-state', 'reset-state'])(
+      '%s warns when the sample is absent instead of changing an unrelated control',
+      async (buttonId) => {
+        const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        await clickButton(buttonHandlers, buttonId);
+
+        expect(wordMock.mockContext.document.contentControls.getByTag)
+          .toHaveBeenCalledWith('ContentControlStateSample');
+        const unrelatedControl = wordMock.mockRange.contentControls.items[0];
+        expect(unrelatedControl.tag).toBe('RangeSampleSummary');
+        expect(unrelatedControl.setState).not.toHaveBeenCalled();
+        expect(unrelatedControl.resetState).not.toHaveBeenCalled();
+        expect(warningSpy).toHaveBeenCalledWith('Run Set up to create the sample content control.');
+        expect(consoleSpy).not.toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    test.each(['set-warning-state', 'set-error-state', 'reset-state'])(
+      '%s reports a failed Word request without logging success',
+      async (buttonId) => {
+        await clickButton(buttonHandlers, 'setup');
+        consoleSpy.mockClear();
+        const error = new Error('The Word client does not support content control states.');
+        wordMock.mockContext.sync.mockResolvedValueOnce(undefined).mockRejectedValueOnce(error);
+
+        await clickButton(buttonHandlers, buttonId);
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+        expect(consoleSpy).not.toHaveBeenCalled();
+      }
+    );
+  });
+
+  describe('Word: comment events (preview)', () => {
+    const snippetPath = path.join('samples', 'word', '99-preview-apis', 'comment-events.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+    let warningSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      wordMock = createWordMock({ bookmarkNames: ['CommentEventsSample'] });
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('exposes only setup, event registration, and focused event triggers', () => {
+      expect([...buttonHandlers.keys()]).toEqual([
+        'setup', 'register-event-handlers', 'create-comment', 'edit-comment',
+        'delete-comment', 'deregister-event-handlers',
+      ]);
+    });
+
+    const commentEvents = [
+      'onCommentAdded', 'onCommentChanged', 'onCommentDeleted', 'onCommentDeselected', 'onCommentSelected',
+    ] as const;
+
+    test.each(commentEvents)('%s waits for body tracking to synchronize before subscribing', async (eventName) => {
+      let completeTracking: () => void;
+      let notifyTrackingStarted: () => void;
+      const trackingSync = new Promise<void>(resolve => { completeTracking = resolve; });
+      const trackingStarted = new Promise<void>(resolve => { notifyTrackingStarted = resolve; });
+      wordMock.mockBody.track.mockImplementation(() => {
+        if (wordMock.mockBody.track.mock.calls.length === commentEvents.indexOf(eventName) + 1) {
+          wordMock.mockContext.sync.mockImplementationOnce(() => {
+            notifyTrackingStarted();
+            return trackingSync;
+          });
+        }
+      });
+
+      const registration = clickButton(buttonHandlers, 'register-event-handlers');
+      await trackingStarted;
+      try {
+        expect(wordMock.mockCommentEvents[eventName].add).not.toHaveBeenCalled();
+      } finally {
+        completeTracking();
+        await registration;
+      }
+
+      expect(wordMock.mockCommentEvents[eventName].add).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('setup recreates the bookmarked paragraph and removes existing subscriptions', async () => {
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'register-event-handlers');
+      const handlers = Object.values(wordMock.mockCommentEvents).map(event => event.add.mock.results[0].value);
+
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.clear).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockBody.insertParagraph.mock.calls).toEqual([
+        ['The project launches on October 30.', 'Start'],
+        ['The project launches on October 30.', 'Start'],
+      ]);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.insertBookmark.mock.calls).toEqual([
+        ['CommentEventsSample'], ['CommentEventsSample'],
+      ]);
+      handlers.forEach(handler => expect(handler.remove).toHaveBeenCalledTimes(1));
+      expect(wordMock.mockBody.untrack).toHaveBeenCalledTimes(5);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('registering twice does not duplicate subscriptions, and handlers can be registered again after removal', async () => {
+      await clickButton(buttonHandlers, 'register-event-handlers');
+      await clickButton(buttonHandlers, 'register-event-handlers');
+
+      const events = Object.values(wordMock.mockCommentEvents);
+      events.forEach(event => expect(event.add).toHaveBeenCalledTimes(1));
+      expect(wordMock.mockBody.track).toHaveBeenCalledTimes(5);
+      expect(warningSpy).toHaveBeenCalledWith('Deregister the existing handlers before registering again.');
+      const handlers = events.map(event => event.add.mock.results[0].value);
+
+      await clickButton(buttonHandlers, 'deregister-event-handlers');
+      await clickButton(buttonHandlers, 'deregister-event-handlers');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Number of event handlers to remove: 5');
+      expect(consoleSpy).toHaveBeenCalledWith('Number of event handlers to remove: 0');
+      handlers.forEach(handler => expect(handler.remove).toHaveBeenCalledTimes(1));
+      expect(wordMock.mockBody.untrack).toHaveBeenCalledTimes(5);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(15);
+
+      await clickButton(buttonHandlers, 'register-event-handlers');
+      events.forEach(event => expect(event.add).toHaveBeenCalledTimes(2));
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      'CommentAdded', 'CommentChanged', 'CommentDeleted', 'CommentDeselected', 'CommentSelected',
+    ] as const)('%s callbacks report structured event details without a Word request', async (type) => {
+      await clickButton(buttonHandlers, 'register-event-handlers');
+      consoleSpy.mockClear();
+      wordMock.mockContext.sync.mockClear();
+      const event = wordMock.mockCommentEvents[`on${type}`];
+      const handler = event.add.mock.calls[0][0];
+
+      await handler({
+        type,
+        source: 'Local',
+        changeType: type === 'CommentChanged' ? 'edited' : 'none',
+        commentDetails: [
+          { id: 'comment-1', replyIds: ['reply-1'] },
+          { id: 'comment-2', replyIds: [] },
+        ],
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(`${type} event. Source: Local.`);
+      expect(consoleSpy).toHaveBeenCalledWith('Affected comment:', { id: 'comment-1', replyIds: ['reply-1'] });
+      expect(consoleSpy).toHaveBeenCalledWith('Affected comment:', { id: 'comment-2', replyIds: [] });
+      if (type === 'CommentChanged') {
+        expect(consoleSpy).toHaveBeenCalledWith('Comment change: edited.');
+        expect(consoleSpy).toHaveBeenCalledWith('The comment text was edited.');
+      }
+      expect(wordMock.mockContext.sync).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['resolved', 'reopened', 'replyAdded', 'replyDeleted', 'replyEdited'])(
+      'changed callbacks preserve the %s change type and remote source',
+      async (changeType) => {
+        await clickButton(buttonHandlers, 'register-event-handlers');
+        consoleSpy.mockClear();
+        const handler = wordMock.mockCommentEvents.onCommentChanged.add.mock.calls[0][0];
+
+        await handler({
+          type: 'CommentChanged',
+          source: 'Remote',
+          changeType,
+          commentDetails: [{ id: 'comment-1', replyIds: ['reply-1'] }],
+        });
+
+        expect(consoleSpy).toHaveBeenCalledWith(`Comment change: ${changeType}.`);
+        expect(consoleSpy).toHaveBeenCalledWith('CommentChanged event. Source: Remote.');
+        expect(consoleSpy).toHaveBeenCalledWith('A coauthor triggered this event.');
+        expect(consoleSpy).not.toHaveBeenCalledWith('The comment text was edited.');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    test('failed registration reports the error and retains the handle for cleanup', async () => {
+      const error = new Error('Comment event registration failed.');
+      wordMock.mockContext.sync.mockResolvedValueOnce(undefined).mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, 'register-event-handlers');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(wordMock.mockCommentEvents.onCommentChanged.add).not.toHaveBeenCalled();
+      const handler = wordMock.mockCommentEvents.onCommentAdded.add.mock.results[0].value;
+
+      await clickButton(buttonHandlers, 'deregister-event-handlers');
+
+      expect(consoleSpy).toHaveBeenCalledWith('Number of event handlers to remove: 1');
+      expect(handler.remove).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockBody.untrack).toHaveBeenCalledTimes(1);
+    });
+
+    test('failed body tracking prevents subscriptions and success messages', async () => {
+      const error = new Error('Body tracking failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, 'register-event-handlers');
+
+      Object.values(wordMock.mockCommentEvents).forEach(event => expect(event.add).not.toHaveBeenCalled());
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+
+    test('a failed deregistration stops setup before replacing the document', async () => {
+      await clickButton(buttonHandlers, 'register-event-handlers');
+      consoleSpy.mockClear();
+      const error = new Error('Comment event removal failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(wordMock.mockBody.clear).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith('Number of event handlers to remove: 5');
+      expect(consoleSpy).not.toHaveBeenCalledWith('Removed comment event handlers.');
+      expect(consoleSpy).not.toHaveBeenCalledWith('Created the sample paragraph. Register handlers before triggering events.');
+      await clickButton(buttonHandlers, 'register-event-handlers');
+      expect(warningSpy).toHaveBeenCalledWith('Deregister the existing handlers before registering again.');
+      Object.values(wordMock.mockCommentEvents).forEach(event => expect(event.add).toHaveBeenCalledTimes(1));
+    });
+
+    test('creation targets the bookmarked paragraph and guards against duplicate comments', async () => {
+      await clickButton(buttonHandlers, 'create-comment');
+
+      expect(warningSpy).toHaveBeenCalledWith('The sample paragraph already has a comment. Edit or delete it first.');
+      expect(wordMock.mockRange.insertComment).not.toHaveBeenCalled();
+
+      wordMock.mockComment.isNullObject = true;
+      await clickButton(buttonHandlers, 'create-comment');
+
+      expect(wordMock.mockContext.document.getBookmarkRangeOrNullObject).toHaveBeenCalledWith('CommentEventsSample');
+      expect(wordMock.mockRange.insertComment).toHaveBeenCalledWith('Please verify the launch date.');
+      expect(wordMock.mockContext.document.getSelection).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('editing switches comment text on each click and deleting targets the same scoped comment', async () => {
+      await clickButton(buttonHandlers, 'edit-comment');
+      expect(wordMock.mockComment.load).toHaveBeenCalledWith('content,resolved');
+      expect(wordMock.mockComment.content).toBe('The launch date is confirmed.');
+
+      await clickButton(buttonHandlers, 'edit-comment');
+      expect(wordMock.mockComment.content).toBe('Please verify the launch date.');
+
+      await clickButton(buttonHandlers, 'delete-comment');
+      expect(wordMock.mockComment.delete).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockRange.getComments).toHaveBeenCalledTimes(3);
+      expect(wordMock.mockContext.document.getSelection).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['create-comment', 'edit-comment', 'delete-comment'])(
+      '%s warns when the sample bookmark is missing',
+      async (buttonId) => {
+        wordMock.mockContext.document.getBookmarkRangeOrNullObject.mockReturnValueOnce({
+          isNullObject: true, load: jest.fn(),
+        });
+
+        await clickButton(buttonHandlers, buttonId);
+
+        expect(warningSpy).toHaveBeenCalledWith('Run Set up to create the sample paragraph.');
+        expect(wordMock.mockRange.getComments).not.toHaveBeenCalled();
+        expect(wordMock.mockRange.insertComment).not.toHaveBeenCalled();
+        expect(wordMock.mockComment.content).toBe('Please verify the launch date.');
+        expect(wordMock.mockComment.delete).not.toHaveBeenCalled();
+        expect(consoleSpy).not.toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    test.each([
+      ['edit-comment', 'editing'],
+      ['delete-comment', 'deleting'],
+    ])('%s warns when the scoped comment is absent', async (buttonId, action) => {
+      wordMock.mockComment.isNullObject = true;
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(warningSpy).toHaveBeenCalledWith(`Create the sample comment before ${action} it.`);
+      expect(wordMock.mockComment.content).toBe('Please verify the launch date.');
+      expect(wordMock.mockComment.delete).not.toHaveBeenCalled();
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('editing a resolved comment warns instead of attempting a change', async () => {
+      wordMock.mockComment.resolved = true;
+
+      await clickButton(buttonHandlers, 'edit-comment');
+
+      expect(warningSpy).toHaveBeenCalledWith('Reopen the sample comment in Word before editing it.');
+      expect(wordMock.mockComment.content).toBe('Please verify the launch date.');
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['create-comment', 'edit-comment', 'delete-comment'])(
+      '%s reports a failed mutation without logging success',
+      async (buttonId) => {
+        wordMock.mockComment.isNullObject = buttonId === 'create-comment';
+        const error = new Error('Comment operation failed.');
+        wordMock.mockContext.sync.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined).mockRejectedValueOnce(error);
+
+        await clickButton(buttonHandlers, buttonId);
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+        expect(consoleSpy).not.toHaveBeenCalled();
+      }
+    );
+  });
+
+  test.each([true, false])('Word: close document window checks desktop support (%s)', async (supported) => {
+    const isSetSupported = jest.fn(() => supported);
+    (global as any).Office = { context: { requirements: { isSetSupported } } };
+
+    const { mockContext } = await runWordSnippetTest({
+      snippetPath: path.join('samples', 'word', '50-document', 'close-document-window.yaml'),
+      buttonId: 'close-with-save-prompt',
+    });
+
+    expect(isSetSupported).toHaveBeenCalledWith('WordApiDesktop', '1.4');
+    if (supported) {
+      expect(mockContext.document.activeWindow.close).toHaveBeenCalledWith({
+        saveChanges: 'PromptToSaveChanges',
+      });
+      expect(mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith('About to close the document window...');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    } else {
+      expect(mockContext.document.activeWindow.close).not.toHaveBeenCalled();
+      expect(mockContext.sync).not.toHaveBeenCalled();
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith('This sample requires WordApiDesktop 1.4 or later.');
+    }
+  });
+
+  test('Word: close document window reports a failed close request', async () => {
+    const { mockObject, mockContext } = createWordMock();
+    const error = new Error('The document window could not be closed.');
+    mockContext.sync.mockRejectedValueOnce(error);
+    (global as any).Office = { context: { requirements: { isSetSupported: jest.fn(() => true) } } };
+    (global as any).Word = mockObject;
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(path.join('samples', 'word', '50-document', 'close-document-window.yaml')));
+
+    await clickButton(buttonHandlers, 'close-with-save-prompt');
+
+    expect(mockContext.document.activeWindow.close).toHaveBeenCalledWith({
+      saveChanges: 'PromptToSaveChanges',
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+  });
+
   test('Word: basic-common-api-call executes without runtime errors', async () => {
     await runCommonApiSnippetTest({
       snippetPath: path.join('samples', 'word', '01-basics', 'basic-common-api-call.yaml'),
@@ -676,6 +1196,11 @@ describe('Runtime Execution Tests - Word', () => {
       'setup', 'indent', 'indent-first-line', 'indent-right', 'spacing', 'space-before',
       'space-after', 'line-unit-spacing-after', 'line-unit-spacing-before', 'align', 'get-formatting',
     ]],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', [
+      'setup', 'set-language', 'set-east-asian-language', 'set-other-language',
+      'reset-language-detection', 'disable-proofing',
+      'reset-spelling', 'reset-grammar', 'get-proofing',
+    ]],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
       'search-range', 'set-style', 'clear-range', 'delete-range',
@@ -706,9 +1231,7 @@ describe('Runtime Execution Tests - Word', () => {
     ['35-ranges', 'format-range-text-desktop.yaml', [
       'setup', 'get-formatting', 'get-position', 'move-start', 'move-end', 'set-case',
       'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
-      'set-kana', 'set-two-lines', 'set-language', 'set-east-asian-language',
-      'set-other-language', 'detect-language', 'reset-language-detection',
-      'disable-proofing', 'reset-spelling', 'reset-grammar', 'get-proofing', 'show-marks',
+      'set-kana', 'set-two-lines', 'show-marks',
     ]],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', [
       'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames',
@@ -755,7 +1278,13 @@ describe('Runtime Execution Tests - Word', () => {
     ['35-ranges', 'basic-range-operations.yaml', 'search-range', 'Matches found: 1'],
     ['35-ranges', 'compare-location.yaml', 'expand-ranges', expect.stringContaining('Expanded text: ')],
     ['35-ranges', 'compare-location.yaml', 'intersect-ranges', expect.stringContaining('Overlapping text: ')],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'detect-language', 'Language detected: true'],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'set-language', "Set the English paragraph's proofing language to US English."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'set-east-asian-language', "Set the Japanese paragraph's East Asian language to Japanese."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'set-other-language', "Set the English paragraph's non-East-Asian language to US English."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'reset-language-detection', "Reset the English paragraph's language-detected flag. Get language and proofing settings to inspect it."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'disable-proofing', "Disabled spelling and grammar checking for the English paragraph. Get language and proofing settings to verify it."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'reset-spelling', "Reset the English paragraph's spelling-checked flag. Get language and proofing settings to inspect it."],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'reset-grammar', "Reset the English paragraph's grammar-checked flag. Get language and proofing settings to inspect it."],
     ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-html', expect.stringContaining('Range HTML: ')],
     ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-ooxml', expect.stringContaining('Range OOXML: ')],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-borders', "First paragraph's border formatting:"],
@@ -794,7 +1323,8 @@ describe('Runtime Execution Tests - Word', () => {
     ['35-ranges', 'basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
     ['35-ranges', 'format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
     ['35-ranges', 'format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'get-proofing', "First paragraph's proofing settings:", { languageId: 'EnglishUS', languageDetected: false }],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "English paragraph's proofing settings:", { languageId: 'EnglishUS', languageDetected: false }],
+    ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "Japanese paragraph's proofing settings:", { languageIdFarEast: 'Japanese', languageDetected: false }],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-table', 'Parent table:', { rowCount: 2, values: expect.any(Array) }],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-cell', 'Parent cell:', { rowIndex: expect.any(Number), cellIndex: expect.any(Number), value: expect.any(String) }],
     ['50-document', 'manage-tracked-changes.yaml', 'get-next-tracked-change', 'Next tracked change:', { author: expect.any(String), date: expect.any(Date), text: expect.any(String), type: expect.any(String) }],
@@ -806,6 +1336,112 @@ describe('Runtime Execution Tests - Word', () => {
         expect(consoleSpy).toHaveBeenCalledWith(label, expect.objectContaining(properties));
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
+    });
+  });
+
+  describe('Word: language and proofing (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'manage-language-and-proofing-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let japaneseRange: ReturnType<typeof createWordMock>['mockRange'];
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      japaneseRange = { ...wordMock.mockRange, text: 'Japanese sample text', load: jest.fn() };
+      wordMock.mockBody.paragraphs.getLast.mockReturnValue({
+        ...wordMock.mockParagraph,
+        getRange: jest.fn(() => japaneseRange),
+      });
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('setup replaces sample text and re-enables proofing on repeated runs', async () => {
+      wordMock.mockRange.hasNoProofing = true;
+
+      await clickButton(buttonHandlers, 'setup');
+      wordMock.mockRange.hasNoProofing = true;
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['The project summarry is ready for reveiw. The team will discuss the launch schedule tomorrow.', 'Replace'],
+        ['The project summarry is ready for reveiw. The team will discuss the launch schedule tomorrow.', 'Replace'],
+      ]);
+      expect(wordMock.mockBody.insertParagraph).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockBody.insertParagraph).toHaveBeenCalledWith(
+        '\u3053\u306e\u30d7\u30ed\u30b8\u30a7\u30af\u30c8\u306f\u6765\u9031\u958b\u59cb\u4e88\u5b9a\u3067\u3059\u3002',
+        'End'
+      );
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.hasNoProofing).toBe(false);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ['set-language', 'languageId', 'Unassigned', 'EnglishUS'],
+      ['set-east-asian-language', 'languageIdFarEast', 'Unassigned', 'Japanese'],
+      ['set-other-language', 'languageIdOther', 'Unassigned', 'EnglishUS'],
+      ['reset-language-detection', 'languageDetected', true, false],
+      ['disable-proofing', 'hasNoProofing', false, true],
+      ['reset-spelling', 'spellingChecked', true, false],
+      ['reset-grammar', 'grammarChecked', true, false],
+    ] as const)('%s changes the intended paragraph property', async (buttonId, property, initialValue, value) => {
+      Object.assign(wordMock.mockRange, { [property]: initialValue });
+      Object.assign(japaneseRange, { [property]: initialValue });
+
+      await clickButton(buttonHandlers, buttonId);
+
+      const targetRange = buttonId === 'set-east-asian-language' ? japaneseRange : wordMock.mockRange;
+      const otherRange = buttonId === 'set-east-asian-language' ? wordMock.mockRange : japaneseRange;
+      expect(targetRange[property]).toBe(value);
+      expect(otherRange[property]).toBe(initialValue);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback labels the two paragraphs and loads every reported property', async () => {
+      await clickButton(buttonHandlers, 'get-proofing');
+
+      for (const range of [wordMock.mockRange, japaneseRange]) {
+        expect(range.load).toHaveBeenCalledWith(
+          'text,languageId,languageIdFarEast,languageIdOther,languageDetected,hasNoProofing,spellingChecked,grammarChecked'
+        );
+      }
+      expect(consoleSpy.mock.calls).toEqual([
+        ["English paragraph's proofing settings:", {
+          text: wordMock.mockRange.text,
+          languageId: 'EnglishUS', languageIdFarEast: 'Japanese', languageIdOther: 'EnglishUS',
+          languageDetected: false, hasNoProofing: false, spellingChecked: false, grammarChecked: false,
+        }],
+        ["Japanese paragraph's proofing settings:", {
+          text: 'Japanese sample text',
+          languageId: 'EnglishUS', languageIdFarEast: 'Japanese', languageIdOther: 'EnglishUS',
+          languageDetected: false, hasNoProofing: false, spellingChecked: false, grammarChecked: false,
+        }],
+      ]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('registers only the supported sample actions', () => {
+      expect([...buttonHandlers.keys()]).toEqual([
+        'setup', 'set-language', 'set-east-asian-language', 'set-other-language',
+        'reset-language-detection', 'disable-proofing', 'reset-spelling', 'reset-grammar', 'get-proofing',
+      ]);
+      expect(wordMock.mockRange.detectLanguage).not.toHaveBeenCalled();
+    });
+
+    test('surfaces synchronization errors without logging success', async () => {
+      const error = new Error('Proofing operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, 'disable-proofing');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -1505,6 +2141,116 @@ describe('Runtime Execution Tests - Word', () => {
       });
     }
   );
+});
+
+describe('Runtime Execution Tests - Linked entity load service', () => {
+  test('uses the linked entity load service registration signature', () => {
+    const snippet = loadSnippetByPath(path.join('samples', 'excel', '20-data-types', 'data-types-linked-entity-load-service.yaml'));
+    const source = ts.createSourceFile('snippet.ts', snippet.script.content, ts.ScriptTarget.Latest, true);
+    const loadService = source.statements.find((statement): statement is ts.FunctionDeclaration =>
+      ts.isFunctionDeclaration(statement) && statement.name?.text === 'contosoLoadService'
+    );
+    if (!loadService) {
+      throw new Error('The linked entity custom function was not found.');
+    }
+    const tags = ts.getJSDocTags(loadService).map((tag) => tag.tagName.text.toLowerCase());
+    expect(tags).toContain('linkedentityloadservice');
+    expect(tags).not.toContain('linkedentitydataprovider');
+    expect(loadService.parameters).toHaveLength(1);
+    const requestParameter = loadService.parameters[0];
+    expect(requestParameter.type?.kind).toBe(ts.SyntaxKind.UnknownKeyword);
+    expect(ts.getJSDocType(requestParameter)?.kind).toBe(ts.SyntaxKind.UnknownKeyword);
+    expect(requestParameter.questionToken).toBeUndefined();
+    expect(requestParameter.dotDotDotToken).toBeUndefined();
+    expect(requestParameter.initializer).toBeUndefined();
+    const returnType = ts.getJSDocReturnType(loadService);
+    expect(returnType?.kind).toBe(ts.SyntaxKind.AnyKeyword);
+    // Script Lab compares explicit TypeScript and JSDoc return syntax kinds, not their assignability.
+    expect(loadService.type?.kind ?? returnType?.kind).toBe(returnType?.kind);
+  });
+
+  function createLoadService() {
+    const snippet = loadSnippetByPath(path.join('samples', 'excel', '20-data-types', 'data-types-linked-entity-load-service.yaml'));
+    const code = ts.transpileModule(`${snippet.script.content}\ncontosoLoadService;`, {
+      compilerOptions: { target: ts.ScriptTarget.ES2024, module: ts.ModuleKind.None },
+    }).outputText;
+    class CustomFunctionError extends Error {
+      constructor(public code: string, message: string) {
+        super(message);
+      }
+    }
+    const errorSpy = jest.fn();
+    const loadService = runInNewContext(code, {
+      console: { log: jest.fn(), error: errorSpy },
+      CustomFunctions: { Error: CustomFunctionError, ErrorCode: { notAvailable: '#N/A' } },
+    }) as (request: unknown) => {
+      entities: Array<{
+        id: { entityId: string; domainId: string; serviceId: number; culture: string };
+        properties: Record<string, unknown>;
+      }>;
+    };
+    return { loadService, errorSpy };
+  }
+
+  test('returns a product card with deferred category and supplier links', () => {
+    const { loadService, errorSpy } = createLoadService();
+    const response = loadService(JSON.stringify({
+      domainId: 'products', entities: [{ entityId: 'P1', culture: 'en-US' }],
+    }));
+    expect(response.entities).toHaveLength(1);
+    expect(response.entities[0]).toMatchObject({
+      type: 'LinkedEntity', text: 'Chai', basicType: 'Error', basicValue: '#VALUE!',
+      id: { entityId: 'P1', domainId: 'products', serviceId: 268436224, culture: 'en-US' },
+      properties: { 'Unit Price': { type: 'FormattedNumber', basicValue: 18 } },
+      layouts: { card: { title: { property: 'Product Name' } } },
+    });
+    expect(response.entities[0].properties.Category).toEqual({
+      type: 'LinkedEntity', text: 'Beverages', basicType: 'Error', basicValue: '#VALUE!',
+      id: { entityId: 'C1', domainId: 'categories', serviceId: 268436224, culture: 'en-US' },
+    });
+    expect(response.entities[0].properties.Supplier).toEqual({
+      type: 'LinkedEntity', text: 'Exotic Liquids', basicType: 'Error', basicValue: '#VALUE!',
+      id: { entityId: 'S1', domainId: 'suppliers', serviceId: 268436224, culture: 'en-US' },
+    });
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    { domainId: 'products', entityId: 'P1', property: 'Product Name', value: 'Chai' },
+    { domainId: 'categories', entityId: 'C1', property: 'Category Name', value: 'Beverages' },
+    { domainId: 'suppliers', entityId: 'S1', property: 'Contact Name', value: 'Ema Vargova' },
+  ])('resolves $domainId in request order and preserves cultures', ({ domainId, entityId, property, value }) => {
+    const { loadService } = createLoadService();
+    const response = loadService(JSON.stringify({
+      domainId, entities: [{ entityId, culture: 'fr-FR' }, { entityId, culture: 'en-US' }],
+    }));
+    expect(response.entities.map((entity) => entity.id)).toEqual([
+      { entityId, domainId, serviceId: 268436224, culture: 'fr-FR' },
+      { entityId, domainId, serviceId: 268436224, culture: 'en-US' },
+    ]);
+    response.entities.forEach((entity) => expect(entity.properties[property]).toEqual({ type: 'String', basicValue: value }));
+  });
+
+  test.each([
+    undefined,
+    null,
+    42,
+    { domainId: 'products', entities: [{ entityId: 'P1', culture: 'en-US' }] },
+    'not JSON',
+    'null',
+    '{}',
+    JSON.stringify({ domainId: 'products', entities: [null] }),
+    JSON.stringify({ domainId: 'products', entities: [{ entityId: 'P1' }] }),
+    JSON.stringify({ domainId: 'unknown', entities: [{ entityId: 'P1', culture: 'en-US' }] }),
+    JSON.stringify({ domainId: 'products', entities: [{ entityId: 'missing', culture: 'en-US' }] }),
+    JSON.stringify({ domainId: 'categories', entities: [{ entityId: 'missing', culture: 'en-US' }] }),
+    JSON.stringify({ domainId: 'suppliers', entities: [{ entityId: 'missing', culture: 'en-US' }] }),
+  ])('reports an unavailable error for invalid request %s', (request) => {
+    const { loadService, errorSpy } = createLoadService();
+    expect(() => loadService(request)).toThrow('Unable to load the requested Contoso entity.');
+    expect(() => loadService(request)).toThrow(expect.objectContaining({ code: '#N/A' }));
+    expect(errorSpy).toHaveBeenCalledWith('Unable to load linked entities:', expect.anything());
+  });
 });
 
 describe('Runtime Execution Tests - PowerPoint', () => {

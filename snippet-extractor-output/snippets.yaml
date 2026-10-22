@@ -6277,6 +6277,425 @@ Excel.Line#disconnectEndShape:member(1):
         line.disconnectEndShape();
         await context.sync();
     });
+Excel.LinkedEntityCellValue:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entities.yaml
+
+
+    // Insert a product identity that Excel resolves through the companion load
+    service.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const productId: Excel.LinkedEntityId = {
+            entityId: "P1",
+            domainId: "products",
+            serviceId: 268436224,
+            culture: "en-US"
+        };
+        const product: Excel.LinkedEntityCellValue = {
+            type: Excel.CellValueType.linkedEntity,
+            id: productId,
+            text: "Chai",
+            basicType: "Error",
+            basicValue: "#VALUE!"
+        };
+        const productRange: Excel.Range = sheet.getRange("A2");
+        productRange.valuesAsJson = [[product]];
+        sheet.getRange("B2:D2").formulas = [["=A2.[Unit Price]", "=A2.Category", "=A2.Supplier"]];
+        sheet.getRange("B2").numberFormat = [["$0.00"]];
+        await context.sync();
+        console.log("Inserted Chai in A2. Excel loads its properties asynchronously; open its card to explore.");
+    });
+Excel.LinkedEntityDataDomain:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entities.yaml
+
+
+    // Inspect the registered sample domains and their refresh settings.
+
+    await Excel.run(async (context) => {
+        const domains: Excel.LinkedEntityDataDomainCollection = context.workbook.linkedEntityDataDomains;
+        domains.load("items/id,items/name,items/dataProvider,items/loadFunctionId,items/refreshMode,items/lastRefreshed");
+        await context.sync();
+        console.log("Contoso linked entity data domains:");
+        domains.items.forEach((domain: Excel.LinkedEntityDataDomain) => {
+            if (domain.dataProvider === "Contoso") {
+                console.log("Domain settings:", {
+                    id: domain.id,
+                    name: domain.name,
+                    loadFunctionId: domain.loadFunctionId,
+                    refreshMode: domain.refreshMode,
+                    lastRefreshed: domain.lastRefreshed
+                });
+            }
+        });
+    });
+Excel.LinkedEntityDataDomain#refresh:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entities.yaml
+
+
+    // Request updated values for all products in the workbook.
+
+    await Excel.run(async (context) => {
+        const productsDomain: Excel.LinkedEntityDataDomain =
+            context.workbook.linkedEntityDataDomains.getItem("products");
+        productsDomain.refresh();
+        await context.sync();
+        console.log("Requested a Products refresh. The refresh event reports completion or errors.");
+    });
+Excel.LinkedEntityDataDomainCollection#add:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entities.yaml
+
+
+    // Register the product, category, and supplier data sources with Excel.
+
+    await Excel.run(async (context) => {
+        const domains: Excel.LinkedEntityDataDomainCollection = context.workbook.linkedEntityDataDomains;
+        const refreshModes: Excel.LinkedEntityDataDomainRefreshMode[] = [
+            Excel.LinkedEntityDataDomainRefreshMode.manual,
+            Excel.LinkedEntityDataDomainRefreshMode.onLoad,
+            Excel.LinkedEntityDataDomainRefreshMode.periodic
+        ];
+        // Script Lab prefixes the function ID with the companion sample's name, without spaces.
+        const loadFunctionId = "LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE";
+        const options: Excel.LinkedEntityDataDomainCreateOptions[] = [
+            {
+                dataProvider: "Contoso",
+                id: "products",
+                name: "Products",
+                loadFunctionId,
+                periodicRefreshInterval: 300,
+                supportedRefreshModes: refreshModes
+            },
+            {
+                dataProvider: "Contoso",
+                id: "categories",
+                name: "Categories",
+                loadFunctionId,
+                periodicRefreshInterval: 300,
+                supportedRefreshModes: refreshModes
+            },
+            {
+                dataProvider: "Contoso",
+                id: "suppliers",
+                name: "Suppliers",
+                loadFunctionId
+            }
+        ];
+
+        // Replace only this sample's domains so registration is repeatable.
+        const existingDomains: Excel.LinkedEntityDataDomain[] = options.map((options) =>
+            domains.getItemOrNullObject(options.id)
+        );
+        await context.sync();
+        existingDomains.forEach((domain) => {
+            if (!domain.isNullObject) {
+                domain.delete();
+            }
+        });
+        options.forEach((options) => domains.add(options));
+        await context.sync();
+        console.log("Registered Products, Categories, and Suppliers. Manual refresh is the default.");
+    });
+Excel.LinkedEntityDataDomainCollection#refreshAll:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entities.yaml
+
+
+    // Request updated values for every linked entity data domain in the
+    workbook.
+
+    await Excel.run(async (context) => {
+        const domains: Excel.LinkedEntityDataDomainCollection = context.workbook.linkedEntityDataDomains;
+        domains.refreshAll();
+        await context.sync();
+        console.log("Requested a refresh of all domains, including domains not created by this sample.");
+    });
+Excel.LinkedEntityDataDomainCreateOptions:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entities.yaml
+
+
+    // Register the product, category, and supplier data sources with Excel.
+
+    await Excel.run(async (context) => {
+        const domains: Excel.LinkedEntityDataDomainCollection = context.workbook.linkedEntityDataDomains;
+        const refreshModes: Excel.LinkedEntityDataDomainRefreshMode[] = [
+            Excel.LinkedEntityDataDomainRefreshMode.manual,
+            Excel.LinkedEntityDataDomainRefreshMode.onLoad,
+            Excel.LinkedEntityDataDomainRefreshMode.periodic
+        ];
+        // Script Lab prefixes the function ID with the companion sample's name, without spaces.
+        const loadFunctionId = "LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE";
+        const options: Excel.LinkedEntityDataDomainCreateOptions[] = [
+            {
+                dataProvider: "Contoso",
+                id: "products",
+                name: "Products",
+                loadFunctionId,
+                periodicRefreshInterval: 300,
+                supportedRefreshModes: refreshModes
+            },
+            {
+                dataProvider: "Contoso",
+                id: "categories",
+                name: "Categories",
+                loadFunctionId,
+                periodicRefreshInterval: 300,
+                supportedRefreshModes: refreshModes
+            },
+            {
+                dataProvider: "Contoso",
+                id: "suppliers",
+                name: "Suppliers",
+                loadFunctionId
+            }
+        ];
+
+        // Replace only this sample's domains so registration is repeatable.
+        const existingDomains: Excel.LinkedEntityDataDomain[] = options.map((options) =>
+            domains.getItemOrNullObject(options.id)
+        );
+        await context.sync();
+        existingDomains.forEach((domain) => {
+            if (!domain.isNullObject) {
+                domain.delete();
+            }
+        });
+        options.forEach((options) => domains.add(options));
+        await context.sync();
+        console.log("Registered Products, Categories, and Suppliers. Manual refresh is the default.");
+    });
+Excel.LinkedEntityDataDomainRefreshCompletedEventArgs:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entities.yaml
+
+
+    async function onDomainRefreshed(event:
+    Excel.LinkedEntityDataDomainRefreshCompletedEventArgs) {
+        // Report whether Excel successfully refreshed a sample data domain.
+        if (event.serviceId !== 268436224 || !["products", "categories", "suppliers"].includes(event.id)) {
+            return;
+        }
+        console.log(`Domain refreshed: ${event.id}; succeeded: ${event.refreshed}`);
+        if (!event.refreshed || (event.errors && event.errors.length > 0)) {
+            console.error("Linked entity refresh errors:", event.errors || ["The refresh did not succeed."]);
+        }
+    }
+Excel.LinkedEntityDataDomainRefreshMode:enum:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entities.yaml
+
+
+    // Register the product, category, and supplier data sources with Excel.
+
+    await Excel.run(async (context) => {
+        const domains: Excel.LinkedEntityDataDomainCollection = context.workbook.linkedEntityDataDomains;
+        const refreshModes: Excel.LinkedEntityDataDomainRefreshMode[] = [
+            Excel.LinkedEntityDataDomainRefreshMode.manual,
+            Excel.LinkedEntityDataDomainRefreshMode.onLoad,
+            Excel.LinkedEntityDataDomainRefreshMode.periodic
+        ];
+        // Script Lab prefixes the function ID with the companion sample's name, without spaces.
+        const loadFunctionId = "LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE";
+        const options: Excel.LinkedEntityDataDomainCreateOptions[] = [
+            {
+                dataProvider: "Contoso",
+                id: "products",
+                name: "Products",
+                loadFunctionId,
+                periodicRefreshInterval: 300,
+                supportedRefreshModes: refreshModes
+            },
+            {
+                dataProvider: "Contoso",
+                id: "categories",
+                name: "Categories",
+                loadFunctionId,
+                periodicRefreshInterval: 300,
+                supportedRefreshModes: refreshModes
+            },
+            {
+                dataProvider: "Contoso",
+                id: "suppliers",
+                name: "Suppliers",
+                loadFunctionId
+            }
+        ];
+
+        // Replace only this sample's domains so registration is repeatable.
+        const existingDomains: Excel.LinkedEntityDataDomain[] = options.map((options) =>
+            domains.getItemOrNullObject(options.id)
+        );
+        await context.sync();
+        existingDomains.forEach((domain) => {
+            if (!domain.isNullObject) {
+                domain.delete();
+            }
+        });
+        options.forEach((options) => domains.add(options));
+        await context.sync();
+        console.log("Registered Products, Categories, and Suppliers. Manual refresh is the default.");
+    });
+Excel.LinkedEntityId:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entities.yaml
+
+
+    // Insert a product identity that Excel resolves through the companion load
+    service.
+
+    await Excel.run(async (context) => {
+        const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+        const productId: Excel.LinkedEntityId = {
+            entityId: "P1",
+            domainId: "products",
+            serviceId: 268436224,
+            culture: "en-US"
+        };
+        const product: Excel.LinkedEntityCellValue = {
+            type: Excel.CellValueType.linkedEntity,
+            id: productId,
+            text: "Chai",
+            basicType: "Error",
+            basicValue: "#VALUE!"
+        };
+        const productRange: Excel.Range = sheet.getRange("A2");
+        productRange.valuesAsJson = [[product]];
+        sheet.getRange("B2:D2").formulas = [["=A2.[Unit Price]", "=A2.Category", "=A2.Supplier"]];
+        sheet.getRange("B2").numberFormat = [["$0.00"]];
+        await context.sync();
+        console.log("Inserted Chai in A2. Excel loads its properties asynchronously; open its card to explore.");
+    });
+Excel.LinkedEntityIdCulture:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entity-load-service.yaml
+
+
+    /**
+     * Loads the Contoso entities used by the Data types: Linked entities sample.
+     * @customfunction
+     * @linkedEntityLoadService
+     * @param {unknown} request JSON containing the domain and entity identities requested by Excel.
+     * @returns {any} Linked entities in the same order as the request.
+     */
+    function contosoLoadService(request: unknown) {
+        // Resolve a batch of identities while preserving each requested culture and the request order.
+        try {
+            if (typeof request !== "string") {
+                throw new Error("The linked entity load service request must be JSON text.");
+            }
+            const parsedRequest: Excel.LinkedEntityLoadServiceRequest = JSON.parse(request);
+            if (!parsedRequest || typeof parsedRequest.domainId !== "string" || !Array.isArray(parsedRequest.entities)) {
+                throw new Error("The linked entity request must contain a domain ID and an entities array.");
+            }
+            const response: Excel.LinkedEntityLoadServiceResult = { entities: [] };
+            for (const identity of parsedRequest.entities) {
+                const entityIdentity: Excel.LinkedEntityIdCulture = identity;
+                if (!entityIdentity || typeof entityIdentity.entityId !== "string" ||
+                    typeof entityIdentity.culture !== "string") {
+                    throw new Error("Each linked entity identity must contain an entity ID and culture.");
+                }
+                response.entities.push(makeLinkedEntity(parsedRequest.domainId, entityIdentity.entityId, entityIdentity.culture));
+            }
+            console.log(`Loaded ${response.entities.length} linked entities from ${parsedRequest.domainId}.`);
+            return response;
+        } catch (error) {
+            console.error("Unable to load linked entities:", error);
+            throw new CustomFunctions.Error(CustomFunctions.ErrorCode.notAvailable, "Unable to load the requested Contoso entity.");
+        }
+    }
+Excel.LinkedEntityLoadServiceRequest:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entity-load-service.yaml
+
+
+    /**
+     * Loads the Contoso entities used by the Data types: Linked entities sample.
+     * @customfunction
+     * @linkedEntityLoadService
+     * @param {unknown} request JSON containing the domain and entity identities requested by Excel.
+     * @returns {any} Linked entities in the same order as the request.
+     */
+    function contosoLoadService(request: unknown) {
+        // Resolve a batch of identities while preserving each requested culture and the request order.
+        try {
+            if (typeof request !== "string") {
+                throw new Error("The linked entity load service request must be JSON text.");
+            }
+            const parsedRequest: Excel.LinkedEntityLoadServiceRequest = JSON.parse(request);
+            if (!parsedRequest || typeof parsedRequest.domainId !== "string" || !Array.isArray(parsedRequest.entities)) {
+                throw new Error("The linked entity request must contain a domain ID and an entities array.");
+            }
+            const response: Excel.LinkedEntityLoadServiceResult = { entities: [] };
+            for (const identity of parsedRequest.entities) {
+                const entityIdentity: Excel.LinkedEntityIdCulture = identity;
+                if (!entityIdentity || typeof entityIdentity.entityId !== "string" ||
+                    typeof entityIdentity.culture !== "string") {
+                    throw new Error("Each linked entity identity must contain an entity ID and culture.");
+                }
+                response.entities.push(makeLinkedEntity(parsedRequest.domainId, entityIdentity.entityId, entityIdentity.culture));
+            }
+            console.log(`Loaded ${response.entities.length} linked entities from ${parsedRequest.domainId}.`);
+            return response;
+        } catch (error) {
+            console.error("Unable to load linked entities:", error);
+            throw new CustomFunctions.Error(CustomFunctions.ErrorCode.notAvailable, "Unable to load the requested Contoso entity.");
+        }
+    }
+Excel.LinkedEntityLoadServiceResult:interface:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/20-data-types/data-types-linked-entity-load-service.yaml
+
+
+    /**
+     * Loads the Contoso entities used by the Data types: Linked entities sample.
+     * @customfunction
+     * @linkedEntityLoadService
+     * @param {unknown} request JSON containing the domain and entity identities requested by Excel.
+     * @returns {any} Linked entities in the same order as the request.
+     */
+    function contosoLoadService(request: unknown) {
+        // Resolve a batch of identities while preserving each requested culture and the request order.
+        try {
+            if (typeof request !== "string") {
+                throw new Error("The linked entity load service request must be JSON text.");
+            }
+            const parsedRequest: Excel.LinkedEntityLoadServiceRequest = JSON.parse(request);
+            if (!parsedRequest || typeof parsedRequest.domainId !== "string" || !Array.isArray(parsedRequest.entities)) {
+                throw new Error("The linked entity request must contain a domain ID and an entities array.");
+            }
+            const response: Excel.LinkedEntityLoadServiceResult = { entities: [] };
+            for (const identity of parsedRequest.entities) {
+                const entityIdentity: Excel.LinkedEntityIdCulture = identity;
+                if (!entityIdentity || typeof entityIdentity.entityId !== "string" ||
+                    typeof entityIdentity.culture !== "string") {
+                    throw new Error("Each linked entity identity must contain an entity ID and culture.");
+                }
+                response.entities.push(makeLinkedEntity(parsedRequest.domainId, entityIdentity.entityId, entityIdentity.culture));
+            }
+            console.log(`Loaded ${response.entities.length} linked entities from ${parsedRequest.domainId}.`);
+            return response;
+        } catch (error) {
+            console.error("Unable to load linked entities:", error);
+            throw new CustomFunctions.Error(CustomFunctions.ErrorCode.notAvailable, "Unable to load the requested Contoso entity.");
+        }
+    }
 Excel.ListDataValidation:interface:
   - >-
     // Link to full sample:
@@ -26120,169 +26539,93 @@ Word.Body#lists:member:
 Word.Body#onCommentAdded:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/comment-events.yaml
 
 
-    // Registers event handlers.
+    // Listen for new comments anywhere in the document body.
 
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.track();
-      await context.sync();
-
-      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
-      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
-      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
-      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
-      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
-      await context.sync();
-
-      console.log("Event handlers registered.");
+        const body: Word.Body = context.document.body;
+        body.track();
+        // Resolve the tracked body's reference before subscribing.
+        await context.sync();
+        const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+            body.onCommentAdded.add(onEventHandler);
+        eventRegistrations.push({ body, handler });
+        await context.sync();
     });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
-
-
-    async function onEventHandler(event: Word.CommentEventArgs) {
-      // Handler for all events except onCommentChanged.
-      await Word.run(async (context) => {
-        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
-      });
-    }
 Word.Body#onCommentChanged:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/comment-events.yaml
 
 
-    // Registers event handlers.
+    // Listen for changes to comments and replies in the document body.
 
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.track();
-      await context.sync();
-
-      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
-      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
-      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
-      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
-      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
-      await context.sync();
-
-      console.log("Event handlers registered.");
+        const body: Word.Body = context.document.body;
+        body.track();
+        // Resolve the tracked body's reference before subscribing.
+        await context.sync();
+        const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+            body.onCommentChanged.add(onChangedHandler);
+        eventRegistrations.push({ body, handler });
+        await context.sync();
     });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
-
-
-    async function onChangedHandler(event: Word.CommentEventArgs) {
-      await Word.run(async (context) => {
-        console.log(
-          `${event.type} event detected. ${event.changeType} change made. Event source: ${event.source}. Comment info:`, event.commentDetails
-        );
-      });
-    }
 Word.Body#onCommentDeleted:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/comment-events.yaml
 
 
-    // Registers event handlers.
+    // Listen for comments deleted from the document body.
 
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.track();
-      await context.sync();
-
-      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
-      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
-      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
-      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
-      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
-      await context.sync();
-
-      console.log("Event handlers registered.");
+        const body: Word.Body = context.document.body;
+        body.track();
+        // Resolve the tracked body's reference before subscribing.
+        await context.sync();
+        const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+            body.onCommentDeleted.add(onEventHandler);
+        eventRegistrations.push({ body, handler });
+        await context.sync();
     });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
-
-
-    async function onEventHandler(event: Word.CommentEventArgs) {
-      // Handler for all events except onCommentChanged.
-      await Word.run(async (context) => {
-        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
-      });
-    }
 Word.Body#onCommentDeselected:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/comment-events.yaml
 
 
-    // Registers event handlers.
+    // Listen for comments losing selection in the document body.
 
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.track();
-      await context.sync();
-
-      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
-      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
-      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
-      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
-      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
-      await context.sync();
-
-      console.log("Event handlers registered.");
+        const body: Word.Body = context.document.body;
+        body.track();
+        // Resolve the tracked body's reference before subscribing.
+        await context.sync();
+        const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+            body.onCommentDeselected.add(onEventHandler);
+        eventRegistrations.push({ body, handler });
+        await context.sync();
     });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
-
-
-    async function onEventHandler(event: Word.CommentEventArgs) {
-      // Handler for all events except onCommentChanged.
-      await Word.run(async (context) => {
-        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
-      });
-    }
 Word.Body#onCommentSelected:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/comment-events.yaml
 
 
-    // Registers event handlers.
+    // Listen for comments being selected in the document body.
 
     await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.track();
-      await context.sync();
-
-      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
-      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
-      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
-      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
-      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
-      await context.sync();
-
-      console.log("Event handlers registered.");
+        const body: Word.Body = context.document.body;
+        body.track();
+        // Resolve the tracked body's reference before subscribing.
+        await context.sync();
+        const handler: OfficeExtension.EventHandlerResult<Word.CommentEventArgs> =
+            body.onCommentSelected.add(onEventHandler);
+        eventRegistrations.push({ body, handler });
+        await context.sync();
     });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
-
-
-    async function onEventHandler(event: Word.CommentEventArgs) {
-      // Handler for all events except onCommentChanged.
-      await Word.run(async (context) => {
-        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
-      });
-    }
 Word.Body#parentSection:member:
   - >-
     // Link to full sample:
@@ -28182,36 +28525,17 @@ Word.Comment#resolved:member:
 Word.CommentChangeType:enum:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
-
-
-    // Registers event handlers.
-
-    await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.track();
-      await context.sync();
-
-      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
-      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
-      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
-      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
-      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
-      await context.sync();
-
-      console.log("Event handlers registered.");
-    });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/comment-events.yaml
 
 
     async function onChangedHandler(event: Word.CommentEventArgs) {
-      await Word.run(async (context) => {
-        console.log(
-          `${event.type} event detected. ${event.changeType} change made. Event source: ${event.source}. Comment info:`, event.commentDetails
-        );
-      });
+        // Report how a comment changed, including edits to its text.
+        const edited: Word.CommentChangeType = Word.CommentChangeType.edited;
+        console.log(`Comment change: ${event.changeType}.`);
+        if (event.changeType === edited) {
+            console.log("The comment text was edited.");
+        }
+        await onEventHandler(event);
     }
 Word.CommentCollection:class:
   - >-
@@ -28308,69 +28632,36 @@ Word.CommentContentRange:class:
 Word.CommentDetail:interface:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
-
-
-    // Registers event handlers.
-
-    await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.track();
-      await context.sync();
-
-      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
-      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
-      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
-      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
-      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
-      await context.sync();
-
-      console.log("Event handlers registered.");
-    });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/comment-events.yaml
 
 
     async function onEventHandler(event: Word.CommentEventArgs) {
-      // Handler for all events except onCommentChanged.
-      await Word.run(async (context) => {
-        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
-      });
+        // Report the event source and the IDs of affected comments and replies.
+        const remoteSource: Word.EventSource = Word.EventSource.remote;
+        console.log(`${event.type} event. Source: ${event.source}.`);
+        if (event.source === remoteSource) {
+            console.log("A coauthor triggered this event.");
+        }
+        event.commentDetails.forEach((comment: Word.CommentDetail) => {
+            console.log("Affected comment:", { id: comment.id, replyIds: comment.replyIds });
+        });
     }
 Word.CommentEventArgs:interface:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/comment-events.yaml
 
 
-    // Registers event handlers.
-
-    await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.track();
-      await context.sync();
-
-      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
-      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
-      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
-      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
-      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
-      await context.sync();
-
-      console.log("Event handlers registered.");
-    });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
-
-
-    async function onChangedHandler(event: Word.CommentEventArgs) {
-      await Word.run(async (context) => {
-        console.log(
-          `${event.type} event detected. ${event.changeType} change made. Event source: ${event.source}. Comment info:`, event.commentDetails
-        );
-      });
+    async function onEventHandler(event: Word.CommentEventArgs) {
+        // Report the event source and the IDs of affected comments and replies.
+        const remoteSource: Word.EventSource = Word.EventSource.remote;
+        console.log(`${event.type} event. Source: ${event.source}.`);
+        if (event.source === remoteSource) {
+            console.log("A coauthor triggered this event.");
+        }
+        event.commentDetails.forEach((comment: Word.CommentDetail) => {
+            console.log("Affected comment:", { id: comment.id, replyIds: comment.replyIds });
+        });
     }
 Word.CommentReply:class:
   - >-
@@ -28562,22 +28853,22 @@ Word.ContentControl#resetState:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-content-controls.yaml
 
 
-    // Resets the state of the first content control.
+    // Clears the sample content control's warning or error state without
+    deleting its text.
 
     await Word.run(async (context) => {
-      let firstContentControl = context.document.contentControls.getFirstOrNullObject();
-      await context.sync();
+        const sampleControl: Word.ContentControl = context.document.contentControls
+            .getByTag("ContentControlStateSample").getFirstOrNullObject();
+        await context.sync();
 
-      if (firstContentControl.isNullObject) {
-        console.warn("There are no content controls in this document.");
-        return;
-      }
+        if (sampleControl.isNullObject) {
+            console.warn("Run Set up to create the sample content control.");
+            return;
+        }
 
-      firstContentControl.resetState();
-      firstContentControl.load("id");
-      await context.sync();
-
-      console.log(`Reset state of first content control with ID: ${firstContentControl.id}`);
+        sampleControl.resetState();
+        await context.sync();
+        console.log("Reset the sample content control state.");
     });
 Word.ContentControl#set:member(1):
   - >-
@@ -28625,24 +28916,22 @@ Word.ContentControl#setState:member(1):
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-content-controls.yaml
 
 
-    // Sets the state of the first content control.
+    // Marks the sample content control with a warning.
 
     await Word.run(async (context) => {
-      const state = ((document.getElementById("state-to-set") as HTMLSelectElement)
-        .value as unknown) as Word.ContentControlState;
-      let firstContentControl = context.document.contentControls.getFirstOrNullObject();
-      await context.sync();
+        const sampleControl: Word.ContentControl = context.document.contentControls
+            .getByTag("ContentControlStateSample").getFirstOrNullObject();
+        await context.sync();
 
-      if (firstContentControl.isNullObject) {
-        console.warn("There are no content controls in this document.");
-        return;
-      }
+        if (sampleControl.isNullObject) {
+            console.warn("Run Set up to create the sample content control.");
+            return;
+        }
 
-      firstContentControl.setState(state);
-      firstContentControl.load("id");
-      await context.sync();
-
-      console.log(`Set state of first content control with ID ${firstContentControl.id} to ${state}.`);
+        const state: Word.ContentControlState = Word.ContentControlState.warning;
+        sampleControl.setState(state);
+        await context.sync();
+        console.log(`Set sample content control state to ${state}.`);
     });
 Word.ContentControl#appearance:member:
   - >-
@@ -29739,24 +30028,22 @@ Word.ContentControlState:enum:
     https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/insert-and-change-content-controls.yaml
 
 
-    // Sets the state of the first content control.
+    // Marks the sample content control with a warning.
 
     await Word.run(async (context) => {
-      const state = ((document.getElementById("state-to-set") as HTMLSelectElement)
-        .value as unknown) as Word.ContentControlState;
-      let firstContentControl = context.document.contentControls.getFirstOrNullObject();
-      await context.sync();
+        const sampleControl: Word.ContentControl = context.document.contentControls
+            .getByTag("ContentControlStateSample").getFirstOrNullObject();
+        await context.sync();
 
-      if (firstContentControl.isNullObject) {
-        console.warn("There are no content controls in this document.");
-        return;
-      }
+        if (sampleControl.isNullObject) {
+            console.warn("Run Set up to create the sample content control.");
+            return;
+        }
 
-      firstContentControl.setState(state);
-      firstContentControl.load("id");
-      await context.sync();
-
-      console.log(`Set state of first content control with ID ${firstContentControl.id} to ${state}.`);
+        const state: Word.ContentControlState = Word.ContentControlState.warning;
+        sampleControl.setState(state);
+        await context.sync();
+        console.log(`Set sample content control state to ${state}.`);
     });
 Word.ContentControlType:enum:
   - >-
@@ -32101,35 +32388,19 @@ Word.ErrorCodes:enum:
 Word.EventSource:enum:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
-
-
-    // Registers event handlers.
-
-    await Word.run(async (context) => {
-      const body: Word.Body = context.document.body;
-      body.track();
-      await context.sync();
-
-      eventContexts[0] = body.onCommentAdded.add(onEventHandler);
-      eventContexts[1] = body.onCommentChanged.add(onChangedHandler);
-      eventContexts[2] = body.onCommentDeleted.add(onEventHandler);
-      eventContexts[3] = body.onCommentDeselected.add(onEventHandler);
-      eventContexts[4] = body.onCommentSelected.add(onEventHandler);
-      await context.sync();
-
-      console.log("Event handlers registered.");
-    });
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/manage-comments.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/comment-events.yaml
 
 
     async function onEventHandler(event: Word.CommentEventArgs) {
-      // Handler for all events except onCommentChanged.
-      await Word.run(async (context) => {
-        console.log(`${event.type} event detected. Event source: ${event.source}. Comment info:`, event.commentDetails);
-      });
+        // Report the event source and the IDs of affected comments and replies.
+        const remoteSource: Word.EventSource = Word.EventSource.remote;
+        console.log(`${event.type} event. Source: ${event.source}.`);
+        if (event.source === remoteSource) {
+            console.log("A coauthor triggered this event.");
+        }
+        event.commentDetails.forEach((comment: Word.CommentDetail) => {
+            console.log("Affected comment:", { id: comment.id, replyIds: comment.replyIds });
+        });
     }
 Word.EventType:enum:
   - >-
@@ -36008,20 +36279,6 @@ Word.Range#delete:member(1):
         await context.sync();
         console.log("Deleted the first paragraph range.");
     });
-Word.Range#detectLanguage:member(1):
-  - >-
-    // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
-
-
-    // Detects the language of the first paragraph's text.
-
-    await Word.run(async (context) => {
-        const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-        const detection: OfficeExtension.ClientResult<boolean> = paragraphRange.detectLanguage();
-        await context.sync();
-        console.log(`Language detected: ${detection.value}`);
-    });
 Word.Range#expandTo:member(1):
   - >-
     // Link to full sample:
@@ -37047,7 +37304,7 @@ Word.Range#frames:member:
 Word.Range#grammarChecked:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/manage-language-and-proofing-desktop.yaml
 
 
     // Marks the first paragraph as needing another grammar check.
@@ -37056,12 +37313,12 @@ Word.Range#grammarChecked:member:
         const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
         paragraphRange.grammarChecked = false;
         await context.sync();
-        console.log("Reset the grammar-checked flag. Get proofing settings to inspect it.");
+        console.log("Reset the English paragraph's grammar-checked flag. Get language and proofing settings to inspect it.");
     });
 Word.Range#hasNoProofing:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/manage-language-and-proofing-desktop.yaml
 
 
     // Disables spelling and grammar checking for the first paragraph.
@@ -37070,7 +37327,7 @@ Word.Range#hasNoProofing:member:
         const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
         paragraphRange.hasNoProofing = true;
         await context.sync();
-        console.log("Disabled proofing. Get proofing settings to verify it.");
+        console.log("Disabled spelling and grammar checking for the English paragraph. Get language and proofing settings to verify it.");
     });
 Word.Range#horizontalInVertical:member:
   - >-
@@ -37177,7 +37434,7 @@ Word.Range#kana:member:
 Word.Range#languageDetected:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/manage-language-and-proofing-desktop.yaml
 
 
     // Marks the first paragraph's language as not yet detected.
@@ -37186,12 +37443,12 @@ Word.Range#languageDetected:member:
         const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
         paragraphRange.languageDetected = false;
         await context.sync();
-        console.log("Reset language detection. Get proofing settings to inspect the flag.");
+        console.log("Reset the English paragraph's language-detected flag. Get language and proofing settings to inspect it.");
     });
 Word.Range#languageId:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/manage-language-and-proofing-desktop.yaml
 
 
     // Sets the first paragraph's proofing language to US English.
@@ -37201,12 +37458,12 @@ Word.Range#languageId:member:
         const language: Word.LanguageId = Word.LanguageId.englishUS;
         paragraphRange.languageId = language;
         await context.sync();
-        console.log("Set the proofing language to US English.");
+        console.log("Set the English paragraph's proofing language to US English.");
     });
 Word.Range#languageIdFarEast:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/manage-language-and-proofing-desktop.yaml
 
 
     // Sets the Japanese paragraph's East Asian language.
@@ -37216,12 +37473,12 @@ Word.Range#languageIdFarEast:member:
         const language: Word.LanguageId = Word.LanguageId.japanese;
         japaneseRange.languageIdFarEast = language;
         await context.sync();
-        console.log("Set the East Asian language to Japanese.");
+        console.log("Set the Japanese paragraph's East Asian language to Japanese.");
     });
 Word.Range#languageIdOther:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/manage-language-and-proofing-desktop.yaml
 
 
     // Sets the first paragraph's non-East-Asian language to US English.
@@ -37231,7 +37488,7 @@ Word.Range#languageIdOther:member:
         const language: Word.LanguageId = Word.LanguageId.englishUS;
         paragraphRange.languageIdOther = language;
         await context.sync();
-        console.log("Set the non-East-Asian language to US English.");
+        console.log("Set the English paragraph's non-East-Asian language to US English.");
     });
 Word.Range#listFormat:member:
   - >-
@@ -37590,7 +37847,7 @@ Word.Range#showAll:member:
 Word.Range#spellingChecked:member:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/35-ranges/format-range-text-desktop.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/28-formatting/manage-language-and-proofing-desktop.yaml
 
 
     // Marks the first paragraph as needing another spelling check.
@@ -37599,7 +37856,7 @@ Word.Range#spellingChecked:member:
         const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
         paragraphRange.spellingChecked = false;
         await context.sync();
-        console.log("Reset the spelling-checked flag. Get proofing settings to inspect it.");
+        console.log("Reset the English paragraph's spelling-checked flag. Get language and proofing settings to inspect it.");
     });
 Word.Range#start:member:
   - >-
@@ -38131,15 +38388,24 @@ Word.SaveBehavior:enum:
 Word.SaveConfiguration:enum:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/close-document-window.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/close-document-window.yaml
+
+
+    // Closes the active document window with Word's prompt-to-save option.
+
+    if (!Office.context.requirements.isSetSupported("WordApiDesktop", "1.4")) {
+        console.error("This sample requires WordApiDesktop 1.4 or later.");
+        return;
+    }
 
 
     await Word.run(async (context) => {
-      // Closes the document window, prompting to save if this is a new document.
-      const window: Word.Window = context.document.activeWindow;
-      const closeOptions: Word.WindowCloseOptions = { saveChanges: Word.SaveConfiguration.promptToSaveChanges };
-      console.log("About to close the document window...");
-      window.close(closeOptions);
+        const window: Word.Window = context.document.activeWindow;
+        const saveChanges: Word.SaveConfiguration = Word.SaveConfiguration.promptToSaveChanges;
+        const closeOptions: Word.WindowCloseOptions = { saveChanges };
+        console.log("About to close the document window...");
+        window.close(closeOptions);
+        await context.sync();
     });
 Word.SearchOptions:class:
   - >-
@@ -40613,7 +40879,7 @@ Word.Table#insertParagraph:member(1):
       const salesTable: Word.Table = context.document.body.tables.getFirst();
       const heading: Word.Paragraph = salesTable.insertParagraph("Quarterly sales", Word.InsertLocation.before);
       heading.font.bold = true;
-
+      heading.font.color = "#000000";
       await context.sync();
       console.log("Inserted a heading before the sales table.");
     });
@@ -42477,15 +42743,24 @@ Word.Window:class:
 Word.Window#close:member(1):
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/close-document-window.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/close-document-window.yaml
+
+
+    // Closes the active document window with Word's prompt-to-save option.
+
+    if (!Office.context.requirements.isSetSupported("WordApiDesktop", "1.4")) {
+        console.error("This sample requires WordApiDesktop 1.4 or later.");
+        return;
+    }
 
 
     await Word.run(async (context) => {
-      // Closes the document window, prompting to save if this is a new document.
-      const window: Word.Window = context.document.activeWindow;
-      const closeOptions: Word.WindowCloseOptions = { saveChanges: Word.SaveConfiguration.promptToSaveChanges };
-      console.log("About to close the document window...");
-      window.close(closeOptions);
+        const window: Word.Window = context.document.activeWindow;
+        const saveChanges: Word.SaveConfiguration = Word.SaveConfiguration.promptToSaveChanges;
+        const closeOptions: Word.WindowCloseOptions = { saveChanges };
+        console.log("About to close the document window...");
+        window.close(closeOptions);
+        await context.sync();
     });
 Word.Window#activePane:member:
   - >-
@@ -42549,15 +42824,24 @@ Word.Window#panes:member:
 Word.WindowCloseOptions:interface:
   - >-
     // Link to full sample:
-    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/99-preview-apis/close-document-window.yaml
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/word/50-document/close-document-window.yaml
+
+
+    // Closes the active document window with Word's prompt-to-save option.
+
+    if (!Office.context.requirements.isSetSupported("WordApiDesktop", "1.4")) {
+        console.error("This sample requires WordApiDesktop 1.4 or later.");
+        return;
+    }
 
 
     await Word.run(async (context) => {
-      // Closes the document window, prompting to save if this is a new document.
-      const window: Word.Window = context.document.activeWindow;
-      const closeOptions: Word.WindowCloseOptions = { saveChanges: Word.SaveConfiguration.promptToSaveChanges };
-      console.log("About to close the document window...");
-      window.close(closeOptions);
+        const window: Word.Window = context.document.activeWindow;
+        const saveChanges: Word.SaveConfiguration = Word.SaveConfiguration.promptToSaveChanges;
+        const closeOptions: Word.WindowCloseOptions = { saveChanges };
+        console.log("About to close the document window...");
+        window.close(closeOptions);
+        await context.sync();
     });
 Word.WindowCollection:class:
   - >-

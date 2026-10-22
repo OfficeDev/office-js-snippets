@@ -110,6 +110,7 @@ export interface ExcelMockOptions {
   rangeText?: string;
   worksheetName?: string;
   horizontalPageBreakCount?: number;
+  linkedEntityDomainExists?: boolean;
 }
 
 export function createExcelMock(options: ExcelMockOptions = {}) {
@@ -120,6 +121,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     rangeText = 'Mock text',
     worksheetName = 'Sheet1',
     horizontalPageBreakCount = 2,
+    linkedEntityDomainExists = false,
   } = options;
 
   const mockFont = {
@@ -136,6 +138,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockRange = {
     address: rangeAddress,
     values: rangeValues,
+    formulas: [],
     valuesAsJson: rangeValuesAsJson,
     text: rangeText,
     numberFormat: [],
@@ -221,8 +224,42 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     activate: jest.fn(),
   };
 
+  const linkedEntityDomains = ['products', 'categories', 'suppliers'].map((id) => ({
+    id,
+    name: id,
+    dataProvider: 'Contoso',
+    loadFunctionId: 'LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE',
+    refreshMode: 'Manual',
+    lastRefreshed: undefined,
+    isNullObject: !linkedEntityDomainExists,
+    delete: jest.fn(),
+    refresh: jest.fn(),
+  }));
+  const mockLinkedEntityDataDomains = {
+    items: linkedEntityDomains,
+    load: jest.fn(),
+    add: jest.fn(),
+    getItem: jest.fn((id: string) => {
+      const domain = linkedEntityDomains.find((domain) => domain.id === id);
+      if (!domain) {
+        throw new Error(`Unknown mock linked entity domain: ${id}`);
+      }
+      return domain;
+    }),
+    getItemOrNullObject: jest.fn((id: string) => {
+      const domain = linkedEntityDomains.find((domain) => domain.id === id);
+      if (!domain) {
+        throw new Error(`Unknown mock linked entity domain: ${id}`);
+      }
+      return domain;
+    }),
+    refreshAll: jest.fn(),
+    onRefreshCompleted: { add: jest.fn() },
+  };
+
   const mockContext = {
     workbook: {
+      linkedEntityDataDomains: mockLinkedEntityDataDomains,
       getSelectedRange: jest.fn(() => mockRange),
       worksheets: {
         getActiveWorksheet: jest.fn(() => mockWorksheet),
@@ -257,7 +294,13 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
       entity: 'Entity',
       error: 'Error',
       function: 'Function',
+      linkedEntity: 'LinkedEntity',
       notAvailable: 'NotAvailable',
+    },
+    LinkedEntityDataDomainRefreshMode: {
+      manual: 'Manual',
+      onLoad: 'OnLoad',
+      periodic: 'Periodic',
     },
     ErrorCellValueType: {
       busy: 'Busy',
@@ -530,6 +573,17 @@ export function createWordMock(options: WordMockOptions = {}) {
   mockTable.getRange.mockReturnValue(mockRange);
   mockParagraph.getRange.mockReturnValue(mockRange);
 
+  const mockComment = {
+    isNullObject: false,
+    content: 'Please verify the launch date.',
+    resolved: false,
+    load: jest.fn(),
+    delete: jest.fn(),
+  };
+  const mockComments = {
+    getFirstOrNullObject: jest.fn(() => mockComment),
+  };
+
   const mockBreak = {
     pageIndex: 1,
     range: mockRange,
@@ -585,6 +639,7 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   const mockWindow = {
     activePane: mockPane,
+    close: jest.fn(),
     panes: {
       items: [mockPane],
       load: jest.fn(),
@@ -694,6 +749,8 @@ export function createWordMock(options: WordMockOptions = {}) {
     insertTable: jest.fn(() => mockTable),
     getRange: jest.fn(() => mockRange),
     getTrackedChanges: jest.fn(() => mockTrackedChanges),
+    track: jest.fn(),
+    untrack: jest.fn(),
     load: jest.fn(),
     search: jest.fn(() => ({
       getFirst: jest.fn(() => mockRange),
@@ -841,7 +898,24 @@ export function createWordMock(options: WordMockOptions = {}) {
     getLast: jest.fn(() => mockRange),
     load: jest.fn(),
   };
-  const mockContentControl = { tag: 'RangeSampleSummary', title: 'Project summary', text: 'Project summary' };
+  const mockContentControl = {
+    tag: 'RangeSampleSummary',
+    title: 'Project summary',
+    text: 'Project summary',
+    isNullObject: false,
+    select: jest.fn(),
+    setState: jest.fn(),
+    resetState: jest.fn(),
+  };
+  const mockContentControls = {
+    items: [mockContentControl],
+    getByTag: jest.fn((tag: string) => ({
+      getFirstOrNullObject: jest.fn(() => mockContentControl.tag === tag
+        ? mockContentControl
+        : { isNullObject: true }),
+    })),
+    load: jest.fn(),
+  };
   const mockInlinePicture = { width: 90, height: 39 };
   const mockShape = { name: 'RangeSamplePicture', type: 'Picture', width: 90, height: 39 };
   const mockEditor = { name: 'Everyone', id: 'Everyone', load: jest.fn() };
@@ -907,7 +981,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     hyperlink: 'https://learn.microsoft.com/office/dev/add-ins/word/',
     borders: mockBorders,
     shading: mockShading,
-    contentControls: { items: [mockContentControl], load: jest.fn() },
+    contentControls: mockContentControls,
     fields: { items: [{ code: 'QUOTE "Ready for review."', result: mockRange }], load: jest.fn() },
     inlinePictures: { items: [mockInlinePicture], load: jest.fn() },
     lists: { items: [mockList], load: jest.fn() },
@@ -955,6 +1029,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     insertEndnote: jest.fn(() => mockNote),
     insertPictureFromBase64: jest.fn(() => mockShape),
     insertComment: jest.fn(() => ({ content: 'Please review this project summary.' })),
+    getComments: jest.fn(() => mockComments),
     getTrackedChanges: jest.fn(() => mockTrackedChanges),
     detectLanguage: jest.fn(() => ({ value: true })),
   });
@@ -1005,6 +1080,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockContext = {
     document: {
       body: mockBody,
+      contentControls: mockContentControls,
       changeTrackingMode: 'Off',
       trackMoves: false,
       revisions: { items: [mockRevision], load: jest.fn() },
@@ -1013,6 +1089,7 @@ export function createWordMock(options: WordMockOptions = {}) {
       addStyle: jest.fn(() => mockStyle),
       getStyles: jest.fn(() => mockStyles),
       getSelection: jest.fn(() => mockRange),
+      getBookmarkRangeOrNullObject: jest.fn((name: string) => bookmarkNames.includes(name) ? mockRange : mockNullRange),
       applyQuickStyleSet: jest.fn(),
       properties: mockProperties,
       coauthoring: mockCoauthoring,
@@ -1026,9 +1103,22 @@ export function createWordMock(options: WordMockOptions = {}) {
     sync: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockCommentEvents = {
+    onCommentAdded: { add: jest.fn() },
+    onCommentChanged: { add: jest.fn() },
+    onCommentDeleted: { add: jest.fn() },
+    onCommentDeselected: { add: jest.fn() },
+    onCommentSelected: { add: jest.fn() },
+  };
+  for (const event of Object.values(mockCommentEvents)) {
+    event.add.mockImplementation(() => ({ context: mockContext, remove: jest.fn() }));
+  }
+  Object.assign(mockBody, mockCommentEvents);
+
   const mockData = {
     run: jest.fn(async (contextOrCallback: Function | object, callback?: Function) => {
-      if (typeof contextOrCallback !== 'function' && contextOrCallback !== mockRange && contextOrCallback !== mockContext) {
+      if (typeof contextOrCallback !== 'function' && contextOrCallback !== mockRange
+        && contextOrCallback !== mockBody && contextOrCallback !== mockContext) {
         throw new Error('Word.run received an unsupported mock object or context.');
       }
       const action = typeof contextOrCallback === 'function' ? contextOrCallback : callback;
@@ -1052,6 +1142,24 @@ export function createWordMock(options: WordMockOptions = {}) {
     off: 'Off',
     trackAll: 'TrackAll',
     trackMineOnly: 'TrackMineOnly',
+  };
+
+  wordMockObject.ContentControlState = {
+    warning: 'Warning',
+    error: 'Error',
+  };
+
+  wordMockObject.EventSource = {
+    local: 'Local',
+    remote: 'Remote',
+  };
+
+  wordMockObject.CommentChangeType = {
+    edited: 'edited',
+  };
+
+  wordMockObject.SaveConfiguration = {
+    promptToSaveChanges: 'PromptToSaveChanges',
   };
 
   wordMockObject.RevisionType = {
@@ -1182,6 +1290,9 @@ export function createWordMock(options: WordMockOptions = {}) {
     mockContext,
     mockRange: extendedRange,
     mockBody,
+    mockComment,
+    mockComments,
+    mockCommentEvents,
     mockParagraph,
     mockParagraphs,
     mockParagraphFormat,

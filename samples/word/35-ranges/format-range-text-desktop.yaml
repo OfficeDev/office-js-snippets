@@ -1,7 +1,7 @@
 order: 3
 id: word-ranges-format-range-text-desktop
 name: Format range text (desktop)
-description: Changes text case, character layout, language, and proofing settings and inspects range formatting.
+description: Changes text case, character layout, and range boundaries and inspects formatting.
 author: OfficeDev
 host: WORD
 api_set:
@@ -21,15 +21,6 @@ script:
         document.getElementById("set-horizontal-in-vertical").addEventListener("click", () => tryCatch(setHorizontalInVertical));
         document.getElementById("set-kana").addEventListener("click", () => tryCatch(setKana));
         document.getElementById("set-two-lines").addEventListener("click", () => tryCatch(setTwoLines));
-        document.getElementById("set-language").addEventListener("click", () => tryCatch(setLanguage));
-        document.getElementById("set-east-asian-language").addEventListener("click", () => tryCatch(setEastAsianLanguage));
-        document.getElementById("set-other-language").addEventListener("click", () => tryCatch(setOtherLanguage));
-        document.getElementById("detect-language").addEventListener("click", () => tryCatch(detectLanguage));
-        document.getElementById("reset-language-detection").addEventListener("click", () => tryCatch(resetLanguageDetection));
-        document.getElementById("disable-proofing").addEventListener("click", () => tryCatch(disableProofing));
-        document.getElementById("reset-spelling").addEventListener("click", () => tryCatch(resetSpelling));
-        document.getElementById("reset-grammar").addEventListener("click", () => tryCatch(resetGrammar));
-        document.getElementById("get-proofing").addEventListener("click", () => tryCatch(getProofing));
         document.getElementById("show-marks").addEventListener("click", () => tryCatch(showMarks));
 
         async function getFormatting() {
@@ -185,116 +176,6 @@ script:
             });
         }
 
-        async function setLanguage() {
-            // Sets the first paragraph's proofing language to US English.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                const language: Word.LanguageId = Word.LanguageId.englishUS;
-                paragraphRange.languageId = language;
-                await context.sync();
-                console.log("Set the proofing language to US English.");
-            });
-        }
-
-        async function setEastAsianLanguage() {
-            // Sets the Japanese paragraph's East Asian language.
-            await Word.run(async (context) => {
-                const japaneseRange: Word.Range = context.document.body.paragraphs.getLast().getRange(Word.RangeLocation.content);
-                const language: Word.LanguageId = Word.LanguageId.japanese;
-                japaneseRange.languageIdFarEast = language;
-                await context.sync();
-                console.log("Set the East Asian language to Japanese.");
-            });
-        }
-
-        async function setOtherLanguage() {
-            // Sets the first paragraph's non-East-Asian language to US English.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                const language: Word.LanguageId = Word.LanguageId.englishUS;
-                paragraphRange.languageIdOther = language;
-                await context.sync();
-                console.log("Set the non-East-Asian language to US English.");
-            });
-        }
-
-        async function detectLanguage() {
-            // Detects the language of the first paragraph's text.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                const detection: OfficeExtension.ClientResult<boolean> = paragraphRange.detectLanguage();
-                await context.sync();
-                console.log(`Language detected: ${detection.value}`);
-            });
-        }
-
-        async function resetLanguageDetection() {
-            // Marks the first paragraph's language as not yet detected.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                paragraphRange.languageDetected = false;
-                await context.sync();
-                console.log("Reset language detection. Get proofing settings to inspect the flag.");
-            });
-        }
-
-        async function disableProofing() {
-            // Disables spelling and grammar checking for the first paragraph.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                paragraphRange.hasNoProofing = true;
-                await context.sync();
-                console.log("Disabled proofing. Get proofing settings to verify it.");
-            });
-        }
-
-        async function resetSpelling() {
-            // Marks the first paragraph as needing another spelling check.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                paragraphRange.spellingChecked = false;
-                await context.sync();
-                console.log("Reset the spelling-checked flag. Get proofing settings to inspect it.");
-            });
-        }
-
-        async function resetGrammar() {
-            // Marks the first paragraph as needing another grammar check.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                paragraphRange.grammarChecked = false;
-                await context.sync();
-                console.log("Reset the grammar-checked flag. Get proofing settings to inspect it.");
-            });
-        }
-
-        async function getProofing() {
-            // Reads language and proofing settings from both sample paragraphs.
-            await Word.run(async (context) => {
-                const paragraphs: Word.ParagraphCollection = context.document.body.paragraphs;
-                paragraphs.load("items");
-                await context.sync();
-                const ranges: Word.Range[] = paragraphs.items.map((paragraph: Word.Paragraph) => {
-                    const paragraphRange: Word.Range = paragraph.getRange(Word.RangeLocation.content);
-                    paragraphRange.load("text,languageId,languageIdFarEast,languageIdOther,languageDetected,hasNoProofing,spellingChecked,grammarChecked");
-                    return paragraphRange;
-                });
-                await context.sync();
-                ranges.forEach((paragraphRange: Word.Range) => {
-                    console.log("First paragraph's proofing settings:", {
-                        text: paragraphRange.text,
-                        languageId: paragraphRange.languageId,
-                        languageIdFarEast: paragraphRange.languageIdFarEast,
-                        languageIdOther: paragraphRange.languageIdOther,
-                        languageDetected: paragraphRange.languageDetected,
-                        hasNoProofing: paragraphRange.hasNoProofing,
-                        spellingChecked: paragraphRange.spellingChecked,
-                        grammarChecked: paragraphRange.grammarChecked
-                    });
-                });
-            });
-        }
-
         async function showMarks() {
             // Displays nonprinting characters such as spaces and paragraph marks.
             await Word.run(async (context) => {
@@ -328,7 +209,7 @@ script:
     language: typescript
 template:
     content: |-
-        <section>This sample demonstrates how to adjust a summary's character layout and proofing settings and convert Japanese text between scripts.</section>
+        <section>This sample demonstrates how to adjust a summary's character layout, inspect and adjust range boundaries, and convert Japanese text between scripts.</section>
         <section>
             <p><b>Support:</b> Requires WordApiDesktop 1.4 on Windows or Mac.
             East Asian layout effects depend on the client's language and text-direction settings.</p>
@@ -354,18 +235,7 @@ template:
             Get character formatting verifies the setting even in a horizontal document.</p>
             <button id="set-kana">Convert Japanese text to hiragana</button>
             <button id="set-two-lines">Use two lines in parentheses</button>
-            <button id="set-language">Set summary language</button>
-            <button id="set-east-asian-language">Set Japanese language</button>
-            <button id="set-other-language">Set non-East-Asian language</button>
-            <button id="reset-language-detection">Reset language detection</button>
-            <button id="detect-language">Detect summary language</button>
-            <button id="disable-proofing">Disable summary proofing</button>
-            <button id="reset-spelling">Reset spelling-checked flag</button>
-            <button id="reset-grammar">Reset grammar-checked flag</button>
-            <button id="get-proofing">Get language and proofing settings</button>
             <button id="show-marks">Show nonprinting characters</button>
-            <p>Proofing flags and language settings may not change visible text.
-            Get language and proofing settings verifies them. Word can update these flags during background proofing.</p>
         </section>
     language: html
 style:

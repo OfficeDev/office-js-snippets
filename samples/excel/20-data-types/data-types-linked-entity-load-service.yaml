@@ -1,0 +1,128 @@
+order: 9
+id: excel-data-types-data-types-linked-entity-load-service
+name: Linked entity load service
+description: Provides product, category, and supplier data for the companion Data types Linked entities sample. Register this service before running that sample.
+host: EXCEL
+api_set:
+    ExcelApi: '1.19'
+    CustomFunctionsRuntime: '1.4'
+script:
+    content: |-
+        /**
+         * Loads the Contoso entities used by the Data types: Linked entities sample.
+         * @customfunction
+         * @linkedEntityLoadService
+         * @param {unknown} request JSON containing the domain and entity identities requested by Excel.
+         * @returns {any} Linked entities in the same order as the request.
+         */
+        function contosoLoadService(request: unknown) {
+            // Resolve a batch of identities while preserving each requested culture and the request order.
+            try {
+                if (typeof request !== "string") {
+                    throw new Error("The linked entity load service request must be JSON text.");
+                }
+                const parsedRequest: Excel.LinkedEntityLoadServiceRequest = JSON.parse(request);
+                if (!parsedRequest || typeof parsedRequest.domainId !== "string" || !Array.isArray(parsedRequest.entities)) {
+                    throw new Error("The linked entity request must contain a domain ID and an entities array.");
+                }
+                const response: Excel.LinkedEntityLoadServiceResult = { entities: [] };
+                for (const identity of parsedRequest.entities) {
+                    const entityIdentity: Excel.LinkedEntityIdCulture = identity;
+                    if (!entityIdentity || typeof entityIdentity.entityId !== "string" ||
+                        typeof entityIdentity.culture !== "string") {
+                        throw new Error("Each linked entity identity must contain an entity ID and culture.");
+                    }
+                    response.entities.push(makeLinkedEntity(parsedRequest.domainId, entityIdentity.entityId, entityIdentity.culture));
+                }
+                console.log(`Loaded ${response.entities.length} linked entities from ${parsedRequest.domainId}.`);
+                return response;
+            } catch (error) {
+                console.error("Unable to load linked entities:", error);
+                throw new CustomFunctions.Error(CustomFunctions.ErrorCode.notAvailable, "Unable to load the requested Contoso entity.");
+            }
+        }
+
+        // Keep the sample name unchanged: the companion uses LINKEDENTITYLOADSERVICE.CONTOSOLOADSERVICE as its loadFunctionId.
+        // Return identities without properties for nested links so Excel resolves them only when needed.
+        function makeLinkedEntity(domainId: string, entityId: string, culture: string): Excel.LinkedEntityCellValue {
+            const linkedEntity: Excel.LinkedEntityCellValue = {
+                type: "LinkedEntity",
+                id: { entityId, domainId, serviceId: 268436224, culture },
+                basicType: "Error",
+                basicValue: "#VALUE!"
+            };
+            if (domainId === "products" && entityId === "P1") {
+                linkedEntity.text = "Chai";
+                linkedEntity.properties = {
+                    "Product ID": { type: "String", basicValue: "P1" },
+                    "Product Name": { type: "String", basicValue: "Chai" },
+                    "Quantity Per Unit": { type: "String", basicValue: "10 boxes x 20 bags" },
+                    "Unit Price": { type: "FormattedNumber", basicValue: 18, numberFormat: "$0.00" },
+                    Discontinued: { type: "Boolean", basicValue: false },
+                    Category: {
+                        type: "LinkedEntity",
+                        text: "Beverages",
+                        id: { entityId: "C1", domainId: "categories", serviceId: 268436224, culture },
+                        basicType: "Error",
+                        basicValue: "#VALUE!"
+                    },
+                    Supplier: {
+                        type: "LinkedEntity",
+                        text: "Exotic Liquids",
+                        id: { entityId: "S1", domainId: "suppliers", serviceId: 268436224, culture },
+                        basicType: "Error",
+                        basicValue: "#VALUE!"
+                    }
+                };
+                linkedEntity.layouts = {
+                    compact: { icon: "ShoppingBag" },
+                    card: {
+                        title: { property: "Product Name" },
+                        sections: [
+                            { layout: "List", properties: ["Product ID", "Category", "Supplier"] },
+                            {
+                                layout: "List",
+                                title: "Quantity and price",
+                                properties: ["Quantity Per Unit", "Unit Price"]
+                            },
+                            { layout: "List", title: "Additional information", properties: ["Discontinued"] }
+                        ]
+                    }
+                };
+            } else if (domainId === "categories" && entityId === "C1") {
+                linkedEntity.text = "Beverages";
+                linkedEntity.properties = {
+                    "Category ID": {
+                        type: "String",
+                        basicValue: "C1",
+                        propertyMetadata: { excludeFrom: { cardView: true, autoComplete: true } }
+                    },
+                    "Category Name": { type: "String", basicValue: "Beverages" },
+                    Description: { type: "String", basicValue: "Soft drinks, coffees, teas, beers, and ales" }
+                };
+                linkedEntity.layouts = { compact: { icon: "Branch" } };
+            } else if (domainId === "suppliers" && entityId === "S1") {
+                linkedEntity.text = "Exotic Liquids";
+                linkedEntity.properties = {
+                    "Supplier ID": { type: "String", basicValue: "S1" },
+                    "Company Name": { type: "String", basicValue: "Exotic Liquids" },
+                    "Contact Name": { type: "String", basicValue: "Ema Vargova" },
+                    "Contact Title": { type: "String", basicValue: "Purchasing Manager" }
+                };
+                linkedEntity.layouts = {
+                    card: {
+                        title: { property: "Company Name" },
+                        sections: [
+                            { layout: "List", properties: ["Supplier ID", "Company Name", "Contact Name", "Contact Title"] }
+                        ]
+                    }
+                };
+            } else {
+                throw new Error(`Unknown Contoso linked entity: ${domainId}/${entityId}.`);
+            }
+            return linkedEntity;
+        }
+    language: typescript
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

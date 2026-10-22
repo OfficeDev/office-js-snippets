@@ -76,18 +76,47 @@ export function createMockButton(handler: Function) {
 /**
  * Create a mock document with getElementById support
  */
+interface MockElement {
+  value: string;
+  textContent: string;
+  label: string;
+  disabled: boolean;
+  options: MockElement[];
+  children: MockElement[];
+  add(element: MockElement): void;
+  appendChild(element: MockElement): void;
+  addEventListener(event: string, callback: Function): void;
+}
+
 export function createMockDocument(buttonHandlers: Map<string, Function>, elementValues: Record<string, string> = {}) {
+  const elements = new Map<string, MockElement>();
+  const createElement = (id = ''): MockElement => ({
+    value: elementValues[id] ?? '',
+    textContent: '',
+    label: '',
+    disabled: false,
+    options: [],
+    children: [],
+    add(element) {
+      this.options.push(element);
+    },
+    appendChild(element) {
+      this.children.push(element);
+    },
+    addEventListener(event, callback) {
+      if (event === 'click') {
+        buttonHandlers.set(id, callback);
+      }
+    },
+  });
+
   return {
+    createElement: (_tagName: string) => createElement(),
     getElementById: (id: string) => {
-      return {
-        value: elementValues[id] ?? '',
-        addEventListener: (event: string, callback: Function) => {
-          if (event === 'click') {
-            // Store the handler so tests can trigger it
-            buttonHandlers.set(id, callback);
-          }
-        },
-      };
+      if (!elements.has(id)) {
+        elements.set(id, createElement(id));
+      }
+      return elements.get(id)!;
     },
   };
 }

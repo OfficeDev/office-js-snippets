@@ -8799,6 +8799,415 @@ Excel.SaveBehavior:enum:
     await Excel.run(async (context) => {
         context.workbook.save(Excel.SaveBehavior.prompt);
     });
+Excel.SensitivityLabel#getCurrentOrNullObject:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/98-preview-apis/manage-sensitivity-labels.yaml
+
+
+    // Get the sensitivity label currently applied to the workbook.
+
+    await Excel.run(async (context) => {
+        const workbook: Excel.Workbook = context.workbook;
+        const workbookLabel: Excel.SensitivityLabel = workbook.sensitivityLabel;
+        const currentLabel: Excel.SensitivityLabelDetails = workbookLabel.getCurrentOrNullObject();
+        currentLabel.load("color,id,isEnabled,name,order,protectionType,siteId,tooltip");
+        await context.sync();
+
+        if (currentLabel.isNullObject) {
+            console.log("The workbook doesn't have a sensitivity label.");
+            return;
+        }
+
+        console.log(
+            `Current workbook sensitivity label:\n\n${currentLabel.name}\n` +
+            `  ID: ${currentLabel.id}\n` +
+            `  Site ID: ${currentLabel.siteId}\n` +
+            `  Tooltip: ${currentLabel.tooltip}\n` +
+            `  Color: ${currentLabel.color}\n` +
+            `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${currentLabel.order}\n` +
+            `  Protection type: ${currentLabel.protectionType}`
+        );
+    });
+Excel.SensitivityLabel#tryToUpdate:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/98-preview-apis/manage-sensitivity-labels.yaml
+
+
+    // Apply the selected sensitivity label to the entire workbook.
+
+    await Excel.run(async (context) => {
+        const labelId = (document.getElementById("label-id") as HTMLSelectElement).value;
+        if (!labelId) {
+            console.warn("Get available labels and select a label first.");
+            return;
+        }
+
+        const workbook: Excel.Workbook = context.workbook;
+        const workbookLabel: Excel.SensitivityLabel = workbook.sensitivityLabel;
+        const updateResult: OfficeExtension.ClientResult<Excel.SensitivityLabelUpdateResult> =
+            workbookLabel.tryToUpdate(labelId);
+        await context.sync();
+
+        if (updateResult.value === Excel.SensitivityLabelUpdateResult.success) {
+            console.log("Applied the sensitivity label to the workbook.");
+        } else {
+            console.error(`The sensitivity label wasn't applied. Result: ${updateResult.value}`);
+        }
+    });
+Excel.SensitivityLabelAbacAttribute:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/98-preview-apis/manage-sensitivity-labels.yaml
+
+
+    // Get the catalog's ABAC attributes and their available values.
+
+    await Excel.run(async (context) => {
+        const labelCatalog: Excel.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+        if (!labelCatalog) {
+            console.warn("The sensitivity label catalog isn't available in this version of Excel.");
+            return;
+        }
+
+        const catalogAttributes: OfficeExtension.ClientResult<Excel.SensitivityLabelAbacAttribute[]> =
+            labelCatalog.getAttributes();
+        await context.sync();
+
+        if (catalogAttributes.value == null || catalogAttributes.value.length === 0) {
+            console.log("No ABAC attributes are available in the sensitivity label catalog.");
+            return;
+        }
+
+        // Load each attribute before accessing its properties and value objects.
+        catalogAttributes.value.forEach((attribute: Excel.SensitivityLabelAbacAttribute) => {
+            attribute.load("dataType,displayName,displayOrder,isActive,isMultiValued,values");
+        });
+        await context.sync();
+
+        catalogAttributes.value.forEach((attribute: Excel.SensitivityLabelAbacAttribute) => {
+            attribute.values?.forEach((attributeValue: Excel.SensitivityLabelAbacAttributeValue) => {
+                attributeValue.load("displayName,displayOrder,id,isActive");
+            });
+        });
+        await context.sync();
+
+        console.log("Sensitivity label catalog ABAC attributes:");
+        catalogAttributes.value.forEach((attribute: Excel.SensitivityLabelAbacAttribute) => {
+            const attributeValues = attribute.values?.length
+                ? attribute.values
+                    .map((attributeValue: Excel.SensitivityLabelAbacAttributeValue) =>
+                        `${attributeValue.displayName} (ID: ${attributeValue.id}, ` +
+                        `order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`)
+                    .join(", ")
+                : "None";
+            console.log(
+                `\n${attribute.displayName}\n` +
+                `  Data type: ${attribute.dataType}\n` +
+                `  Display order: ${attribute.displayOrder}\n` +
+                `  Active: ${attribute.isActive ? "Yes" : "No"}\n` +
+                `  Multiple values: ${attribute.isMultiValued ? "Yes" : "No"}\n` +
+                `  Values: ${attributeValues}`
+            );
+        });
+    });
+Excel.SensitivityLabelAbacAttributeValue:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/98-preview-apis/manage-sensitivity-labels.yaml
+
+
+    // Get the catalog's ABAC attributes and their available values.
+
+    await Excel.run(async (context) => {
+        const labelCatalog: Excel.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+        if (!labelCatalog) {
+            console.warn("The sensitivity label catalog isn't available in this version of Excel.");
+            return;
+        }
+
+        const catalogAttributes: OfficeExtension.ClientResult<Excel.SensitivityLabelAbacAttribute[]> =
+            labelCatalog.getAttributes();
+        await context.sync();
+
+        if (catalogAttributes.value == null || catalogAttributes.value.length === 0) {
+            console.log("No ABAC attributes are available in the sensitivity label catalog.");
+            return;
+        }
+
+        // Load each attribute before accessing its properties and value objects.
+        catalogAttributes.value.forEach((attribute: Excel.SensitivityLabelAbacAttribute) => {
+            attribute.load("dataType,displayName,displayOrder,isActive,isMultiValued,values");
+        });
+        await context.sync();
+
+        catalogAttributes.value.forEach((attribute: Excel.SensitivityLabelAbacAttribute) => {
+            attribute.values?.forEach((attributeValue: Excel.SensitivityLabelAbacAttributeValue) => {
+                attributeValue.load("displayName,displayOrder,id,isActive");
+            });
+        });
+        await context.sync();
+
+        console.log("Sensitivity label catalog ABAC attributes:");
+        catalogAttributes.value.forEach((attribute: Excel.SensitivityLabelAbacAttribute) => {
+            const attributeValues = attribute.values?.length
+                ? attribute.values
+                    .map((attributeValue: Excel.SensitivityLabelAbacAttributeValue) =>
+                        `${attributeValue.displayName} (ID: ${attributeValue.id}, ` +
+                        `order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`)
+                    .join(", ")
+                : "None";
+            console.log(
+                `\n${attribute.displayName}\n` +
+                `  Data type: ${attribute.dataType}\n` +
+                `  Display order: ${attribute.displayOrder}\n` +
+                `  Active: ${attribute.isActive ? "Yes" : "No"}\n` +
+                `  Multiple values: ${attribute.isMultiValued ? "Yes" : "No"}\n` +
+                `  Values: ${attributeValues}`
+            );
+        });
+    });
+Excel.SensitivityLabelDetails:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/98-preview-apis/manage-sensitivity-labels.yaml
+
+
+    // Get the sensitivity label currently applied to the workbook.
+
+    await Excel.run(async (context) => {
+        const workbook: Excel.Workbook = context.workbook;
+        const workbookLabel: Excel.SensitivityLabel = workbook.sensitivityLabel;
+        const currentLabel: Excel.SensitivityLabelDetails = workbookLabel.getCurrentOrNullObject();
+        currentLabel.load("color,id,isEnabled,name,order,protectionType,siteId,tooltip");
+        await context.sync();
+
+        if (currentLabel.isNullObject) {
+            console.log("The workbook doesn't have a sensitivity label.");
+            return;
+        }
+
+        console.log(
+            `Current workbook sensitivity label:\n\n${currentLabel.name}\n` +
+            `  ID: ${currentLabel.id}\n` +
+            `  Site ID: ${currentLabel.siteId}\n` +
+            `  Tooltip: ${currentLabel.tooltip}\n` +
+            `  Color: ${currentLabel.color}\n` +
+            `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+            `  Display order: ${currentLabel.order}\n` +
+            `  Protection type: ${currentLabel.protectionType}`
+        );
+    });
+Excel.SensitivityLabelDetailsCollection:class:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/98-preview-apis/manage-sensitivity-labels.yaml
+
+
+    // Get the published labels and sublabels available to the current user.
+
+    await Excel.run(async (context) => {
+        const labelSelect = document.getElementById("label-id") as HTMLSelectElement;
+        labelSelect.options.length = 0;
+
+        const placeholder = document.createElement("option");
+        placeholder.textContent = "Select a label";
+        placeholder.value = "";
+        labelSelect.add(placeholder);
+
+        const labelCatalog: Excel.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+        if (!labelCatalog) {
+            console.warn("The sensitivity label catalog isn't available in this version of Excel.");
+            return;
+        }
+
+        const availableLabels: Excel.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+        availableLabels.load(
+            "items/color,items/id,items/isEnabled,items/name,items/order,items/protectionType," +
+            "items/siteId,items/tooltip,items/children/items/id,items/children/items/name," +
+            "items/children/items/isEnabled"
+        );
+        await context.sync();
+
+        if (availableLabels.items.length === 0) {
+            console.log("No sensitivity labels are available for the current user.");
+            return;
+        }
+
+        console.log("Available sensitivity labels:");
+        availableLabels.items.forEach((labelDetails: Excel.SensitivityLabelDetails) => {
+            const childLabels = labelDetails.children && labelDetails.children.items.length
+                ? labelDetails.children.items
+                    .map((childLabel: Excel.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+                    .join(", ")
+                : "None";
+            console.log(
+                `\n${labelDetails.name}\n` +
+                `  ID: ${labelDetails.id}\n` +
+                `  Site ID: ${labelDetails.siteId}\n` +
+                `  Tooltip: ${labelDetails.tooltip}\n` +
+                `  Color: ${labelDetails.color}\n` +
+                `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+                `  Display order: ${labelDetails.order}\n` +
+                `  Sublabels: ${childLabels}\n` +
+                `  Protection type: ${labelDetails.protectionType}`
+            );
+        });
+
+        addLabelOptions(availableLabels);
+    });
+Excel.SensitivityLabelsCatalog#getLabelingCapability:member:
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/98-preview-apis/manage-sensitivity-labels.yaml
+
+
+    // Check whether sensitivity labeling is available for the current user.
+
+    await Excel.run(async (context) => {
+        const labelCatalog: Excel.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+        if (!labelCatalog) {
+            console.warn("The sensitivity label catalog isn't available in this version of Excel.");
+            return;
+        }
+
+        labelCatalog.load("getLabelingCapability");
+        await context.sync();
+
+        switch (labelCatalog.getLabelingCapability) {
+            case Excel.LabelingCapability.labelingEnabled:
+                console.log("Sensitivity labeling is enabled.");
+                break;
+            case Excel.LabelingCapability.labelingDisabled:
+                console.log("Sensitivity labeling is disabled.");
+                break;
+            case Excel.LabelingCapability.labelingPolicyNotFound:
+                console.log("No sensitivity labeling policy was found.");
+                break;
+            case Excel.LabelingCapability.noLicense:
+                console.log("The current user doesn't have a valid sensitivity labeling license.");
+                break;
+            default:
+                console.log(`Labeling capability: ${labelCatalog.getLabelingCapability}`);
+                break;
+        }
+    });
+Excel.SensitivityLabelsCatalog#getAttributes:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/98-preview-apis/manage-sensitivity-labels.yaml
+
+
+    // Get the catalog's ABAC attributes and their available values.
+
+    await Excel.run(async (context) => {
+        const labelCatalog: Excel.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+        if (!labelCatalog) {
+            console.warn("The sensitivity label catalog isn't available in this version of Excel.");
+            return;
+        }
+
+        const catalogAttributes: OfficeExtension.ClientResult<Excel.SensitivityLabelAbacAttribute[]> =
+            labelCatalog.getAttributes();
+        await context.sync();
+
+        if (catalogAttributes.value == null || catalogAttributes.value.length === 0) {
+            console.log("No ABAC attributes are available in the sensitivity label catalog.");
+            return;
+        }
+
+        // Load each attribute before accessing its properties and value objects.
+        catalogAttributes.value.forEach((attribute: Excel.SensitivityLabelAbacAttribute) => {
+            attribute.load("dataType,displayName,displayOrder,isActive,isMultiValued,values");
+        });
+        await context.sync();
+
+        catalogAttributes.value.forEach((attribute: Excel.SensitivityLabelAbacAttribute) => {
+            attribute.values?.forEach((attributeValue: Excel.SensitivityLabelAbacAttributeValue) => {
+                attributeValue.load("displayName,displayOrder,id,isActive");
+            });
+        });
+        await context.sync();
+
+        console.log("Sensitivity label catalog ABAC attributes:");
+        catalogAttributes.value.forEach((attribute: Excel.SensitivityLabelAbacAttribute) => {
+            const attributeValues = attribute.values?.length
+                ? attribute.values
+                    .map((attributeValue: Excel.SensitivityLabelAbacAttributeValue) =>
+                        `${attributeValue.displayName} (ID: ${attributeValue.id}, ` +
+                        `order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`)
+                    .join(", ")
+                : "None";
+            console.log(
+                `\n${attribute.displayName}\n` +
+                `  Data type: ${attribute.dataType}\n` +
+                `  Display order: ${attribute.displayOrder}\n` +
+                `  Active: ${attribute.isActive ? "Yes" : "No"}\n` +
+                `  Multiple values: ${attribute.isMultiValued ? "Yes" : "No"}\n` +
+                `  Values: ${attributeValues}`
+            );
+        });
+    });
+Excel.SensitivityLabelsCatalog#getLabels:member(1):
+  - >-
+    // Link to full sample:
+    https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/98-preview-apis/manage-sensitivity-labels.yaml
+
+
+    // Get the published labels and sublabels available to the current user.
+
+    await Excel.run(async (context) => {
+        const labelSelect = document.getElementById("label-id") as HTMLSelectElement;
+        labelSelect.options.length = 0;
+
+        const placeholder = document.createElement("option");
+        placeholder.textContent = "Select a label";
+        placeholder.value = "";
+        labelSelect.add(placeholder);
+
+        const labelCatalog: Excel.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+        if (!labelCatalog) {
+            console.warn("The sensitivity label catalog isn't available in this version of Excel.");
+            return;
+        }
+
+        const availableLabels: Excel.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+        availableLabels.load(
+            "items/color,items/id,items/isEnabled,items/name,items/order,items/protectionType," +
+            "items/siteId,items/tooltip,items/children/items/id,items/children/items/name," +
+            "items/children/items/isEnabled"
+        );
+        await context.sync();
+
+        if (availableLabels.items.length === 0) {
+            console.log("No sensitivity labels are available for the current user.");
+            return;
+        }
+
+        console.log("Available sensitivity labels:");
+        availableLabels.items.forEach((labelDetails: Excel.SensitivityLabelDetails) => {
+            const childLabels = labelDetails.children && labelDetails.children.items.length
+                ? labelDetails.children.items
+                    .map((childLabel: Excel.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+                    .join(", ")
+                : "None";
+            console.log(
+                `\n${labelDetails.name}\n` +
+                `  ID: ${labelDetails.id}\n` +
+                `  Site ID: ${labelDetails.siteId}\n` +
+                `  Tooltip: ${labelDetails.tooltip}\n` +
+                `  Color: ${labelDetails.color}\n` +
+                `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+                `  Display order: ${labelDetails.order}\n` +
+                `  Sublabels: ${childLabels}\n` +
+                `  Protection type: ${labelDetails.protectionType}`
+            );
+        });
+
+        addLabelOptions(availableLabels);
+    });
 Excel.SettableCellProperties:interface:
   - >-
     // Link to full sample:

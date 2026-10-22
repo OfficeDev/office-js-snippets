@@ -66,7 +66,8 @@ export async function runExcelSnippetTest(options: RunSnippetTestOptions) {
   const { mockObject, mockContext, mockRange, mockWorksheet } = createExcelMock(mockOptions as ExcelMockOptions);
 
   (global as any).Excel = mockObject;
-  (global as any).document = createMockDocument(buttonHandlers, options.elementValues);
+  const mockDocument = createMockDocument(buttonHandlers, options.elementValues);
+  (global as any).document = mockDocument;
 
   // Execute snippet
   executeSnippetCode(snippet);
@@ -78,10 +79,10 @@ export async function runExcelSnippetTest(options: RunSnippetTestOptions) {
 
   // Run custom assertions
   if (assertions) {
-    assertions({ mockContext, mockRange, mockWorksheet });
+    assertions({ mockContext, mockRange, mockWorksheet, mockDocument });
   }
 
-  return { mockContext, mockRange, mockWorksheet };
+  return { mockContext, mockRange, mockWorksheet, mockDocument, buttonHandlers };
 }
 
 /**

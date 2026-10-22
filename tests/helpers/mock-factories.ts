@@ -108,6 +108,15 @@ export interface ExcelMockOptions {
   rangeValues?: any[][];
   rangeText?: string;
   worksheetName?: string;
+  labelingCapability?: string;
+  sensitivityLabelCatalogAvailable?: boolean;
+  sensitivityLabelsEmpty?: boolean;
+  sensitivityLabelIsNullObject?: boolean;
+  sensitivityLabelUpdateResult?: string;
+  sensitivityLabelAttributesEmpty?: boolean;
+  sensitivityLabelAttributeValuesEmpty?: boolean;
+  sensitivityLabelAttributesNull?: boolean;
+  sensitivityLabelAttributeValuesNull?: boolean;
 }
 
 export function createExcelMock(options: ExcelMockOptions = {}) {
@@ -135,8 +144,62 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     getRangeByIndexes: jest.fn(() => mockRange),
   };
 
+  const currentLabel = {
+    isNullObject: options.sensitivityLabelIsNullObject ?? false,
+    name: 'General',
+    id: 'general-label',
+    color: '#008000',
+    siteId: 'sample-tenant',
+    tooltip: 'General business data',
+    isEnabled: true,
+    order: 0,
+    protectionType: 'NoProtection',
+    children: null,
+    load: jest.fn(),
+  };
+  const availableLabels = {
+    items: options.sensitivityLabelsEmpty ? [] : [
+      currentLabel,
+      { ...currentLabel, name: 'Disabled', id: 'disabled-label', isEnabled: false },
+      {
+        ...currentLabel,
+        name: 'Confidential',
+        id: 'parent-label',
+        children: {
+          items: [
+            { ...currentLabel, name: 'Engineering', id: 'engineering-label' },
+            { ...currentLabel, name: 'Retired', id: 'retired-label', isEnabled: false },
+          ],
+        },
+      },
+    ],
+    load: jest.fn(),
+  };
   const mockContext = {
+    sensitivityLabelsCatalog: options.sensitivityLabelCatalogAvailable === false ? undefined : {
+      getAttributes: jest.fn(() => ({
+        value: options.sensitivityLabelAttributesNull ? null : options.sensitivityLabelAttributesEmpty ? [] : [{
+          dataType: 'StringValue',
+          displayName: 'Department',
+          displayOrder: 1,
+          isActive: true,
+          isMultiValued: false,
+          values: options.sensitivityLabelAttributeValuesNull ? null : options.sensitivityLabelAttributeValuesEmpty ? [] : [
+            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true, load: jest.fn() },
+            { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false, load: jest.fn() },
+          ],
+          load: jest.fn(),
+        }],
+      })),
+      getLabelingCapability: options.labelingCapability ?? 'LabelingEnabled',
+      getLabels: jest.fn(() => availableLabels),
+      load: jest.fn(),
+    },
     workbook: {
+      sensitivityLabel: {
+        getCurrentOrNullObject: jest.fn(() => currentLabel),
+        tryToUpdate: jest.fn(() => ({ value: options.sensitivityLabelUpdateResult ?? 'Success' })),
+      },
       getSelectedRange: jest.fn(() => mockRange),
       worksheets: {
         getActiveWorksheet: jest.fn(() => mockWorksheet),
@@ -154,7 +217,17 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   };
 
   return {
-    mockObject: new OfficeMockObject(mockData, OfficeApp.Excel),
+    mockObject: Object.assign(new OfficeMockObject(mockData, OfficeApp.Excel), {
+      LabelingCapability: {
+        noLicense: 'NoLicense',
+        labelingDisabled: 'LabelingDisabled',
+        labelingPolicyNotFound: 'LabelingPolicyNotFound',
+        labelingEnabled: 'LabelingEnabled',
+      },
+      SensitivityLabelUpdateResult: {
+        success: 'Success',
+      },
+    }),
     mockContext,
     mockRange,
     mockWorksheet,

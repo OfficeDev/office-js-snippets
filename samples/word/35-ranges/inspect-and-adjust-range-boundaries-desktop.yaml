@@ -1,7 +1,7 @@
-order: 3
-id: word-ranges-format-range-text-desktop
-name: Format range text (desktop)
-description: Changes text case and range boundaries and inspects character formatting.
+order: 4
+id: word-ranges-inspect-and-adjust-range-boundaries-desktop
+name: Inspect and adjust range boundaries (desktop)
+description: Reads range positions and story information and selects text by adjusting its start or end boundary.
 author: OfficeDev
 host: WORD
 api_set:
@@ -10,30 +10,9 @@ api_set:
 script:
     content: |-
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
-        document.getElementById("get-formatting").addEventListener("click", () => tryCatch(getFormatting));
         document.getElementById("get-position").addEventListener("click", () => tryCatch(getPosition));
         document.getElementById("move-start").addEventListener("click", () => tryCatch(moveStart));
         document.getElementById("move-end").addEventListener("click", () => tryCatch(moveEnd));
-        document.getElementById("set-case").addEventListener("click", () => tryCatch(setCase));
-        document.getElementById("show-marks").addEventListener("click", () => tryCatch(showMarks));
-
-        async function getFormatting() {
-            // Reads character formatting on the first paragraph.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                paragraphRange.load("bold,italic,boldBidirectional,italicBidirectional,case,highlightColorIndex,showAll");
-                await context.sync();
-                console.log("First paragraph's formatting:", {
-                    bold: paragraphRange.bold,
-                    italic: paragraphRange.italic,
-                    boldBidirectional: paragraphRange.boldBidirectional,
-                    italicBidirectional: paragraphRange.italicBidirectional,
-                    case: paragraphRange.case,
-                    highlightColorIndex: paragraphRange.highlightColorIndex,
-                    showAll: paragraphRange.showAll
-                });
-            });
-        }
 
         async function getPosition() {
             // Reads the range's character positions and the story containing it.
@@ -87,36 +66,12 @@ script:
             });
         }
 
-        async function setCase() {
-            // Converts the first paragraph's text to uppercase.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                const characterCase: Word.CharacterCase = Word.CharacterCase.upper;
-                paragraphRange.case = characterCase;
-                await context.sync();
-                console.log("Converted the text to uppercase.");
-            });
-        }
-
-        async function showMarks() {
-            // Displays nonprinting characters such as spaces and paragraph marks.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
-                paragraphRange.showAll = true;
-                await context.sync();
-                console.log("Enabled nonprinting characters. Get formatting to inspect the setting.");
-            });
-        }
-
         async function setup() {
             await Word.run(async (context) => {
                 const body: Word.Body = context.document.body;
-                body.clear();
-                const summary: Word.Paragraph = body.insertParagraph("Project summary: the team is ready for review.", Word.InsertLocation.start);
-                summary.font.bold = true;
-                summary.font.italic = true;
-                summary.font.highlightColor = "#FFFF00";
+                body.insertText("Project summary: the team is ready for review.", Word.InsertLocation.replace);
                 await context.sync();
+                console.log("Created the sample paragraph for range-boundary inspection and selection.");
             });
         }
 
@@ -130,24 +85,24 @@ script:
     language: typescript
 template:
     content: |-
-        <section>This sample demonstrates how to inspect a summary's character formatting, convert its text to uppercase, and inspect and adjust range boundaries.</section>
+        <section>This sample demonstrates how to inspect a paragraph range's character positions and story information,
+            then select part of its text by adjusting a range boundary.</section>
         <section>
             <p><b>Support:</b> Requires WordApiDesktop 1.4 on Windows or Mac.
             These APIs aren't available in Word on the web.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
-            <p>Replaces the document body with an English summary formatted in bold, italic, and yellow highlighting.</p>
-            <button id="setup">Add sample text</button>
+            <p>Replaces the document body with an English summary.</p>
+            <button id="setup">Set up</button>
         </section>
         <section>
             <h3>Try it out</h3>
-            <button id="get-formatting">Get character formatting</button>
             <button id="get-position">Get positions and story information</button>
             <button id="move-start">Select without first character</button>
             <button id="move-end">Select without last character</button>
-            <button id="set-case">Convert summary to uppercase</button>
-            <button id="show-marks">Show nonprinting characters</button>
+            <p>The selection actions don't change the document text. Each starts from the full paragraph,
+                not the previous selection. <b>Get positions and story information</b> always inspects the full paragraph range.</p>
         </section>
     language: html
 style:

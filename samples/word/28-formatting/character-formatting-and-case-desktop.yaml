@@ -1,7 +1,7 @@
 order: 4
 id: word-formatting-character-formatting-and-case-desktop
 name: Character formatting and case (desktop)
-description: Reads range character formatting, converts text to uppercase, and displays nonprinting characters.
+description: Reads a paragraph's character formatting and converts its text to uppercase.
 author: OfficeDev
 host: WORD
 api_set:
@@ -12,7 +12,6 @@ script:
         document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
         document.getElementById("get-formatting").addEventListener("click", () => tryCatch(getFormatting));
         document.getElementById("set-case").addEventListener("click", () => tryCatch(setCase));
-        document.getElementById("show-marks").addEventListener("click", () => tryCatch(showMarks));
 
         async function setup() {
             await Word.run(async (context) => {
@@ -23,9 +22,8 @@ script:
                 sampleRange.font.bold = true;
                 sampleRange.font.italic = true;
                 sampleRange.font.highlightColor = "#FFFF00";
-                sampleRange.showAll = false;
                 await context.sync();
-                console.log("Created a bold, italic, yellow-highlighted sample paragraph with nonprinting-character display disabled.");
+                console.log("Created a bold, italic, yellow-highlighted sample paragraph.");
             });
         }
 
@@ -33,7 +31,7 @@ script:
             // Reads character formatting on the first paragraph.
             await Word.run(async (context) => {
                 const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange(Word.RangeLocation.content);
-                paragraphRange.load("text,bold,italic,boldBidirectional,italicBidirectional,case,highlightColorIndex,showAll");
+                paragraphRange.load("text,bold,italic,boldBidirectional,italicBidirectional,case,highlightColorIndex");
                 await context.sync();
                 console.log("First paragraph's formatting:", {
                     text: paragraphRange.text,
@@ -42,8 +40,7 @@ script:
                     boldBidirectional: paragraphRange.boldBidirectional,
                     italicBidirectional: paragraphRange.italicBidirectional,
                     case: paragraphRange.case,
-                    highlightColorIndex: paragraphRange.highlightColorIndex,
-                    showAll: paragraphRange.showAll
+                    highlightColorIndex: paragraphRange.highlightColorIndex
                 });
             });
         }
@@ -59,16 +56,6 @@ script:
             });
         }
 
-        async function showMarks() {
-            // Displays nonprinting characters such as spaces and paragraph marks.
-            await Word.run(async (context) => {
-                const paragraphRange: Word.Range = context.document.body.paragraphs.getFirst().getRange();
-                paragraphRange.showAll = true;
-                await context.sync();
-                console.log("Enabled nonprinting characters for the first paragraph. Get character formatting to inspect the setting.");
-            });
-        }
-
         async function tryCatch(callback) {
             try {
                 await callback();
@@ -80,25 +67,22 @@ script:
 template:
     content: |-
         <section>
-            <p>This sample demonstrates how to inspect a paragraph's character formatting,
-                convert its text to uppercase, and display nonprinting characters.</p>
+            <p>This sample demonstrates how to inspect a paragraph's character formatting
+                and convert its text to uppercase.</p>
             <p><b>Support:</b> Requires WordApiDesktop 1.4 in Word on Windows or Mac,
                 not Word on the web.</p>
         </section>
         <section class="setup">
             <h3>Set up</h3>
             <p>Replaces the document body with a mixed-case summary formatted in bold, italic, and yellow highlighting.
-                <b>Set up</b> restores the original text and formatting and turns off nonprinting-character display.</p>
+                <b>Set up</b> restores the original text and formatting.</p>
             <button id="setup">Set up</button>
         </section>
         <section>
             <h3>Try it out</h3>
             <button id="get-formatting">Get character formatting</button>
             <button id="set-case">Convert summary to uppercase</button>
-            <button id="show-marks">Show nonprinting characters</button>
-            <p>Get character formatting reports the sample paragraph's text, case, and formatting values.
-                After <b>Show nonprinting characters</b>, it also verifies the showAll setting.
-                The display of formatting marks depends on Word's view settings.</p>
+            <p><b>Get character formatting</b> reports the sample paragraph's text, case, and formatting values.</p>
         </section>
     language: html
 style:

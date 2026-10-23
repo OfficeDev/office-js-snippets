@@ -1206,7 +1206,7 @@ describe('Runtime Execution Tests - Word', () => {
       'set-two-lines', 'get-layout',
     ]],
     ['28-formatting', 'convert-japanese-kana-desktop.yaml', ['setup', 'set-kana', 'get-kana']],
-    ['28-formatting', 'character-formatting-and-case-desktop.yaml', ['setup', 'get-formatting', 'set-case', 'show-marks']],
+    ['28-formatting', 'character-formatting-and-case-desktop.yaml', ['setup', 'get-formatting', 'set-case']],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
       'search-range', 'set-style', 'clear-range', 'delete-range',
@@ -1510,13 +1510,11 @@ describe('Runtime Execution Tests - Word', () => {
     });
 
     test('registers only formatting actions and restores sample content and formatting', async () => {
-      expect([...buttonHandlers.keys()]).toEqual(['setup', 'get-formatting', 'set-case', 'show-marks']);
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'get-formatting', 'set-case']);
 
       for (let i = 0; i < 2; i++) {
-        wordMock.mockRange.showAll = true;
         wordMock.mockRange.font.bold = false;
         await clickButton(buttonHandlers, 'setup');
-        expect(wordMock.mockRange.showAll).toBe(false);
         expect(wordMock.mockRange.font).toEqual(expect.objectContaining({
           bold: true, italic: true, highlightColor: '#FFFF00',
         }));
@@ -1538,12 +1536,12 @@ describe('Runtime Execution Tests - Word', () => {
       await clickButton(buttonHandlers, 'get-formatting');
 
       expect(wordMock.mockRange.load).toHaveBeenCalledWith(
-        'text,bold,italic,boldBidirectional,italicBidirectional,case,highlightColorIndex,showAll'
+        'text,bold,italic,boldBidirectional,italicBidirectional,case,highlightColorIndex'
       );
       expect(consoleSpy).toHaveBeenCalledWith("First paragraph's formatting:", {
         text: wordMock.mockRange.text,
         bold: true, italic: true, boldBidirectional: false, italicBidirectional: false,
-        case: 'TitleSentence', highlightColorIndex: 'Yellow', showAll: false,
+        case: 'TitleSentence', highlightColorIndex: 'Yellow',
       });
       expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
       expect(consoleErrorSpy).not.toHaveBeenCalled();
@@ -1560,20 +1558,7 @@ describe('Runtime Execution Tests - Word', () => {
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
-    test('nonprinting-character display targets the full paragraph range', async () => {
-      await clickButton(buttonHandlers, 'show-marks');
-
-      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
-      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith();
-      expect(wordMock.mockRange.showAll).toBe(true);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Enabled nonprinting characters for the first paragraph. Get character formatting to inspect the setting.'
-      );
-      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
-    });
-
-    test.each(['setup', 'get-formatting', 'set-case', 'show-marks'])('%s surfaces errors without success output', async (buttonId) => {
+    test.each(['setup', 'get-formatting', 'set-case'])('%s surfaces errors without success output', async (buttonId) => {
       const error = new Error('Character formatting failed.');
       wordMock.mockContext.sync.mockRejectedValueOnce(error);
 

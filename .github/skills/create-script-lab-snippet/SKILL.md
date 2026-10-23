@@ -264,8 +264,9 @@ Read the `name` and `order` metadata from every snippet in the target group befo
 
 Use this display order:
 
-1. Foundational samples whose names identify them as **Basic** samples come first.
-2. Sort all remaining samples alphabetically by the YAML `name` value, using a case-insensitive comparison.
+1. General-purpose samples come before desktop-only samples.
+2. Within each support group, foundational samples whose names identify them as **Basic** samples come first.
+3. Sort all remaining samples within each support group alphabetically by the YAML `name` value, using a case-insensitive comparison.
 
 Do not classify a sample as basic merely to move it earlier. Its name and scenario must genuinely present the group's introductory or foundational API usage.
 

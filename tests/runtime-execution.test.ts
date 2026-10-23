@@ -1185,6 +1185,7 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   const rangeScenarios = [
+    ['15-images', 'insert-and-inspect-floating-pictures-desktop.yaml', ['setup', 'insert-picture', 'get-shapes']],
     ['25-paragraph', 'basic-paragraph-operations.yaml', [
       'setup', 'get-paragraph', 'get-next', 'get-previous', 'check-next', 'check-previous',
       'get-sentences', 'clear-paragraph', 'delete-paragraph',
@@ -1239,7 +1240,7 @@ describe('Runtime Execution Tests - Word', () => {
     ]],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', [
       'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames',
-      'get-hyperlinks', 'insert-picture', 'get-shapes',
+      'get-hyperlinks',
     ]],
     ['35-ranges', 'manage-range-editing-permissions-desktop.yaml', ['setup', 'add-editor', 'get-editors']],
     ['50-document', 'manage-footnotes.yaml', ['setup', 'insert-endnote', 'get-endnotes']],
@@ -1295,7 +1296,7 @@ describe('Runtime Execution Tests - Word', () => {
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-sections', 'Sections found: 3'],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-frames', 'Frames found: 1'],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-hyperlinks', 'Hyperlinks found: 1'],
-    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-shapes', 'Shapes found: 1'],
+    ['15-images', 'insert-and-inspect-floating-pictures-desktop.yaml', 'get-shapes', 'Shapes anchored in the first paragraph: 1'],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-controls', 'Content controls found: 1'],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-fields', 'Fields found: 1'],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-pictures', 'Inline pictures found: 1'],
@@ -1494,6 +1495,128 @@ describe('Runtime Execution Tests - Word', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(error);
       expect(consoleSpy).not.toHaveBeenCalled();
     });
+  });
+
+  describe('Word: floating pictures (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '15-images', 'insert-and-inspect-floating-pictures-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers focused actions and explicitly removes anchored shapes during repeated setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'insert-picture', 'get-shapes']);
+      const existingShape = wordMock.mockBody.shapes.items[0];
+
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.shapes.load).toHaveBeenCalledWith('items');
+      expect(existingShape.delete).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockContext.sync.mock.invocationCallOrder[0])
+        .toBeLessThan(existingShape.delete.mock.invocationCallOrder[0]);
+      expect(existingShape.delete.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockBody.insertText.mock.invocationCallOrder[0]);
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: floating pictures are anchored to this paragraph.', 'Replace'],
+        ['Project summary: floating pictures are anchored to this paragraph.', 'Replace'],
+      ]);
+      expect(wordMock.mockRange.insertPictureFromBase64).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(4);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('setup also works when the body has no anchored shapes', async () => {
+      wordMock.mockBody.shapes.items = [];
+
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('insertion uses the first paragraph, explicit size and position, and a named shape', async () => {
+      await clickButton(buttonHandlers, 'insert-picture');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith();
+      expect(wordMock.mockRange.insertPictureFromBase64).toHaveBeenCalledWith(
+        expect.stringMatching(/^iVBORw0KGgo/),
+        { left: 20, top: 20, width: 90, height: 39 }
+      );
+      expect(wordMock.mockRange.shapes.items[0].name).toBe('FloatingPictureSample');
+      expect(wordMock.mockRange.shapes.load).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.document.getSelection).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Inserted a floating picture anchored to the first paragraph. Get anchored shapes to inspect it.'
+      );
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads the anchored shapes and logs labeled plain properties', async () => {
+      await clickButton(buttonHandlers, 'get-shapes');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith();
+      expect(wordMock.mockRange.shapes.load).toHaveBeenCalledWith('items/name,items/type,items/width,items/height');
+      expect(wordMock.mockRange.insertPictureFromBase64).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy.mock.calls).toEqual([
+        ['Shapes anchored in the first paragraph: 1'],
+        ['Anchored shape:', { name: 'RangeSamplePicture', type: 'Picture', width: 90, height: 39 }],
+      ]);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback reports an empty anchored-shape collection without creating a picture', async () => {
+      wordMock.mockRange.shapes.items = [];
+
+      await clickButton(buttonHandlers, 'get-shapes');
+
+      expect(consoleSpy.mock.calls).toEqual([['Shapes anchored in the first paragraph: 0']]);
+      expect(wordMock.mockRange.insertPictureFromBase64).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'insert-picture', 'get-shapes'])('%s surfaces errors without logging success', async (buttonId) => {
+      const error = new Error('Floating-picture action failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+
+    test('setup does not log success if the cleanup and text-replacement batch fails', async () => {
+      const error = new Error('Floating-picture setup failed.');
+      wordMock.mockContext.sync.mockResolvedValueOnce(undefined).mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  test('Word: range-layout actions no longer include picture insertion or anchored-shape readback', () => {
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).Word = createWordMock().mockObject;
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(
+      path.join('samples', 'word', '35-ranges', 'inspect-range-layout-desktop.yaml')
+    ));
+    expect([...buttonHandlers.keys()]).toEqual([
+      'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames', 'get-hyperlinks',
+    ]);
   });
 
   describe('Word: character formatting and case (desktop)', () => {

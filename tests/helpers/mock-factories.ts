@@ -738,10 +738,12 @@ export function createWordMock(options: WordMockOptions = {}) {
     rejectAll: jest.fn(),
   };
 
+  const mockShape = { name: 'RangeSamplePicture', type: 'Picture', width: 90, height: 39, delete: jest.fn() };
   const mockBody = {
     text: bodyText,
     paragraphs: mockParagraphs,
     lists: { items: [mockList], getFirst: jest.fn(() => mockList), load: jest.fn() },
+    shapes: { items: [mockShape], load: jest.fn() },
     clear: jest.fn(),
     insertParagraph: jest.fn(() => mockParagraph),
     insertBreak: jest.fn(),
@@ -917,7 +919,6 @@ export function createWordMock(options: WordMockOptions = {}) {
     load: jest.fn(),
   };
   const mockInlinePicture = { width: 90, height: 39 };
-  const mockShape = { name: 'RangeSamplePicture', type: 'Picture', width: 90, height: 39 };
   const mockEditor = { name: 'Everyone', id: 'Everyone', load: jest.fn() };
   const mockEditors = {
     addByType: jest.fn(() => mockEditor),

@@ -1208,6 +1208,9 @@ describe('Runtime Execution Tests - Word', () => {
     ]],
     ['28-formatting', 'convert-japanese-kana-desktop.yaml', ['setup', 'set-kana', 'get-kana']],
     ['28-formatting', 'character-formatting-and-case-desktop.yaml', ['setup', 'get-formatting', 'set-case']],
+    ['28-formatting', 'range-borders-and-shading-desktop.yaml', [
+      'setup', 'set-borders', 'get-borders', 'set-shading', 'get-shading',
+    ]],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
       'search-range', 'set-style', 'clear-range', 'delete-range',
@@ -1239,8 +1242,7 @@ describe('Runtime Execution Tests - Word', () => {
       'setup', 'get-position', 'move-start', 'move-end',
     ]],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', [
-      'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames',
-      'get-hyperlinks',
+      'setup', 'get-sections', 'get-frames', 'get-hyperlinks',
     ]],
     ['35-ranges', 'manage-range-editing-permissions-desktop.yaml', ['setup', 'add-editor', 'get-editors']],
     ['50-document', 'manage-footnotes.yaml', ['setup', 'insert-endnote', 'get-endnotes']],
@@ -1292,7 +1294,7 @@ describe('Runtime Execution Tests - Word', () => {
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'reset-grammar', "Reset the English paragraph's grammar-checked flag. Get language and proofing settings to inspect it."],
     ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-html', expect.stringContaining('Range HTML: ')],
     ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-ooxml', expect.stringContaining('Range OOXML: ')],
-    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-borders', "First paragraph's border formatting:"],
+    ['28-formatting', 'range-borders-and-shading-desktop.yaml', 'get-borders', "First paragraph's border formatting:"],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-sections', 'Sections found: 3'],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-frames', 'Frames found: 1'],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-hyperlinks', 'Hyperlinks found: 1'],
@@ -1607,7 +1609,110 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
-  test('Word: range-layout actions no longer include picture insertion or anchored-shape readback', () => {
+  describe('Word: range borders and shading (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'range-borders-and-shading-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('repeated setup restores baseline border and shading formatting without accumulating text', async () => {
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'set-borders');
+      await clickButton(buttonHandlers, 'set-shading');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: borders and shading emphasize this text.', 'Replace'],
+        ['Project summary: borders and shading emphasize this text.', 'Replace'],
+      ]);
+      expect(wordMock.mockRange.borders.items[0]).toMatchObject({
+        color: '#808080', lineStyle: 'Single', lineWidth: 'Pt075', isVisible: true,
+      });
+      expect(wordMock.mockRange.shading).toMatchObject({
+        backgroundPatternColor: '#FFFFFF', texture: 'None',
+      });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('border formatting loads the range borders before applying a visible double blue line', async () => {
+      await clickButton(buttonHandlers, 'set-borders');
+
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.borders.load).toHaveBeenCalledWith('items');
+      expect(wordMock.mockRange.borders.items[0]).toMatchObject({
+        color: '#4472C4', lineStyle: 'Double', lineWidth: 'Pt150', isVisible: true,
+      });
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.borders.load.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockRange.shading.load).not.toHaveBeenCalled();
+      expect(consoleSpy.mock.calls).toEqual([["Applied double blue borders to the first paragraph's text."]]);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('border readback loads and labels plain property values without changing the borders', async () => {
+      const border = wordMock.mockRange.borders.items[0];
+      Object.assign(border, { color: '#808080', lineStyle: 'Single', lineWidth: 'Pt075', isVisible: true });
+
+      await clickButton(buttonHandlers, 'get-borders');
+
+      expect(wordMock.mockRange.borders.load).toHaveBeenCalledWith(
+        'items/color,items/lineStyle,items/lineWidth,items/isVisible'
+      );
+      expect(consoleSpy.mock.calls).toEqual([
+        ["First paragraph's border formatting:"],
+        ['Border:', { color: '#808080', lineStyle: 'Single', lineWidth: 'Pt075', isVisible: true }],
+      ]);
+      expect(consoleSpy.mock.calls[1][1]).not.toBe(border);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('shading changes the background color without changing borders or loading readback properties', async () => {
+      const borderBefore = { ...wordMock.mockRange.borders.items[0] };
+
+      await clickButton(buttonHandlers, 'set-shading');
+
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.shading.backgroundPatternColor).toBe('#DDEBF7');
+      expect(wordMock.mockRange.shading.load).not.toHaveBeenCalled();
+      expect(wordMock.mockRange.borders.items[0]).toEqual(borderBefore);
+      expect(consoleSpy.mock.calls).toEqual([['Applied pale blue shading.']]);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('shading readback loads and labels the current color without changing it', async () => {
+      wordMock.mockRange.shading.backgroundPatternColor = '#DDEBF7';
+
+      await clickButton(buttonHandlers, 'get-shading');
+
+      expect(wordMock.mockRange.shading.load).toHaveBeenCalledWith('backgroundPatternColor');
+      expect(consoleSpy.mock.calls).toEqual([['Range shading color: #DDEBF7']]);
+      expect(wordMock.mockRange.shading.backgroundPatternColor).toBe('#DDEBF7');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'set-borders', 'get-borders', 'set-shading', 'get-shading'])(
+      '%s reports synchronization errors without logging success',
+      async (buttonId) => {
+        const error = new Error('Range formatting action failed.');
+        wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+        await clickButton(buttonHandlers, buttonId);
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+        expect(consoleSpy).not.toHaveBeenCalled();
+      }
+    );
+  });
+
+  test('Word: range-layout actions exclude the extracted picture and formatting workflows', () => {
     const buttonHandlers = new Map<string, Function>();
     (global as any).Word = createWordMock().mockObject;
     (global as any).document = createMockDocument(buttonHandlers);
@@ -1615,7 +1720,7 @@ describe('Runtime Execution Tests - Word', () => {
       path.join('samples', 'word', '35-ranges', 'inspect-range-layout-desktop.yaml')
     ));
     expect([...buttonHandlers.keys()]).toEqual([
-      'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames', 'get-hyperlinks',
+      'setup', 'get-sections', 'get-frames', 'get-hyperlinks',
     ]);
   });
 

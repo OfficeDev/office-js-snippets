@@ -1174,10 +1174,12 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   wordMockObject.BorderLineStyle = {
+    single: 'Single',
     double: 'Double',
   };
 
   wordMockObject.LineWidth = {
+    pt075: 'Pt075',
     pt150: 'Pt150',
   };
 
@@ -1265,6 +1267,7 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   wordMockObject.ShadingTextureType = {
+    none: 'None',
     darkTrellis: 'DarkTrellis',
     lightTrellis: 'LightTrellis',
     solid: 'Solid',

@@ -1201,6 +1201,12 @@ describe('Runtime Execution Tests - Word', () => {
       'reset-language-detection', 'disable-proofing',
       'reset-spelling', 'reset-grammar', 'get-proofing',
     ]],
+    ['28-formatting', 'apply-character-layout-desktop.yaml', [
+      'setup', 'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
+      'set-two-lines', 'get-layout',
+    ]],
+    ['28-formatting', 'convert-japanese-kana-desktop.yaml', ['setup', 'set-kana', 'get-kana']],
+    ['28-formatting', 'character-formatting-and-case-desktop.yaml', ['setup', 'get-formatting', 'set-case']],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
       'search-range', 'set-style', 'clear-range', 'delete-range',
@@ -1228,10 +1234,8 @@ describe('Runtime Execution Tests - Word', () => {
       'get-tables', 'get-parent-table', 'get-parent-cell', 'check-parent-table',
       'check-parent-cell', 'set-hyperlink', 'get-hyperlink-ranges',
     ]],
-    ['35-ranges', 'format-range-text-desktop.yaml', [
-      'setup', 'get-formatting', 'get-position', 'move-start', 'move-end', 'set-case',
-      'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
-      'set-kana', 'set-two-lines', 'show-marks',
+    ['35-ranges', 'inspect-and-adjust-range-boundaries-desktop.yaml', [
+      'setup', 'get-position', 'move-start', 'move-end',
     ]],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', [
       'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames',
@@ -1321,8 +1325,8 @@ describe('Runtime Execution Tests - Word', () => {
   test.each([
     ['25-paragraph', 'paragraph-properties.yaml', 'get-formatting', 'Paragraph:', { firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0 }],
     ['35-ranges', 'basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
+    ['28-formatting', 'character-formatting-and-case-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
+    ['35-ranges', 'inspect-and-adjust-range-boundaries-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "English paragraph's proofing settings:", { languageId: 'EnglishUS', languageDetected: false }],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "Japanese paragraph's proofing settings:", { languageIdFarEast: 'Japanese', languageDetected: false }],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-table', 'Parent table:', { rowCount: 2, values: expect.any(Array) }],
@@ -1336,6 +1340,319 @@ describe('Runtime Execution Tests - Word', () => {
         expect(consoleSpy).toHaveBeenCalledWith(label, expect.objectContaining(properties));
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
+    });
+  });
+
+  describe('Word: character layout (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'apply-character-layout-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      wordMock.mockRange.text = 'AB12';
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers focused actions and replaces sample content on repeated setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual([
+        'setup', 'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
+        'set-two-lines', 'get-layout',
+      ]);
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([['AB12', 'Replace'], ['AB12', 'Replace']]);
+      expect(wordMock.mockBody.insertParagraph).not.toHaveBeenCalled();
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.font.reset).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.font.reset.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ['set-width', 'characterWidth', 'Half', 'Full',
+        "Converted the first paragraph's Latin characters and digits to full width."],
+      ['combine-characters', 'combineCharacters', false, true,
+        'Enabled combined characters on the first paragraph. Get layout settings to inspect the flag.'],
+      ['fit-text', 'fitTextWidth', 0, 100,
+        "Fitted the first paragraph's text into 100 current measurement units."],
+      ['set-horizontal-in-vertical', 'horizontalInVertical', 'None', 'FitInLine',
+        'Enabled horizontal-in-vertical layout on the first paragraph. Get layout settings to verify it.'],
+      ['set-two-lines', 'twoLinesInOne', 'None', 'Parentheses',
+        'Applied two-line text with parentheses to the first paragraph.'],
+    ] as const)('%s targets the correct paragraph and labels its result', async (buttonId, property, initialValue, value, message) => {
+      Object.assign(wordMock.mockRange, { [property]: initialValue });
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(wordMock.mockRange[property]).toBe(value);
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockBody.paragraphs.getLast).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith(message);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads layout only on the sample paragraph', async () => {
+      await clickButton(buttonHandlers, 'get-layout');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith(
+        'text,characterWidth,combineCharacters,disableCharacterSpaceGrid,emphasisMark,fitTextWidth,horizontalInVertical,twoLinesInOne'
+      );
+      expect(wordMock.mockBody.paragraphs.getLast).not.toHaveBeenCalled();
+      expect(consoleSpy.mock.calls).toEqual([
+        ["First paragraph's character layout:", {
+          text: 'AB12', characterWidth: 'Half', combineCharacters: false,
+          disableCharacterSpaceGrid: wordMock.mockRange.disableCharacterSpaceGrid,
+          emphasisMark: wordMock.mockRange.emphasisMark,
+          fitTextWidth: 100, horizontalInVertical: 'None', twoLinesInOne: 'None',
+        }],
+      ]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'set-width', 'combine-characters', 'fit-text',
+      'set-horizontal-in-vertical', 'set-two-lines', 'get-layout'
+    ])('%s surfaces synchronization errors without logging success', async (buttonId) => {
+      const error = new Error('Character layout operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Word: Japanese kana conversion (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'convert-japanese-kana-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      wordMock.mockRange.text = '\u30ab\u30bf\u30ab\u30ca';
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers only kana actions and recreates katakana text during setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'set-kana', 'get-kana']);
+
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['\u30ab\u30bf\u30ab\u30ca', 'Replace'], ['\u30ab\u30bf\u30ab\u30ca', 'Replace'],
+      ]);
+      expect(wordMock.mockBody.insertParagraph).not.toHaveBeenCalled();
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.font.reset).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.font.reset.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('conversion assigns hiragana to the independent sample paragraph', async () => {
+      await clickButton(buttonHandlers, 'set-kana');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.kana).toBe('Hiragana');
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("Converted the Japanese paragraph's text to hiragana.");
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads text and kana and logs a labeled plain object', async () => {
+      await clickButton(buttonHandlers, 'get-kana');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith('text,kana');
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("Japanese paragraph's kana settings:", {
+        text: '\u30ab\u30bf\u30ab\u30ca', kana: 'Katakana',
+      });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'set-kana', 'get-kana'])('%s surfaces errors without logging success', async (buttonId) => {
+      const error = new Error('Kana operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Word: character formatting and case (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'character-formatting-and-case-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers only formatting actions and restores sample content and formatting', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'get-formatting', 'set-case']);
+
+      for (let i = 0; i < 2; i++) {
+        wordMock.mockRange.font.bold = false;
+        await clickButton(buttonHandlers, 'setup');
+        expect(wordMock.mockRange.font).toEqual(expect.objectContaining({
+          bold: true, italic: true, highlightColor: '#FFFF00',
+        }));
+      }
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: the team is ready for review.', 'Replace'],
+        ['Project summary: the team is ready for review.', 'Replace'],
+      ]);
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.font.reset).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.font.reset.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads and labels the text and all reported formatting properties', async () => {
+      await clickButton(buttonHandlers, 'get-formatting');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith(
+        'text,bold,italic,boldBidirectional,italicBidirectional,case,highlightColorIndex'
+      );
+      expect(consoleSpy).toHaveBeenCalledWith("First paragraph's formatting:", {
+        text: wordMock.mockRange.text,
+        bold: true, italic: true, boldBidirectional: false, italicBidirectional: false,
+        case: 'TitleSentence', highlightColorIndex: 'Yellow',
+      });
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('uppercase conversion targets the sample paragraph', async () => {
+      await clickButton(buttonHandlers, 'set-case');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.case).toBe('Upper');
+      expect(consoleSpy).toHaveBeenCalledWith("Converted the first paragraph's text to uppercase.");
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'get-formatting', 'set-case'])('%s surfaces errors without success output', async (buttonId) => {
+      const error = new Error('Character formatting failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Word: range boundaries (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '35-ranges', 'inspect-and-adjust-range-boundaries-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers only boundary actions and replaces sample text during setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'get-position', 'move-start', 'move-end']);
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: the team is ready for review.', 'Replace'],
+        ['Project summary: the team is ready for review.', 'Replace'],
+      ]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('position readback loads all reported properties', async () => {
+      await clickButton(buttonHandlers, 'get-position');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith(
+        'id,start,end,storyLength,storyType,isEndOfRowMark,isTextVisibleOnScreen'
+      );
+      expect(consoleSpy).toHaveBeenCalledWith("First paragraph's position and story:", {
+        id: 'range-1', start: 0, end: 40, storyLength: 80, storyType: 'MainText',
+        isEndOfRowMark: false, isTextVisibleOnScreen: true,
+      });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['move-start', 'move-end'])('%s loads boundaries before modifying and selecting the range', async (buttonId) => {
+      wordMock.mockRange.start = 10;
+      wordMock.mockRange.end = 20;
+      wordMock.mockContext.sync.mockImplementationOnce(async () => {
+        expect(wordMock.mockRange.start).toBe(10);
+        expect(wordMock.mockRange.end).toBe(20);
+        expect(wordMock.mockRange.select).not.toHaveBeenCalled();
+      });
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith('start,end');
+      expect(wordMock.mockRange.start).toBe(buttonId === 'move-start' ? 11 : 10);
+      expect(wordMock.mockRange.end).toBe(buttonId === 'move-end' ? 19 : 20);
+      expect(wordMock.mockRange.select).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockRange.insertText).not.toHaveBeenCalled();
+      expect(wordMock.mockRange.delete).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['move-start', 'move-end'])('%s warns instead of selecting an empty range', async (buttonId) => {
+      wordMock.mockRange.start = 10;
+      wordMock.mockRange.end = 10;
+      const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(warningSpy).toHaveBeenCalledWith('The paragraph is empty. Run Set up again.');
+      expect(wordMock.mockRange.start).toBe(10);
+      expect(wordMock.mockRange.end).toBe(10);
+      expect(wordMock.mockRange.select).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'get-position', 'move-start', 'move-end'])('%s surfaces errors without success output', async (buttonId) => {
+      const error = new Error('Range-boundary operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
     });
   });
 

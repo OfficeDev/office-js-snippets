@@ -15,12 +15,12 @@ Complete all applicable parts of the change:
 
 - Add or expand a public snippet under `samples/<host>/<group>/`.
 - Give the sample deterministic data in a workbook, document, presentation, or Outlook item when the host permits it; otherwise state exact item prerequisites.
-- Add rows to the host file in `snippet-extractor-metadata/` that map the demonstrated API members to named snippet functions.
+- Add rows to the host file in `snippet-extractor-metadata/` that map the demonstrated API members to named snippet functions, subject to the cross-repository coverage decision in section 2.
 - Make the Office.js object model and types clear inside every mapped function.
 - Regenerate repository outputs with the existing build.
 - Validate the snippet with the repository's existing tests.
 
-Do not finish with only a proposed sample or a coverage recommendation.
+Do not finish with only a proposed sample or a coverage recommendation when new or improved coverage is needed. If an existing example already provides the best coverage, explain the comparison and preserve it rather than creating a redundant sample or mapping.
 
 ## 1. Resolve the API
 
@@ -56,7 +56,7 @@ Confirm any client, Exchange account, mailbox, permission, or feature-specific l
 
 ## 2. Audit existing coverage
 
-Search both of these surfaces before editing:
+Search all of these surfaces before editing:
 
 1. The appropriate CSV:
    - `snippet-extractor-metadata/excel.csv`
@@ -66,7 +66,33 @@ Search both of these surfaces before editing:
 
 2. All YAML files under `samples/` for the API namespace, class, member, related object-model access path, and nearby feature terminology.
 
-Treat these cases separately:
+3. The reference repository's [API Coverage Report.csv](https://raw.githubusercontent.com/OfficeDev/office-js-docs-reference/refs/heads/main/generate-docs/API%20Coverage%20Report.csv). This report includes both mapped examples from this repository and examples maintained in the reference repository. Parse it as CSV, including quoted fields. Match `Package`, fully qualified `Class`, `Field`, and `Type`; inspect `Has Example?`. A top-level API uses `Field` = `N/A`, while a method field includes its signature. Resolve overloads against the declarations from section 1 instead of assuming that a method name or report row position identifies an overload.
+
+4. The appropriate host YAML under the reference repository's [`docs/code-snippets/`](https://github.com/OfficeDev/office-js-docs-reference/tree/main/docs/code-snippets), such as `excel-snippets.yaml`, `word-snippets.yaml`, `powerpoint-snippets.yaml`, or `outlook-snippets.yaml`. For Outlook APIs, check `office-snippets.yaml` too when applicable. Inspect the actual code under the exact API UID, such as `Word.Font:class`, `Word.Font#color:member`, or `Excel.Range#insert:member(1)`.
+
+The report is a combined coverage index, not a source attribution or quality assessment. `Has Example?` = `true` does not establish that an example is reference-owned; trace it to the local CSV and mapped function, the reference YAML, or both. Confirm apparent gaps against those sources, since the report can lag source changes. If a source cannot be retrieved or an overload cannot be resolved, state the uncertainty rather than treating the API as uncovered.
+
+### Compare reference-owned and Script Lab examples
+
+For every API being considered for a new mapping, including adjacent APIs discovered in section 5, check whether a reference-owned example exists. If it does, read it and compare it with the proposed Script Lab function **as it will be extracted**, not just with the full interactive sample.
+
+Choose the better reference example using these criteria:
+
+- Correctness against the current declarations, requirement set, host or Outlook activation mode, and documented limitations.
+- Direct demonstration of the exact API target and overload, rather than incidental usage or a related API.
+- Clarity and focus: explicit object-model access and types, minimal unrelated code, and understandable setup or prerequisites.
+- Completeness: appropriate asynchronous handling, visible `load` and synchronization where required, and a useful result.
+- Practical value: deterministic, repeatable behavior and a scenario that helps the reader use the API.
+
+Generally favor the `office-js-snippets` example because it provides a runnable Script Lab sample and maintained extraction. Prefer it when quality is comparable, or improve its focused function so it is at least as clear as the reference example. Retain a reference-owned example when it is more targeted or otherwise better for that API page; interactivity alone does not outweigh a clearer extracted example. The report's `Description Rating` rates documentation descriptions, not example quality.
+
+Record the exact API UID, existing source link and local function when applicable, chosen source, and a brief reason in the handoff or PR description. Do not add a tracking file just for this comparison.
+
+- **Reference-owned example wins:** Do not add a local CSV mapping for that UID. Add or expand a Script Lab sample only when it provides distinct gallery value or serves other APIs. If a local mapping already duplicates the winning reference example, remove that mapping and regenerate its extract without deleting a useful gallery sample.
+- **Script Lab example wins:** Add or retain the local mapping only with a coordinated removal or replacement of the reference-owned entry in `OfficeDev/office-js-docs-reference`. Identify the exact YAML file and UID that must change. Do not silently create duplicate reference examples or assume that changing this repository updates the reference repository. If the companion change is outside the authorized scope, ask for approval before adding a competing mapping; the gallery sample can still proceed without that mapping.
+- **No reference-owned example exists:** Follow the local coverage decisions below and add a mapping when appropriate.
+
+Apply the cross-repository decision first, then treat these local cases separately:
 
 - A CSV row exists and its mapped function clearly demonstrates the API: improve it only if it fails the requirements in this skill.
 - A relevant snippet uses the API but has no suitable CSV mapping: expand or clarify that snippet and add the mapping.
@@ -249,7 +275,7 @@ For an existing snippet, preserve its established formatting unless the build no
 
 ## 5. Add documentation mappings
 
-After a new snippet has been processed once by the build, read its generated `id`. Add mapping rows to the corresponding host CSV using this schema:
+After a new snippet has been processed once by the build, read its generated `id`. For APIs selected for local mappings by the coverage audit in section 2, add rows to the corresponding host CSV using this schema:
 
 ```csv
 Package,Class,Member Name,Member ID or top-level category,SnippetIdInTheYAMLFile,MethodNameInTheSnippet
@@ -264,7 +290,7 @@ Office,MessageCompose,subject,,outlook-other-item-apis-get-set-subject-compose,g
 Before finalizing the CSV rows, audit each new or expanded mapped function for other focal Office.js APIs that it now demonstrates and that still need sample coverage.
 
 1. List the non-incidental API surfaces that are explicit and important to the function's scenario. Check the focal class, interface, enum, or type; the owning property or method; and closely related return, parameter, options, result, collection, and item types.
-2. Search the host CSV for useful existing coverage of each surface. Do not assume that coverage of the originally requested API also covers a related API reference page.
+2. Repeat the section 2 coverage audit for each surface: search the host CSV, coverage report, and reference-owned examples, then compare any competing examples before selecting a mapping. Do not assume that coverage of the originally requested API also covers a related API reference page.
 3. Add another mapping when the extracted function is independently useful for an uncovered API page and makes that API's type and role obvious. For example, a function that explicitly gets a typed collection and iterates typed items may cover both the item class and its collection class.
 4. Apply this audit to both top-level type requests and member-level requests. A property or method sample can expose an uncovered return, parameter, options, or result type just as a class sample can expose its collection type.
 5. Do not add code or mappings merely to increase the row count. Skip setup plumbing, navigation, loading, synchronization, logging, and types that are only incidental to the scenario.
@@ -284,7 +310,7 @@ Apply these rules:
 - If one function demonstrates several members on the same page, choose the single row that best represents its purpose. For a requested class, prefer the top-level `class` row. For a requested member, prefer that exact member row.
 - The same function may appear in multiple rows only when each row targets a genuinely different API page, such as a class page, its collection page, and an options-interface page.
 - Do not map incidental APIs used only for setup, navigation, loading, synchronization, logging, or cleanup.
-- Do not add duplicate rows for coverage already provided by another function.
+- Do not add duplicate rows for coverage already provided by another function or an uncoordinated competing mapping for a reference-owned example.
 
 If a mapped function is renamed or moved to another snippet, update every affected CSV row in the same change.
 
@@ -343,6 +369,7 @@ Review the generated documentation entry in `snippet-extractor-output/snippets.y
 - the extracted function makes the focal object type and class-member relationship obvious;
 - the link points to the correct snippet;
 - no generated mapping or playlist change is missing.
+- every new or changed mapping follows the section 2 source decision, with any required reference-repository companion change identified and coordinated.
 
 Retain all build-generated changes that correspond to the edited snippet, including the host playlist. Do not hand-edit generated playlist, view, or extractor output to conceal a source or mapping problem.
 

@@ -3,11 +3,12 @@ name: Manage sensitivity labels
 description: Shows how to inspect the sensitivity label catalog and get or set the sensitivity label of a PowerPoint presentation.
 host: POWERPOINT
 api_set:
-    PowerPointApi: beta
+    PowerPointApi: preview
 script:
     content: |
         document.getElementById("get-catalog-status").addEventListener("click", () => tryCatch(getCatalogStatus));
         document.getElementById("get-available-labels").addEventListener("click", () => tryCatch(getAvailableLabels));
+        document.getElementById("get-catalog-attributes").addEventListener("click", () => tryCatch(getCatalogAttributes));
         document.getElementById("get-presentation-label").addEventListener("click", () => tryCatch(getPresentationLabel));
         document.getElementById("set-presentation-label").addEventListener("click", () => tryCatch(setPresentationLabel));
 
@@ -91,6 +92,51 @@ script:
             });
 
             addLabelOptions(availableLabels);
+          });
+        }
+
+        async function getCatalogAttributes() {
+          // Check that ABAC attributes are enabled and available before retrieving them.
+          await PowerPoint.run(async (context) => {
+            const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+            if (!labelCatalog) {
+              console.warn("The sensitivity label catalog isn't available.");
+              return;
+            }
+
+            labelCatalog.load("getLabelingCapabilities");
+            await context.sync();
+
+            const capabilities: PowerPoint.LabelingCapability[] = labelCatalog.getLabelingCapabilities;
+            if (!capabilities.includes(PowerPoint.LabelingCapability.attributeBasedAccessControlEnabled)) {
+              console.warn("ABAC attributes aren't enabled or available for the current user.");
+              return;
+            }
+
+            const catalogAttributes: OfficeExtension.ClientResult<PowerPoint.SensitivityLabelAbacAttribute[]> =
+              labelCatalog.getAttributes();
+            await context.sync();
+
+            if (catalogAttributes.value.length === 0) {
+              console.log("No ABAC attributes are available in the sensitivity label catalog.");
+              return;
+            }
+
+            console.log("Available ABAC attributes:");
+            catalogAttributes.value.forEach((attribute: PowerPoint.SensitivityLabelAbacAttribute) => {
+              console.log(`ABAC attribute: ${attribute.displayName}`, {
+                dataType: attribute.dataType,
+                displayOrder: attribute.displayOrder,
+                isActive: attribute.isActive,
+                isMultiValued: attribute.isMultiValued,
+                values: attribute.values.map((attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) => ({
+                  displayName: attributeValue.displayName,
+                  displayOrder: attributeValue.displayOrder,
+                  id: attributeValue.id,
+                  isActive: attributeValue.isActive
+                }))
+              });
+            });
           });
         }
 
@@ -209,10 +255,10 @@ script:
               presentationLabel.tryToUpdate(labelId);
             await context.sync();
 
-            if (updateResult.value === PowerPoint.SensitivityLabelUpdateResult.success) {
+            if (updateResult.value.status === PowerPoint.SensitivityLabelUpdateStatus.success) {
               console.log("Applied the sensitivity label to the presentation.");
             } else {
-              console.error(`The sensitivity label wasn't applied. Result: ${updateResult.value}`);
+              console.error(`The sensitivity label wasn't applied. Status: ${updateResult.value.status}`);
             }
           });
         }
@@ -233,11 +279,13 @@ template:
             <p>This sample uses preview APIs to inspect your organization's sensitivity labels and apply a label to the current presentation.</p>
             <p><b>Prerequisites:</b> Sign in to PowerPoint with a work or school account that has sensitivity labeling enabled and at least one label published to it.</p>
             <p>These preview APIs might not be available in every version of PowerPoint.</p>
+            <p>Attribute-based access control (ABAC) attributes must be enabled and available for the current user to retrieve catalog attributes.</p>
         </section>
         <section>
             <h3>Try it out</h3>
             <button id="get-catalog-status">Get catalog status</button>
             <button id="get-available-labels">Get available labels</button>
+            <button id="get-catalog-attributes">Get catalog attributes</button>
             <button id="get-presentation-label">Get presentation label</button>
             <label for="label-id">Label</label>
             <select id="label-id">

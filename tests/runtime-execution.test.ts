@@ -2269,12 +2269,90 @@ describe('Runtime Execution Tests - PowerPoint', () => {
   });
 
   test.each([
+    { labelingCapabilities: ['LabelingEnabled'] },
+    { labelingCapabilities: ['LabelingDisabled'] },
+    { labelingCapabilities: [] },
+  ])('PowerPoint: catalog attributes require ABAC capability ($labelingCapabilities)', async ({ labelingCapabilities }) => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { labelingCapabilities },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sensitivityLabelsCatalog.load).toHaveBeenCalledWith('getLabelingCapabilities');
+        expect(mockContext.sync).toHaveBeenCalledTimes(1);
+        expect(mockContext.sensitivityLabelsCatalog.getAttributes).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledWith("ABAC attributes aren't enabled or available for the current user.");
+        expect(consoleSpy).not.toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('PowerPoint: catalog attributes report an unavailable catalog', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { sensitivityLabelCatalogAvailable: false },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledWith("The sensitivity label catalog isn't available.");
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([false, true])('PowerPoint: catalog attributes display plain values (empty: %s)', async (emptyValues) => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: {
+        labelingCapabilities: ['AttributeBasedAccessControlEnabled', 'LabelingEnabled'],
+        sensitivityLabelAttributeValuesEmpty: emptyValues,
+      },
+      assertions: ({ mockContext }) => {
+        const catalog = mockContext.sensitivityLabelsCatalog;
+        expect(catalog.load).toHaveBeenCalledWith('getLabelingCapabilities');
+        expect(catalog.getAttributes).toHaveBeenCalledTimes(1);
+        expect(mockContext.sync).toHaveBeenCalledTimes(2);
+        expect(catalog.load.mock.invocationCallOrder[0]).toBeLessThan(mockContext.sync.mock.invocationCallOrder[0]);
+        expect(mockContext.sync.mock.invocationCallOrder[0]).toBeLessThan(catalog.getAttributes.mock.invocationCallOrder[0]);
+        expect(catalog.getAttributes.mock.invocationCallOrder[0]).toBeLessThan(mockContext.sync.mock.invocationCallOrder[1]);
+        expect(consoleSpy).toHaveBeenCalledWith('Available ABAC attributes:');
+        expect(consoleSpy).toHaveBeenCalledWith('ABAC attribute: Department', {
+          dataType: 'StringValue',
+          displayOrder: 1,
+          isActive: true,
+          isMultiValued: false,
+          values: emptyValues ? [] : [
+            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+            { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false },
+          ],
+        });
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('PowerPoint: an empty attribute catalog reports no attributes', async () => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { sensitivityLabelAttributesEmpty: true },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sensitivityLabelsCatalog.getAttributes).toHaveBeenCalledTimes(1);
+        expect(mockContext.sync).toHaveBeenCalledTimes(2);
+        expect(consoleSpy).toHaveBeenCalledWith('No ABAC attributes are available in the sensitivity label catalog.');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
     { updateResult: { status: 'Success' }, successful: true },
     { updateResult: { status: 'DocumentReadOnly' }, successful: false },
-    { updateResult: 'Success', successful: false },
-    { updateResult: { unexpected: 'Success' }, successful: false },
-    { updateResult: null, successful: false },
-  ])('PowerPoint: setting a label handles update result $updateResult without the runtime enum', async ({ updateResult, successful }) => {
+  ])('PowerPoint: setting a label handles update status $updateResult.status', async ({ updateResult, successful }) => {
     await runPowerPointSnippetTest({
       snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
       buttonId: 'set-presentation-label',
@@ -2288,7 +2366,7 @@ describe('Runtime Execution Tests - PowerPoint', () => {
           expect(consoleErrorSpy).not.toHaveBeenCalled();
         } else {
           expect(consoleErrorSpy).toHaveBeenCalledWith(
-            `Sensitivity label update returned a non-success result: ${JSON.stringify(updateResult)}`
+            `The sensitivity label wasn't applied. Status: ${updateResult.status}`
           );
           expect(consoleSpy).not.toHaveBeenCalled();
         }

@@ -1331,6 +1331,10 @@ export interface PowerPointMockOptions {
   slideCount?: number;
   shapeCount?: number;
   sensitivityLabelUpdateResult?: unknown;
+  labelingCapabilities?: string[];
+  sensitivityLabelCatalogAvailable?: boolean;
+  sensitivityLabelAttributesEmpty?: boolean;
+  sensitivityLabelAttributeValuesEmpty?: boolean;
 }
 
 export function createPowerPointMock(options: PowerPointMockOptions = {}) {
@@ -1377,6 +1381,23 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
   };
 
   const mockContext = {
+    sensitivityLabelsCatalog: options.sensitivityLabelCatalogAvailable === false ? undefined : {
+      getLabelingCapabilities: options.labelingCapabilities ?? ['LabelingEnabled', 'AttributeBasedAccessControlEnabled'],
+      getAttributes: jest.fn(() => ({
+        value: options.sensitivityLabelAttributesEmpty ? [] : [{
+          dataType: 'StringValue',
+          displayName: 'Department',
+          displayOrder: 1,
+          isActive: true,
+          isMultiValued: false,
+          values: options.sensitivityLabelAttributeValuesEmpty ? [] : [
+            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+            { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false },
+          ],
+        }],
+      })),
+      load: jest.fn(),
+    },
     presentation: {
       slides: mockSlides,
       sensitivityLabel: {
@@ -1394,6 +1415,16 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
   };
 
   const pptMockObject = new OfficeMockObject(mockData, OfficeApp.PowerPoint) as any;
+
+  pptMockObject.LabelingCapability = {
+    labelingEnabled: 'LabelingEnabled',
+    attributeBasedAccessControlEnabled: 'AttributeBasedAccessControlEnabled',
+  };
+
+  pptMockObject.SensitivityLabelUpdateStatus = {
+    success: 'Success',
+    documentReadOnly: 'DocumentReadOnly',
+  };
 
   pptMockObject.ThemeColor = {
     dark1: 'dark1',

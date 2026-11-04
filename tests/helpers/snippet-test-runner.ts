@@ -32,6 +32,7 @@ export interface RunSnippetTestOptions {
   mockOptions?: any;
   assertions?: (context: any) => void;
   skipButtonClick?: boolean;
+  elementValues?: Record<string, string>;
 }
 
 /**
@@ -159,7 +160,7 @@ export async function runPowerPointSnippetTest(options: RunSnippetTestOptions) {
   );
 
   (global as any).PowerPoint = mockObject;
-  (global as any).document = createMockDocument(buttonHandlers);
+  (global as any).document = createMockDocument(buttonHandlers, options.elementValues);
 
   // Execute snippet
   executeSnippetCode(snippet);

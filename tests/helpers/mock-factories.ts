@@ -1330,10 +1330,11 @@ export function createWordMock(options: WordMockOptions = {}) {
 export interface PowerPointMockOptions {
   slideCount?: number;
   shapeCount?: number;
+  sensitivityLabelUpdateResult?: unknown;
 }
 
 export function createPowerPointMock(options: PowerPointMockOptions = {}) {
-  const { slideCount = 1, shapeCount = 0 } = options;
+  const { slideCount = 1, shapeCount = 0, sensitivityLabelUpdateResult = { status: 'Success' } } = options;
 
   const mockShape = {
     id: 'shape-1',
@@ -1378,6 +1379,9 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
   const mockContext = {
     presentation: {
       slides: mockSlides,
+      sensitivityLabel: {
+        tryToUpdate: jest.fn(() => ({ value: sensitivityLabelUpdateResult })),
+      },
       load: jest.fn(),
     },
     sync: jest.fn().mockResolvedValue(undefined),

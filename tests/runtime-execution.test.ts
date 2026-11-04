@@ -2268,6 +2268,34 @@ describe('Runtime Execution Tests - PowerPoint', () => {
     jest.restoreAllMocks();
   });
 
+  test.each([
+    { updateResult: { status: 'Success' }, successful: true },
+    { updateResult: { status: 'DocumentReadOnly' }, successful: false },
+    { updateResult: 'Success', successful: false },
+    { updateResult: { unexpected: 'Success' }, successful: false },
+    { updateResult: null, successful: false },
+  ])('PowerPoint: setting a label handles update result $updateResult without the runtime enum', async ({ updateResult, successful }) => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'set-presentation-label',
+      elementValues: { 'label-id': 'sample-label' },
+      mockOptions: { sensitivityLabelUpdateResult: updateResult },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.presentation.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith('sample-label');
+        expect(mockContext.sync).toHaveBeenCalledTimes(1);
+        if (successful) {
+          expect(consoleSpy).toHaveBeenCalledWith('Applied the sensitivity label to the presentation.');
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        } else {
+          expect(consoleErrorSpy).toHaveBeenCalledWith(
+            `Sensitivity label update returned a non-success result: ${JSON.stringify(updateResult)}`
+          );
+          expect(consoleSpy).not.toHaveBeenCalled();
+        }
+      },
+    });
+  });
+
   test('PowerPoint: basic-api-call-ts executes without runtime errors', async () => {
     await runPowerPointSnippetTest({
       snippetPath: path.join('samples', 'powerpoint', 'basics', 'basic-api-call-ts.yaml'),

@@ -161,7 +161,7 @@ export async function runPowerPointSnippetTest(options: RunSnippetTestOptions) {
   );
 
   (global as any).PowerPoint = mockObject;
-  (global as any).document = createMockDocument(buttonHandlers);
+  (global as any).document = createMockDocument(buttonHandlers, options.elementValues);
 
   // Execute snippet
   executeSnippetCode(snippet);

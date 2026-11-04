@@ -129,20 +129,20 @@ export function createMockDocument(buttonHandlers: Map<string, Function>, elemen
     removeChild(element) {
       const index = this.children.indexOf(element);
       if (index === -1) {
-        throw new Error('The element is not a child of this node.');
+        throw new Error('Element is not a child of this node.');
       }
       return this.children.splice(index, 1)[0];
     },
     replaceChildren(...children) {
       this.children = children;
     },
-    querySelectorAll(selector) {
-      if (selector !== 'select') {
-        throw new Error(`Unsupported mock selector: ${selector}`);
+    querySelectorAll(tagName) {
+      if (!/^[a-z]+$/i.test(tagName)) {
+        throw new Error(`Unsupported mock selector: ${tagName}`);
       }
       return this.children.flatMap(child => [
-        ...(child.tagName === 'SELECT' ? [child] : []),
-        ...child.querySelectorAll(selector),
+        ...(child.tagName === tagName.toUpperCase() ? [child] : []),
+        ...child.querySelectorAll(tagName),
       ]);
     },
     addEventListener(event, callback) {

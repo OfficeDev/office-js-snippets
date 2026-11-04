@@ -110,14 +110,19 @@ export interface ExcelMockOptions {
   rangeText?: string;
   worksheetName?: string;
   labelingCapability?: string;
+  labelingCapabilities?: string[];
   sensitivityLabelCatalogAvailable?: boolean;
   sensitivityLabelsEmpty?: boolean;
   sensitivityLabelIsNullObject?: boolean;
   sensitivityLabelUpdateResult?: string;
   sensitivityLabelAttributesEmpty?: boolean;
   sensitivityLabelAttributeValuesEmpty?: boolean;
-  sensitivityLabelAttributesNull?: boolean;
-  sensitivityLabelAttributeValuesNull?: boolean;
+  sensitivityLabelAttributeDataType?: string;
+  sensitivityLabelAttributeActive?: boolean;
+  sensitivityLabelAttributeMultiValued?: boolean;
+  sensitivityLabelFinanceValueActive?: boolean;
+  sensitivityLabelAbacEnabled?: boolean;
+  sensitivityLabelProtectionType?: string;
   horizontalPageBreakCount?: number;
   linkedEntityDomainExists?: boolean;
 }
@@ -266,6 +271,10 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     onRefreshCompleted: { add: jest.fn() },
   };
 
+  const abacAttributeValues = options.sensitivityLabelAttributeValuesEmpty ? [] : [
+    { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+    { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: options.sensitivityLabelFinanceValueActive ?? false },
+  ];
   const currentLabel = {
     isNullObject: options.sensitivityLabelIsNullObject ?? false,
     name: 'General',
@@ -274,8 +283,11 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     siteId: 'sample-tenant',
     tooltip: 'General business data',
     isEnabled: true,
+    isAbacEnabled: options.sensitivityLabelAbacEnabled ?? false,
+    isAbacAttributesRequired: options.sensitivityLabelAbacEnabled ?? false,
+    abacAttributeValues,
     order: 0,
-    protectionType: 'NoProtection',
+    protectionType: options.sensitivityLabelProtectionType ?? 'NoProtection',
     children: null,
     load: jest.fn(),
   };
@@ -300,27 +312,24 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
   const mockContext = {
     sensitivityLabelsCatalog: options.sensitivityLabelCatalogAvailable === false ? undefined : {
       getAttributes: jest.fn(() => ({
-        value: options.sensitivityLabelAttributesNull ? null : options.sensitivityLabelAttributesEmpty ? [] : [{
-          dataType: 'StringValue',
+        value: options.sensitivityLabelAttributesEmpty ? [] : [{
+          dataType: options.sensitivityLabelAttributeDataType ?? 'StringValue',
           displayName: 'Department',
           displayOrder: 1,
-          isActive: true,
-          isMultiValued: false,
-          values: options.sensitivityLabelAttributeValuesNull ? null : options.sensitivityLabelAttributeValuesEmpty ? [] : [
-            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true, load: jest.fn() },
-            { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false, load: jest.fn() },
-          ],
-          load: jest.fn(),
+          isActive: options.sensitivityLabelAttributeActive ?? true,
+          isMultiValued: options.sensitivityLabelAttributeMultiValued ?? false,
+          values: abacAttributeValues,
         }],
       })),
       getLabelingCapability: options.labelingCapability ?? 'LabelingEnabled',
+      getLabelingCapabilities: options.labelingCapabilities ?? ['LabelingEnabled', 'AttributeBasedAccessControlEnabled'],
       getLabels: jest.fn(() => availableLabels),
       load: jest.fn(),
     },
     workbook: {
       sensitivityLabel: {
         getCurrentOrNullObject: jest.fn(() => currentLabel),
-        tryToUpdate: jest.fn(() => ({ value: options.sensitivityLabelUpdateResult ?? 'Success' })),
+        tryToUpdate: jest.fn(() => ({ value: { status: options.sensitivityLabelUpdateResult ?? 'Success' } })),
       },
       linkedEntityDataDomains: mockLinkedEntityDataDomains,
       getSelectedRange: jest.fn(() => mockRange),
@@ -354,9 +363,22 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
       labelingDisabled: 'LabelingDisabled',
       labelingPolicyNotFound: 'LabelingPolicyNotFound',
       labelingEnabled: 'LabelingEnabled',
+      attributeBasedAccessControlEnabled: 'AttributeBasedAccessControlEnabled',
     },
-    SensitivityLabelUpdateResult: {
+    SensitivityLabelUpdateStatus: {
       success: 'Success',
+    },
+    SensitivityLabelAbacAttributeDataType: {
+      unknown: 'Unknown',
+      stringValue: 'StringValue',
+      booleanValue: 'BooleanValue',
+      numberValue: 'NumberValue',
+      dateValue: 'DateValue',
+    },
+    SensitivityLabelProtectionType: {
+      noProtection: 'NoProtection',
+      adminDefined: 'AdminDefined',
+      userDefined: 'UserDefined',
     },
     RangeValueType: {
       error: 'Error',

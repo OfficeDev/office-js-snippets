@@ -77,31 +77,73 @@ export function createMockButton(handler: Function) {
  * Create a mock document with getElementById support
  */
 interface MockElement {
+  id: string;
+  tagName: string;
+  htmlFor: string;
+  name: string;
   value: string;
   textContent: string;
   label: string;
   disabled: boolean;
+  multiple: boolean;
+  selected: boolean;
+  readonly selectedOptions: MockElement[];
   options: MockElement[];
   children: MockElement[];
+  readonly firstChild: MockElement | null;
   add(element: MockElement): void;
   appendChild(element: MockElement): void;
+  removeChild(element: MockElement): MockElement;
+  replaceChildren(...elements: MockElement[]): void;
+  querySelectorAll(selector: string): MockElement[];
   addEventListener(event: string, callback: Function): void;
 }
 
 export function createMockDocument(buttonHandlers: Map<string, Function>, elementValues: Record<string, string> = {}) {
   const elements = new Map<string, MockElement>();
-  const createElement = (id = ''): MockElement => ({
+  const createElement = (id = '', tagName = ''): MockElement => ({
+    id,
+    tagName: tagName.toUpperCase(),
+    htmlFor: '',
+    name: '',
     value: elementValues[id] ?? '',
     textContent: '',
     label: '',
     disabled: false,
+    multiple: false,
+    selected: false,
+    get selectedOptions() {
+      return this.options.filter(option => option.selected);
+    },
     options: [],
     children: [],
+    get firstChild() {
+      return this.children[0] ?? null;
+    },
     add(element) {
       this.options.push(element);
     },
     appendChild(element) {
       this.children.push(element);
+    },
+    removeChild(element) {
+      const index = this.children.indexOf(element);
+      if (index === -1) {
+        throw new Error('The element is not a child of this node.');
+      }
+      return this.children.splice(index, 1)[0];
+    },
+    replaceChildren(...children) {
+      this.children = children;
+    },
+    querySelectorAll(selector) {
+      if (selector !== 'select') {
+        throw new Error(`Unsupported mock selector: ${selector}`);
+      }
+      return this.children.flatMap(child => [
+        ...(child.tagName === 'SELECT' ? [child] : []),
+        ...child.querySelectorAll(selector),
+      ]);
     },
     addEventListener(event, callback) {
       if (event === 'click') {
@@ -111,7 +153,7 @@ export function createMockDocument(buttonHandlers: Map<string, Function>, elemen
   });
 
   return {
-    createElement: (_tagName: string) => createElement(),
+    createElement: (tagName: string) => createElement('', tagName),
     getElementById: (id: string) => {
       if (!elements.has(id)) {
         elements.set(id, createElement(id));

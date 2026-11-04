@@ -2322,6 +2322,7 @@ describe('Runtime Execution Tests - PowerPoint', () => {
         expect(consoleSpy).toHaveBeenCalledWith('Available ABAC attributes:');
         expect(consoleSpy).toHaveBeenCalledWith('ABAC attribute: Department', {
           dataType: 'StringValue',
+          dataTypeDescription: 'String',
           displayOrder: 1,
           isActive: true,
           isMultiValued: false,
@@ -2344,6 +2345,68 @@ describe('Runtime Execution Tests - PowerPoint', () => {
         expect(mockContext.sensitivityLabelsCatalog.getAttributes).toHaveBeenCalledTimes(1);
         expect(mockContext.sync).toHaveBeenCalledTimes(2);
         expect(consoleSpy).toHaveBeenCalledWith('No ABAC attributes are available in the sensitivity label catalog.');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { dataType: 'BooleanValue', description: 'Boolean' },
+    { dataType: 'DateValue', description: 'Date' },
+    { dataType: 'NumberValue', description: 'Number' },
+    { dataType: 'StringValue', description: 'String' },
+    { dataType: 'Unknown', description: 'Unknown' },
+    { dataType: 'FutureValue', description: 'Unrecognized (FutureValue)' },
+  ])('PowerPoint: catalog attributes describe $dataType', async ({ dataType, description }) => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { sensitivityLabelAttributeDataType: dataType },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sensitivityLabelsCatalog.getAttributes).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledWith('ABAC attribute: Department', expect.objectContaining({
+          dataType,
+          dataTypeDescription: description,
+        }));
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { abacEnabled: true, emptyValues: false },
+    { abacEnabled: true, emptyValues: true },
+    { abacEnabled: false, emptyValues: false },
+  ])('PowerPoint: getting a label reads plain ABAC values (enabled: $abacEnabled, empty: $emptyValues)', async ({
+    abacEnabled, emptyValues,
+  }) => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-presentation-label',
+      mockOptions: {
+        sensitivityLabelAbacEnabled: abacEnabled,
+        sensitivityLabelAttributeValuesEmpty: emptyValues,
+      },
+      assertions: ({ mockContext }) => {
+        const getCurrentLabel = mockContext.presentation.sensitivityLabel.getCurrentOrNullObject;
+        expect(getCurrentLabel).toHaveBeenCalledTimes(1);
+        const currentLabel = getCurrentLabel.mock.results[0].value;
+        expect(currentLabel.load).toHaveBeenCalledWith(
+          'color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip'
+        );
+        if (abacEnabled) {
+          expect(currentLabel.load).toHaveBeenCalledWith('abacAttributeValues');
+        } else {
+          expect(currentLabel.load).not.toHaveBeenCalledWith('abacAttributeValues');
+        }
+        expect(mockContext.sync).toHaveBeenCalledTimes(abacEnabled ? 2 : 1);
+        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(
+          abacEnabled && !emptyValues
+            ? 'ABAC attribute values: Engineering (ID: engineering, order: 1, active: Yes), ' +
+              'Finance (ID: finance, order: 2, active: No)'
+            : 'ABAC attribute values: None'
+        ));
+        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Protection type: No protection'));
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });

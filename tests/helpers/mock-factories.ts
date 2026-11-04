@@ -1335,6 +1335,8 @@ export interface PowerPointMockOptions {
   sensitivityLabelCatalogAvailable?: boolean;
   sensitivityLabelAttributesEmpty?: boolean;
   sensitivityLabelAttributeValuesEmpty?: boolean;
+  sensitivityLabelAttributeDataType?: string;
+  sensitivityLabelAbacEnabled?: boolean;
 }
 
 export function createPowerPointMock(options: PowerPointMockOptions = {}) {
@@ -1385,7 +1387,7 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
       getLabelingCapabilities: options.labelingCapabilities ?? ['LabelingEnabled', 'AttributeBasedAccessControlEnabled'],
       getAttributes: jest.fn(() => ({
         value: options.sensitivityLabelAttributesEmpty ? [] : [{
-          dataType: 'StringValue',
+          dataType: options.sensitivityLabelAttributeDataType ?? 'StringValue',
           displayName: 'Department',
           displayOrder: 1,
           isActive: true,
@@ -1401,6 +1403,24 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
     presentation: {
       slides: mockSlides,
       sensitivityLabel: {
+        getCurrentOrNullObject: jest.fn(() => ({
+          isNullObject: false,
+          name: 'General',
+          id: 'general-label',
+          siteId: 'sample-tenant',
+          tooltip: 'General business data',
+          color: '#008000',
+          isEnabled: true,
+          order: 0,
+          protectionType: 'NoProtection',
+          isAbacEnabled: options.sensitivityLabelAbacEnabled ?? false,
+          isAbacAttributesRequired: false,
+          abacAttributeValues: options.sensitivityLabelAttributeValuesEmpty ? [] : [
+            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+            { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false },
+          ],
+          load: jest.fn(),
+        })),
         tryToUpdate: jest.fn(() => ({ value: sensitivityLabelUpdateResult })),
       },
       load: jest.fn(),
@@ -1424,6 +1444,20 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
   pptMockObject.SensitivityLabelUpdateStatus = {
     success: 'Success',
     documentReadOnly: 'DocumentReadOnly',
+  };
+
+  pptMockObject.SensitivityLabelProtectionType = {
+    noProtection: 'NoProtection',
+    adminDefined: 'AdminDefined',
+    userDefined: 'UserDefined',
+  };
+
+  pptMockObject.SensitivityLabelAbacAttributeDataType = {
+    booleanValue: 'BooleanValue',
+    dateValue: 'DateValue',
+    numberValue: 'NumberValue',
+    stringValue: 'StringValue',
+    unknown: 'Unknown',
   };
 
   pptMockObject.ThemeColor = {

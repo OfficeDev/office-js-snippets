@@ -96,7 +96,7 @@ script:
         }
 
         async function getCatalogAttributes() {
-          // Check that ABAC attributes are enabled and available before retrieving them.
+          // Get available ABAC attributes and describe the kind of value each attribute accepts.
           await PowerPoint.run(async (context) => {
             const labelCatalog: PowerPoint.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
             if (!labelCatalog) {
@@ -124,8 +124,31 @@ script:
 
             console.log("Available ABAC attributes:");
             catalogAttributes.value.forEach((attribute: PowerPoint.SensitivityLabelAbacAttribute) => {
+              let dataTypeDescription: string;
+              switch (attribute.dataType) {
+                case PowerPoint.SensitivityLabelAbacAttributeDataType.booleanValue:
+                  dataTypeDescription = "Boolean";
+                  break;
+                case PowerPoint.SensitivityLabelAbacAttributeDataType.dateValue:
+                  dataTypeDescription = "Date";
+                  break;
+                case PowerPoint.SensitivityLabelAbacAttributeDataType.numberValue:
+                  dataTypeDescription = "Number";
+                  break;
+                case PowerPoint.SensitivityLabelAbacAttributeDataType.stringValue:
+                  dataTypeDescription = "String";
+                  break;
+                case PowerPoint.SensitivityLabelAbacAttributeDataType.unknown:
+                  dataTypeDescription = "Unknown";
+                  break;
+                default:
+                  dataTypeDescription = `Unrecognized (${attribute.dataType})`;
+                  break;
+              }
+
               console.log(`ABAC attribute: ${attribute.displayName}`, {
                 dataType: attribute.dataType,
+                dataTypeDescription,
                 displayOrder: attribute.displayOrder,
                 isActive: attribute.isActive,
                 isMultiValued: attribute.isMultiValued,
@@ -183,19 +206,14 @@ script:
               return;
             }
 
-            // Load ABAC values when supported.
+            // Get ABAC values when enabled for the label.
             let abacAttributeValues: PowerPoint.SensitivityLabelAbacAttributeValue[] = [];
             if (currentLabel.isAbacEnabled) {
               currentLabel.load("abacAttributeValues");
               await context.sync();
 
               abacAttributeValues = currentLabel.abacAttributeValues;
-              // Load the properties of each ABAC attribute value returned by the label.
-              abacAttributeValues.forEach((attributeValue: PowerPoint.SensitivityLabelAbacAttributeValue) => {
-                attributeValue.load("displayName,displayOrder,id,isActive");
-              });
             }
-            await context.sync();
 
             // Display the loaded properties of the current label.
             const attributeValues = abacAttributeValues.length

@@ -77,31 +77,69 @@ export function createMockButton(handler: Function) {
  * Create a mock document with getElementById support
  */
 interface MockElement {
+  id: string;
+  tagName: string;
+  name: string;
+  htmlFor: string;
+  multiple: boolean;
+  selected: boolean;
   value: string;
   textContent: string;
   label: string;
   disabled: boolean;
   options: MockElement[];
   children: MockElement[];
+  readonly firstChild: MockElement | null;
+  readonly selectedOptions: MockElement[];
   add(element: MockElement): void;
   appendChild(element: MockElement): void;
+  removeChild(element: MockElement): MockElement;
+  querySelectorAll(tagName: string): MockElement[];
   addEventListener(event: string, callback: Function): void;
 }
 
 export function createMockDocument(buttonHandlers: Map<string, Function>, elementValues: Record<string, string> = {}) {
   const elements = new Map<string, MockElement>();
-  const createElement = (id = ''): MockElement => ({
+  const createElement = (id = '', tagName = ''): MockElement => ({
+    id,
+    tagName: tagName.toUpperCase(),
+    name: '',
+    htmlFor: '',
+    multiple: false,
+    selected: false,
     value: elementValues[id] ?? '',
     textContent: '',
     label: '',
     disabled: false,
     options: [],
     children: [],
+    get firstChild() {
+      return this.children[0] ?? null;
+    },
+    get selectedOptions() {
+      return this.options.filter(option => option.selected);
+    },
     add(element) {
       this.options.push(element);
     },
     appendChild(element) {
       this.children.push(element);
+    },
+    removeChild(element) {
+      const index = this.children.indexOf(element);
+      if (index === -1) {
+        throw new Error('Element is not a child of this node.');
+      }
+      return this.children.splice(index, 1)[0];
+    },
+    querySelectorAll(tagName) {
+      if (!/^[a-z]+$/i.test(tagName)) {
+        throw new Error(`Unsupported mock selector: ${tagName}`);
+      }
+      return this.children.flatMap(child => [
+        ...(child.tagName === tagName.toUpperCase() ? [child] : []),
+        ...child.querySelectorAll(tagName),
+      ]);
     },
     addEventListener(event, callback) {
       if (event === 'click') {
@@ -111,7 +149,7 @@ export function createMockDocument(buttonHandlers: Map<string, Function>, elemen
   });
 
   return {
-    createElement: (_tagName: string) => createElement(),
+    createElement: (tagName: string) => createElement('', tagName),
     getElementById: (id: string) => {
       if (!elements.has(id)) {
         elements.set(id, createElement(id));

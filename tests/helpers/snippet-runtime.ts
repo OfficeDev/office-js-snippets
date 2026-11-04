@@ -77,31 +77,71 @@ export function createMockButton(handler: Function) {
  * Create a mock document with getElementById support
  */
 interface MockElement {
+  tagName: string;
+  id: string;
+  name: string;
+  htmlFor: string;
+  multiple: boolean;
+  selected: boolean;
   value: string;
   textContent: string;
   label: string;
   disabled: boolean;
   options: MockElement[];
   children: MockElement[];
+  readonly firstChild: MockElement | null;
+  readonly selectedOptions: MockElement[];
   add(element: MockElement): void;
   appendChild(element: MockElement): void;
+  removeChild(element: MockElement): void;
+  querySelectorAll(selector: string): MockElement[];
   addEventListener(event: string, callback: Function): void;
 }
 
 export function createMockDocument(buttonHandlers: Map<string, Function>, elementValues: Record<string, string> = {}) {
   const elements = new Map<string, MockElement>();
-  const createElement = (id = ''): MockElement => ({
+  const createElement = (id = '', tagName = ''): MockElement => ({
+    tagName,
+    id,
+    name: '',
+    htmlFor: '',
+    multiple: false,
+    selected: false,
     value: elementValues[id] ?? '',
     textContent: '',
     label: '',
     disabled: false,
     options: [],
     children: [],
+    get firstChild() {
+      return this.children[0] ?? null;
+    },
+    get selectedOptions() {
+      const selected = this.options.filter(option => option.selected);
+      if (selected.length > 0 || this.multiple) {
+        return selected;
+      }
+      const option = this.options.find(option => option.value === this.value) ?? this.options[0];
+      return option ? [option] : [];
+    },
     add(element) {
       this.options.push(element);
     },
     appendChild(element) {
       this.children.push(element);
+    },
+    removeChild(element) {
+      const index = this.children.indexOf(element);
+      if (index === -1) {
+        throw new Error('The element is not a child of this node.');
+      }
+      this.children.splice(index, 1);
+    },
+    querySelectorAll(selector) {
+      return this.children.flatMap(child => [
+        ...(child.tagName === selector ? [child] : []),
+        ...child.querySelectorAll(selector),
+      ]);
     },
     addEventListener(event, callback) {
       if (event === 'click') {
@@ -111,7 +151,7 @@ export function createMockDocument(buttonHandlers: Map<string, Function>, elemen
   });
 
   return {
-    createElement: (_tagName: string) => createElement(),
+    createElement: (tagName: string) => createElement('', tagName),
     getElementById: (id: string) => {
       if (!elements.has(id)) {
         elements.set(id, createElement(id));

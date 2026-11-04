@@ -319,6 +319,15 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
 }
 
 // Word-specific mocks
+export interface MockSensitivityLabelAbacAttribute {
+  dataType: string;
+  displayName: string;
+  displayOrder: number;
+  isActive: boolean;
+  isMultiValued: boolean;
+  values: { displayName: string; displayOrder: number; id: string; isActive: boolean }[];
+}
+
 export interface WordMockOptions {
   selectionText?: string;
   paragraphText?: string;
@@ -327,6 +336,8 @@ export interface WordMockOptions {
   sensitivityLabelUpdateResult?: unknown;
   sensitivityLabelAbacEnabled?: boolean;
   sensitivityLabelIsNullObject?: boolean;
+  labelingCapabilities?: string[];
+  sensitivityLabelAttributes?: MockSensitivityLabelAbacAttribute[];
   bookmarkNames?: string[];
 }
 
@@ -335,7 +346,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     selectionText = 'Mock selected text',
     paragraphText = 'Mock paragraph',
     bodyText = 'Mock body text',
-    sensitivityLabelUpdateResult = 'Success',
+    sensitivityLabelUpdateResult = { status: 'Success' },
     bookmarkNames = ['RangeSampleSummary'],
   } = options;
 
@@ -1085,6 +1096,8 @@ export function createWordMock(options: WordMockOptions = {}) {
   const mockContext = {
     sensitivityLabelsCatalog: {
       getLabelingCapability: options.labelingCapability ?? 'LabelingEnabled',
+      getLabelingCapabilities: options.labelingCapabilities ?? [],
+      getAttributes: jest.fn(() => ({ value: options.sensitivityLabelAttributes ?? [] })),
       load: jest.fn(),
     },
     document: {
@@ -1099,7 +1112,7 @@ export function createWordMock(options: WordMockOptions = {}) {
           color: '#000000',
           isEnabled: true,
           order: 1,
-          protectionType: 'None',
+          protectionType: 'NoProtection',
           isAbacEnabled: options.sensitivityLabelAbacEnabled ?? false,
           isAbacAttributesRequired: false,
           abacAttributeValues: [
@@ -1170,8 +1183,22 @@ export function createWordMock(options: WordMockOptions = {}) {
     attributeBasedAccessControlEnabled: 'AttributeBasedAccessControlEnabled',
   };
 
-  wordMockObject.SensitivityLabelUpdateResult = {
+  wordMockObject.SensitivityLabelUpdateStatus = {
     success: 'Success',
+  };
+
+  wordMockObject.SensitivityLabelAbacAttributeDataType = {
+    unknown: 'Unknown',
+    stringValue: 'StringValue',
+    booleanValue: 'BooleanValue',
+    numberValue: 'NumberValue',
+    dateValue: 'DateValue',
+  };
+
+  wordMockObject.SensitivityLabelProtectionType = {
+    noProtection: 'NoProtection',
+    adminDefined: 'AdminDefined',
+    userDefined: 'UserDefined',
   };
 
   // Add enums that some snippets need

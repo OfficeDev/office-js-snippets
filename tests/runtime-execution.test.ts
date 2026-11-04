@@ -7,7 +7,7 @@ import {
 import * as path from 'path';
 import * as ts from 'typescript';
 import { runInNewContext } from 'vm';
-import { createWordMock } from './helpers/mock-factories';
+import { createWordMock, MockSensitivityLabelAbacAttribute, WordMockOptions } from './helpers/mock-factories';
 import { loadSnippetByPath } from './helpers/test-helpers';
 import { executeSnippetCode, createMockDocument, clickButton } from './helpers/snippet-runtime';
 
@@ -562,6 +562,177 @@ describe('Runtime Execution Tests - Word', () => {
     });
   });
 
+  describe('Word: sensitivity label attributes', () => {
+    let consoleWarnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    function createAttributes(): MockSensitivityLabelAbacAttribute[] {
+      return [{
+        dataType: 'StringValue',
+        displayName: 'Department',
+        displayOrder: 1,
+        isActive: true,
+        isMultiValued: true,
+        values: [
+          { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: true },
+          { displayName: 'Retired', displayOrder: 0, id: 'retired', isActive: false },
+          { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+        ],
+      }];
+    }
+
+    function createFixture(options: WordMockOptions = {}) {
+      const attributes = createAttributes();
+      const { mockObject, mockContext } = createWordMock({
+        labelingCapabilities: ['LabelingEnabled', 'AttributeBasedAccessControlEnabled'],
+        sensitivityLabelAttributes: attributes,
+        ...options,
+      });
+      const handlers = new Map<string, Function>();
+      const document = createMockDocument(handlers, { 'label-id': 'sample-label' });
+      Object.assign(global, { Word: mockObject, document });
+      executeSnippetCode(loadSnippetByPath(
+        path.join('samples', 'word', '99-preview-apis', 'manage-sensitivity-labels.yaml')
+      ));
+      return { attributes, mockContext, document, handlers };
+    }
+
+    test.each([
+      ['BooleanValue', 'Boolean'],
+      ['DateValue', 'Date'],
+      ['NumberValue', 'Number'],
+      ['StringValue', 'String'],
+      ['Unknown', 'Unknown'],
+      ['FutureValue', 'Unrecognized (FutureValue)'],
+    ])('catalog describes %s attributes and preserves structured values', async (dataType, description) => {
+      const attributes = createAttributes();
+      attributes[0].dataType = dataType;
+      const { mockContext, handlers } = createFixture({ sensitivityLabelAttributes: attributes });
+      await clickButton(handlers, 'get-catalog-attributes');
+      expect(mockContext.sensitivityLabelsCatalog.load).toHaveBeenCalledWith('getLabelingCapabilities');
+      expect(mockContext.sensitivityLabelsCatalog.getAttributes).toHaveBeenCalledTimes(1);
+      expect(mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleSpy).toHaveBeenCalledWith('ABAC attribute: Department', {
+        dataType,
+        dataTypeDescription: description,
+        displayOrder: 1,
+        isActive: true,
+        isMultiValued: true,
+        values: attributes[0].values,
+      });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('catalog filters, orders, and replaces attribute controls on repeated retrieval', async () => {
+      const attributes = createAttributes();
+      attributes.push(
+        { ...attributes[0], displayName: 'Inactive', isActive: false },
+        { ...attributes[0], displayName: 'Location', displayOrder: 0, isMultiValued: false }
+      );
+      const { document, handlers } = createFixture({ sensitivityLabelAttributes: attributes });
+      await clickButton(handlers, 'get-catalog-attributes');
+      await clickButton(handlers, 'get-catalog-attributes');
+      const controls = document.getElementById('abac-attributes').querySelectorAll('select');
+      expect(controls.map(control => control.name)).toEqual(['Location', 'Department']);
+      expect(controls.map(control => control.multiple)).toEqual([false, true]);
+      expect(controls[0].options.map(option => option.value)).toEqual(['', 'engineering', 'finance']);
+      expect(controls[1].options.map(option => option.value)).toEqual(['engineering', 'finance']);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('catalog clears stale controls when ABAC is no longer enabled', async () => {
+      const { document, handlers, mockContext } = createFixture();
+      await clickButton(handlers, 'get-catalog-attributes');
+      mockContext.sensitivityLabelsCatalog.getLabelingCapabilities = ['LabelingEnabled'];
+      await clickButton(handlers, 'get-catalog-attributes');
+      expect(document.getElementById('abac-attributes').children).toHaveLength(0);
+      expect(mockContext.sensitivityLabelsCatalog.getAttributes).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy).toHaveBeenCalledWith("ABAC attributes aren't enabled or available for the current user.");
+    });
+
+    test('catalog reports an empty attribute list', async () => {
+      const { handlers } = createFixture({ sensitivityLabelAttributes: [] });
+      await clickButton(handlers, 'get-catalog-attributes');
+      expect(consoleSpy).toHaveBeenCalledWith('No ABAC attributes are available in the sensitivity label catalog.');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('catalog surfaces API errors without leaving stale attribute controls', async () => {
+      const { document, handlers, mockContext } = createFixture();
+      await clickButton(handlers, 'get-catalog-attributes');
+      const error = new Error('The sensitivity label catalog could not be retrieved.');
+      mockContext.sensitivityLabelsCatalog.getAttributes.mockImplementationOnce(() => { throw error; });
+      await clickButton(handlers, 'get-catalog-attributes');
+      expect(document.getElementById('abac-attributes').children).toHaveLength(0);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+    });
+
+    test.each([false, true])('applies selected attribute values (multiple: %s)', async (multiple) => {
+      const { document, handlers, mockContext, attributes } = createFixture();
+      await clickButton(handlers, 'get-catalog-attributes');
+      const [control] = document.getElementById('abac-attributes').querySelectorAll('select');
+      control.options[0].selected = true;
+      control.options[1].selected = multiple;
+      await clickButton(handlers, 'set-document-label-with-attributes');
+      expect(mockContext.sensitivityLabelsCatalog.getAttributes).toHaveBeenCalledTimes(2);
+      expect(mockContext.document.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith('sample-label', {
+        abacAttributes: [{
+          ...attributes[0],
+          values: attributes[0].values.filter(value => value.id === 'engineering' || (multiple && value.id === 'finance')),
+        }],
+      });
+      expect(consoleSpy).toHaveBeenCalledWith('Applied the sensitivity label and ABAC attributes to the document.');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['missing attribute', 'inactive attribute', 'inactive value', 'missing value', 'single-valued'])(
+      'rejects stale selections: %s', async (policyChange) => {
+        const { document, handlers, mockContext, attributes } = createFixture();
+        await clickButton(handlers, 'get-catalog-attributes');
+        const [control] = document.getElementById('abac-attributes').querySelectorAll('select');
+        control.options.forEach(option => { option.selected = true; });
+        if (policyChange === 'missing attribute') attributes.length = 0;
+        if (policyChange === 'inactive attribute') attributes[0].isActive = false;
+        if (policyChange === 'inactive value') attributes[0].values[0].isActive = false;
+        if (policyChange === 'missing value') attributes[0].values.pop();
+        if (policyChange === 'single-valued') attributes[0].isMultiValued = false;
+        await clickButton(handlers, 'set-document-label-with-attributes');
+        expect(mockContext.document.sensitivityLabel.tryToUpdate).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          'The attribute selections are no longer valid. Get catalog attributes and select values again.'
+        );
+      }
+    );
+
+    test.each(['missing label', 'missing controls', 'no selections', 'ABAC disabled'])(
+      'does not apply attributes with %s', async (scenario) => {
+        const { document, handlers, mockContext } = createFixture();
+        if (scenario !== 'missing controls') await clickButton(handlers, 'get-catalog-attributes');
+        if (scenario === 'missing label') document.getElementById('label-id').value = '';
+        if (scenario === 'ABAC disabled') mockContext.sensitivityLabelsCatalog.getLabelingCapabilities = [];
+        await clickButton(handlers, 'set-document-label-with-attributes');
+        expect(mockContext.document.sensitivityLabel.tryToUpdate).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    test('reports an unsuccessful label update', async () => {
+      const { document, handlers } = createFixture({
+        sensitivityLabelUpdateResult: { status: 'AbacAttributesNotAllowed' },
+      });
+      await clickButton(handlers, 'get-catalog-attributes');
+      document.getElementById('abac-attributes').querySelectorAll('select')[0].options[0].selected = true;
+      await clickButton(handlers, 'set-document-label-with-attributes');
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "The sensitivity label wasn't applied. Status: AbacAttributesNotAllowed"
+      );
+    });
+  });
+
   test.each([
     { updateResult: 'Success', successful: false },
     {
@@ -588,9 +759,15 @@ describe('Runtime Execution Tests - Word', () => {
           expect(consoleSpy).toHaveBeenCalledWith('Applied the sensitivity label to the document.');
           expect(consoleErrorSpy).not.toHaveBeenCalled();
         } else {
-          expect(consoleErrorSpy).toHaveBeenCalledWith(
-            `Sensitivity label update returned a non-success result: ${JSON.stringify(updateResult)}`
-          );
+          if (updateResult === null) {
+            expect(consoleErrorSpy).toHaveBeenCalledWith(expect.any(TypeError));
+          } else {
+            const status = typeof updateResult === 'object' && 'status' in updateResult
+              ? updateResult.status : undefined;
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+              `The sensitivity label wasn't applied. Status: ${status}`
+            );
+          }
           expect(consoleSpy).not.toHaveBeenCalled();
         }
       },

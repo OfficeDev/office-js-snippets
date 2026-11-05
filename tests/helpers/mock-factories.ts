@@ -1334,10 +1334,17 @@ export function createWordMock(options: WordMockOptions = {}) {
 export interface PowerPointMockOptions {
   slideCount?: number;
   shapeCount?: number;
+  sensitivityLabelUpdateResult?: unknown;
+  labelingCapabilities?: string[];
+  sensitivityLabelCatalogAvailable?: boolean;
+  sensitivityLabelAttributesEmpty?: boolean;
+  sensitivityLabelAttributeValuesEmpty?: boolean;
+  sensitivityLabelAttributeDataType?: string;
+  sensitivityLabelAbacEnabled?: boolean;
 }
 
 export function createPowerPointMock(options: PowerPointMockOptions = {}) {
-  const { slideCount = 1, shapeCount = 0 } = options;
+  const { slideCount = 1, shapeCount = 0, sensitivityLabelUpdateResult = { status: 'Success' } } = options;
 
   const mockShape = {
     id: 'shape-1',
@@ -1380,8 +1387,46 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
   };
 
   const mockContext = {
+    sensitivityLabelsCatalog: options.sensitivityLabelCatalogAvailable === false ? undefined : {
+      getLabelingCapabilities: options.labelingCapabilities ?? ['LabelingEnabled', 'AttributeBasedAccessControlEnabled'],
+      getAttributes: jest.fn(() => ({
+        value: options.sensitivityLabelAttributesEmpty ? [] : [{
+          dataType: options.sensitivityLabelAttributeDataType ?? 'StringValue',
+          displayName: 'Department',
+          displayOrder: 1,
+          isActive: true,
+          isMultiValued: false,
+          values: options.sensitivityLabelAttributeValuesEmpty ? [] : [
+            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+            { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false },
+          ],
+        }],
+      })),
+      load: jest.fn(),
+    },
     presentation: {
       slides: mockSlides,
+      sensitivityLabel: {
+        getCurrentOrNullObject: jest.fn(() => ({
+          isNullObject: false,
+          name: 'General',
+          id: 'general-label',
+          siteId: 'sample-tenant',
+          tooltip: 'General business data',
+          color: '#008000',
+          isEnabled: true,
+          order: 0,
+          protectionType: 'NoProtection',
+          isAbacEnabled: options.sensitivityLabelAbacEnabled ?? false,
+          isAbacAttributesRequired: false,
+          abacAttributeValues: options.sensitivityLabelAttributeValuesEmpty ? [] : [
+            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+            { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false },
+          ],
+          load: jest.fn(),
+        })),
+        tryToUpdate: jest.fn(() => ({ value: sensitivityLabelUpdateResult })),
+      },
       load: jest.fn(),
     },
     sync: jest.fn().mockResolvedValue(undefined),
@@ -1394,6 +1439,30 @@ export function createPowerPointMock(options: PowerPointMockOptions = {}) {
   };
 
   const pptMockObject = new OfficeMockObject(mockData, OfficeApp.PowerPoint) as any;
+
+  pptMockObject.LabelingCapability = {
+    labelingEnabled: 'LabelingEnabled',
+    attributeBasedAccessControlEnabled: 'AttributeBasedAccessControlEnabled',
+  };
+
+  pptMockObject.SensitivityLabelUpdateStatus = {
+    success: 'Success',
+    documentReadOnly: 'DocumentReadOnly',
+  };
+
+  pptMockObject.SensitivityLabelProtectionType = {
+    noProtection: 'NoProtection',
+    adminDefined: 'AdminDefined',
+    userDefined: 'UserDefined',
+  };
+
+  pptMockObject.SensitivityLabelAbacAttributeDataType = {
+    booleanValue: 'BooleanValue',
+    dateValue: 'DateValue',
+    numberValue: 'NumberValue',
+    stringValue: 'StringValue',
+    unknown: 'Unknown',
+  };
 
   pptMockObject.ThemeColor = {
     dark1: 'dark1',

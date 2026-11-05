@@ -79,22 +79,23 @@ export function createMockButton(handler: Function) {
 interface MockElement {
   id: string;
   tagName: string;
-  name: string;
   htmlFor: string;
-  multiple: boolean;
-  selected: boolean;
+  name: string;
   value: string;
   textContent: string;
   label: string;
   disabled: boolean;
+  multiple: boolean;
+  selected: boolean;
+  readonly selectedOptions: MockElement[];
   options: MockElement[];
   children: MockElement[];
   readonly firstChild: MockElement | null;
-  readonly selectedOptions: MockElement[];
   add(element: MockElement): void;
   appendChild(element: MockElement): void;
   removeChild(element: MockElement): MockElement;
-  querySelectorAll(tagName: string): MockElement[];
+  replaceChildren(...elements: MockElement[]): void;
+  querySelectorAll(selector: string): MockElement[];
   addEventListener(event: string, callback: Function): void;
 }
 
@@ -103,21 +104,21 @@ export function createMockDocument(buttonHandlers: Map<string, Function>, elemen
   const createElement = (id = '', tagName = ''): MockElement => ({
     id,
     tagName: tagName.toUpperCase(),
-    name: '',
     htmlFor: '',
-    multiple: false,
-    selected: false,
+    name: '',
     value: elementValues[id] ?? '',
     textContent: '',
     label: '',
     disabled: false,
+    multiple: false,
+    selected: false,
+    get selectedOptions() {
+      return this.options.filter(option => option.selected);
+    },
     options: [],
     children: [],
     get firstChild() {
       return this.children[0] ?? null;
-    },
-    get selectedOptions() {
-      return this.options.filter(option => option.selected);
     },
     add(element) {
       this.options.push(element);
@@ -131,6 +132,9 @@ export function createMockDocument(buttonHandlers: Map<string, Function>, elemen
         throw new Error('Element is not a child of this node.');
       }
       return this.children.splice(index, 1)[0];
+    },
+    replaceChildren(...children) {
+      this.children = children;
     },
     querySelectorAll(tagName) {
       if (!/^[a-z]+$/i.test(tagName)) {

@@ -7,7 +7,13 @@ import {
 import * as path from 'path';
 import * as ts from 'typescript';
 import { runInNewContext } from 'vm';
-import { createWordMock, MockSensitivityLabelAbacAttribute, WordMockOptions } from './helpers/mock-factories';
+import {
+  createWordMock,
+  MockSensitivityLabelAbacAttribute,
+  WordMockOptions,
+  createPowerPointMock,
+  PowerPointMockOptions,
+} from './helpers/mock-factories';
 import { loadSnippetByPath } from './helpers/test-helpers';
 import { executeSnippetCode, createMockDocument, clickButton } from './helpers/snippet-runtime';
 
@@ -46,6 +52,461 @@ describe('Runtime Execution Tests - Excel', () => {
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
     });
+  });
+
+  const sensitivitySnippetPath = path.join('samples', 'excel', '98-preview-apis', 'manage-sensitivity-labels.yaml');
+
+  test.each([
+    ['LabelingEnabled', 'Sensitivity labeling is enabled.'],
+    ['LabelingDisabled', 'Sensitivity labeling is disabled.'],
+    ['LabelingPolicyNotFound', 'No sensitivity labeling policy was found.'],
+    ['NoLicense', "The current user doesn't have a valid sensitivity labeling license."],
+    ['AttributeBasedAccessControlEnabled', 'Unknown labeling capability: AttributeBasedAccessControlEnabled'],
+  ])('Excel: catalog status %s displays the expected message', async (labelingCapability, expectedMessage) => {
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-status',
+      mockOptions: { labelingCapability },
+    });
+    expect(mockContext.sensitivityLabelsCatalog?.load).toHaveBeenCalledWith('getLabelingCapability');
+    expect(mockContext.sync).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith(expectedMessage);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each(['get-catalog-status', 'get-available-labels', 'get-catalog-attributes'])(
+    'Excel: %s reports an unavailable catalog',
+    async (buttonId) => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { mockContext } = await runExcelSnippetTest({
+        snippetPath: sensitivitySnippetPath,
+        buttonId,
+        mockOptions: { sensitivityLabelCatalogAvailable: false },
+      });
+      expect(warnSpy).toHaveBeenCalledWith(
+        "The sensitivity label catalog isn't available in this version of Excel."
+      );
+      expect(mockContext.sync).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    }
+  );
+
+  test.each(['populated', 'empty'])('Excel: catalog attributes handle %s values', async (valueState) => {
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-attributes',
+      mockOptions: {
+        sensitivityLabelAttributeValuesEmpty: valueState === 'empty',
+      },
+    });
+    const getAttributes = mockContext.sensitivityLabelsCatalog!.getAttributes;
+    expect(getAttributes).toHaveBeenCalledTimes(1);
+    expect(mockContext.sensitivityLabelsCatalog?.load).toHaveBeenCalledWith('getLabelingCapabilities');
+    expect(mockContext.sync).toHaveBeenCalledTimes(2);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'ABAC attribute: Department',
+      {
+        dataType: 'StringValue',
+        dataTypeDescription: 'String',
+        displayOrder: 1,
+        isActive: true,
+        isMultiValued: false,
+        values: valueState === 'populated' ? [
+          { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+          { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false },
+        ] : [],
+      }
+    );
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Excel: an empty attribute catalog reports no attributes', async () => {
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-attributes',
+      mockOptions: {
+        sensitivityLabelAttributesEmpty: true,
+      },
+    });
+    expect(mockContext.sensitivityLabelsCatalog?.getAttributes).toHaveBeenCalledTimes(1);
+    expect(mockContext.sync).toHaveBeenCalledTimes(2);
+    expect(consoleSpy).toHaveBeenCalledWith('No ABAC attributes are available in the sensitivity label catalog.');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    { labelingCapabilities: [] },
+    { labelingCapabilities: ['LabelingEnabled'] },
+  ])('Excel: catalog attributes require ABAC capability (%j)', async ({ labelingCapabilities }) => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { labelingCapabilities },
+    });
+    expect(mockContext.sensitivityLabelsCatalog?.getAttributes).not.toHaveBeenCalled();
+    expect(mockContext.sync).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledWith("ABAC attributes aren't enabled or available for the current user.");
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['BooleanValue', 'Boolean'],
+    ['DateValue', 'Date'],
+    ['NumberValue', 'Number'],
+    ['StringValue', 'String'],
+    ['Unknown', 'Unknown'],
+    ['FutureType', 'Unrecognized (FutureType)'],
+  ])('Excel: catalog attribute data type %s is described', async (dataType, dataTypeDescription) => {
+    await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { sensitivityLabelAttributeDataType: dataType },
+    });
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'ABAC attribute: Department',
+      expect.objectContaining({ dataType, dataTypeDescription })
+    );
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Excel: available labels populate enabled options and grouped sublabels without duplicates', async () => {
+    const { mockContext, mockDocument, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-available-labels',
+    });
+    await clickButton(buttonHandlers, 'get-available-labels');
+    expect(mockContext.sensitivityLabelsCatalog?.getLabels).toHaveBeenCalledTimes(2);
+    expect(mockContext.sensitivityLabelsCatalog?.getLabels.mock.results[0].value.load).toHaveBeenCalledWith(
+      'items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled,' +
+      'items/name,items/order,items/protectionType,items/siteId,items/tooltip,' +
+      'items/children/items/id,items/children/items/name,items/children/items/isEnabled'
+    );
+    const options = mockDocument.getElementById('label-id').options;
+    expect(options).toHaveLength(4);
+    expect(options[0].value).toBe('');
+    expect(options[1]).toMatchObject({ value: 'general-label', disabled: false });
+    expect(options[2]).toMatchObject({ value: 'disabled-label', disabled: true });
+    expect(options[3].label).toBe('Confidential');
+    expect(options[3].children).toEqual([
+      expect.objectContaining({ value: 'engineering-label', disabled: false }),
+      expect.objectContaining({ value: 'retired-label', disabled: true }),
+    ]);
+    expect(options.some(option => option.value === 'parent-label')).toBe(false);
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Engineering (engineering-label)'));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('ABAC enabled: No\n  ABAC attributes required: No'));
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Excel: an empty label catalog leaves only the placeholder', async () => {
+    const { mockDocument } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-available-labels',
+      mockOptions: { sensitivityLabelsEmpty: true },
+    });
+    expect(mockDocument.getElementById('label-id').options).toHaveLength(1);
+    expect(consoleSpy).toHaveBeenCalledWith('No sensitivity labels are available for the current user.');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([false, true])('Excel: getting a workbook label handles null label: %s', async (isNullObject) => {
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-workbook-label',
+      mockOptions: { sensitivityLabelIsNullObject: isNullObject },
+    });
+    const getCurrentLabel = mockContext.workbook.sensitivityLabel.getCurrentOrNullObject;
+    expect(getCurrentLabel).toHaveBeenCalledTimes(1);
+    expect(getCurrentLabel.mock.results[0].value.load).toHaveBeenCalledWith(
+      'color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip'
+    );
+    expect(mockContext.sync).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith(isNullObject
+      ? "The workbook doesn't have a sensitivity label."
+      : expect.stringContaining('Current workbook sensitivity label:\n\nGeneral\n  ID: general-label'));
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    { enabled: false, empty: false },
+    { enabled: true, empty: false },
+    { enabled: true, empty: true },
+  ])('Excel: workbook label displays ABAC values (%j)', async ({ enabled, empty }) => {
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-workbook-label',
+      mockOptions: {
+        sensitivityLabelAbacEnabled: enabled,
+        sensitivityLabelAttributeValuesEmpty: empty,
+      },
+    });
+    const currentLabel = mockContext.workbook.sensitivityLabel.getCurrentOrNullObject.mock.results[0].value;
+    expect(currentLabel.load).toHaveBeenCalledTimes(enabled ? 2 : 1);
+    if (enabled) {
+      expect(currentLabel.load).toHaveBeenLastCalledWith('abacAttributeValues');
+    }
+    expect(mockContext.sync).toHaveBeenCalledTimes(enabled ? 2 : 1);
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(
+      `ABAC enabled: ${enabled ? 'Yes' : 'No'}\n  ABAC attributes required: ${enabled ? 'Yes' : 'No'}`
+    ));
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(
+      `ABAC attribute values: ${enabled && !empty
+        ? 'Engineering (ID: engineering, order: 1, active: Yes), Finance (ID: finance, order: 2, active: No)'
+        : 'None'}`
+    ));
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['AdminDefined', 'Defined by an administrator'],
+    ['UserDefined', 'Defined by the user'],
+    ['NoProtection', 'No protection'],
+    ['FutureProtection', 'Unknown (FutureProtection)'],
+  ])('Excel: workbook label protection %s is described', async (protectionType, description) => {
+    await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-workbook-label',
+      mockOptions: { sensitivityLabelProtectionType: protectionType },
+    });
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(`Protection type: ${description}`));
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each(['Success', 'DocumentReadOnly', 'LabelNotFound', 'AbacAttributesRequired'])(
+    'Excel: setting a workbook label handles result %s',
+    async (updateResult) => {
+      const { mockContext } = await runExcelSnippetTest({
+        snippetPath: sensitivitySnippetPath,
+        buttonId: 'set-workbook-label',
+        elementValues: { 'label-id': 'engineering-label' },
+        mockOptions: { sensitivityLabelUpdateResult: updateResult },
+      });
+      expect(mockContext.workbook.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith('engineering-label');
+      expect(mockContext.sync).toHaveBeenCalledTimes(1);
+      if (updateResult === 'Success') {
+        expect(consoleSpy).toHaveBeenCalledWith('Applied the sensitivity label to the workbook.');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      } else {
+        expect(consoleErrorSpy).toHaveBeenCalledWith(`The sensitivity label wasn't applied. Status: ${updateResult}`);
+        expect(consoleSpy).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  test('Excel: setting a label without a selection warns without updating the workbook', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { mockContext } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'set-workbook-label',
+    });
+    expect(warnSpy).toHaveBeenCalledWith('Get available labels and select a label first.');
+    expect(mockContext.workbook.sensitivityLabel.tryToUpdate).not.toHaveBeenCalled();
+    expect(mockContext.sync).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([false, true])('Excel: catalog attributes render repeatable selection controls (multiple: %s)', async (multiple) => {
+    const { mockDocument, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { sensitivityLabelAttributeMultiValued: multiple },
+    });
+    await clickButton(buttonHandlers, 'get-catalog-attributes');
+    const container = mockDocument.getElementById('abac-attributes');
+    const controls = container.querySelectorAll('select');
+    expect(controls).toHaveLength(1);
+    expect(controls[0]).toMatchObject({ name: 'Department', multiple });
+    expect(controls[0].options.map(option => option.value)).toEqual(multiple ? ['engineering'] : ['', 'engineering']);
+    expect(container.children[0].children[0]).toMatchObject({
+      htmlFor: controls[0].id,
+      textContent: `Department (${multiple ? 'select one or more' : 'select one'})`,
+    });
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Excel: inactive catalog attributes do not render selection controls', async () => {
+    const { mockDocument } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { sensitivityLabelAttributeActive: false },
+    });
+    expect(mockDocument.getElementById('abac-attributes').querySelectorAll('select')).toHaveLength(0);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([false, true])('Excel: applying ABAC values passes only selected active values (multiple: %s)', async (multiple) => {
+    const { mockContext, mockDocument, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-attributes',
+      elementValues: { 'label-id': 'engineering-label' },
+      mockOptions: {
+        sensitivityLabelAttributeMultiValued: multiple,
+        sensitivityLabelFinanceValueActive: multiple,
+      },
+    });
+    const select = mockDocument.getElementById('abac-attributes').querySelectorAll('select')[0];
+    select.options.forEach(option => { option.selected = option.value !== ''; });
+    await clickButton(buttonHandlers, 'set-workbook-label-with-attributes');
+    expect(mockContext.workbook.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith(
+      'engineering-label',
+      {
+        abacAttributes: [{
+          dataType: 'StringValue',
+          displayName: 'Department',
+          displayOrder: 1,
+          isActive: true,
+          isMultiValued: multiple,
+          values: [
+            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+            ...(multiple ? [{ displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: true }] : []),
+          ],
+        }],
+      }
+    );
+    expect(mockContext.sensitivityLabelsCatalog?.getAttributes).toHaveBeenCalledTimes(2);
+    expect(mockContext.sync).toHaveBeenCalledTimes(5);
+    expect(consoleSpy).toHaveBeenCalledWith('Applied the sensitivity label and ABAC attributes to the workbook.');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Excel: applying ABAC values supports multiple attributes and omits unselected attributes', async () => {
+    const { mockContext, mockDocument, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      skipButtonClick: true,
+      elementValues: { 'label-id': 'engineering-label' },
+    });
+    const catalog = mockContext.sensitivityLabelsCatalog!;
+    const attribute = catalog.getAttributes().value[0];
+    const attributes = [
+      attribute,
+      { ...attribute, displayName: 'Region', displayOrder: 2 },
+      { ...attribute, displayName: 'Project', displayOrder: 3 },
+    ];
+    catalog.getAttributes.mockReturnValue({ value: attributes });
+    await clickButton(buttonHandlers, 'get-catalog-attributes');
+    const selects = mockDocument.getElementById('abac-attributes').querySelectorAll('select');
+    expect(selects.map(select => select.name)).toEqual(['Department', 'Region', 'Project']);
+    selects.slice(0, 2).forEach(select => {
+      select.options.find(option => option.value === 'engineering')!.selected = true;
+    });
+    await clickButton(buttonHandlers, 'set-workbook-label-with-attributes');
+    expect(mockContext.workbook.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith(
+      'engineering-label',
+      { abacAttributes: attributes.slice(0, 2).map(attribute => ({
+        ...attribute,
+        values: [attribute.values[0]],
+      })) }
+    );
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['no label', '', true, 'Get available labels and select a label first.'],
+    ['no controls', 'engineering-label', false, 'Get catalog attributes and select attribute values first.'],
+    ['no values', 'engineering-label', true, 'Select at least one ABAC attribute value first.'],
+  ])('Excel: applying ABAC values with %s warns without updating', async (_case, labelId, loadAttributes, message) => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { mockContext, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      skipButtonClick: true,
+      elementValues: { 'label-id': labelId },
+    });
+    if (loadAttributes) {
+      await clickButton(buttonHandlers, 'get-catalog-attributes');
+    }
+    await clickButton(buttonHandlers, 'set-workbook-label-with-attributes');
+    expect(warnSpy).toHaveBeenCalledWith(message);
+    expect(mockContext.workbook.sensitivityLabel.tryToUpdate).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each(['missing attribute', 'inactive attribute', 'inactive value', 'removed value', 'single-valued attribute'])(
+    'Excel: applying ABAC values rejects stale policy selections (%s)',
+    async (change) => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { mockContext, mockDocument, buttonHandlers } = await runExcelSnippetTest({
+        snippetPath: sensitivitySnippetPath,
+        buttonId: 'get-catalog-attributes',
+        elementValues: { 'label-id': 'engineering-label' },
+        mockOptions: {
+          sensitivityLabelAttributeMultiValued: true,
+          sensitivityLabelFinanceValueActive: true,
+        },
+      });
+      const select = mockDocument.getElementById('abac-attributes').querySelectorAll('select')[0];
+      select.options.forEach(option => { option.selected = true; });
+      const catalog = mockContext.sensitivityLabelsCatalog!;
+      const attributes = catalog.getAttributes.mock.results[0].value.value;
+      if (change === 'missing attribute') {
+        attributes.length = 0;
+      } else if (change === 'inactive attribute') {
+        attributes[0].isActive = false;
+      } else if (change === 'inactive value') {
+        attributes[0].values[0].isActive = false;
+      } else if (change === 'removed value') {
+        attributes[0].values.pop();
+      } else {
+        attributes[0].isMultiValued = false;
+      }
+      catalog.getAttributes.mockReturnValue({ value: attributes });
+      await clickButton(buttonHandlers, 'set-workbook-label-with-attributes');
+      expect(warnSpy).toHaveBeenCalledWith(
+        'The attribute selections are no longer valid. Get catalog attributes and select values again.'
+      );
+      expect(mockContext.workbook.sensitivityLabel.tryToUpdate).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    }
+  );
+
+  test.each(['catalog', 'ABAC capability'])('Excel: applying ABAC values reports unavailable %s', async (unavailable) => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { mockContext, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-attributes',
+      elementValues: { 'label-id': 'engineering-label' },
+    });
+    if (unavailable === 'catalog') {
+      mockContext.sensitivityLabelsCatalog = undefined;
+    } else {
+      mockContext.sensitivityLabelsCatalog!.getLabelingCapabilities = ['LabelingEnabled'];
+    }
+    await clickButton(buttonHandlers, 'set-workbook-label-with-attributes');
+    expect(warnSpy).toHaveBeenCalledWith(unavailable === 'catalog'
+      ? "The sensitivity label catalog isn't available in this version of Excel."
+      : "ABAC attributes aren't enabled or available for the current user.");
+    expect(mockContext.workbook.sensitivityLabel.tryToUpdate).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each(['AbacAttributesNotAllowed', 'AbacAttributesRequired', 'DocumentReadOnly'])(
+    'Excel: applying ABAC values reports update status %s',
+    async (status) => {
+      const { mockContext, mockDocument, buttonHandlers } = await runExcelSnippetTest({
+        snippetPath: sensitivitySnippetPath,
+        buttonId: 'get-catalog-attributes',
+        elementValues: { 'label-id': 'engineering-label' },
+        mockOptions: { sensitivityLabelUpdateResult: status },
+      });
+      const select = mockDocument.getElementById('abac-attributes').querySelectorAll('select')[0];
+      select.options.find(option => option.value === 'engineering')!.selected = true;
+      await clickButton(buttonHandlers, 'set-workbook-label-with-attributes');
+      expect(mockContext.workbook.sensitivityLabel.tryToUpdate).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`The sensitivity label wasn't applied. Status: ${status}`);
+      expect(consoleSpy).not.toHaveBeenCalledWith('Applied the sensitivity label and ABAC attributes to the workbook.');
+    }
+  );
+
+  test('Excel: refreshing attributes clears selections when ABAC becomes unavailable', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { mockContext, mockDocument, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: sensitivitySnippetPath,
+      buttonId: 'get-catalog-attributes',
+    });
+    mockContext.sensitivityLabelsCatalog!.getLabelingCapabilities = [];
+    await clickButton(buttonHandlers, 'get-catalog-attributes');
+    expect(mockDocument.getElementById('abac-attributes').querySelectorAll('select')).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith("ABAC attributes aren't enabled or available for the current user.");
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   test('Excel: basic-common-api-call executes without runtime errors', async () => {
@@ -1456,6 +1917,7 @@ describe('Runtime Execution Tests - Word', () => {
   });
 
   const rangeScenarios = [
+    ['15-images', 'insert-and-inspect-floating-pictures-desktop.yaml', ['setup', 'insert-picture', 'get-shapes']],
     ['25-paragraph', 'basic-paragraph-operations.yaml', [
       'setup', 'get-paragraph', 'get-next', 'get-previous', 'check-next', 'check-previous',
       'get-sentences', 'clear-paragraph', 'delete-paragraph',
@@ -1471,6 +1933,15 @@ describe('Runtime Execution Tests - Word', () => {
       'setup', 'set-language', 'set-east-asian-language', 'set-other-language',
       'reset-language-detection', 'disable-proofing',
       'reset-spelling', 'reset-grammar', 'get-proofing',
+    ]],
+    ['28-formatting', 'apply-character-layout-desktop.yaml', [
+      'setup', 'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
+      'set-two-lines', 'get-layout',
+    ]],
+    ['28-formatting', 'convert-japanese-kana-desktop.yaml', ['setup', 'set-kana', 'get-kana']],
+    ['28-formatting', 'character-formatting-and-case-desktop.yaml', ['setup', 'get-formatting', 'set-case']],
+    ['28-formatting', 'range-borders-and-shading-desktop.yaml', [
+      'setup', 'set-borders', 'get-borders', 'set-shading', 'get-shading',
     ]],
     ['35-ranges', 'basic-range-operations.yaml', [
       'setup', 'get-range', 'replace-text', 'insert-paragraph', 'insert-break',
@@ -1499,14 +1970,11 @@ describe('Runtime Execution Tests - Word', () => {
       'get-tables', 'get-parent-table', 'get-parent-cell', 'check-parent-table',
       'check-parent-cell', 'set-hyperlink', 'get-hyperlink-ranges',
     ]],
-    ['35-ranges', 'format-range-text-desktop.yaml', [
-      'setup', 'get-formatting', 'get-position', 'move-start', 'move-end', 'set-case',
-      'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
-      'set-kana', 'set-two-lines', 'show-marks',
+    ['35-ranges', 'inspect-and-adjust-range-boundaries-desktop.yaml', [
+      'setup', 'get-position', 'move-start', 'move-end',
     ]],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', [
-      'setup', 'get-borders', 'set-shading', 'get-sections', 'get-frames',
-      'get-hyperlinks', 'insert-picture', 'get-shapes',
+      'setup', 'get-sections', 'get-frames', 'get-hyperlinks',
     ]],
     ['35-ranges', 'manage-range-editing-permissions-desktop.yaml', ['setup', 'add-editor', 'get-editors']],
     ['50-document', 'manage-footnotes.yaml', ['setup', 'insert-endnote', 'get-endnotes']],
@@ -1558,11 +2026,11 @@ describe('Runtime Execution Tests - Word', () => {
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'reset-grammar', "Reset the English paragraph's grammar-checked flag. Get language and proofing settings to inspect it."],
     ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-html', expect.stringContaining('Range HTML: ')],
     ['35-ranges', 'insert-and-read-formatted-content.yaml', 'get-ooxml', expect.stringContaining('Range OOXML: ')],
-    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-borders', "First paragraph's border formatting:"],
+    ['28-formatting', 'range-borders-and-shading-desktop.yaml', 'get-borders', "First paragraph's border formatting:"],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-sections', 'Sections found: 3'],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-frames', 'Frames found: 1'],
     ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-hyperlinks', 'Hyperlinks found: 1'],
-    ['35-ranges', 'inspect-range-layout-desktop.yaml', 'get-shapes', 'Shapes found: 1'],
+    ['15-images', 'insert-and-inspect-floating-pictures-desktop.yaml', 'get-shapes', 'Shapes anchored in the first paragraph: 1'],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-controls', 'Content controls found: 1'],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-fields', 'Fields found: 1'],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-pictures', 'Inline pictures found: 1'],
@@ -1592,8 +2060,8 @@ describe('Runtime Execution Tests - Word', () => {
   test.each([
     ['25-paragraph', 'paragraph-properties.yaml', 'get-formatting', 'Paragraph:', { firstLineIndent: 0, leftIndent: 0, rightIndent: 0, spaceBefore: 0 }],
     ['35-ranges', 'basic-range-operations.yaml', 'get-range', "First paragraph's properties:", { text: expect.any(String), isEmpty: false, style: 'Normal' }],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
-    ['35-ranges', 'format-range-text-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
+    ['28-formatting', 'character-formatting-and-case-desktop.yaml', 'get-formatting', "First paragraph's formatting:", { bold: true, italic: true }],
+    ['35-ranges', 'inspect-and-adjust-range-boundaries-desktop.yaml', 'get-position', "First paragraph's position and story:", { start: 0, end: 40, storyLength: 80 }],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "English paragraph's proofing settings:", { languageId: 'EnglishUS', languageDetected: false }],
     ['28-formatting', 'manage-language-and-proofing-desktop.yaml', 'get-proofing', "Japanese paragraph's proofing settings:", { languageIdFarEast: 'Japanese', languageDetected: false }],
     ['35-ranges', 'inspect-range-structure.yaml', 'get-parent-table', 'Parent table:', { rowCount: 2, values: expect.any(Array) }],
@@ -1607,6 +2075,544 @@ describe('Runtime Execution Tests - Word', () => {
         expect(consoleSpy).toHaveBeenCalledWith(label, expect.objectContaining(properties));
         expect(consoleErrorSpy).not.toHaveBeenCalled();
       },
+    });
+  });
+
+  describe('Word: character layout (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'apply-character-layout-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      wordMock.mockRange.text = 'AB12';
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers focused actions and replaces sample content on repeated setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual([
+        'setup', 'set-width', 'combine-characters', 'fit-text', 'set-horizontal-in-vertical',
+        'set-two-lines', 'get-layout',
+      ]);
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([['AB12', 'Replace'], ['AB12', 'Replace']]);
+      expect(wordMock.mockBody.insertParagraph).not.toHaveBeenCalled();
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.font.reset).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.font.reset.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ['set-width', 'characterWidth', 'Half', 'Full',
+        "Converted the first paragraph's Latin characters and digits to full width."],
+      ['combine-characters', 'combineCharacters', false, true,
+        'Enabled combined characters on the first paragraph. Get layout settings to inspect the flag.'],
+      ['fit-text', 'fitTextWidth', 0, 100,
+        "Fitted the first paragraph's text into 100 current measurement units."],
+      ['set-horizontal-in-vertical', 'horizontalInVertical', 'None', 'FitInLine',
+        'Enabled horizontal-in-vertical layout on the first paragraph. Get layout settings to verify it.'],
+      ['set-two-lines', 'twoLinesInOne', 'None', 'Parentheses',
+        'Applied two-line text with parentheses to the first paragraph.'],
+    ] as const)('%s targets the correct paragraph and labels its result', async (buttonId, property, initialValue, value, message) => {
+      Object.assign(wordMock.mockRange, { [property]: initialValue });
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(wordMock.mockRange[property]).toBe(value);
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockBody.paragraphs.getLast).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith(message);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads layout only on the sample paragraph', async () => {
+      await clickButton(buttonHandlers, 'get-layout');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith(
+        'text,characterWidth,combineCharacters,disableCharacterSpaceGrid,emphasisMark,fitTextWidth,horizontalInVertical,twoLinesInOne'
+      );
+      expect(wordMock.mockBody.paragraphs.getLast).not.toHaveBeenCalled();
+      expect(consoleSpy.mock.calls).toEqual([
+        ["First paragraph's character layout:", {
+          text: 'AB12', characterWidth: 'Half', combineCharacters: false,
+          disableCharacterSpaceGrid: wordMock.mockRange.disableCharacterSpaceGrid,
+          emphasisMark: wordMock.mockRange.emphasisMark,
+          fitTextWidth: 100, horizontalInVertical: 'None', twoLinesInOne: 'None',
+        }],
+      ]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'set-width', 'combine-characters', 'fit-text',
+      'set-horizontal-in-vertical', 'set-two-lines', 'get-layout'
+    ])('%s surfaces synchronization errors without logging success', async (buttonId) => {
+      const error = new Error('Character layout operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Word: Japanese kana conversion (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'convert-japanese-kana-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      wordMock.mockRange.text = '\u30ab\u30bf\u30ab\u30ca';
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers only kana actions and recreates katakana text during setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'set-kana', 'get-kana']);
+
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['\u30ab\u30bf\u30ab\u30ca', 'Replace'], ['\u30ab\u30bf\u30ab\u30ca', 'Replace'],
+      ]);
+      expect(wordMock.mockBody.insertParagraph).not.toHaveBeenCalled();
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.font.reset).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.font.reset.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('conversion assigns hiragana to the independent sample paragraph', async () => {
+      await clickButton(buttonHandlers, 'set-kana');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.kana).toBe('Hiragana');
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("Converted the Japanese paragraph's text to hiragana.");
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads text and kana and logs a labeled plain object', async () => {
+      await clickButton(buttonHandlers, 'get-kana');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith('text,kana');
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith("Japanese paragraph's kana settings:", {
+        text: '\u30ab\u30bf\u30ab\u30ca', kana: 'Katakana',
+      });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'set-kana', 'get-kana'])('%s surfaces errors without logging success', async (buttonId) => {
+      const error = new Error('Kana operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Word: floating pictures (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '15-images', 'insert-and-inspect-floating-pictures-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers focused actions and explicitly removes anchored shapes during repeated setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'insert-picture', 'get-shapes']);
+      const existingShape = wordMock.mockBody.shapes.items[0];
+
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.shapes.load).toHaveBeenCalledWith('items');
+      expect(existingShape.delete).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockContext.sync.mock.invocationCallOrder[0])
+        .toBeLessThan(existingShape.delete.mock.invocationCallOrder[0]);
+      expect(existingShape.delete.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockBody.insertText.mock.invocationCallOrder[0]);
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: floating pictures are anchored to this paragraph.', 'Replace'],
+        ['Project summary: floating pictures are anchored to this paragraph.', 'Replace'],
+      ]);
+      expect(wordMock.mockRange.insertPictureFromBase64).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(4);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('setup also works when the body has no anchored shapes', async () => {
+      wordMock.mockBody.shapes.items = [];
+
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('insertion uses the first paragraph, explicit size and position, and a named shape', async () => {
+      await clickButton(buttonHandlers, 'insert-picture');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith();
+      expect(wordMock.mockRange.insertPictureFromBase64).toHaveBeenCalledWith(
+        expect.stringMatching(/^iVBORw0KGgo/),
+        { left: 20, top: 20, width: 90, height: 39 }
+      );
+      expect(wordMock.mockRange.shapes.items[0].name).toBe('FloatingPictureSample');
+      expect(wordMock.mockRange.shapes.load).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.document.getSelection).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Inserted a floating picture anchored to the first paragraph. Get anchored shapes to inspect it.'
+      );
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads the anchored shapes and logs labeled plain properties', async () => {
+      await clickButton(buttonHandlers, 'get-shapes');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith();
+      expect(wordMock.mockRange.shapes.load).toHaveBeenCalledWith('items/name,items/type,items/width,items/height');
+      expect(wordMock.mockRange.insertPictureFromBase64).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy.mock.calls).toEqual([
+        ['Shapes anchored in the first paragraph: 1'],
+        ['Anchored shape:', { name: 'RangeSamplePicture', type: 'Picture', width: 90, height: 39 }],
+      ]);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback reports an empty anchored-shape collection without creating a picture', async () => {
+      wordMock.mockRange.shapes.items = [];
+
+      await clickButton(buttonHandlers, 'get-shapes');
+
+      expect(consoleSpy.mock.calls).toEqual([['Shapes anchored in the first paragraph: 0']]);
+      expect(wordMock.mockRange.insertPictureFromBase64).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'insert-picture', 'get-shapes'])('%s surfaces errors without logging success', async (buttonId) => {
+      const error = new Error('Floating-picture action failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+
+    test('setup does not log success if the cleanup and text-replacement batch fails', async () => {
+      const error = new Error('Floating-picture setup failed.');
+      wordMock.mockContext.sync.mockResolvedValueOnce(undefined).mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Word: range borders and shading (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'range-borders-and-shading-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('repeated setup restores baseline border and shading formatting without accumulating text', async () => {
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'set-borders');
+      await clickButton(buttonHandlers, 'set-shading');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: borders and shading emphasize this text.', 'Replace'],
+        ['Project summary: borders and shading emphasize this text.', 'Replace'],
+      ]);
+      expect(wordMock.mockRange.borders.items[0]).toMatchObject({
+        color: '#808080', lineStyle: 'Single', lineWidth: 'Pt075', isVisible: true,
+      });
+      expect(wordMock.mockRange.shading).toMatchObject({
+        backgroundPatternColor: '#FFFFFF', texture: 'None',
+      });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('border formatting loads the range borders before applying a visible double blue line', async () => {
+      await clickButton(buttonHandlers, 'set-borders');
+
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.borders.load).toHaveBeenCalledWith('items');
+      expect(wordMock.mockRange.borders.items[0]).toMatchObject({
+        color: '#4472C4', lineStyle: 'Double', lineWidth: 'Pt150', isVisible: true,
+      });
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.borders.load.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockRange.shading.load).not.toHaveBeenCalled();
+      expect(consoleSpy.mock.calls).toEqual([["Applied double blue borders to the first paragraph's text."]]);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('border readback loads and labels plain property values without changing the borders', async () => {
+      const border = wordMock.mockRange.borders.items[0];
+      Object.assign(border, { color: '#808080', lineStyle: 'Single', lineWidth: 'Pt075', isVisible: true });
+
+      await clickButton(buttonHandlers, 'get-borders');
+
+      expect(wordMock.mockRange.borders.load).toHaveBeenCalledWith(
+        'items/color,items/lineStyle,items/lineWidth,items/isVisible'
+      );
+      expect(consoleSpy.mock.calls).toEqual([
+        ["First paragraph's border formatting:"],
+        ['Border:', { color: '#808080', lineStyle: 'Single', lineWidth: 'Pt075', isVisible: true }],
+      ]);
+      expect(consoleSpy.mock.calls[1][1]).not.toBe(border);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('shading changes the background color without changing borders or loading readback properties', async () => {
+      const borderBefore = { ...wordMock.mockRange.borders.items[0] };
+
+      await clickButton(buttonHandlers, 'set-shading');
+
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.shading.backgroundPatternColor).toBe('#DDEBF7');
+      expect(wordMock.mockRange.shading.load).not.toHaveBeenCalled();
+      expect(wordMock.mockRange.borders.items[0]).toEqual(borderBefore);
+      expect(consoleSpy.mock.calls).toEqual([['Applied pale blue shading.']]);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('shading readback loads and labels the current color without changing it', async () => {
+      wordMock.mockRange.shading.backgroundPatternColor = '#DDEBF7';
+
+      await clickButton(buttonHandlers, 'get-shading');
+
+      expect(wordMock.mockRange.shading.load).toHaveBeenCalledWith('backgroundPatternColor');
+      expect(consoleSpy.mock.calls).toEqual([['Range shading color: #DDEBF7']]);
+      expect(wordMock.mockRange.shading.backgroundPatternColor).toBe('#DDEBF7');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'set-borders', 'get-borders', 'set-shading', 'get-shading'])(
+      '%s reports synchronization errors without logging success',
+      async (buttonId) => {
+        const error = new Error('Range formatting action failed.');
+        wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+        await clickButton(buttonHandlers, buttonId);
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+        expect(consoleSpy).not.toHaveBeenCalled();
+      }
+    );
+  });
+
+  test('Word: range-layout actions exclude the extracted picture and formatting workflows', () => {
+    const buttonHandlers = new Map<string, Function>();
+    (global as any).Word = createWordMock().mockObject;
+    (global as any).document = createMockDocument(buttonHandlers);
+    executeSnippetCode(loadSnippetByPath(
+      path.join('samples', 'word', '35-ranges', 'inspect-range-layout-desktop.yaml')
+    ));
+    expect([...buttonHandlers.keys()]).toEqual([
+      'setup', 'get-sections', 'get-frames', 'get-hyperlinks',
+    ]);
+  });
+
+  describe('Word: character formatting and case (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '28-formatting', 'character-formatting-and-case-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers only formatting actions and restores sample content and formatting', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'get-formatting', 'set-case']);
+
+      for (let i = 0; i < 2; i++) {
+        wordMock.mockRange.font.bold = false;
+        await clickButton(buttonHandlers, 'setup');
+        expect(wordMock.mockRange.font).toEqual(expect.objectContaining({
+          bold: true, italic: true, highlightColor: '#FFFF00',
+        }));
+      }
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: the team is ready for review.', 'Replace'],
+        ['Project summary: the team is ready for review.', 'Replace'],
+      ]);
+      expect(wordMock.mockBody.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.font.reset).toHaveBeenCalledTimes(2);
+      expect(wordMock.mockRange.font.reset.mock.invocationCallOrder[0])
+        .toBeLessThan(wordMock.mockContext.sync.mock.invocationCallOrder[0]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('readback loads and labels the text and all reported formatting properties', async () => {
+      await clickButton(buttonHandlers, 'get-formatting');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith(
+        'text,bold,italic,boldBidirectional,italicBidirectional,case,highlightColorIndex'
+      );
+      expect(consoleSpy).toHaveBeenCalledWith("First paragraph's formatting:", {
+        text: wordMock.mockRange.text,
+        bold: true, italic: true, boldBidirectional: false, italicBidirectional: false,
+        case: 'TitleSentence', highlightColorIndex: 'Yellow',
+      });
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('uppercase conversion targets the sample paragraph', async () => {
+      await clickButton(buttonHandlers, 'set-case');
+
+      expect(wordMock.mockBody.paragraphs.getFirst).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockParagraph.getRange).toHaveBeenCalledWith('Content');
+      expect(wordMock.mockRange.case).toBe('Upper');
+      expect(consoleSpy).toHaveBeenCalledWith("Converted the first paragraph's text to uppercase.");
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'get-formatting', 'set-case'])('%s surfaces errors without success output', async (buttonId) => {
+      const error = new Error('Character formatting failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Word: range boundaries (desktop)', () => {
+    const snippetPath = path.join('samples', 'word', '35-ranges', 'inspect-and-adjust-range-boundaries-desktop.yaml');
+    let wordMock: ReturnType<typeof createWordMock>;
+    let buttonHandlers: Map<string, Function>;
+
+    beforeEach(() => {
+      wordMock = createWordMock();
+      (global as any).Word = wordMock.mockObject;
+      buttonHandlers = new Map<string, Function>();
+      (global as any).document = createMockDocument(buttonHandlers);
+      executeSnippetCode(loadSnippetByPath(snippetPath));
+    });
+
+    test('registers only boundary actions and replaces sample text during setup', async () => {
+      expect([...buttonHandlers.keys()]).toEqual(['setup', 'get-position', 'move-start', 'move-end']);
+      await clickButton(buttonHandlers, 'setup');
+      await clickButton(buttonHandlers, 'setup');
+
+      expect(wordMock.mockBody.insertText.mock.calls).toEqual([
+        ['Project summary: the team is ready for review.', 'Replace'],
+        ['Project summary: the team is ready for review.', 'Replace'],
+      ]);
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('position readback loads all reported properties', async () => {
+      await clickButton(buttonHandlers, 'get-position');
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith(
+        'id,start,end,storyLength,storyType,isEndOfRowMark,isTextVisibleOnScreen'
+      );
+      expect(consoleSpy).toHaveBeenCalledWith("First paragraph's position and story:", {
+        id: 'range-1', start: 0, end: 40, storyLength: 80, storyType: 'MainText',
+        isEndOfRowMark: false, isTextVisibleOnScreen: true,
+      });
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['move-start', 'move-end'])('%s loads boundaries before modifying and selecting the range', async (buttonId) => {
+      wordMock.mockRange.start = 10;
+      wordMock.mockRange.end = 20;
+      wordMock.mockContext.sync.mockImplementationOnce(async () => {
+        expect(wordMock.mockRange.start).toBe(10);
+        expect(wordMock.mockRange.end).toBe(20);
+        expect(wordMock.mockRange.select).not.toHaveBeenCalled();
+      });
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(wordMock.mockRange.load).toHaveBeenCalledWith('start,end');
+      expect(wordMock.mockRange.start).toBe(buttonId === 'move-start' ? 11 : 10);
+      expect(wordMock.mockRange.end).toBe(buttonId === 'move-end' ? 19 : 20);
+      expect(wordMock.mockRange.select).toHaveBeenCalledTimes(1);
+      expect(wordMock.mockRange.insertText).not.toHaveBeenCalled();
+      expect(wordMock.mockRange.delete).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['move-start', 'move-end'])('%s warns instead of selecting an empty range', async (buttonId) => {
+      wordMock.mockRange.start = 10;
+      wordMock.mockRange.end = 10;
+      const warningSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(warningSpy).toHaveBeenCalledWith('The paragraph is empty. Run Set up again.');
+      expect(wordMock.mockRange.start).toBe(10);
+      expect(wordMock.mockRange.end).toBe(10);
+      expect(wordMock.mockRange.select).not.toHaveBeenCalled();
+      expect(wordMock.mockContext.sync).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test.each(['setup', 'get-position', 'move-start', 'move-end'])('%s surfaces errors without success output', async (buttonId) => {
+      const error = new Error('Range-boundary operation failed.');
+      wordMock.mockContext.sync.mockRejectedValueOnce(error);
+
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+      expect(consoleSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -2537,6 +3543,323 @@ describe('Runtime Execution Tests - PowerPoint', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  function prepareSensitivityLabelSample(mockOptions: PowerPointMockOptions = {}, labelId = 'sample-label') {
+    const buttonHandlers = new Map<string, Function>();
+    const document = createMockDocument(buttonHandlers, { 'label-id': labelId });
+    const { mockObject, mockContext } = createPowerPointMock(mockOptions);
+    Object.assign(global, { document, PowerPoint: mockObject });
+    executeSnippetCode(loadSnippetByPath(
+      path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml')
+    ));
+    return { document, buttonHandlers, mockContext };
+  }
+
+  test('PowerPoint: catalog attributes populate active choices and clear stale controls', async () => {
+    const { document, buttonHandlers, mockContext } = prepareSensitivityLabelSample();
+    const container = document.getElementById('abac-attributes');
+    await clickButton(buttonHandlers, 'get-catalog-attributes');
+    const controls = container.querySelectorAll('select');
+    expect(controls).toHaveLength(1);
+    expect(controls[0].name).toBe('Department');
+    expect(controls[0].multiple).toBe(false);
+    expect(controls[0].options.map(option => option.value)).toEqual(['', 'engineering']);
+
+    await clickButton(buttonHandlers, 'get-catalog-attributes');
+    expect(container.querySelectorAll('select')).toHaveLength(1);
+    mockContext.sensitivityLabelsCatalog!.getAttributes.mockReturnValue({ value: [] });
+    await clickButton(buttonHandlers, 'get-catalog-attributes');
+    expect(container.children).toHaveLength(0);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each(['Success', 'DocumentReadOnly'])('PowerPoint: setting ABAC attributes handles %s', async (status) => {
+    const { document, buttonHandlers, mockContext } = prepareSensitivityLabelSample({
+      sensitivityLabelUpdateResult: { status },
+    });
+    await clickButton(buttonHandlers, 'get-catalog-attributes');
+    const control = document.getElementById('abac-attributes').querySelectorAll('select')[0];
+    control.options[1].selected = true;
+    await clickButton(buttonHandlers, 'set-presentation-label-with-attributes');
+
+    const catalog = mockContext.sensitivityLabelsCatalog!;
+    expect(catalog.getAttributes).toHaveBeenCalledTimes(2);
+    expect(mockContext.presentation.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith('sample-label', {
+      abacAttributes: [{
+        ...catalog.getAttributes.mock.results[1].value.value[0],
+        values: [{ displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true }],
+      }],
+    });
+    expect(mockContext.sync).toHaveBeenCalledTimes(5);
+    if (status === 'Success') {
+      expect(consoleSpy).toHaveBeenCalledWith('Applied the sensitivity label and ABAC attributes to the presentation.');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    } else {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(`The sensitivity label wasn't applied. Status: ${status}`);
+    }
+  });
+
+  test('PowerPoint: ABAC controls sort active attributes and support multiple values', async () => {
+    const { document, buttonHandlers, mockContext } = prepareSensitivityLabelSample();
+    const catalog = mockContext.sensitivityLabelsCatalog!;
+    const attribute = catalog.getAttributes().value[0];
+    const engineering = attribute.values[0];
+    catalog.getAttributes.mockClear();
+    catalog.getAttributes.mockReturnValue({
+      value: [
+        { ...attribute, displayName: 'Inactive', isActive: false },
+        { ...attribute, displayName: 'Single', displayOrder: 2 },
+        {
+          ...attribute,
+          displayName: 'Multiple',
+          displayOrder: 1,
+          isMultiValued: true,
+          values: [
+            { ...engineering, id: 'later', displayOrder: 2 },
+            ...attribute.values,
+          ],
+        },
+      ],
+    });
+    await clickButton(buttonHandlers, 'get-catalog-attributes');
+    const controls = document.getElementById('abac-attributes').querySelectorAll('select');
+    expect(controls.map(control => control.name)).toEqual(['Multiple', 'Single']);
+    expect(controls[0].multiple).toBe(true);
+    expect(controls[0].options.map(option => option.value)).toEqual(['engineering', 'later']);
+    controls[0].options.forEach(option => { option.selected = true; });
+    await clickButton(buttonHandlers, 'set-presentation-label-with-attributes');
+    expect(mockContext.presentation.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith('sample-label', {
+      abacAttributes: [expect.objectContaining({
+        displayName: 'Multiple',
+        values: [
+          expect.objectContaining({ id: 'later' }),
+          expect.objectContaining({ id: 'engineering' }),
+        ],
+      })],
+    });
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    'missing-label', 'missing-controls', 'no-selection', 'inactive-value', 'missing-attribute',
+    'inactive-attribute', 'multiple-single-values', 'no-capability', 'no-catalog',
+  ])(
+    'PowerPoint: setting ABAC attributes rejects %s',
+    async (scenario) => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { document, buttonHandlers, mockContext } = prepareSensitivityLabelSample(
+        {}, scenario === 'missing-label' ? '' : 'sample-label'
+      );
+      if (scenario !== 'missing-controls') {
+        await clickButton(buttonHandlers, 'get-catalog-attributes');
+        const control = document.getElementById('abac-attributes').querySelectorAll('select')[0];
+        if (scenario !== 'no-selection') {
+          control.options[1].selected = true;
+        }
+        if (scenario === 'inactive-value') {
+          control.options[1].value = 'finance';
+        } else if (scenario === 'missing-attribute') {
+          mockContext.sensitivityLabelsCatalog!.getAttributes.mockReturnValue({ value: [] });
+        } else if (scenario === 'inactive-attribute') {
+          const catalog = mockContext.sensitivityLabelsCatalog!;
+          catalog.getAttributes.mockReturnValue({
+            value: [{ ...catalog.getAttributes().value[0], isActive: false }],
+          });
+        } else if (scenario === 'multiple-single-values') {
+          control.options[0].value = 'finance';
+          control.options[0].selected = true;
+        } else if (scenario === 'no-capability') {
+          mockContext.sensitivityLabelsCatalog!.getLabelingCapabilities = ['LabelingEnabled'];
+        } else if (scenario === 'no-catalog') {
+          mockContext.sensitivityLabelsCatalog = undefined;
+        }
+      }
+      await clickButton(buttonHandlers, 'set-presentation-label-with-attributes');
+      const expectedWarnings: Record<string, string> = {
+        'missing-label': 'Get available labels and select a label first.',
+        'missing-controls': 'Get catalog attributes and select attribute values first.',
+        'no-selection': 'Select at least one ABAC attribute value first.',
+        'inactive-value': 'The attribute selections are no longer valid. Get catalog attributes and select values again.',
+        'missing-attribute': 'The attribute selections are no longer valid. Get catalog attributes and select values again.',
+        'inactive-attribute': 'The attribute selections are no longer valid. Get catalog attributes and select values again.',
+        'multiple-single-values': 'The attribute selections are no longer valid. Get catalog attributes and select values again.',
+        'no-capability': "ABAC attributes aren't enabled or available for the current user.",
+        'no-catalog': "The sensitivity label catalog isn't available.",
+      };
+      expect(warnSpy).toHaveBeenCalledWith(expectedWarnings[scenario]);
+      expect(mockContext.presentation.sensitivityLabel.tryToUpdate).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    }
+  );
+
+  test.each([
+    { labelingCapabilities: ['LabelingEnabled'] },
+    { labelingCapabilities: ['LabelingDisabled'] },
+    { labelingCapabilities: [] },
+  ])('PowerPoint: catalog attributes require ABAC capability ($labelingCapabilities)', async ({ labelingCapabilities }) => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { labelingCapabilities },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sensitivityLabelsCatalog.load).toHaveBeenCalledWith('getLabelingCapabilities');
+        expect(mockContext.sync).toHaveBeenCalledTimes(1);
+        expect(mockContext.sensitivityLabelsCatalog.getAttributes).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledWith("ABAC attributes aren't enabled or available for the current user.");
+        expect(consoleSpy).not.toHaveBeenCalled();
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('PowerPoint: catalog attributes report an unavailable catalog', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { sensitivityLabelCatalogAvailable: false },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sync).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalledWith("The sensitivity label catalog isn't available.");
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([false, true])('PowerPoint: catalog attributes display plain values (empty: %s)', async (emptyValues) => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: {
+        labelingCapabilities: ['AttributeBasedAccessControlEnabled', 'LabelingEnabled'],
+        sensitivityLabelAttributeValuesEmpty: emptyValues,
+      },
+      assertions: ({ mockContext }) => {
+        const catalog = mockContext.sensitivityLabelsCatalog;
+        expect(catalog.load).toHaveBeenCalledWith('getLabelingCapabilities');
+        expect(catalog.getAttributes).toHaveBeenCalledTimes(1);
+        expect(mockContext.sync).toHaveBeenCalledTimes(2);
+        expect(catalog.load.mock.invocationCallOrder[0]).toBeLessThan(mockContext.sync.mock.invocationCallOrder[0]);
+        expect(mockContext.sync.mock.invocationCallOrder[0]).toBeLessThan(catalog.getAttributes.mock.invocationCallOrder[0]);
+        expect(catalog.getAttributes.mock.invocationCallOrder[0]).toBeLessThan(mockContext.sync.mock.invocationCallOrder[1]);
+        expect(consoleSpy).toHaveBeenCalledWith('Available ABAC attributes:');
+        expect(consoleSpy).toHaveBeenCalledWith('ABAC attribute: Department', {
+          dataType: 'StringValue',
+          dataTypeDescription: 'String',
+          displayOrder: 1,
+          isActive: true,
+          isMultiValued: false,
+          values: emptyValues ? [] : [
+            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+            { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false },
+          ],
+        });
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test('PowerPoint: an empty attribute catalog reports no attributes', async () => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { sensitivityLabelAttributesEmpty: true },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sensitivityLabelsCatalog.getAttributes).toHaveBeenCalledTimes(1);
+        expect(mockContext.sync).toHaveBeenCalledTimes(2);
+        expect(consoleSpy).toHaveBeenCalledWith('No ABAC attributes are available in the sensitivity label catalog.');
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { dataType: 'BooleanValue', description: 'Boolean' },
+    { dataType: 'DateValue', description: 'Date' },
+    { dataType: 'NumberValue', description: 'Number' },
+    { dataType: 'StringValue', description: 'String' },
+    { dataType: 'Unknown', description: 'Unknown' },
+    { dataType: 'FutureValue', description: 'Unrecognized (FutureValue)' },
+  ])('PowerPoint: catalog attributes describe $dataType', async ({ dataType, description }) => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-catalog-attributes',
+      mockOptions: { sensitivityLabelAttributeDataType: dataType },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.sensitivityLabelsCatalog.getAttributes).toHaveBeenCalledTimes(1);
+        expect(consoleSpy).toHaveBeenCalledWith('ABAC attribute: Department', expect.objectContaining({
+          dataType,
+          dataTypeDescription: description,
+        }));
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { abacEnabled: true, emptyValues: false },
+    { abacEnabled: true, emptyValues: true },
+    { abacEnabled: false, emptyValues: false },
+  ])('PowerPoint: getting a label reads plain ABAC values (enabled: $abacEnabled, empty: $emptyValues)', async ({
+    abacEnabled, emptyValues,
+  }) => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'get-presentation-label',
+      mockOptions: {
+        sensitivityLabelAbacEnabled: abacEnabled,
+        sensitivityLabelAttributeValuesEmpty: emptyValues,
+      },
+      assertions: ({ mockContext }) => {
+        const getCurrentLabel = mockContext.presentation.sensitivityLabel.getCurrentOrNullObject;
+        expect(getCurrentLabel).toHaveBeenCalledTimes(1);
+        const currentLabel = getCurrentLabel.mock.results[0].value;
+        expect(currentLabel.load).toHaveBeenCalledWith(
+          'color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip'
+        );
+        if (abacEnabled) {
+          expect(currentLabel.load).toHaveBeenCalledWith('abacAttributeValues');
+        } else {
+          expect(currentLabel.load).not.toHaveBeenCalledWith('abacAttributeValues');
+        }
+        expect(mockContext.sync).toHaveBeenCalledTimes(abacEnabled ? 2 : 1);
+        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(
+          abacEnabled && !emptyValues
+            ? 'ABAC attribute values: Engineering (ID: engineering, order: 1, active: Yes), ' +
+              'Finance (ID: finance, order: 2, active: No)'
+            : 'ABAC attribute values: None'
+        ));
+        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Protection type: No protection'));
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+      },
+    });
+  });
+
+  test.each([
+    { updateResult: { status: 'Success' }, successful: true },
+    { updateResult: { status: 'DocumentReadOnly' }, successful: false },
+  ])('PowerPoint: setting a label handles update status $updateResult.status', async ({ updateResult, successful }) => {
+    await runPowerPointSnippetTest({
+      snippetPath: path.join('samples', 'powerpoint', 'preview-apis', 'manage-sensitivity-labels.yaml'),
+      buttonId: 'set-presentation-label',
+      elementValues: { 'label-id': 'sample-label' },
+      mockOptions: { sensitivityLabelUpdateResult: updateResult },
+      assertions: ({ mockContext }) => {
+        expect(mockContext.presentation.sensitivityLabel.tryToUpdate).toHaveBeenCalledWith('sample-label');
+        expect(mockContext.sync).toHaveBeenCalledTimes(1);
+        if (successful) {
+          expect(consoleSpy).toHaveBeenCalledWith('Applied the sensitivity label to the presentation.');
+          expect(consoleErrorSpy).not.toHaveBeenCalled();
+        } else {
+          expect(consoleErrorSpy).toHaveBeenCalledWith(
+            `The sensitivity label wasn't applied. Status: ${updateResult.status}`
+          );
+          expect(consoleSpy).not.toHaveBeenCalled();
+        }
+      },
+    });
   });
 
   test('PowerPoint: basic-api-call-ts executes without runtime errors', async () => {

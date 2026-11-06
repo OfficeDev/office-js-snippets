@@ -77,23 +77,24 @@ export function createMockButton(handler: Function) {
  * Create a mock document with getElementById support
  */
 interface MockElement {
-  tagName: string;
   id: string;
-  name: string;
+  tagName: string;
   htmlFor: string;
-  multiple: boolean;
-  selected: boolean;
+  name: string;
   value: string;
   textContent: string;
   label: string;
   disabled: boolean;
+  multiple: boolean;
+  selected: boolean;
+  readonly selectedOptions: MockElement[];
   options: MockElement[];
   children: MockElement[];
   readonly firstChild: MockElement | null;
-  readonly selectedOptions: MockElement[];
   add(element: MockElement): void;
   appendChild(element: MockElement): void;
-  removeChild(element: MockElement): void;
+  removeChild(element: MockElement): MockElement;
+  replaceChildren(...elements: MockElement[]): void;
   querySelectorAll(selector: string): MockElement[];
   addEventListener(event: string, callback: Function): void;
 }
@@ -101,16 +102,16 @@ interface MockElement {
 export function createMockDocument(buttonHandlers: Map<string, Function>, elementValues: Record<string, string> = {}) {
   const elements = new Map<string, MockElement>();
   const createElement = (id = '', tagName = ''): MockElement => ({
-    tagName,
     id,
-    name: '',
+    tagName: tagName.toUpperCase(),
     htmlFor: '',
-    multiple: false,
-    selected: false,
+    name: '',
     value: elementValues[id] ?? '',
     textContent: '',
     label: '',
     disabled: false,
+    multiple: false,
+    selected: false,
     options: [],
     children: [],
     get firstChild() {
@@ -133,14 +134,20 @@ export function createMockDocument(buttonHandlers: Map<string, Function>, elemen
     removeChild(element) {
       const index = this.children.indexOf(element);
       if (index === -1) {
-        throw new Error('The element is not a child of this node.');
+        throw new Error('Element is not a child of this node.');
       }
-      this.children.splice(index, 1);
+      return this.children.splice(index, 1)[0];
     },
-    querySelectorAll(selector) {
+    replaceChildren(...children) {
+      this.children = children;
+    },
+    querySelectorAll(tagName) {
+      if (!/^[a-z]+$/i.test(tagName)) {
+        throw new Error(`Unsupported mock selector: ${tagName}`);
+      }
       return this.children.flatMap(child => [
-        ...(child.tagName === selector ? [child] : []),
-        ...child.querySelectorAll(selector),
+        ...(child.tagName === tagName.toUpperCase() ? [child] : []),
+        ...child.querySelectorAll(tagName),
       ]);
     },
     addEventListener(event, callback) {

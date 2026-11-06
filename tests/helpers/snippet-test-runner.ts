@@ -110,7 +110,7 @@ export async function runWordSnippetTest(options: RunSnippetTestOptions) {
   );
 
   (global as any).Word = mockObject;
-  (global as any).document = createMockDocument(buttonHandlers);
+  (global as any).document = createMockDocument(buttonHandlers, options.elementValues);
 
   // Execute snippet
   executeSnippetCode(snippet);

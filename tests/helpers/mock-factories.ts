@@ -413,10 +413,25 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
 }
 
 // Word-specific mocks
+export interface MockSensitivityLabelAbacAttribute {
+  dataType: string;
+  displayName: string;
+  displayOrder: number;
+  isActive: boolean;
+  isMultiValued: boolean;
+  values: { displayName: string; displayOrder: number; id: string; isActive: boolean }[];
+}
+
 export interface WordMockOptions {
   selectionText?: string;
   paragraphText?: string;
   bodyText?: string;
+  labelingCapability?: string;
+  sensitivityLabelUpdateResult?: unknown;
+  sensitivityLabelAbacEnabled?: boolean;
+  sensitivityLabelIsNullObject?: boolean;
+  labelingCapabilities?: string[];
+  sensitivityLabelAttributes?: MockSensitivityLabelAbacAttribute[];
   bookmarkNames?: string[];
 }
 
@@ -425,6 +440,7 @@ export function createWordMock(options: WordMockOptions = {}) {
     selectionText = 'Mock selected text',
     paragraphText = 'Mock paragraph',
     bodyText = 'Mock body text',
+    sensitivityLabelUpdateResult = { status: 'Success' },
     bookmarkNames = ['RangeSampleSummary'],
   } = options;
 
@@ -1173,7 +1189,34 @@ export function createWordMock(options: WordMockOptions = {}) {
   };
 
   const mockContext = {
+    sensitivityLabelsCatalog: {
+      getLabelingCapability: options.labelingCapability ?? 'LabelingEnabled',
+      getLabelingCapabilities: options.labelingCapabilities ?? [],
+      getAttributes: jest.fn(() => ({ value: options.sensitivityLabelAttributes ?? [] })),
+      load: jest.fn(),
+    },
     document: {
+      sensitivityLabel: {
+        tryToUpdate: jest.fn(() => ({ value: sensitivityLabelUpdateResult })),
+        getCurrentOrNullObject: jest.fn(() => ({
+          isNullObject: options.sensitivityLabelIsNullObject ?? false,
+          name: 'Mock sensitivity label',
+          id: 'sample-label',
+          siteId: 'sample-site',
+          tooltip: 'Sample label tooltip',
+          color: '#000000',
+          isEnabled: true,
+          order: 1,
+          protectionType: 'NoProtection',
+          isAbacEnabled: options.sensitivityLabelAbacEnabled ?? false,
+          isAbacAttributesRequired: false,
+          abacAttributeValues: [
+            { displayName: 'Engineering', displayOrder: 1, id: 'engineering', isActive: true },
+            { displayName: 'Finance', displayOrder: 2, id: 'finance', isActive: false },
+          ],
+          load: jest.fn(),
+        })),
+      },
       body: mockBody,
       contentControls: mockContentControls,
       changeTrackingMode: 'Off',
@@ -1226,6 +1269,32 @@ export function createWordMock(options: WordMockOptions = {}) {
 
   // Create the mock object
   const wordMockObject = new OfficeMockObject(mockData, OfficeApp.Word) as any;
+
+  wordMockObject.LabelingCapability = {
+    labelingEnabled: 'LabelingEnabled',
+    labelingDisabled: 'LabelingDisabled',
+    labelingPolicyNotFound: 'LabelingPolicyNotFound',
+    noLicense: 'NoLicense',
+    attributeBasedAccessControlEnabled: 'AttributeBasedAccessControlEnabled',
+  };
+
+  wordMockObject.SensitivityLabelUpdateStatus = {
+    success: 'Success',
+  };
+
+  wordMockObject.SensitivityLabelAbacAttributeDataType = {
+    unknown: 'Unknown',
+    stringValue: 'StringValue',
+    booleanValue: 'BooleanValue',
+    numberValue: 'NumberValue',
+    dateValue: 'DateValue',
+  };
+
+  wordMockObject.SensitivityLabelProtectionType = {
+    noProtection: 'NoProtection',
+    adminDefined: 'AdminDefined',
+    userDefined: 'UserDefined',
+  };
 
   // Add enums that some snippets need
   wordMockObject.CompareTarget = {

@@ -112,13 +112,18 @@ export function createMockDocument(buttonHandlers: Map<string, Function>, elemen
     disabled: false,
     multiple: false,
     selected: false,
-    get selectedOptions() {
-      return this.options.filter(option => option.selected);
-    },
     options: [],
     children: [],
     get firstChild() {
       return this.children[0] ?? null;
+    },
+    get selectedOptions() {
+      const selected = this.options.filter(option => option.selected);
+      if (selected.length > 0 || this.multiple) {
+        return selected;
+      }
+      const option = this.options.find(option => option.value === this.value) ?? this.options[0];
+      return option ? [option] : [];
     },
     add(element) {
       this.options.push(element);

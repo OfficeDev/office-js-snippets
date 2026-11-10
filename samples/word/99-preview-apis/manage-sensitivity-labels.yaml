@@ -1,0 +1,517 @@
+id: word-manage-sensitivity-labels
+name: Manage sensitivity labels
+description: Shows how to inspect the sensitivity label catalog and get or set the sensitivity label of a Word document.
+host: WORD
+api_set:
+    WordApi: preview
+script:
+    content: |
+        document.getElementById("get-catalog-status").addEventListener("click", () => tryCatch(getCatalogStatus));
+        document.getElementById("get-available-labels").addEventListener("click", () => tryCatch(getAvailableLabels));
+        document.getElementById("get-catalog-attributes").addEventListener("click", () => tryCatch(getCatalogAttributes));
+        document.getElementById("get-document-label").addEventListener("click", () => tryCatch(getDocumentLabel));
+        document.getElementById("set-document-label").addEventListener("click", () => tryCatch(setDocumentLabel));
+        document.getElementById("set-document-label-with-attributes").addEventListener("click", () => tryCatch(setDocumentLabelWithAttributes));
+
+        async function getCatalogStatus() {
+          // Check whether sensitivity labeling is available for the current user.
+          await Word.run(async (context) => {
+            const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+            if (!labelCatalog) {
+              console.warn("The sensitivity label catalog isn't available.");
+              return;
+            }
+
+            labelCatalog.load("getLabelingCapability");
+            await context.sync();
+
+            switch (labelCatalog.getLabelingCapability) {
+              case Word.LabelingCapability.labelingEnabled:
+                console.log("Sensitivity labeling is enabled.");
+                break;
+              case Word.LabelingCapability.labelingDisabled:
+                console.log("Sensitivity labeling is disabled.");
+                break;
+              case Word.LabelingCapability.labelingPolicyNotFound:
+                console.log("No sensitivity labeling policy was found.");
+                break;
+              case Word.LabelingCapability.noLicense:
+                console.log("The current user doesn't have a valid sensitivity labeling license.");
+                break;
+              default:
+                console.log(`Unknown labeling capability: ${labelCatalog.getLabelingCapability}`);
+                break;
+            }
+          });
+        }
+
+        async function getAvailableLabels() {
+          await Word.run(async (context) => {
+            const labelSelect = document.getElementById("label-id") as HTMLSelectElement;
+            labelSelect.options.length = 0;
+            const placeholder = document.createElement("option");
+            placeholder.textContent = "Select a label";
+            placeholder.value = "";
+            labelSelect.add(placeholder);
+
+            // Get the sensitivity labels that the organization published for the current user.
+            const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+            if (!labelCatalog) {
+              console.warn("The sensitivity label catalog isn't available.");
+              return;
+            }
+
+            const availableLabels: Word.SensitivityLabelDetailsCollection = labelCatalog.getLabels();
+            // Load the properties for every label in the catalog.
+            availableLabels.load(
+              "items/color,items/id,items/isAbacAttributesRequired,items/isAbacEnabled,items/isEnabled," +
+              "items/name,items/order,items/protectionType,items/siteId,items/tooltip," +
+              "items/children/items/id,items/children/items/name,items/children/items/isEnabled"
+            );
+            await context.sync();
+
+            if (availableLabels.items.length === 0) {
+              console.log("No sensitivity labels are available for the current user.");
+              return;
+            }
+
+            // Display the loaded properties for each available label.
+            console.log("Available sensitivity labels:");
+            availableLabels.items.forEach((labelDetails: Word.SensitivityLabelDetails) => {
+              const childLabels = labelDetails.children && labelDetails.children.items.length
+                ? labelDetails.children.items
+                    .map((childLabel: Word.SensitivityLabelDetails) => `${childLabel.name} (${childLabel.id})`)
+                    .join(", ")
+                : "None";
+
+              console.log(
+                `\n${labelDetails.name}\n` +
+                  `  ID: ${labelDetails.id}\n` +
+                  `  Site ID: ${labelDetails.siteId}\n` +
+                  `  Tooltip: ${labelDetails.tooltip}\n` +
+                  `  Color: ${labelDetails.color}\n` +
+                  `  Enabled: ${labelDetails.isEnabled ? "Yes" : "No"}\n` +
+                  `  Display order: ${labelDetails.order}\n` +
+                  `  ABAC enabled: ${labelDetails.isAbacEnabled ? "Yes" : "No"}\n` +
+                  `  ABAC attributes required: ${labelDetails.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+                  `  Sublabels: ${childLabels}\n` +
+                  `  Protection type: ${labelDetails.protectionType}`
+              );
+            });
+
+            addLabelOptions(availableLabels);
+          });
+        }
+
+        async function getCatalogAttributes() {
+          // Get available ABAC attributes and describe the kind of value each attribute accepts.
+          const container = document.getElementById("abac-attributes");
+          while (container.firstChild) {
+            container.removeChild(container.firstChild);
+          }
+          await Word.run(async (context) => {
+            const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+            if (!labelCatalog) {
+              console.warn("The sensitivity label catalog isn't available.");
+              return;
+            }
+
+            labelCatalog.load("getLabelingCapabilities");
+            await context.sync();
+
+            const capabilities: Word.LabelingCapability[] = labelCatalog.getLabelingCapabilities;
+            if (capabilities.indexOf(Word.LabelingCapability.attributeBasedAccessControlEnabled) === -1) {
+              console.warn("ABAC attributes aren't enabled or available for the current user.");
+              return;
+            }
+
+            const catalogAttributes: OfficeExtension.ClientResult<Word.SensitivityLabelAbacAttribute[]> =
+              labelCatalog.getAttributes();
+            await context.sync();
+
+            if (catalogAttributes.value.length === 0) {
+              console.log("No ABAC attributes are available in the sensitivity label catalog.");
+              return;
+            }
+
+            console.log("Available ABAC attributes:");
+            catalogAttributes.value.forEach((attribute: Word.SensitivityLabelAbacAttribute) => {
+              let dataTypeDescription: string;
+              switch (attribute.dataType) {
+                case Word.SensitivityLabelAbacAttributeDataType.booleanValue:
+                  dataTypeDescription = "Boolean";
+                  break;
+                case Word.SensitivityLabelAbacAttributeDataType.dateValue:
+                  dataTypeDescription = "Date";
+                  break;
+                case Word.SensitivityLabelAbacAttributeDataType.numberValue:
+                  dataTypeDescription = "Number";
+                  break;
+                case Word.SensitivityLabelAbacAttributeDataType.stringValue:
+                  dataTypeDescription = "String";
+                  break;
+                case Word.SensitivityLabelAbacAttributeDataType.unknown:
+                  dataTypeDescription = "Unknown";
+                  break;
+                default:
+                  dataTypeDescription = `Unrecognized (${attribute.dataType})`;
+                  break;
+              }
+
+              console.log(`ABAC attribute: ${attribute.displayName}`, {
+                dataType: attribute.dataType,
+                dataTypeDescription,
+                displayOrder: attribute.displayOrder,
+                isActive: attribute.isActive,
+                isMultiValued: attribute.isMultiValued,
+                values: attribute.values.map((attributeValue: Word.SensitivityLabelAbacAttributeValue) => ({
+                  displayName: attributeValue.displayName,
+                  displayOrder: attributeValue.displayOrder,
+                  id: attributeValue.id,
+                  isActive: attributeValue.isActive
+                }))
+              });
+            });
+
+            addAttributeOptions(catalogAttributes.value);
+          });
+        }
+
+        function addAttributeOptions(attributes: Word.SensitivityLabelAbacAttribute[]) {
+          const container = document.getElementById("abac-attributes");
+          attributes.filter((attribute) => attribute.isActive)
+            .sort((first, second) => first.displayOrder - second.displayOrder)
+            .forEach((attribute, index) => {
+              const group = document.createElement("div");
+              const label = document.createElement("label");
+              label.htmlFor = `abac-attribute-${index}`;
+              label.textContent = `${attribute.displayName} (${attribute.isMultiValued ? "select one or more" : "select one"})`;
+
+              const select = document.createElement("select");
+              select.id = label.htmlFor;
+              select.name = attribute.displayName;
+              select.multiple = attribute.isMultiValued;
+              if (!attribute.isMultiValued) {
+                const placeholder = document.createElement("option");
+                placeholder.textContent = "No value selected";
+                placeholder.value = "";
+                select.add(placeholder);
+              }
+
+              attribute.values.filter((value) => value.isActive)
+                .sort((first, second) => first.displayOrder - second.displayOrder)
+                .forEach((value) => {
+                  const option = document.createElement("option");
+                  option.textContent = value.displayName;
+                  option.value = value.id;
+                  select.add(option);
+                });
+
+              group.appendChild(label);
+              group.appendChild(select);
+              container.appendChild(group);
+            });
+        }
+
+        // Populates the label selector with available labels and groups sublabels under their parent labels.
+        function addLabelOptions(availableLabels: Word.SensitivityLabelDetailsCollection) {
+          const labelSelect = document.getElementById("label-id") as HTMLSelectElement;
+
+          availableLabels.items.forEach((labelDetails: Word.SensitivityLabelDetails) => {
+            // Parent labels can't be applied directly, so add their child labels as selectable options.
+            if (labelDetails.children && labelDetails.children.items.length > 0) {
+              const labelGroup = document.createElement("optgroup");
+              labelGroup.label = labelDetails.name;
+              labelDetails.children.items.forEach((childLabel: Word.SensitivityLabelDetails) => {
+                const childOption = document.createElement("option");
+                childOption.textContent = childLabel.name;
+                childOption.value = childLabel.id;
+                childOption.disabled = !childLabel.isEnabled;
+                labelGroup.appendChild(childOption);
+              });
+              labelSelect.add(labelGroup);
+            } else {
+              const labelOption = document.createElement("option");
+              labelOption.textContent = labelDetails.name;
+              labelOption.value = labelDetails.id;
+              labelOption.disabled = !labelDetails.isEnabled;
+              labelSelect.add(labelOption);
+            }
+          });
+        }
+
+        async function getDocumentLabel() {
+          await Word.run(async (context) => {
+            // Get the sensitivity label currently applied to the document.
+            const wordDocument: Word.Document = context.document;
+            const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+
+            const currentLabel: Word.SensitivityLabelDetails = documentLabel.getCurrentOrNullObject();
+            // Load the properties of the label currently applied to the document.
+            currentLabel.load(
+              "color,id,isAbacAttributesRequired,isAbacEnabled,isEnabled,name,order,protectionType,siteId,tooltip"
+            );
+
+            await context.sync();
+            if (currentLabel.isNullObject) {
+              console.log("The document doesn't have a sensitivity label.");
+              return;
+            }
+
+            // Load ABAC values when supported.
+            let abacAttributeValues: Word.SensitivityLabelAbacAttributeValue[] = [];
+            const isAbacEnabled = currentLabel.isAbacEnabled;
+            if (isAbacEnabled) {
+              currentLabel.load("abacAttributeValues");
+              await context.sync();
+
+              abacAttributeValues = currentLabel.abacAttributeValues;
+            }
+
+            // Display the loaded properties of the current label.
+            const attributeValues = abacAttributeValues.length
+              ? abacAttributeValues
+                  .map(
+                    (attributeValue: Word.SensitivityLabelAbacAttributeValue) =>
+                      `${attributeValue.displayName} (ID: ${attributeValue.id}, order: ${attributeValue.displayOrder}, active: ${attributeValue.isActive ? "Yes" : "No"})`
+                  )
+                  .join(", ")
+              : "None";
+            let protectionDescription: string;
+            switch (currentLabel.protectionType) {
+              case Word.SensitivityLabelProtectionType.adminDefined:
+                protectionDescription = "Defined by an administrator";
+                break;
+              case Word.SensitivityLabelProtectionType.userDefined:
+                protectionDescription = "Defined by the user";
+                break;
+              case Word.SensitivityLabelProtectionType.noProtection:
+                protectionDescription = "No protection";
+                break;
+              default:
+                protectionDescription = `Unknown (${currentLabel.protectionType})`;
+                break;
+            }
+
+            console.log(
+              `Current document sensitivity label:\n\n${currentLabel.name}\n` +
+              `  ID: ${currentLabel.id}\n` +
+              `  Site ID: ${currentLabel.siteId}\n` +
+              `  Tooltip: ${currentLabel.tooltip}\n` +
+              `  Color: ${currentLabel.color}\n` +
+              `  Enabled: ${currentLabel.isEnabled ? "Yes" : "No"}\n` +
+              `  Display order: ${currentLabel.order}\n` +
+              `  ABAC enabled: ${currentLabel.isAbacEnabled ? "Yes" : "No"}\n` +
+              `  ABAC attributes required: ${currentLabel.isAbacAttributesRequired ? "Yes" : "No"}\n` +
+              `  ABAC attribute values: ${attributeValues}\n` +
+              `  Protection type: ${protectionDescription}`
+            );
+          });
+        }
+
+        async function setDocumentLabel() {
+          // Apply the selected sensitivity label to the document.
+          await Word.run(async (context) => {
+            const labelId = (document.getElementById("label-id") as HTMLSelectElement).value;
+            if (!labelId) {
+              console.warn("Get the available labels, and then select a label to apply.");
+              return;
+            }
+
+            const wordDocument: Word.Document = context.document;
+            const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+
+            const updateResult: OfficeExtension.ClientResult<Word.SensitivityLabelUpdateResult> =
+              documentLabel.tryToUpdate(labelId);
+            await context.sync();
+
+            if (updateResult.value.status === Word.SensitivityLabelUpdateStatus.success) {
+              console.log("Applied the sensitivity label to the document.");
+            } else {
+              console.error(`The sensitivity label wasn't applied. Status: ${updateResult.value.status}`);
+            }
+          });
+        }
+
+        async function setDocumentLabelWithAttributes() {
+          // Apply the selected sensitivity label with the chosen ABAC attribute values.
+          await Word.run(async (context) => {
+            const labelId = (document.getElementById("label-id") as HTMLSelectElement).value;
+            if (!labelId) {
+              console.warn("Get available labels and select a label first.");
+              return;
+            }
+
+            const attributeControls = document.getElementById("abac-attributes")
+              .querySelectorAll<HTMLSelectElement>("select");
+            if (attributeControls.length === 0) {
+              console.warn("Get catalog attributes and select attribute values first.");
+              return;
+            }
+
+            const labelCatalog: Word.SensitivityLabelsCatalog = context.sensitivityLabelsCatalog;
+            if (!labelCatalog) {
+              console.warn("The sensitivity label catalog isn't available.");
+              return;
+            }
+
+            labelCatalog.load("getLabelingCapabilities");
+            await context.sync();
+            if (labelCatalog.getLabelingCapabilities.indexOf(Word.LabelingCapability.attributeBasedAccessControlEnabled) === -1) {
+              console.warn("ABAC attributes aren't enabled or available for the current user.");
+              return;
+            }
+
+            // Refresh the catalog to validate selections against the current policy.
+            const catalogAttributes: OfficeExtension.ClientResult<Word.SensitivityLabelAbacAttribute[]> =
+              labelCatalog.getAttributes();
+            await context.sync();
+
+            const selectedAttributes: Word.SensitivityLabelAbacAttribute[] = [];
+            for (const select of Array.from(attributeControls)) {
+              const selectedIds = Array.from(select.selectedOptions)
+                .map((option) => option.value).filter((id) => id !== "");
+              if (selectedIds.length === 0) {
+                continue;
+              }
+
+              const attribute: Word.SensitivityLabelAbacAttribute | undefined =
+                catalogAttributes.value.find((attribute) => attribute.displayName === select.name);
+              if (!attribute || !attribute.isActive || (!attribute.isMultiValued && selectedIds.length > 1)) {
+                console.warn("The attribute selections are no longer valid. Get catalog attributes and select values again.");
+                return;
+              }
+
+              const selectedValues: Word.SensitivityLabelAbacAttributeValue[] =
+                attribute.values.filter((value) => value.isActive && selectedIds.indexOf(value.id) !== -1);
+              if (selectedValues.length !== selectedIds.length) {
+                console.warn("The attribute selections are no longer valid. Get catalog attributes and select values again.");
+                return;
+              }
+
+              const selectedAttribute: Word.SensitivityLabelAbacAttribute = {
+                ...attribute,
+                values: selectedValues
+              };
+              selectedAttributes.push(selectedAttribute);
+            }
+
+            if (selectedAttributes.length === 0) {
+              console.warn("Select at least one ABAC attribute value first.");
+              return;
+            }
+
+            const options: Word.SensitivityLabelTryUpdateOptions = {
+              abacAttributes: selectedAttributes
+            };
+            const wordDocument: Word.Document = context.document;
+            const documentLabel: Word.SensitivityLabel = wordDocument.sensitivityLabel;
+            const updateResult: OfficeExtension.ClientResult<Word.SensitivityLabelUpdateResult> =
+              documentLabel.tryToUpdate(labelId, options);
+            await context.sync();
+
+            if (updateResult.value.status === Word.SensitivityLabelUpdateStatus.success) {
+              console.log("Applied the sensitivity label and ABAC attributes to the document.");
+            } else {
+              console.error(`The sensitivity label wasn't applied. Status: ${updateResult.value.status}`);
+            }
+          });
+        }
+
+        // Default helper for invoking an action and handling errors.
+        async function tryCatch(callback) {
+          try {
+            await callback();
+          } catch (error) {
+            // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+            console.error(error);
+          }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample uses preview APIs to inspect your organization's sensitivity labels and apply a label to the current document.</p>
+            <p><b>Prerequisites:</b> Use a test document and sign in to Word with a work or school account that has sensitivity labeling enabled and at least one label published to it.</p>
+            <p>These preview APIs might not be available in every version of Word.</p>
+            <p>Attribute-based access control (ABAC) attributes must be enabled and available for the current user to retrieve catalog attributes.</p>
+            <p>Labels and ABAC attributes come from your organization's policy and can't be created by this sample.</p>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Setting a label affects the entire document and may change protection or access. Check the console for the result, then use <b>Get document label</b> to verify the label and its ABAC values.</p>
+            <button id="get-catalog-status">Get catalog status</button>
+            <button id="get-available-labels">Get available labels</button>
+            <button id="get-document-label">Get document label</button>
+            <label for="label-id">Label</label>
+            <select id="label-id">
+                <option value="">Get available labels first</option>
+            </select>
+            <button id="set-document-label">Set document label</button>
+            <p>For labels that use ABAC attributes, <b>Get catalog attributes</b> displays active attributes and their active values. Choose values, then use <b>Set document label with attributes</b> instead of <b>Set document label</b>. For a multi-select list, hold Ctrl on Windows or Command on Mac to select multiple values.</p>
+            <button id="get-catalog-attributes">Get catalog attributes</button>
+            <div id="abac-attributes"></div>
+            <button id="set-document-label-with-attributes">Set document label with attributes</button>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        label,
+        select {
+            display: block;
+            margin-left: 20px;
+        }
+
+        select {
+            box-sizing: border-box;
+            margin-bottom: 8px;
+            padding: 6px;
+            width: calc(100% - 40px);
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/beta/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js-preview/index.d.ts

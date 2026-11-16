@@ -182,9 +182,49 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     load: jest.fn(),
   };
 
+  function createTableColumn(id: number, name: string, index: number, isNullObject = false) {
+    return {
+      id,
+      name,
+      index,
+      isNullObject,
+      load: jest.fn(),
+      delete: jest.fn(),
+    };
+  }
+
+  const mockTableColumnItems = [
+    { id: 7, name: 'Product' },
+    { id: 42, name: 'Quantity' },
+    { id: 99, name: 'Unit price' },
+  ].map((column, index) => createTableColumn(column.id, column.name, index));
+
+  function findTableColumn(key: number | string) {
+    return mockTableColumnItems.find(column =>
+      typeof key === 'number' ? column.id === key : column.name === key
+    );
+  }
+
+  const mockTableColumns = {
+    items: mockTableColumnItems,
+    load: jest.fn(),
+    getItem: jest.fn((key: number | string) => {
+      const column = findTableColumn(key);
+      if (!column) {
+        throw new Error(`Unknown mock table column: ${key}`);
+      }
+      return column;
+    }),
+    getItemOrNullObject: jest.fn((key: number | string) =>
+      findTableColumn(key) ?? createTableColumn(-1, '', -1, true)
+    ),
+    add: jest.fn(() => createTableColumn(100, 'Notes', 0)),
+  };
+
   const mockTable = {
     name: 'SalesTable',
     rows: mockTableRows,
+    columns: mockTableColumns,
     onChanged: {
       add: jest.fn(),
     },
@@ -231,7 +271,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     getUsedRange: jest.fn(() => mockRange),
     tables: {
       add: jest.fn(() => mockTable),
-      getItem: jest.fn(() => mockTable),
+      getItem: jest.fn((_key: string) => mockTable),
     },
     load: jest.fn(),
     delete: jest.fn(),

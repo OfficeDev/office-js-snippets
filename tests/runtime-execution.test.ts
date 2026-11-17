@@ -54,6 +54,123 @@ describe('Runtime Execution Tests - Excel', () => {
     });
   });
 
+  const columnIdsSnippetPath = path.join('samples', 'excel', '46-table', 'track-table-column-ids.yaml');
+
+  test('Excel: column ID setup refreshes the selected ID from the created table', async () => {
+    const { mockWorksheet, mockRange, mockDocument, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: columnIdsSnippetPath,
+      buttonId: 'setup',
+    });
+    const table = mockWorksheet.tables.add.mock.results[0].value;
+    expect(table.name).toBe('InventoryTable');
+    expect(mockRange.values).toEqual([
+      ['Product', 'Quantity', 'Unit price'],
+      ['Almonds', 20, 7.5],
+      ['Coffee', 15, 34.5],
+      ['Chocolate', 30, 9.56],
+    ]);
+    expect(table.columns.getItem).toHaveBeenCalledWith('Quantity');
+    expect(table.columns.items[1].load).toHaveBeenCalledWith('id');
+    expect(mockDocument.getElementById('column-id').value).toBe('42');
+    mockDocument.getElementById('column-id').value = '999';
+    await clickButton(buttonHandlers, 'setup');
+    expect(mockDocument.getElementById('column-id').value).toBe('42');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Excel: listing column IDs logs loaded properties instead of client objects', async () => {
+    const { mockWorksheet } = await runExcelSnippetTest({
+      snippetPath: columnIdsSnippetPath,
+      buttonId: 'list-column-ids',
+    });
+    const columns = mockWorksheet.tables.getItem.mock.results[0].value.columns;
+    expect(columns.load).toHaveBeenCalledWith('items/id,items/name,items/index');
+    expect(consoleSpy).toHaveBeenCalledWith('Column:', { id: 42, name: 'Quantity', index: 1 });
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([42, 0])('Excel: column lookup passes numeric ID %i, not an index or string', async (columnId) => {
+    const { mockWorksheet, mockContext, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: columnIdsSnippetPath,
+      skipButtonClick: true,
+      elementValues: { 'column-id': String(columnId) },
+    });
+    const columns = mockWorksheet.tables.getItem('InventoryTable').columns;
+    const quantityColumn = columns.getItem('Quantity');
+    quantityColumn.id = columnId;
+    await clickButton(buttonHandlers, 'get-column-by-id');
+
+    expect(columns.getItemOrNullObject).toHaveBeenCalledWith(columnId);
+    expect(quantityColumn.load).toHaveBeenCalledWith('id,name,index');
+    expect(consoleSpy).toHaveBeenCalledWith('Column found by ID:', {
+      id: columnId,
+      name: 'Quantity',
+      index: 1,
+    });
+    expect(mockContext.sync).toHaveBeenCalledTimes(2);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each(['get-column-by-id', 'rename-column', 'delete-column'])(
+    'Excel: %s handles a missing column without reading null properties',
+    async (buttonId) => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const { mockWorksheet, buttonHandlers } = await runExcelSnippetTest({
+        snippetPath: columnIdsSnippetPath,
+        skipButtonClick: true,
+        elementValues: { 'column-id': '12345' },
+      });
+      const columns = mockWorksheet.tables.getItem('InventoryTable').columns;
+      const missingColumn = columns.getItemOrNullObject(12345);
+      for (const property of ['id', 'name', 'index']) {
+        Object.defineProperty(missingColumn, property, {
+          get() {
+            throw new Error(`Cannot read ${property} on a null column.`);
+          },
+          set() {
+            throw new Error(`Cannot set ${property} on a null column.`);
+          },
+        });
+      }
+      columns.getItemOrNullObject.mockReturnValue(missingColumn);
+      await clickButton(buttonHandlers, buttonId);
+
+      expect(warnSpy).toHaveBeenCalledWith('No column with ID 12345 exists in InventoryTable.');
+      expect(missingColumn.load).not.toHaveBeenCalled();
+      expect(missingColumn.delete).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    }
+  );
+
+  test.each(['', ' ', 'not-a-number', '1.5', '9007199254740992'])(
+    'Excel: invalid column ID %j reports an error before accessing Office',
+    async (input) => {
+      const { mockContext } = await runExcelSnippetTest({
+        snippetPath: columnIdsSnippetPath,
+        buttonId: 'get-column-by-id',
+        elementValues: { 'column-id': input },
+      });
+      expect(mockContext.workbook.worksheets.getItem).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'Enter an integer column ID from List column IDs.' })
+      );
+    }
+  );
+
+  test('Excel: renaming a column is a separate mutation from reading its properties', async () => {
+    const { mockWorksheet, mockContext } = await runExcelSnippetTest({
+      snippetPath: columnIdsSnippetPath,
+      buttonId: 'rename-column',
+      elementValues: { 'column-id': '42' },
+    });
+    const columns = mockWorksheet.tables.getItem.mock.results[0].value.columns;
+    expect(columns.getItemOrNullObject).toHaveBeenCalledWith(42);
+    expect(columns.items[1].name).toBe('Units');
+    expect(columns.items[1].load).not.toHaveBeenCalled();
+    expect(mockContext.sync).toHaveBeenCalledTimes(2);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
   const usedRangeSnippetPath = path.join('samples', 'excel', '54-worksheet', 'worksheet-used-range.yaml');
 
   test.each([
@@ -106,6 +223,41 @@ describe('Runtime Execution Tests - Excel', () => {
         });
       }
     }
+    expect(mockContext.sync).toHaveBeenCalledTimes(2);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([false, true])('Excel: inserting a leading column handles an existing Notes column (%s)', async (exists) => {
+    const { mockWorksheet, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: columnIdsSnippetPath,
+      skipButtonClick: true,
+    });
+    const columns = mockWorksheet.tables.getItem('InventoryTable').columns;
+    if (exists) {
+      columns.items[0].name = 'Notes';
+    }
+    await clickButton(buttonHandlers, 'insert-leading-column');
+
+    expect(columns.getItemOrNullObject).toHaveBeenCalledWith('Notes');
+    if (exists) {
+      expect(columns.add).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith('The Notes column already exists. Set up resets the sample.');
+    } else {
+      expect(columns.add).toHaveBeenCalledWith(0, [['Notes'], ['Restock'], [''], ['Promotion']]);
+    }
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test('Excel: deleting a column uses its ID and does not read a deleted object', async () => {
+    const { mockWorksheet, mockContext } = await runExcelSnippetTest({
+      snippetPath: columnIdsSnippetPath,
+      buttonId: 'delete-column',
+      elementValues: { 'column-id': '42' },
+    });
+    const columns = mockWorksheet.tables.getItem.mock.results[0].value.columns;
+    expect(columns.getItemOrNullObject).toHaveBeenCalledWith(42);
+    expect(columns.items[1].delete).toHaveBeenCalledTimes(1);
+    expect(columns.items[1].load).not.toHaveBeenCalled();
     expect(mockContext.sync).toHaveBeenCalledTimes(2);
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });

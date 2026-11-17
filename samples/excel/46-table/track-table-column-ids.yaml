@@ -1,0 +1,248 @@
+order: 12
+id: excel-table-track-table-column-ids
+name: Track table columns by ID
+description: Lists table column IDs and retrieves a column by ID after renaming it or inserting another column.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: '1.4'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("list-column-ids").addEventListener("click", () => tryCatch(listColumnIds));
+        document.getElementById("get-column-by-id").addEventListener("click", () => tryCatch(() => getColumnById(readColumnId())));
+        document.getElementById("rename-column").addEventListener("click", () => tryCatch(() => renameColumn(readColumnId())));
+        document.getElementById("insert-leading-column").addEventListener("click", () => tryCatch(insertLeadingColumn));
+        document.getElementById("delete-column").addEventListener("click", () => tryCatch(() => deleteColumn(readColumnId())));
+
+        async function listColumnIds() {
+            // Read each column's table-scoped ID alongside its name and current position.
+            await Excel.run(async (context) => {
+                const inventoryTable: Excel.Table = context.workbook.worksheets
+                    .getItem("Sample").tables.getItem("InventoryTable");
+                const columns: Excel.TableColumnCollection = inventoryTable.columns;
+                columns.load("items/id,items/name,items/index");
+                await context.sync();
+
+                console.log("InventoryTable columns (indexes are zero-based):");
+                columns.items.forEach((column: Excel.TableColumn) => {
+                    console.log("Column:", {
+                        id: column.id,
+                        name: column.name,
+                        index: column.index
+                    });
+                });
+            });
+        }
+
+        async function getColumnById(columnId: number) {
+            // Retrieve a column by its numeric ID, which is not its collection index.
+            await Excel.run(async (context) => {
+                const inventoryTable: Excel.Table = context.workbook.worksheets
+                    .getItem("Sample").tables.getItem("InventoryTable");
+                const columns: Excel.TableColumnCollection = inventoryTable.columns;
+                const column: Excel.TableColumn = columns.getItemOrNullObject(columnId);
+
+                await context.sync();
+                if (column.isNullObject) {
+                    console.warn(`No column with ID ${columnId} exists in InventoryTable.`);
+                    return;
+                }
+
+                column.load("id,name,index");
+                await context.sync();
+                console.log("Column found by ID:", {
+                    id: column.id,
+                    name: column.name,
+                    index: column.index
+                });
+            });
+        }
+
+        async function renameColumn(columnId: number) {
+            // Change the selected column's name without assigning a new ID.
+            await Excel.run(async (context) => {
+                const inventoryTable: Excel.Table = context.workbook.worksheets
+                    .getItem("Sample").tables.getItem("InventoryTable");
+                const column: Excel.TableColumn = inventoryTable.columns.getItemOrNullObject(columnId);
+
+                await context.sync();
+                if (column.isNullObject) {
+                    console.warn(`No column with ID ${columnId} exists in InventoryTable.`);
+                    return;
+                }
+
+                column.name = "Units";
+                await context.sync();
+                console.log("Renamed the selected column to Units. Get the column by ID again to inspect it.");
+            });
+        }
+
+        async function insertLeadingColumn() {
+            await Excel.run(async (context) => {
+                const inventoryTable: Excel.Table = context.workbook.worksheets
+                    .getItem("Sample").tables.getItem("InventoryTable");
+                const columns: Excel.TableColumnCollection = inventoryTable.columns;
+                const notesColumn: Excel.TableColumn = columns.getItemOrNullObject("Notes");
+                await context.sync();
+
+                if (!notesColumn.isNullObject) {
+                    console.log("The Notes column already exists. Set up resets the sample.");
+                    return;
+                }
+
+                columns.add(0, [["Notes"], ["Restock"], [""], ["Promotion"]]);
+                await context.sync();
+                console.log("Inserted Notes at index 0. Get the original column by ID again to inspect its new index.");
+            });
+        }
+
+        async function deleteColumn(columnId: number) {
+            await Excel.run(async (context) => {
+                const inventoryTable: Excel.Table = context.workbook.worksheets
+                    .getItem("Sample").tables.getItem("InventoryTable");
+                const column: Excel.TableColumn = inventoryTable.columns.getItemOrNullObject(columnId);
+
+                await context.sync();
+                if (column.isNullObject) {
+                    console.warn(`No column with ID ${columnId} exists in InventoryTable.`);
+                    return;
+                }
+
+                column.delete();
+                await context.sync();
+                console.log("Deleted the selected column. Get it by ID again to see how a missing column is handled.");
+            });
+        }
+
+        function readColumnId(): number {
+            const idText = (document.getElementById("column-id") as HTMLInputElement).value.trim();
+            const columnId = Number(idText);
+            if (idText === "" || !Number.isSafeInteger(columnId)) {
+                throw new Error("Enter an integer column ID from List column IDs.");
+            }
+            return columnId;
+        }
+
+        async function setup() {
+            (document.getElementById("column-id") as HTMLInputElement).value = "";
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet: Excel.Worksheet = context.workbook.worksheets.add("Sample");
+                const dataRange: Excel.Range = sheet.getRange("A1:C4");
+                dataRange.values = [
+                    ["Product", "Quantity", "Unit price"],
+                    ["Almonds", 20, 7.5],
+                    ["Coffee", 15, 34.5],
+                    ["Chocolate", 30, 9.56]
+                ];
+                const inventoryTable: Excel.Table = sheet.tables.add(dataRange, true);
+                inventoryTable.name = "InventoryTable";
+                const quantityColumn: Excel.TableColumn = inventoryTable.columns.getItem("Quantity");
+                quantityColumn.load("id");
+                dataRange.format.autofitColumns();
+                sheet.activate();
+                await context.sync();
+
+                (document.getElementById("column-id") as HTMLInputElement).value = String(quantityColumn.id);
+                console.log("InventoryTable is ready. The ID input identifies the Quantity column.");
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample tracks a table column by its read-only numeric ID as its name and position change. It also handles a lookup after the column is deleted.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Set up replaces the worksheet named Sample, creates InventoryTable, and fills the ID input with the Quantity column's ID.</p>
+            <button id="setup">Create inventory table</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <button id="list-column-ids">List column IDs</button>
+            <p>An ID identifies a column within its table. It's not the column's zero-based index or a workbook-wide identifier. IDs are assigned by Excel; don't assume particular values.</p>
+            <label for="column-id">Column ID in InventoryTable:</label>
+            <input id="column-id" type="number" step="1" />
+            <button id="get-column-by-id">Get column by ID</button>
+            <p>The console shows the column's ID, name, and index. After each change below, get the column by ID again or list all IDs to compare the results.</p>
+            <button id="rename-column">Rename selected column to Units</button>
+            <button id="insert-leading-column">Insert Notes as first column</button>
+            <p>Renaming changes the name; inserting a leading column shifts existing indexes. The original column can still be found with the same ID.</p>
+            <button id="delete-column">Delete selected column</button>
+            <p>Looking up the deleted column reports that it no longer exists instead of reading a null object's properties. Set up restores the table and refreshes the ID input; don't reuse IDs saved from a deleted table.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

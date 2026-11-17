@@ -1,0 +1,185 @@
+order: 14
+id: excel-worksheet-worksheet-used-range
+name: Used range or null object
+description: Compares used ranges with and without formatting and safely handles formatting-only and blank worksheets.
+author: OfficeDev
+host: EXCEL
+api_set:
+    ExcelApi: '1.4'
+script:
+    content: |-
+        document.getElementById("setup").addEventListener("click", () => tryCatch(setup));
+        document.getElementById("compare-used-ranges").addEventListener("click", () => tryCatch(compareUsedRanges));
+        document.getElementById("clear-values").addEventListener("click", () => tryCatch(clearValues));
+        document.getElementById("clear-all").addEventListener("click", () => tryCatch(clearAll));
+
+        async function compareUsedRanges() {
+            // Compare cells with values or formatting against cells with values only.
+            await Excel.run(async (context) => {
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                const usedRange: Excel.Range = sheet.getUsedRangeOrNullObject();
+                const valuesRange: Excel.Range = sheet.getUsedRangeOrNullObject(true);
+
+                // Synchronize before checking isNullObject, which is loaded automatically.
+                await context.sync();
+
+                if (!usedRange.isNullObject) {
+                    usedRange.load("address,rowCount,columnCount");
+                }
+                if (!valuesRange.isNullObject) {
+                    valuesRange.load("address,rowCount,columnCount");
+                }
+                await context.sync();
+
+                if (usedRange.isNullObject) {
+                    console.log("Values or formatting: no used cells. The worksheet is blank.");
+                } else {
+                    console.log("Values or formatting:", {
+                        address: usedRange.address,
+                        rows: usedRange.rowCount,
+                        columns: usedRange.columnCount
+                    });
+                }
+
+                if (valuesRange.isNullObject) {
+                    console.log("Values only: no cells with values.");
+                } else {
+                    console.log("Values only:", {
+                        address: valuesRange.address,
+                        rows: valuesRange.rowCount,
+                        columns: valuesRange.columnCount
+                    });
+                }
+            });
+        }
+
+        async function clearValues() {
+            await Excel.run(async (context) => {
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange().clear("Contents");
+                await context.sync();
+                console.log("Cleared values and formulas from Sample. Formatting remains. Compare the used ranges again.");
+            });
+        }
+
+        async function clearAll() {
+            await Excel.run(async (context) => {
+                const sheet: Excel.Worksheet = context.workbook.worksheets.getItem("Sample");
+                sheet.getRange().clear("All");
+                await context.sync();
+                console.log("Cleared values and formatting from Sample. Compare the used ranges again.");
+            });
+        }
+
+        async function setup() {
+            await Excel.run(async (context) => {
+                context.workbook.worksheets.getItemOrNullObject("Sample").delete();
+                const sheet: Excel.Worksheet = context.workbook.worksheets.add("Sample");
+                const salesRange: Excel.Range = sheet.getRange("B2:D5");
+                salesRange.values = [
+                    ["Product", "Quantity", "Unit price"],
+                    ["Almonds", 2, 7.5],
+                    ["Coffee", 1, 34.5],
+                    ["Chocolate", 5, 9.56]
+                ];
+                sheet.getRange("B2:D2").format.font.bold = true;
+                sheet.getRange("H8").format.fill.color = "#FFF2CC";
+                sheet.activate();
+                await context.sync();
+                console.log("Sample is ready. B2:D5 contains values; H8 has formatting only.");
+            });
+        }
+
+        /** Default helper for invoking an action and handling errors. */
+        async function tryCatch(callback) {
+            try {
+                await callback();
+            } catch (error) {
+                // Note: In a production add-in, you'd want to notify the user through your add-in's UI.
+                console.error(error);
+            }
+        }
+    language: typescript
+template:
+    content: |-
+        <section>
+            <p>This sample compares a worksheet's used range, including formatting, with its values-only used range. It safely handles worksheets with only formatting or no used cells.</p>
+        </section>
+        <section class="setup">
+            <h3>Set up</h3>
+            <p>Set up replaces the worksheet named Sample with values in B2:D5 and a formatted, empty cell at H8.</p>
+            <button id="setup">Set up</button>
+        </section>
+        <section>
+            <h3>Try it out</h3>
+            <p>Initially, the console shows B2:H8 for values or formatting and B2:D5 for values only. The used range is a bounding rectangle, so it includes empty cells between used cells.</p>
+            <button id="compare-used-ranges">Compare used ranges</button>
+            <p>Clearing values leaves formatting: the default call still returns a range, but the values-only call returns a null object. Compare again to see the difference.</p>
+            <button id="clear-values">Clear values, keep formatting</button>
+            <p>Clearing everything leaves a blank worksheet: both calls return null objects. Compare again to see the result. Set up restores the original data at any time.</p>
+            <button id="clear-all">Clear values and formatting</button>
+            <p>The code synchronizes before checking <code>isNullObject</code> and reads range properties only for non-null objects. Clear actions only affect the Sample worksheet.</p>
+        </section>
+    language: html
+style:
+    content: |-
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 10px;
+        }
+
+        section {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 0 0 10px 0;
+        }
+
+        button {
+            background-color: #f0f0f0;
+            color: #333333;
+            border: 1px solid #8a8a8a;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-left: 20px;
+            margin-bottom: 5px;
+            min-width: 80px;
+            display: block;
+        }
+
+        button:hover {
+            background-color: #e0e0e0;
+        }
+
+        button:active {
+            background-color: #d0d0d0;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+
+        .header {
+            text-align: center;
+            background-color: #f3f2f1;
+            padding: 10px;
+        }
+    language: css
+libraries: |-
+    https://officeapis.public.onecdn.static.microsoft/1/office.js
+    https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/office-js/index.d.ts

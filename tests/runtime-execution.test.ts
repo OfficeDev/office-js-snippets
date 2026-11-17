@@ -54,6 +54,77 @@ describe('Runtime Execution Tests - Excel', () => {
     });
   });
 
+  const usedRangeSnippetPath = path.join('samples', 'excel', '54-worksheet', 'worksheet-used-range.yaml');
+
+  test.each([
+    { scenario: 'values and formatting', allIsNull: false, valuesIsNull: false },
+    { scenario: 'formatting only', allIsNull: false, valuesIsNull: true },
+    { scenario: 'blank worksheet', allIsNull: true, valuesIsNull: true },
+  ])('Excel: used range comparison handles $scenario', async ({ allIsNull, valuesIsNull }) => {
+    const { mockWorksheet, mockRange, mockContext, buttonHandlers } = await runExcelSnippetTest({
+      snippetPath: usedRangeSnippetPath,
+      skipButtonClick: true,
+    });
+    const createUsedRange = (isNullObject: boolean, address: string) => ({
+      ...mockRange,
+      isNullObject,
+      get address() {
+        if (isNullObject) {
+          throw new Error('Cannot read the address of a null range.');
+        }
+        return address;
+      },
+      load: jest.fn(() => {
+        if (isNullObject) {
+          throw new Error('Cannot load properties of a null range.');
+        }
+      }),
+    });
+    const usedRange = createUsedRange(allIsNull, 'Sample!B2:H8');
+    const valuesRange = createUsedRange(valuesIsNull, 'Sample!B2:D5');
+    mockWorksheet.getUsedRangeOrNullObject
+      .mockReturnValueOnce(usedRange)
+      .mockReturnValueOnce(valuesRange);
+
+    await clickButton(buttonHandlers, 'compare-used-ranges');
+
+    expect(mockWorksheet.getUsedRangeOrNullObject.mock.calls).toEqual([[], [true]]);
+    expect(mockContext.workbook.worksheets.getItem).toHaveBeenCalledWith('Sample');
+    for (const [range, label, emptyMessage] of [
+      [usedRange, 'Values or formatting:', 'Values or formatting: no used cells. The worksheet is blank.'],
+      [valuesRange, 'Values only:', 'Values only: no cells with values.'],
+    ] as const) {
+      if (range.isNullObject) {
+        expect(range.load).not.toHaveBeenCalled();
+        expect(consoleSpy).toHaveBeenCalledWith(emptyMessage);
+      } else {
+        expect(range.load).toHaveBeenCalledWith('address,rowCount,columnCount');
+        expect(consoleSpy).toHaveBeenCalledWith(label, {
+          address: range.address,
+          rows: range.rowCount,
+          columns: range.columnCount,
+        });
+      }
+    }
+    expect(mockContext.sync).toHaveBeenCalledTimes(2);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['clear-values', 'Contents'],
+    ['clear-all', 'All'],
+  ])('Excel: %s clears only the sample worksheet', async (buttonId, clearMode) => {
+    const { mockWorksheet, mockRange, mockContext } = await runExcelSnippetTest({
+      snippetPath: usedRangeSnippetPath,
+      buttonId,
+    });
+    expect(mockContext.workbook.worksheets.getItem).toHaveBeenCalledWith('Sample');
+    expect(mockWorksheet.getRange).toHaveBeenCalledWith();
+    expect(mockRange.clear).toHaveBeenCalledWith(clearMode);
+    expect(mockContext.sync).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
   const sensitivitySnippetPath = path.join('samples', 'excel', '98-preview-apis', 'manage-sensitivity-labels.yaml');
 
   test.each([

@@ -151,6 +151,9 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
 
   const mockRange = {
     address: rangeAddress,
+    isNullObject: false,
+    rowCount: 2,
+    columnCount: 2,
     values: rangeValues,
     formulas: [],
     valuesAsJson: rangeValuesAsJson,
@@ -164,6 +167,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
       rowHeight: 0,
     },
     load: jest.fn(),
+    clear: jest.fn(),
   };
 
   const mockTableRow = {
@@ -229,6 +233,7 @@ export function createExcelMock(options: ExcelMockOptions = {}) {
     getRange: jest.fn(() => mockRange),
     getRangeByIndexes: jest.fn(() => mockRange),
     getUsedRange: jest.fn(() => mockRange),
+    getUsedRangeOrNullObject: jest.fn((_valuesOnly?: boolean) => mockRange),
     tables: {
       add: jest.fn(() => mockTable),
       getItem: jest.fn(() => mockTable),
